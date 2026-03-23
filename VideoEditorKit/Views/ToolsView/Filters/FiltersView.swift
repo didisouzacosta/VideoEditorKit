@@ -35,8 +35,8 @@ struct FiltersView: View {
     }
 }
 
-extension FiltersView{
-    private func imageView(_ uiImage: UIImage, isSelected: Bool) -> some View{
+extension FiltersView {
+    private func imageView(_ uiImage: UIImage, isSelected: Bool) -> some View {
         Image(uiImage: uiImage)
             .resizable()
             .aspectRatio(contentMode: .fill)
@@ -48,14 +48,14 @@ extension FiltersView{
                     .strokeBorder(isSelected ? .white : .white.opacity(0.10), lineWidth: isSelected ? 2 : 1)
             }
             .padding(4)
-            .ios26Card(cornerRadius: 22, prominent: isSelected, tint: isSelected ? IOS26Theme.accent : IOS26Theme.accentSecondary)
+            .ios26Card(
+                cornerRadius: 22, prominent: isSelected,
+                tint: isSelected ? IOS26Theme.accent : IOS26Theme.accentSecondary)
     }
-    
-    
-    
-    private var resetButton: some View{
-        Group{
-            if let image = viewModel.image{
+
+    private var resetButton: some View {
+        Group {
+            if let image = viewModel.image {
                 Button {
                     selectedFilterName = nil
                 } label: {

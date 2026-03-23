@@ -5,21 +5,21 @@
 //  Created by Adriano Souza Costa on 23.03.2026.
 //
 
-import SwiftUI
 import Observation
+import SwiftUI
 
 @MainActor
-struct TextEditorView: View{
+struct TextEditorView: View {
     @Bindable var viewModel: TextEditorViewModel
     @State private var textHeight: CGFloat = 100
     @State private var isFocused: Bool = true
     let onSave: ([TextBox]) -> Void
-    var body: some View{
+    var body: some View {
         IOS26Theme.scrim
-                .ignoresSafeArea()
+            .ignoresSafeArea()
         VStack(spacing: 24) {
             HStack {
-                Button{
+                Button {
                     closeKeyboard()
                     viewModel.cancelTextEditor()
                 } label: {
@@ -33,7 +33,7 @@ struct TextEditorView: View{
 
                 Spacer()
 
-                HStack(spacing: 14){
+                HStack(spacing: 14) {
                     ColorPicker(selection: $viewModel.currentTextBox.fontColor, supportsOpacity: true) {
                     }
                     .labelsHidden()
@@ -50,11 +50,14 @@ struct TextEditorView: View{
 
             Spacer()
 
-            TextView(textBox: $viewModel.currentTextBox, isFirstResponder: $isFocused, minHeight: textHeight, calculatedHeight: $textHeight)
-                .frame(maxHeight: textHeight)
-                .padding(.horizontal, 20)
-                .padding(.vertical, 18)
-                .ios26Card(cornerRadius: 30, prominent: true, tint: IOS26Theme.accentSecondary)
+            TextView(
+                textBox: $viewModel.currentTextBox, isFirstResponder: $isFocused, minHeight: textHeight,
+                calculatedHeight: $textHeight
+            )
+            .frame(maxHeight: textHeight)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 18)
+            .ios26Card(cornerRadius: 30, prominent: true, tint: IOS26Theme.accentSecondary)
 
             Spacer()
 
@@ -77,23 +80,25 @@ struct TextEditorView: View{
         .padding(.horizontal, 20)
         .padding(.vertical, 24)
     }
-    
-    
-    private func closeKeyboard(){
+
+    private func closeKeyboard() {
         isFocused = false
     }
 }
 
 @MainActor
 struct TextView: UIViewRepresentable {
-    
+
     @Binding var isFirstResponder: Bool
     @Binding var textBox: TextBox
 
     var minHeight: CGFloat
     @Binding var calculatedHeight: CGFloat
 
-    init(textBox: Binding<TextBox>, isFirstResponder: Binding<Bool>, minHeight: CGFloat, calculatedHeight: Binding<CGFloat>) {
+    init(
+        textBox: Binding<TextBox>, isFirstResponder: Binding<Bool>, minHeight: CGFloat,
+        calculatedHeight: Binding<CGFloat>
+    ) {
         self._textBox = textBox
         self._isFirstResponder = isFirstResponder
         self.minHeight = minHeight
@@ -121,40 +126,45 @@ struct TextView: UIViewRepresentable {
     }
 
     func updateUIView(_ textView: UITextView, context: Context) {
-        
+
         focused(textView)
         recalculateHeight(view: textView)
         setTextAttrs(textView)
-    
+
     }
-    
-    private func setTextAttrs(_ textView: UITextView){
-        
+
+    private func setTextAttrs(_ textView: UITextView) {
+
         let attrStr = NSMutableAttributedString(string: textView.text)
         let range = NSRange(location: 0, length: attrStr.length)
-        
-        attrStr.addAttribute(NSAttributedString.Key.backgroundColor, value: UIColor(textBox.bgColor), range: range)
-        attrStr.addAttribute(NSAttributedString.Key.font, value: UIFont.systemFont(ofSize: textBox.fontSize, weight: .medium), range: range)
-        attrStr.addAttribute(NSAttributedString.Key.foregroundColor, value: UIColor(textBox.fontColor), range: range)
-        
+
+        attrStr.addAttribute(
+            NSAttributedString.Key.backgroundColor, value: UIColor(textBox.bgColor), range: range)
+        attrStr.addAttribute(
+            NSAttributedString.Key.font,
+            value: UIFont.systemFont(ofSize: textBox.fontSize, weight: .medium), range: range)
+        attrStr.addAttribute(
+            NSAttributedString.Key.foregroundColor, value: UIColor(textBox.fontColor), range: range)
+
         textView.attributedText = attrStr
         textView.textAlignment = .center
     }
 
-   private func recalculateHeight(view: UIView) {
-        let newSize = view.sizeThatFits(CGSize(width: view.frame.size.width, height: CGFloat.greatestFiniteMagnitude))
+    private func recalculateHeight(view: UIView) {
+        let newSize = view.sizeThatFits(
+            CGSize(width: view.frame.size.width, height: CGFloat.greatestFiniteMagnitude))
         if minHeight < newSize.height && $calculatedHeight.wrappedValue != newSize.height {
             DispatchQueue.main.async {
-                self.$calculatedHeight.wrappedValue = newSize.height // !! must be called asynchronously
+                self.$calculatedHeight.wrappedValue = newSize.height  // !! must be called asynchronously
             }
         } else if minHeight >= newSize.height && $calculatedHeight.wrappedValue != minHeight {
             DispatchQueue.main.async {
-                self.$calculatedHeight.wrappedValue = self.minHeight // !! must be called asynchronously
+                self.$calculatedHeight.wrappedValue = self.minHeight  // !! must be called asynchronously
             }
         }
     }
-    
-    private func focused(_ textView: UITextView){
+
+    private func focused(_ textView: UITextView) {
         DispatchQueue.main.async {
             switch isFirstResponder {
             case true: textView.becomeFirstResponder()
@@ -163,7 +173,7 @@ struct TextView: UIViewRepresentable {
         }
     }
 
-    final class Coordinator : NSObject, UITextViewDelegate {
+    final class Coordinator: NSObject, UITextViewDelegate {
 
         var parent: TextView
 
@@ -177,10 +187,10 @@ struct TextView: UIViewRepresentable {
                 parent.recalculateHeight(view: textView)
             }
         }
-        
-//        func textViewDidBeginEditing(_ textView: UITextView) {
-//            parent.isFirstResponder = true
-//        }
+
+        //        func textViewDidBeginEditing(_ textView: UITextView) {
+        //            parent.isFirstResponder = true
+        //        }
     }
 }
 

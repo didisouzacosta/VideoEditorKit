@@ -30,7 +30,7 @@ where Value: BinaryFloatingPoint, Value.Stride: BinaryFloatingPoint, Track: View
     // way in SwiftUI to get the thumb size at runtime, and its an important
     // to know it in order to compute its insets in the track overlay.
     let thumbSize: CGSize
-    
+
     // x offset of the thumb from the track left-hand side
     @State private var xOffset: CGFloat = 0
     // last moved offset, used to decide if sliding has started
@@ -38,18 +38,20 @@ where Value: BinaryFloatingPoint, Value.Stride: BinaryFloatingPoint, Track: View
     // the size of the track view. This can be obtained at runtime.
     @State private var trackSize: CGSize = .zero
     @State private var isOnChange: Bool = false
-    
+
     // initializer allows us to set default values for some view params
-    init(value: Binding<Value>,
-         in bounds: ClosedRange<Value> = 0...1,
-         step: Value = 0.001,
-         minimumValueLabel: Text? = nil,
-         maximumValueLabel: Text? = nil,
-         onEditingChanged: ((Bool) -> Void)? = nil,
-         onChanged: (() -> Void)? = nil,
-         track: @escaping () -> Track,
-         thumb: @escaping () -> Thumb,
-         thumbSize: CGSize) {
+    init(
+        value: Binding<Value>,
+        in bounds: ClosedRange<Value> = 0...1,
+        step: Value = 0.001,
+        minimumValueLabel: Text? = nil,
+        maximumValueLabel: Text? = nil,
+        onEditingChanged: ((Bool) -> Void)? = nil,
+        onChanged: (() -> Void)? = nil,
+        track: @escaping () -> Track,
+        thumb: @escaping () -> Thumb,
+        thumbSize: CGSize
+    ) {
         _value = value
         self.bounds = bounds
         self.step = step
@@ -61,28 +63,28 @@ where Value: BinaryFloatingPoint, Value.Stride: BinaryFloatingPoint, Track: View
         self.thumb = thumb
         self.thumbSize = thumbSize
     }
-    
+
     // where does the current value sit, percentage-wise, in the provided bounds
     private var percentage: Value {
         1 - (bounds.upperBound - value) / (bounds.upperBound - bounds.lowerBound)
     }
-    
+
     // how wide the should the fill view be
     private var fillWidth: CGFloat {
         trackSize.width * CGFloat(percentage)
     }
-    
+
     var body: some View {
         // the HStack orders minimumValueLabel, the slider and maximumValueLabel horizontally
         HStack {
             minimumValueLabel
-            
+
             // Represent the custom slider. ZStack overlays `fill` on top of `track`,
             // while the `thumb` is in their `overlay`.
             ZStack {
                 track()
-                // get the size of the track at runtime as it
-                // defines all the other functionality
+                    // get the size of the track at runtime as it
+                    // defines all the other functionality
                     .measureSize {
                         // if this is the first time trackSize is computed,
                         // update the offset to reflect the current `value`
@@ -94,7 +96,7 @@ where Value: BinaryFloatingPoint, Value.Stride: BinaryFloatingPoint, Track: View
                         }
                     }
                     .onChange(of: value) { _, _ in
-                        if !isOnChange{
+                        if !isOnChange {
                             xOffset = (trackSize.width - thumbSize.width) * CGFloat(percentage)
                             lastOffset = xOffset
                         }
@@ -103,39 +105,45 @@ where Value: BinaryFloatingPoint, Value.Stride: BinaryFloatingPoint, Track: View
             // make sure the entire ZStack is the same size as `track`
             .frame(width: trackSize.width, height: trackSize.height)
             // the thumb lives in the ZStack overlay
-            .overlay(thumb()
-                     // adjust the insets so that `thumb` doesn't sit outside the `track`
-                .position(x: thumbSize.width / 2,
-                          y: thumbSize.height / 2)
-                     // set the size here to make sure it's really the same as the
-                     // provided `thumbSize` parameter
-                .frame(width: thumbSize.width, height: thumbSize.height)
-                     // set the offset to, well, the stored xOffset
-                .offset(x: xOffset)
-                     // use the DragGesture to move the `thumb` around as adjust xOffset
-                .gesture(DragGesture(minimumDistance: 0).onChanged({ gestureValue in
-                    // make sure at least some dragging was done to trigger `onEditingChanged`
-                    if abs(gestureValue.translation.width) < 0.1 {
-                       lastOffset = xOffset
-                        onEditingChanged?(true)
-                        isOnChange = true
-                    }
-                    // update xOffset by the gesture translation, making sure it's within the view's bounds
-                    let availableWidth = trackSize.width - thumbSize.width
-                    xOffset = max(0, min(lastOffset + gestureValue.translation.width, availableWidth))
-                    // update the value by mapping xOffset to the track width and then to the provided bounds
-                    // also make sure that the value changes discretely based on the `step` para
-                    let newValue = (bounds.upperBound - bounds.lowerBound) * Value(xOffset / availableWidth) + bounds.lowerBound
-                    let steppedNewValue = (round(newValue / step) * step)
-                    value = min(bounds.upperBound, max(bounds.lowerBound, steppedNewValue))
-                    onChanged?()
-                }).onEnded({ _ in
-                    // once the gesture ends, trigger `onEditingChanged` again
-                    onEditingChanged?(false)
-                    isOnChange = false
-                })),
-                     alignment: .leading)
-            
+            .overlay(
+                thumb()
+                    // adjust the insets so that `thumb` doesn't sit outside the `track`
+                    .position(
+                        x: thumbSize.width / 2,
+                        y: thumbSize.height / 2
+                    )
+                    // set the size here to make sure it's really the same as the
+                    // provided `thumbSize` parameter
+                    .frame(width: thumbSize.width, height: thumbSize.height)
+                    // set the offset to, well, the stored xOffset
+                    .offset(x: xOffset)
+                    // use the DragGesture to move the `thumb` around as adjust xOffset
+                    .gesture(
+                        DragGesture(minimumDistance: 0).onChanged({ gestureValue in
+                            // make sure at least some dragging was done to trigger `onEditingChanged`
+                            if abs(gestureValue.translation.width) < 0.1 {
+                                lastOffset = xOffset
+                                onEditingChanged?(true)
+                                isOnChange = true
+                            }
+                            // update xOffset by the gesture translation, making sure it's within the view's bounds
+                            let availableWidth = trackSize.width - thumbSize.width
+                            xOffset = max(0, min(lastOffset + gestureValue.translation.width, availableWidth))
+                            // update the value by mapping xOffset to the track width and then to the provided bounds
+                            // also make sure that the value changes discretely based on the `step` para
+                            let newValue =
+                                (bounds.upperBound - bounds.lowerBound) * Value(xOffset / availableWidth)
+                                + bounds.lowerBound
+                            let steppedNewValue = (round(newValue / step) * step)
+                            value = min(bounds.upperBound, max(bounds.lowerBound, steppedNewValue))
+                            onChanged?()
+                        }).onEnded({ _ in
+                            // once the gesture ends, trigger `onEditingChanged` again
+                            onEditingChanged?(false)
+                            isOnChange = false
+                        })),
+                alignment: .leading)
+
             maximumValueLabel
         }
         // manually set the height of the entire view to account for thumb height
@@ -145,31 +153,29 @@ where Value: BinaryFloatingPoint, Value.Stride: BinaryFloatingPoint, Track: View
 
 struct CustomSlider_Previews: PreviewProvider {
     static var previews: some View {
-        CustomSlider(value: .constant(10),
-                     in: 10...255,
-                     step: 90,
-                     minimumValueLabel: Text("Min"),
-                     maximumValueLabel: Text("Max"),
-                     onEditingChanged: { started in
-            print("started custom slider: \(started)")
-        }, track: {
-            Capsule()
-                .foregroundColor(.init(red: 0.9, green: 0.9, blue: 0.9))
-                .frame(width: 200, height: 5)
-        }, thumb: {
-            Circle()
-                .foregroundColor(.white)
-                .shadow(radius: 20 / 1)
-        }, thumbSize: CGSize(width: 20, height: 20))
+        CustomSlider(
+            value: .constant(10),
+            in: 10...255,
+            step: 90,
+            minimumValueLabel: Text("Min"),
+            maximumValueLabel: Text("Max"),
+            onEditingChanged: { _ in },
+            track: {
+                Capsule()
+                    .foregroundColor(.init(red: 0.9, green: 0.9, blue: 0.9))
+                    .frame(width: 200, height: 5)
+            },
+            thumb: {
+                Circle()
+                    .foregroundColor(.white)
+                    .shadow(radius: 20 / 1)
+            }, thumbSize: CGSize(width: 20, height: 20))
     }
 }
 
-
-
-
 struct SizePreferenceKey: PreferenceKey {
     static let defaultValue: CGSize = .zero
-    
+
     static func reduce(value: inout CGSize, nextValue: () -> CGSize) {
         value = nextValue()
     }
@@ -177,10 +183,12 @@ struct SizePreferenceKey: PreferenceKey {
 
 struct MeasureSizeModifier: ViewModifier {
     func body(content: Content) -> some View {
-        content.background(GeometryReader { geometry in
-            Color.clear.preference(key: SizePreferenceKey.self,
-                                   value: geometry.size)
-        })
+        content.background(
+            GeometryReader { geometry in
+                Color.clear.preference(
+                    key: SizePreferenceKey.self,
+                    value: geometry.size)
+            })
     }
 }
 

@@ -19,28 +19,30 @@ struct TimeLineView: View {
     let onChangeTimeValue: () -> Void
     let onChangeTextTime: (ClosedRange<Double>) -> Void
     let onSetAudio: (Audio) -> Void
-    private let frameWight: CGFloat = 55
+    private let frameWidth: CGFloat = 55
 
-    private var calcWight: CGFloat{
-        frameWight * CGFloat(viewState.countImages) + 10
+    private var calculatedFrameWidth: CGFloat {
+        frameWidth * CGFloat(viewState.countImages) + 10
     }
     var body: some View {
-        ZStack{
-            if !video.thumbnailsImages.isEmpty{
-                TimelineSlider(bounds: video.rangeDuration, disableOffset: isActiveTextRangeSlider, value: $currentTime, frameWight: calcWight) {
+        ZStack {
+            if !video.thumbnailsImages.isEmpty {
+                TimelineSlider(
+                    bounds: video.rangeDuration, disableOffset: isActiveTextRangeSlider, value: $currentTime,
+                    frameWidth: calculatedFrameWidth
+                ) {
                     VStack(alignment: .leading, spacing: 5) {
                         ZStack {
-                            tubneilsImages(video.thumbnailsImages)
+                            thumbnailsImages(video.thumbnailsImages)
                             textRangeTimeLayer
                         }
                         audioLayerSection
                     }
                 } actionView: {
                     recordButton
+                } onChange: {
+                    onChangeTimeValue()
                 }
-            onChange: {
-                onChangeTimeValue()
-            }
             }
         }
         .frame(height: viewState.height)
@@ -57,12 +59,12 @@ struct TimeLineView: View {
             onChangeTextTime(textTimeInterval)
         }
         .onChange(of: textInterval) { _, newValue in
-            if let newValue{
+            if let newValue {
                 textTimeInterval = newValue
             }
         }
         .onChange(of: viewState) { _, newValue in
-            if newValue == .empty{
+            if newValue == .empty {
                 currentTime = 0
                 onChangeTimeValue()
             }
@@ -70,33 +72,33 @@ struct TimeLineView: View {
     }
 }
 
-extension TimeLineView{
-    
-    private func tubneilsImages(_ images: [ThumbnailImage]) -> some View{
+extension TimeLineView {
+
+    private func thumbnailsImages(_ images: [ThumbnailImage]) -> some View {
         let images = firstAndAverageImage(images)
-        return HStack(spacing: 0){
+        return HStack(spacing: 0) {
             ForEach(images) { image in
-                if let image = image.image{
+                if let image = image.image {
                     Image(uiImage: image)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
-                        .frame(height: frameWight)
+                        .frame(height: frameWidth)
                         .clipped()
                 }
             }
         }
         .overlay {
-            if viewState == .audio{
-                if isSelectedTrack{
+            if viewState == .audio {
+                if isSelectedTrack {
                     RoundedRectangle(cornerRadius: 5)
                         .strokeBorder(lineWidth: 2)
                         .foregroundColor(.white)
                 }
-                HStack(spacing: 1){
-                    if video.volume > 0{
+                HStack(spacing: 1) {
+                    if video.volume > 0 {
                         Image(systemName: "speaker.wave.2.fill")
                         Text(verbatim: String(Int(video.volume * 100)))
-                    }else{
+                    } else {
                         Image(systemName: "speaker.slash.fill")
                     }
                 }
@@ -107,64 +109,68 @@ extension TimeLineView{
             }
         }
         .onTapGesture {
-            if viewState == .audio, !isSelectedTrack{
+            if viewState == .audio, !isSelectedTrack {
                 isSelectedTrack.toggle()
                 currentTime = 0
                 onChangeTimeValue()
             }
         }
     }
-    
-    private func firstAndAverageImage(_ images: [ThumbnailImage]) -> [ThumbnailImage]{
-        guard let first = images.first else {return []}
-        
+
+    private func firstAndAverageImage(_ images: [ThumbnailImage]) -> [ThumbnailImage] {
+        guard let first = images.first else { return [] }
+
         var newArray = [first]
-        
-        if viewState == .audio || viewState == .text{
+
+        if viewState == .audio || viewState == .text {
             let averageIndex = Int(images.count / 2)
             newArray.append(images[averageIndex])
         }
         return newArray
     }
-    
-    private var textRangeTimeLayer: some View{
-        Group{
-            if let textInterval, viewState == .text{
-                RangedSliderView(value: $textTimeInterval, bounds: 0...video.originalDuration, onEndChange: {
-                    isActiveTextRangeSlider = false
-                }) {
+
+    private var textRangeTimeLayer: some View {
+        Group {
+            if let textInterval, viewState == .text {
+                RangedSliderView(
+                    value: $textTimeInterval, bounds: 0...video.originalDuration,
+                    onEndChange: {
+                        isActiveTextRangeSlider = false
+                    }
+                ) {
                     Rectangle().blendMode(.destinationOut)
                 }
-                .frame(width: calcWight)
-                .onAppear{
+                .frame(width: calculatedFrameWidth)
+                .onAppear {
                     textTimeInterval = textInterval
                 }
-                .onDisappear{
+                .onDisappear {
                     isActiveTextRangeSlider = false
                 }
             }
         }
     }
-    
-    private var recordButton: some View{
-        Group{
-            if viewState == .audio{
-                RecorderButtonView(video: video, recorderManager: recorderManager, onRecorded: onSetAudio) { time in
+
+    private var recordButton: some View {
+        Group {
+            if viewState == .audio {
+                RecorderButtonView(video: video, recorderManager: recorderManager, onRecorded: onSetAudio) {
+                    time in
                     currentTime = time
                     onChangeTimeValue()
                 }
                 .vBottom()
                 .padding(.bottom, viewState.height / 6)
-            }else{
+            } else {
                 Rectangle()
                     .opacity(0)
             }
         }
     }
-    
-    private var audioLayerSection: some View{
-        Group{
-            if viewState == .audio{
+
+    private var audioLayerSection: some View {
+        Group {
+            if viewState == .audio {
                 AudioButtonView(
                     video: video,
                     isSelectedTrack: $isSelectedTrack,
@@ -195,23 +201,23 @@ struct TimeLineView_Previews: PreviewProvider {
     }
 }
 
-enum TimeLineViewState: Int{
+enum TimeLineViewState: Int {
     case text, audio, empty
-    
-    var wight: CGFloat{
+
+    var width: CGFloat {
         switch self {
         case .text, .audio: return 40
         case .empty: return 10
         }
     }
-    
-    var height: CGFloat{
+
+    var height: CGFloat {
         switch self {
         case .audio: return 110
         case .empty, .text: return 60
         }
     }
-    var countImages: Int{
+    var countImages: Int {
         switch self {
         case .audio, .text: return 2
         case .empty: return 1

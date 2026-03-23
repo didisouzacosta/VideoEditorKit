@@ -13,9 +13,9 @@ struct FramesToolView: View {
     let colors: [Color] = [.white, .black, .blue, .brown, .cyan, .green, .orange]
     let onChange: () -> Void
     var body: some View {
-        VStack(spacing: 20){
-            ScrollView(.horizontal){
-                HStack(spacing: 12){
+        VStack(spacing: 20) {
+            ScrollView(.horizontal) {
+                HStack(spacing: 12) {
                     ForEach(colors, id: \.self) { color in
                         Button {
                             selectedColor = color
@@ -26,7 +26,9 @@ struct FramesToolView: View {
                                 .clipShape(Circle())
                                 .overlay {
                                     Circle()
-                                        .strokeBorder(selectedColor == color ? .white : .white.opacity(0.16), lineWidth: selectedColor == color ? 2 : 1)
+                                        .strokeBorder(
+                                            selectedColor == color ? .white : .white.opacity(0.16),
+                                            lineWidth: selectedColor == color ? 2 : 1)
                                 }
                                 .padding(5)
                                 .ios26CircleControl(
@@ -43,7 +45,7 @@ struct FramesToolView: View {
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.white)
                 Slider(value: $scaleValue, in: 0...0.5) { change in
-                    if !change{
+                    if !change {
                         onChange()
                     }
                 }
@@ -55,7 +57,7 @@ struct FramesToolView: View {
 
 struct FramesToolView_Previews: PreviewProvider {
     static var previews: some View {
-        FramesToolView(selectedColor: .constant(.white), scaleValue: .constant(0.3)){}
+        FramesToolView(selectedColor: .constant(.white), scaleValue: .constant(0.3)) {}
             .frame(height: 300)
     }
 }

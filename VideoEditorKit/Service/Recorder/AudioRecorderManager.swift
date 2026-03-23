@@ -5,8 +5,8 @@
 //  Created by Adriano Souza Costa on 23.03.2026.
 //
 
-import Foundation
 import AVFoundation
+import Foundation
 import Observation
 
 @MainActor
@@ -19,21 +19,20 @@ final class AudioRecorderManager {
     private var audioRecorder: AVAudioRecorder?
     private var timer: Timer?
 
-    
-    func startRecording(recordMaxTime: Double = 10){
+    func startRecording(recordMaxTime: Double = 10) {
         AVAudioSession.sharedInstance().configureRecordAudioSessionCategory()
-        
+
         let path = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
         let audioURL = path.appendingPathComponent("video-record.m4a")
-        FileManager.default.removefileExists(for: audioURL)
+        FileManager.default.removeIfExists(for: audioURL)
         finishedAudio = nil
         resetTimer()
-        
+
         let settings = [
             AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
             AVSampleRateKey: 12000,
             AVNumberOfChannelsKey: 1,
-            AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
+            AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue,
         ]
         do {
             let recorder = try AVAudioRecorder(url: audioURL, settings: settings)
@@ -52,35 +51,33 @@ final class AudioRecorderManager {
             }
         } catch {
             recordState = .error
-            print("Failed to Setup the Recording")
+            assertionFailure("Failed to set up audio recording: \(error.localizedDescription)")
         }
     }
-    
-    
-    func stopRecording(){
+
+    func stopRecording() {
         guard let audioRecorder else { return }
         audioRecorder.stop()
         recordState = .empty
         finishedAudio = .init(url: audioRecorder.url, duration: currentRecordTime)
         resetTimer()
     }
-    
-    func cancel(){
+
+    func cancel() {
         guard let audioRecorder else { return }
         audioRecorder.stop()
         recordState = .empty
         resetTimer()
-        FileManager.default.removefileExists(for: audioRecorder.url)
+        FileManager.default.removeIfExists(for: audioRecorder.url)
     }
-        
-   
-    private func resetTimer(){
+
+    private func resetTimer() {
         timer?.invalidate()
         timer = nil
         currentRecordTime = 0
     }
-    
-    enum AudioRecordEnum: Int{
+
+    enum AudioRecordEnum: Int {
         case recording, empty, error
     }
 }

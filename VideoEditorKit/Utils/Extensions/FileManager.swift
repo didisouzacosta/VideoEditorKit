@@ -8,65 +8,59 @@
 import Foundation
 import UIKit
 
-extension FileManager{
-    
-    
-    func createImagePath(with id: String) -> URL?{
-        guard let url = self.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("\(id).jpg") else { return nil}
-        return url
+extension FileManager {
+    private var documentsDirectory: URL? {
+        urls(for: .documentDirectory, in: .userDomainMask).first
     }
-    
-    func createVideoPath(with name: String) -> URL?{
-        guard let url = self.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent(name) else { return nil}
-        return url
+
+    func createImagePath(with id: String) -> URL? {
+        documentsDirectory?.appendingPathComponent("\(id).jpg")
     }
-    
-    func retrieveImage(with id: String) -> UIImage?{
+
+    func createVideoPath(with name: String) -> URL? {
+        documentsDirectory?.appendingPathComponent(name)
+    }
+
+    func retrieveImage(with id: String) -> UIImage? {
         guard let url = createImagePath(with: id) else { return nil }
-        do{
+
+        do {
             let imageData = try Data(contentsOf: url)
             return UIImage(data: imageData)
-        }catch{
-            print("Error retrieve image", error.localizedDescription)
+        } catch {
             return nil
         }
     }
-    
-    func saveImage(with id: String, image: UIImage){
-        guard let url = createImagePath(with: id) else { return }
-        if let data = image.jpegData(compressionQuality: 0.9){
-            do{
-               try data.write(to: url)
-                print("success saved \(url)")
-            }catch{
-                print("Error to save image", error.localizedDescription)
-            }
+
+    func saveImage(with id: String, image: UIImage) {
+        guard let url = createImagePath(with: id),
+            let data = image.jpegData(compressionQuality: 0.9)
+        else { return }
+
+        do {
+            try data.write(to: url)
+        } catch {
+            assertionFailure("Failed to save image at \(url.lastPathComponent): \(error.localizedDescription)")
         }
     }
-    
-    func deleteImage(with id: String){
+
+    func deleteImage(with id: String) {
         guard let url = createImagePath(with: id) else { return }
-        removefileExists(for: url)
+        removeIfExists(for: url)
     }
-    
-    func deleteVideo(with name: String){
+
+    func deleteVideo(with name: String) {
         guard let url = createVideoPath(with: name) else { return }
-        if fileExists(atPath: url.path){
-            do{
-                try removeItem(at: url)
-            }catch{
-                print("Error to remove item", error.localizedDescription)
-            }
-        }
+        removeIfExists(for: url)
     }
-    
-    func removefileExists(for url: URL){
-        if fileExists(atPath: url.path){
-            do{
-                try removeItem(at: url)
-            }catch{
-                print("Error to remove item", error.localizedDescription)
-            }
+
+    func removeIfExists(for url: URL) {
+        guard fileExists(atPath: url.path) else { return }
+
+        do {
+            try removeItem(at: url)
+        } catch {
+            assertionFailure("Failed to remove item at \(url.lastPathComponent): \(error.localizedDescription)")
         }
     }
 }

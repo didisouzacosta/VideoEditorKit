@@ -13,10 +13,10 @@ struct CropSheetView: View {
     var editorVM: EditorViewModel
     @State private var currentTab: Tab = .rotate
     var body: some View {
-        VStack(spacing: 28){
+        VStack(spacing: 28) {
             tabButtons
-            Group{
-                switch currentTab{
+            Group {
+                switch currentTab {
                 case .format:
                     EmptyView()
                 case .rotate:
@@ -25,7 +25,7 @@ struct CropSheetView: View {
             }
         }
         .foregroundStyle(.white)
-        .onAppear{
+        .onAppear {
             rotateValue = editorVM.currentVideo?.rotation ?? 0
         }
         .onChange(of: editorVM.currentVideo?.rotation) { _, newValue in
@@ -34,29 +34,30 @@ struct CropSheetView: View {
     }
 }
 
-extension CropSheetView{
-    
-    
-    
-    private var rotateSection: some View{
-        HStack(spacing: 20){
-            CustomSlider(value: $rotateValue,
-                         in: 0...360,
-                         step: 90,
-                         onEditingChanged: { started in
-                if !started{
-                    editorVM.currentVideo?.rotation = rotateValue
-                    editorVM.setTools()
-                }
-            }, track: {
-                Capsule()
-                    .fill(.white.opacity(0.28))
-                    .frame(width: 200, height: 5)
-            }, thumb: {
-                Circle()
-                    .fill(.white)
-                    .shadow(color: .black.opacity(0.18), radius: 12, y: 4)
-            }, thumbSize: CGSize(width: 20, height: 20))
+extension CropSheetView {
+
+    private var rotateSection: some View {
+        HStack(spacing: 20) {
+            CustomSlider(
+                value: $rotateValue,
+                in: 0...360,
+                step: 90,
+                onEditingChanged: { started in
+                    if !started {
+                        editorVM.currentVideo?.rotation = rotateValue
+                        editorVM.setTools()
+                    }
+                },
+                track: {
+                    Capsule()
+                        .fill(.white.opacity(0.28))
+                        .frame(width: 200, height: 5)
+                },
+                thumb: {
+                    Circle()
+                        .fill(.white)
+                        .shadow(color: .black.opacity(0.18), radius: 12, y: 4)
+                }, thumbSize: CGSize(width: 20, height: 20))
 
             Button {
                 editorVM.rotate()
@@ -78,17 +79,17 @@ extension CropSheetView{
                     .foregroundStyle(.white)
                     .ios26CircleControl(
                         prominent: editorVM.currentVideo?.isMirror ?? false,
-                        tint: (editorVM.currentVideo?.isMirror ?? false) ? IOS26Theme.accent : IOS26Theme.accentSecondary
+                        tint: (editorVM.currentVideo?.isMirror ?? false)
+                            ? IOS26Theme.accent : IOS26Theme.accentSecondary
                     )
             }
             .buttonStyle(.plain)
         }
     }
-    
-    
-    private var tabButtons: some View{
-        HStack(spacing: 12){
-            ForEach(Tab.allCases, id: \.self){tab in
+
+    private var tabButtons: some View {
+        HStack(spacing: 12) {
+            ForEach(Tab.allCases, id: \.self) { tab in
                 Button {
                     currentTab = tab
                 } label: {
@@ -106,11 +107,11 @@ extension CropSheetView{
             }
         }
     }
-    
-    enum Tab: String, CaseIterable{
+
+    enum Tab: String, CaseIterable {
         case format, rotate
     }
-    
+
 }
 
 #Preview {

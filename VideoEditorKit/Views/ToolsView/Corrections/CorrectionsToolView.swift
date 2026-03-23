@@ -12,8 +12,8 @@ struct CorrectionsToolView: View {
     @Binding var correction: ColorCorrection
     let onChange: (ColorCorrection) -> Void
     var body: some View {
-        VStack(spacing: 24){
-            HStack(spacing: 12){
+        VStack(spacing: 24) {
+            HStack(spacing: 12) {
                 ForEach(CorrectionType.allCases, id: \.self) { type in
                     Button {
                         currentTab = type
@@ -39,20 +39,19 @@ struct CorrectionsToolView: View {
 
 struct CorrectionsToolView_Previews: PreviewProvider {
     static var previews: some View {
-        CorrectionsToolView(correction: .constant(Video.mock.colorCorrection), onChange: {_ in})
+        CorrectionsToolView(correction: .constant(Video.mock.colorCorrection), onChange: { _ in })
     }
 }
 
-
-extension CorrectionsToolView{
-    private var slider: some View{
+extension CorrectionsToolView {
+    private var slider: some View {
         let value = getValue(currentTab)
 
         return VStack(spacing: 14) {
             Text(value.wrappedValue, format: .number.precision(.fractionLength(1)))
                 .font(.title3.monospacedDigit().weight(.semibold))
             Slider(value: value, in: -1...1) { change in
-                if !change{
+                if !change {
                     onChange(correction)
                 }
             }
@@ -60,7 +59,7 @@ extension CorrectionsToolView{
         }
     }
 
-    func getValue(_ type: CorrectionType) -> Binding<Double>{
+    func getValue(_ type: CorrectionType) -> Binding<Double> {
         switch type {
         case .brightness:
             return $correction.brightness

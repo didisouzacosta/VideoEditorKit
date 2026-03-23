@@ -5,23 +5,23 @@
 //  Created by Adriano Souza Costa on 23.03.2026.
 //
 
-import SwiftUI
 import Observation
+import SwiftUI
 
 @MainActor
-struct PlayerHolderView: View{
+struct PlayerHolderView: View {
     @Binding var isFullScreen: Bool
     let editorVM: EditorViewModel
     let videoPlayer: VideoPlayerManager
     let textEditor: TextEditorViewModel
-    var scale: CGFloat{
+    var scale: CGFloat {
         isFullScreen ? 1.4 : 1
     }
 
-    var body: some View{
+    var body: some View {
         VStack(spacing: 6) {
             ZStack(alignment: .bottom) {
-                switch videoPlayer.loadState{
+                switch videoPlayer.loadState {
                 case .loading:
                     ProgressView()
                         .tint(.white)
@@ -41,7 +41,7 @@ struct PlayerHolderView: View{
     }
 }
 
-extension PlayerHolderView{
+extension PlayerHolderView {
     private func statusView(_ text: String) -> some View {
         Text(text)
             .font(.headline)
@@ -51,34 +51,40 @@ extension PlayerHolderView{
             .ios26CapsuleControl(tint: IOS26Theme.accentSecondary)
     }
 
-    private var playerCropView: some View{
-        Group{
-            if let video = editorVM.currentVideo{
+    private var playerCropView: some View {
+        Group {
+            if let video = editorVM.currentVideo {
                 GeometryReader { proxy in
                     CropView(
-                        originalSize: .init(width: video.frameSize.width * scale, height: video.frameSize.height * scale),
+                        originalSize: .init(
+                            width: video.frameSize.width * scale, height: video.frameSize.height * scale),
                         rotation: editorVM.currentVideo?.rotation,
                         isMirror: editorVM.currentVideo?.isMirror ?? false,
-                        isActiveCrop: editorVM.selectedTools == .crop) {
-                            ZStack{
-                                editorVM.frames.frameColor
-                                ZStack{
-                                    PlayerView(player: videoPlayer.videoPlayer)
-                                    TextOverlayView(currentTime: videoPlayer.currentTime, viewModel: textEditor,  disabledMagnification: isFullScreen)
-                                        .scaleEffect(scale)
-                                        .disabled(isFullScreen)
-                                }
-                                .scaleEffect(editorVM.frames.scale)
+                        isActiveCrop: editorVM.selectedTools == .crop
+                    ) {
+                        ZStack {
+                            editorVM.frames.frameColor
+                            ZStack {
+                                PlayerView(player: videoPlayer.videoPlayer)
+                                TextOverlayView(
+                                    currentTime: videoPlayer.currentTime, viewModel: textEditor,
+                                    disabledMagnification: isFullScreen
+                                )
+                                .scaleEffect(scale)
+                                .disabled(isFullScreen)
                             }
+                            .scaleEffect(editorVM.frames.scale)
                         }
-                        .allFrame()
-                        .onAppear{
-                            Task { @MainActor in
-                                guard let size = await editorVM.currentVideo?.asset.adjustVideoSize(to: proxy.size) else {return}
-                                editorVM.currentVideo?.frameSize = size
-                                editorVM.currentVideo?.geometrySize = proxy.size
-                            }
+                    }
+                    .allFrame()
+                    .onAppear {
+                        Task { @MainActor in
+                            guard let size = await editorVM.currentVideo?.asset.adjustVideoSize(to: proxy.size)
+                            else { return }
+                            editorVM.currentVideo?.frameSize = size
+                            editorVM.currentVideo?.geometrySize = proxy.size
                         }
+                    }
                 }
             }
             timelineLabel
@@ -86,15 +92,14 @@ extension PlayerHolderView{
     }
 }
 
-extension PlayerHolderView{
-    
+extension PlayerHolderView {
+
     @ViewBuilder
-    private var timelineLabel: some View{
-        if let video = editorVM.currentVideo{
-            HStack{
-                Text((videoPlayer.currentTime - video.rangeDuration.lowerBound)  .formatterTimeString()) +
-                Text(" / ") +
-                Text(Int(video.totalDuration).secondsToTime())
+    private var timelineLabel: some View {
+        if let video = editorVM.currentVideo {
+            HStack {
+                Text((videoPlayer.currentTime - video.rangeDuration.lowerBound).formatterTimeString())
+                    + Text(" / ") + Text(Int(video.totalDuration).secondsToTime())
             }
             .font(.caption2)
             .foregroundStyle(.white)
@@ -107,13 +112,13 @@ extension PlayerHolderView{
 }
 
 @MainActor
-struct PlayerControl: View{
+struct PlayerControl: View {
     @Binding var isFullScreen: Bool
     let recorderManager: AudioRecorderManager
     @Bindable var editorVM: EditorViewModel
     @Bindable var videoPlayer: VideoPlayerManager
     let textEditor: TextEditorViewModel
-    var body: some View{
+    var body: some View {
         VStack(spacing: 14) {
             playSection
             if editorVM.currentVideo != nil {
@@ -123,30 +128,30 @@ struct PlayerControl: View{
             }
         }
     }
-    
-    
+
     @ViewBuilder
-    private var timeLineControlSection: some View{
-        if let video = editorVM.currentVideo{
+    private var timeLineControlSection: some View {
+        if let video = editorVM.currentVideo {
             TimeLineView(
                 recorderManager: recorderManager,
                 currentTime: $videoPlayer.currentTime,
                 isSelectedTrack: $editorVM.isSelectVideo,
                 viewState: editorVM.selectedTools?.timeState ?? .empty,
-                video: video, textInterval: textEditor.selectedTextBox?.timeRange) {
-                    videoPlayer.scrubState = .scrubEnded(videoPlayer.currentTime)
-                } onChangeTextTime: { textTime in
-                    textEditor.setTime(textTime)
-                } onSetAudio: { audio in
-                    editorVM.setAudio(audio)
-                    videoPlayer.setAudio(audio.url)
-                }
+                video: video, textInterval: textEditor.selectedTextBox?.timeRange
+            ) {
+                videoPlayer.scrubState = .scrubEnded(videoPlayer.currentTime)
+            } onChangeTextTime: { textTime in
+                textEditor.setTime(textTime)
+            } onSetAudio: { audio in
+                editorVM.setAudio(audio)
+                videoPlayer.setAudio(audio.url)
+            }
         }
     }
-    
-    private var playSection: some View{
+
+    private var playSection: some View {
         Button {
-            if let video = editorVM.currentVideo{
+            if let video = editorVM.currentVideo {
                 videoPlayer.action(video)
             }
         } label: {
@@ -165,11 +170,14 @@ struct PlayerControl: View{
                     isFullScreen.toggle()
                 }
             } label: {
-                Image(systemName: isFullScreen ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right")
-                    .font(.headline.weight(.semibold))
-                    .frame(width: 46, height: 46)
-                    .foregroundStyle(.white)
-                    .ios26CircleControl()
+                Image(
+                    systemName: isFullScreen
+                        ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right"
+                )
+                .font(.headline.weight(.semibold))
+                .frame(width: 46, height: 46)
+                .foregroundStyle(.white)
+                .ios26CircleControl()
             }
             .buttonStyle(.plain)
         }

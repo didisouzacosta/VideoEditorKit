@@ -24,12 +24,11 @@ final class ExporterViewModel {
     var selectedQuality: VideoQuality = .medium
 
     private var timer: Timer?
-    
-    init(video: Video){
+
+    init(video: Video) {
         self.video = video
     }
-    
-    
+
     func export() async -> URL? {
         renderState = .loading
         do {
@@ -57,7 +56,7 @@ final class ExporterViewModel {
             showAlert = true
         }
     }
-    
+
     private func startProgressTimer() {
         resetTimer()
         timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
@@ -66,18 +65,20 @@ final class ExporterViewModel {
             }
         }
     }
-    
-    private func resetTimer(){
+
+    private func resetTimer() {
         timer?.invalidate()
         timer = nil
         progressTimer = .zero
     }
-    
+
     enum ExportState: Identifiable, Equatable {
-        
-        case unknown, loading, loaded(URL), failed(Error)
-        
-        var id: Int{
+
+        case unknown, loading
+        case loaded(URL)
+        case failed(Error)
+
+        var id: Int {
             switch self {
             case .unknown: return 0
             case .loading: return 1
@@ -85,10 +86,10 @@ final class ExporterViewModel {
             case .failed: return 3
             }
         }
-        
+
         static func == (lhs: ExporterViewModel.ExportState, rhs: ExporterViewModel.ExportState) -> Bool {
             lhs.id == rhs.id
         }
     }
-    
+
 }

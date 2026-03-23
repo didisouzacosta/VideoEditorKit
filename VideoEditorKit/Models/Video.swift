@@ -5,11 +5,11 @@
 //  Created by Adriano Souza Costa on 23.03.2026.
 //
 
-import SwiftUI
 import AVKit
+import SwiftUI
 
 struct Video: Identifiable, @unchecked Sendable {
-    
+
     var id: UUID = UUID()
     var url: URL
     var asset: AVAsset
@@ -29,11 +29,14 @@ struct Video: Identifiable, @unchecked Sendable {
     var audio: Audio?
     var volume: Float = 1.0
 
-    var totalDuration: Double{
+    var totalDuration: Double {
         rangeDuration.upperBound - rangeDuration.lowerBound
     }
 
-    init(url: URL, asset: AVAsset, originalDuration: Double, rangeDuration: ClosedRange<Double>, rate: Float = 1.0, rotation: Double = 0) {
+    init(
+        url: URL, asset: AVAsset, originalDuration: Double, rangeDuration: ClosedRange<Double>,
+        rate: Float = 1.0, rotation: Double = 0
+    ) {
         self.url = url
         self.asset = asset
         self.originalDuration = originalDuration
@@ -41,19 +44,20 @@ struct Video: Identifiable, @unchecked Sendable {
         self.rate = rate
         self.rotation = rotation
     }
-    
-    init(url: URL){
+
+    init(url: URL) {
         let asset = AVURLAsset(url: url)
         self.init(url: url, asset: asset, originalDuration: .zero, rangeDuration: .zero ... .zero)
     }
-    
-    init(url: URL, rangeDuration: ClosedRange<Double>, rate: Float = 1.0, rotation: Double = 0){
+
+    init(url: URL, rangeDuration: ClosedRange<Double>, rate: Float = 1.0, rotation: Double = 0) {
         let asset = AVURLAsset(url: url)
         let originalDuration = max(rangeDuration.upperBound, .zero)
-        self.init(url: url, asset: asset, originalDuration: originalDuration, rangeDuration: rangeDuration, rate: rate, rotation: rotation)
+        self.init(
+            url: url, asset: asset, originalDuration: originalDuration, rangeDuration: rangeDuration,
+            rate: rate, rotation: rotation)
     }
 
- 
     func makeThumbnails(containerSize: CGSize) async -> [ThumbnailImage] {
         let imagesCount = thumbnailCount(containerSize)
         guard imagesCount > 0 else { return [] }
@@ -69,81 +73,81 @@ struct Video: Identifiable, @unchecked Sendable {
 
         return thumbnails
     }
-        
+
     ///reset and update
-    mutating func updateRate(_ rate: Float){
-       
+    mutating func updateRate(_ rate: Float) {
+
         let lowerBound = (rangeDuration.lowerBound * Double(self.rate)) / Double(rate)
-        let upperBound = (rangeDuration.upperBound *  Double(self.rate)) / Double(rate)
+        let upperBound = (rangeDuration.upperBound * Double(self.rate)) / Double(rate)
         rangeDuration = lowerBound...upperBound
-        
+
         self.rate = rate
     }
-    
-    mutating func resetRangeDuration(){
+
+    mutating func resetRangeDuration() {
         self.rangeDuration = 0...originalDuration
     }
-    
-    mutating func resetRate(){
+
+    mutating func resetRate() {
         updateRate(1.0)
     }
-    
-    mutating func rotate(){
+
+    mutating func rotate() {
         rotation = rotation.nextAngle()
     }
-    
-    mutating func appliedTool(for tool: ToolEnum){
-        if !isAppliedTool(for: tool){
+
+    mutating func appliedTool(for tool: ToolEnum) {
+        if !isAppliedTool(for: tool) {
             toolsApplied.append(tool.rawValue)
         }
     }
-    
-    mutating func setVolume(_ value: Float){
+
+    mutating func setVolume(_ value: Float) {
         volume = value
     }
-    
-    mutating func removeTool(for tool: ToolEnum){
-        if isAppliedTool(for: tool){
-            toolsApplied.removeAll(where: {$0 == tool.rawValue})
+
+    mutating func removeTool(for tool: ToolEnum) {
+        if isAppliedTool(for: tool) {
+            toolsApplied.removeAll(where: { $0 == tool.rawValue })
         }
     }
-    
-    mutating func setFilter(_ filter: String?){
+
+    mutating func setFilter(_ filter: String?) {
         filterName = filter
     }
-    
-    func isAppliedTool(for tool: ToolEnum) -> Bool{
+
+    func isAppliedTool(for tool: ToolEnum) -> Bool {
         toolsApplied.contains(tool.rawValue)
     }
-    
-    
+
     private func thumbnailCount(_ containerSize: CGSize) -> Int {
         let num = Double(containerSize.width - 32) / Double(70 / 1.5)
-        
+
         return Int(ceil(num))
     }
-    
-    
+
     @MainActor
-    static let mock: Video = .init(url:URL(string: "https://www.google.com/")!, rangeDuration: 0...250)
+    static let mock: Video = .init(
+        url: URL(string: "https://www.google.com/")!, rangeDuration: 0...250)
 
     static func load(from url: URL) async -> Video {
         let asset = AVURLAsset(url: url)
         let duration = (try? await asset.load(.duration).seconds) ?? .zero
         let resolvedDuration = duration.isFinite ? duration : .zero
-        return Video(url: url, asset: asset, originalDuration: resolvedDuration, rangeDuration: .zero ... resolvedDuration)
+        return Video(
+            url: url, asset: asset, originalDuration: resolvedDuration,
+            rangeDuration: .zero...resolvedDuration)
     }
 }
 
+extension Video: Equatable {
 
-extension Video: Equatable{
-    
     static func == (lhs: Video, rhs: Video) -> Bool {
         lhs.id == rhs.id
     }
 }
 
-extension Double{
+extension Double {
     func nextAngle() -> Double {
         var next = Int(self) + 90
         if next >= 360 {
@@ -155,32 +159,28 @@ extension Double{
     }
 }
 
-
-
-struct ThumbnailImage: Identifiable{
+struct ThumbnailImage: Identifiable {
     var id: UUID = UUID()
     var image: UIImage?
-    
-    
+
     init(image: UIImage? = nil) {
         self.image = image?.resize(to: .init(width: 250, height: 350))
     }
 }
 
-
-struct VideoFrames{
+struct VideoFrames {
     var scaleValue: Double = 0
     var frameColor: Color = .white
-    
-    var scale: Double{
+
+    var scale: Double {
         1 - scaleValue
     }
-    
-    var isActive: Bool{
+
+    var isActive: Bool {
         scaleValue > 0
     }
-    
-    mutating func reset(){
+
+    mutating func reset() {
         scaleValue = 0
         frameColor = .white
     }

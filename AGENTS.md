@@ -377,3 +377,20 @@ Se o projeto for migrado para a arquitetura alvo de `AGENTS.md`, este arquivo de
 - o modelo de persistência
 - a fonte de verdade de preview/export
 - a estratégia de testes
+
+---
+
+## Padrão de estilo e manutenção
+
+Para mudanças futuras neste repositório, usar o padrão abaixo como baseline:
+
+- `.swift-format` na raiz é a fonte de verdade da formatação
+- indentação com `4` espaços
+- no máximo `1` linha em branco consecutiva
+- preservar quebras de linha relevantes quando o formatter permitir
+- remover código morto, helpers sem uso e vestígios visuais de debug antes de concluir a mudança
+- evitar `force unwrap` quando `guard let` ou `if let` resolverem o fluxo com segurança equivalente
+- corrigir typos e preferir nomes claros em inglês ao tocar em propriedades, métodos e tipos
+- não espalhar `print` operacional pela base; preferir tratamento explícito e `assertionFailure` apenas para estados inesperados
+- manter extensões utilitárias enxutas e alinhadas com uso real do projeto
+- ao editar Swift, rodar formatação do projeto antes de finalizar

@@ -5,8 +5,8 @@
 //  Created by Adriano Souza Costa on 23.03.2026.
 //
 
-import Foundation
 import AVKit
+import Foundation
 import Observation
 
 @MainActor
@@ -19,7 +19,7 @@ final class EditorViewModel {
     @ObservationIgnored private var loadVideoTask: Task<Void, Never>?
     @ObservationIgnored private var thumbnailsTask: Task<Void, Never>?
 
-    func setNewVideo(_ url: URL, containerSize: CGSize){
+    func setNewVideo(_ url: URL, containerSize: CGSize) {
         loadVideoTask?.cancel()
         thumbnailsTask?.cancel()
         currentVideo = nil
@@ -55,77 +55,75 @@ extension EditorViewModel {
 }
 
 //MARK: - Tools logic
-extension EditorViewModel{
-    
-    
-    func setFilter(_ filter: String?){
+extension EditorViewModel {
+
+    func setFilter(_ filter: String?) {
         currentVideo?.setFilter(filter)
-        if filter != nil{
+        if filter != nil {
             setTools()
-        }else{
+        } else {
             removeTool()
         }
     }
-    
-    
-    func setText(_ textBox: [TextBox]){
+
+    func setText(_ textBox: [TextBox]) {
         currentVideo?.textBoxes = textBox
         setTools()
     }
-    
-    func setFrames(){
+
+    func setFrames() {
         currentVideo?.videoFrames = frames
         setTools()
     }
-    
-    func setCorrections(_ correction: ColorCorrection){
+
+    func setCorrections(_ correction: ColorCorrection) {
         currentVideo?.colorCorrection = correction
         setTools()
     }
-    
-    func updateRate(rate: Float){
+
+    func updateRate(rate: Float) {
         currentVideo?.updateRate(rate)
         setTools()
     }
-    
-    func rotate(){
+
+    func rotate() {
         currentVideo?.rotate()
         setTools()
     }
-    
-    func toggleMirror(){
+
+    func toggleMirror() {
         currentVideo?.isMirror.toggle()
         setTools()
     }
-    
-    func setAudio(_ audio: Audio){
+
+    func setAudio(_ audio: Audio) {
         currentVideo?.audio = audio
         setTools()
     }
-    
-    func setTools(){
+
+    func setTools() {
         guard let selectedTools else { return }
         currentVideo?.appliedTool(for: selectedTools)
     }
-    
-    func removeTool(){
+
+    func removeTool() {
         guard let selectedTools else { return }
         self.currentVideo?.removeTool(for: selectedTools)
     }
-    
-    func removeAudio(){
-        guard let url = currentVideo?.audio?.url else {return}
-        FileManager.default.removefileExists(for: url)
+
+    func removeAudio() {
+        guard let url = currentVideo?.audio?.url else { return }
+        FileManager.default.removeIfExists(for: url)
         currentVideo?.audio = nil
         isSelectVideo = true
         removeTool()
     }
-  
-    func reset(){
-        guard let selectedTools else {return}
-       
-        switch selectedTools{
-            
+
+    func reset() {
+        guard let selectedTools else { return }
+
+        switch selectedTools {
+
         case .cut:
             currentVideo?.resetRangeDuration()
         case .speed:

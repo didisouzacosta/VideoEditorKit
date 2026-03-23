@@ -7,42 +7,32 @@
 
 import AVFoundation
 
-extension AVAudioSession{
-    
-    
-    func playAndRecord(){
-        print("Configuring playAndRecord session")
+extension AVAudioSession {
+    func playAndRecord() {
         do {
-            try self.setCategory(.playAndRecord, mode: .default)
-            try self.overrideOutputAudioPort(AVAudioSession.PortOverride.none)
-            print("AVAudio Session out options: ", self.currentRoute)
-          print("Successfully configured audio session.")
-        } catch (let error) {
-          print("Error while configuring audio session: \(error)")
+            try setCategory(.playAndRecord, mode: .default)
+            try overrideOutputAudioPort(.none)
+        } catch {
+            assertionFailure("Failed to configure play-and-record audio session: \(error.localizedDescription)")
         }
     }
-    
+
     func configureRecordAudioSessionCategory() {
-      print("Configuring record session")
-      do {
-          try self.setCategory(.record, mode: .default)
-          try self.overrideOutputAudioPort(AVAudioSession.PortOverride.none)
-          print("AVAudio Session out options: ", self.currentRoute)
-        print("Successfully configured audio session.")
-      } catch (let error) {
-        print("Error while configuring audio session: \(error)")
-      }
-    }
-    
-    func configurePlaybackSession(){
-        print("Configuring playback session")
         do {
-            try self.setCategory(.playback, mode: .default)
-            try self.overrideOutputAudioPort(.none)
-            try self.setActive(true)
-            print("Current audio route: ", self.currentRoute.outputs)
-        } catch let error as NSError {
-            print("#configureAudioSessionToSpeaker Error \(error.localizedDescription)")
+            try setCategory(.record, mode: .default)
+            try overrideOutputAudioPort(.none)
+        } catch {
+            assertionFailure("Failed to configure record audio session: \(error.localizedDescription)")
+        }
+    }
+
+    func configurePlaybackSession() {
+        do {
+            try setCategory(.playback, mode: .default)
+            try overrideOutputAudioPort(.none)
+            try setActive(true)
+        } catch {
+            assertionFailure("Failed to configure playback audio session: \(error.localizedDescription)")
         }
     }
 }

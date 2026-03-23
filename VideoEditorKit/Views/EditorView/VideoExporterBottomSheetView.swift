@@ -5,15 +5,15 @@
 //  Created by Adriano Souza Costa on 23.03.2026.
 //
 
-import SwiftUI
 import Observation
+import SwiftUI
 
 @MainActor
 struct VideoExporterBottomSheetView: View {
     @Binding var isPresented: Bool
     @State private var viewModel: ExporterViewModel
     let onExported: (URL) -> Void
-    
+
     init(isPresented: Binding<Bool>, video: Video, onExported: @escaping (URL) -> Void) {
         self._isPresented = isPresented
         self._viewModel = State(initialValue: ExporterViewModel(video: video))
@@ -43,8 +43,8 @@ struct VideoExporterBottomSheetView: View {
     }
 }
 
-extension VideoExporterBottomSheetView{
-    private var list: some View{
+extension VideoExporterBottomSheetView {
+    private var list: some View {
         VStack(alignment: .leading, spacing: 18) {
             Text("Export Video")
                 .font(.title3.bold())
@@ -65,9 +65,9 @@ extension VideoExporterBottomSheetView{
             exportButton.padding(.top, 4)
         }
     }
-    
-    private var loadingView: some View{
-        VStack(spacing: 22){
+
+    private var loadingView: some View {
+        VStack(spacing: 22) {
             ProgressView()
                 .controlSize(.large)
                 .tint(.white)
@@ -83,8 +83,8 @@ extension VideoExporterBottomSheetView{
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
-    
-    private var qualityListSection: some View{
+
+    private var qualityListSection: some View {
         VStack(spacing: 12) {
             ForEach(VideoQuality.allCases.reversed(), id: \.self) { type in
                 Button {
@@ -102,14 +102,16 @@ extension VideoExporterBottomSheetView{
                         Spacer()
 
                         VStack(alignment: .trailing, spacing: 4) {
-                            if let value = type.calculateVideoSize(duration: viewModel.video.totalDuration){
+                            if let value = type.calculateVideoSize(duration: viewModel.video.totalDuration) {
                                 Text("\(value.formatted(.number.precision(.fractionLength(1))))Mb")
                                     .font(.subheadline.weight(.semibold))
                             }
 
-                            Image(systemName: viewModel.selectedQuality == type ? "checkmark.circle.fill" : "circle")
-                                .font(.headline)
-                                .foregroundStyle(viewModel.selectedQuality == type ? .white : .white.opacity(0.5))
+                            Image(
+                                systemName: viewModel.selectedQuality == type ? "checkmark.circle.fill" : "circle"
+                            )
+                            .font(.headline)
+                            .foregroundStyle(viewModel.selectedQuality == type ? .white : .white.opacity(0.5))
                         }
                     }
                     .padding(14)
@@ -124,8 +126,8 @@ extension VideoExporterBottomSheetView{
             }
         }
     }
-    
-    private var exportButton: some View{
+
+    private var exportButton: some View {
         Button {
             mainAction()
         } label: {
@@ -133,8 +135,8 @@ extension VideoExporterBottomSheetView{
         }
         .hCenter()
     }
-    
-    private func buttonLabel(_ label: String, icon: String) -> some View{
+
+    private func buttonLabel(_ label: String, icon: String) -> some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
                 .font(.headline.weight(.semibold))
@@ -146,8 +148,7 @@ extension VideoExporterBottomSheetView{
         .foregroundStyle(.white)
         .ios26CapsuleControl(prominent: true, tint: IOS26Theme.accent)
     }
-    
-    
+
     private func mainAction() {
         Task {
             guard let url = await viewModel.export() else { return }

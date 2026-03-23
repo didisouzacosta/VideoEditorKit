@@ -12,45 +12,50 @@ struct TextOverlayView: View {
     var viewModel: TextEditorViewModel
     var disabledMagnification: Bool = false
     var body: some View {
-        ZStack{
-            if !disabledMagnification{
+        ZStack {
+            if !disabledMagnification {
                 Color.secondary.opacity(0.001)
-                    .simultaneousGesture(MagnificationGesture()
-                        .onChanged({ value in
-                            if let box = viewModel.selectedTextBox{
-                                let lastFontSize = viewModel.textBoxes.first(where: { $0.id == box.id })?.lastFontSize ?? box.lastFontSize
-                                let updatedFontSize = (value * 10) + lastFontSize
-                                updateTextBox(box.id) { textBox in
-                                    textBox.fontSize = updatedFontSize
+                    .simultaneousGesture(
+                        MagnificationGesture()
+                            .onChanged({ value in
+                                if let box = viewModel.selectedTextBox {
+                                    let lastFontSize =
+                                        viewModel.textBoxes.first(where: { $0.id == box.id })?.lastFontSize
+                                        ?? box.lastFontSize
+                                    let updatedFontSize = (value * 10) + lastFontSize
+                                    updateTextBox(box.id) { textBox in
+                                        textBox.fontSize = updatedFontSize
+                                    }
                                 }
-                            }
-                        }).onEnded({ value in
-                            if let box = viewModel.selectedTextBox{
-                                let lastFontSize = viewModel.textBoxes.first(where: { $0.id == box.id })?.lastFontSize ?? box.lastFontSize
-                                let updatedFontSize = (value * 10) + lastFontSize
-                                updateTextBox(box.id) { textBox in
-                                    textBox.fontSize = updatedFontSize
-                                    textBox.lastFontSize = updatedFontSize
+                            }).onEnded({ value in
+                                if let box = viewModel.selectedTextBox {
+                                    let lastFontSize =
+                                        viewModel.textBoxes.first(where: { $0.id == box.id })?.lastFontSize
+                                        ?? box.lastFontSize
+                                    let updatedFontSize = (value * 10) + lastFontSize
+                                    updateTextBox(box.id) { textBox in
+                                        textBox.fontSize = updatedFontSize
+                                        textBox.lastFontSize = updatedFontSize
+                                    }
                                 }
-                            }
-                        }))
+                            }))
             }
-            
+
             ForEach(viewModel.textBoxes) { textBox in
                 let isSelected = viewModel.isSelected(textBox.id)
-                
-                if textBox.timeRange.contains(currentTime){
-                    
+
+                if textBox.timeRange.contains(currentTime) {
+
                     VStack(alignment: .leading, spacing: 2) {
-                        if isSelected{
+                        if isSelected {
                             textBoxButtons(textBox)
                         }
-                        
+
                         Text(createAttr(textBox))
                             .padding(.horizontal, 14)
                             .padding(.vertical, 8)
                             .overlay {
-                                if isSelected{
+                                if isSelected {
                                     RoundedRectangle(cornerRadius: 6)
                                         .stroke(lineWidth: 1)
                                         .foregroundStyle(.cyan)
@@ -59,35 +64,38 @@ struct TextOverlayView: View {
                             .onTapGesture {
                                 editOrSelectTextBox(textBox, isSelected)
                             }
-                        
+
                     }
                     .offset(textBox.offset)
-                    .simultaneousGesture(DragGesture(minimumDistance: 1).onChanged({ value in
-                        guard isSelected else {return}
-                        let current = value.translation
-                        let lastOffset = textBox.lastOffset
-                        let newTranslation: CGSize = .init(width: current.width + lastOffset.width, height: current.height + lastOffset.height)
-                        updateTextBox(textBox.id) { box in
-                            box.offset = newTranslation
-                        }
-                        
-                    }).onEnded({ value in
-                        guard isSelected else {return}
-                        let current = value.translation
-                        let lastOffset = textBox.lastOffset
-                        let settledOffset = CGSize(width: current.width + lastOffset.width, height: current.height + lastOffset.height)
-                        updateTextBox(textBox.id) { box in
-                            box.offset = settledOffset
-                            box.lastOffset = settledOffset
-                        }
-                    }))
+                    .simultaneousGesture(
+                        DragGesture(minimumDistance: 1).onChanged({ value in
+                            guard isSelected else { return }
+                            let current = value.translation
+                            let lastOffset = textBox.lastOffset
+                            let newTranslation: CGSize = .init(
+                                width: current.width + lastOffset.width, height: current.height + lastOffset.height)
+                            updateTextBox(textBox.id) { box in
+                                box.offset = newTranslation
+                            }
+
+                        }).onEnded({ value in
+                            guard isSelected else { return }
+                            let current = value.translation
+                            let lastOffset = textBox.lastOffset
+                            let settledOffset = CGSize(
+                                width: current.width + lastOffset.width, height: current.height + lastOffset.height)
+                            updateTextBox(textBox.id) { box in
+                                box.offset = settledOffset
+                                box.lastOffset = settledOffset
+                            }
+                        }))
                 }
             }
         }
         .allFrame()
     }
-    
-    private func createAttr(_ textBox: TextBox) -> AttributedString{
+
+    private func createAttr(_ textBox: TextBox) -> AttributedString {
         var result = AttributedString(textBox.text)
         result.font = .systemFont(ofSize: textBox.fontSize, weight: .medium)
         result.foregroundColor = UIColor(textBox.fontColor)
@@ -96,10 +104,10 @@ struct TextOverlayView: View {
     }
 }
 
-extension TextOverlayView{
-    
-    private func textBoxButtons(_ textBox: TextBox) -> some View{
-        HStack(spacing: 10){
+extension TextOverlayView {
+
+    private func textBoxButtons(_ textBox: TextBox) -> some View {
+        HStack(spacing: 10) {
             Button {
                 viewModel.removeTextBox()
             } label: {
@@ -118,15 +126,15 @@ extension TextOverlayView{
         }
         .foregroundStyle(.white)
     }
-    
-    private func editOrSelectTextBox(_ textBox: TextBox, _ isSelected: Bool){
-        if isSelected{
+
+    private func editOrSelectTextBox(_ textBox: TextBox, _ isSelected: Bool) {
+        if isSelected {
             viewModel.openTextEditor(isEdit: true, textBox)
-        }else{
+        } else {
             viewModel.selectTextBox(textBox)
         }
     }
-    
+
     private func updateTextBox(_ id: UUID, update: (inout TextBox) -> Void) {
         guard let index = viewModel.textBoxes.firstIndex(where: { $0.id == id }) else { return }
         update(&viewModel.textBoxes[index])
@@ -145,9 +153,3 @@ struct TextOverlayView_Previews: PreviewProvider {
         }
     }
 }
-
-
-
-
-
-

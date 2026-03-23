@@ -12,14 +12,14 @@ struct RecordVideoView: View {
     @Environment(\.dismiss) private var dismiss
     let onFinishRecord: (URL) -> Void
     var body: some View {
-        ZStack{
+        ZStack {
             CameraPreviewHolder(captureSession: cameraManager.session)
             VStack(spacing: 0) {
                 Text(cameraManager.recordedDuration.formatterTimeString())
                     .foregroundStyle(.white)
                 Spacer()
                 Button {
-                    if cameraManager.isRecording{
+                    if cameraManager.isRecording {
                         cameraManager.stopRecord()
                     } else {
                         cameraManager.startRecording()
@@ -41,7 +41,7 @@ struct RecordVideoView: View {
             }
         }
         .onChange(of: cameraManager.finalURL) { _, newValue in
-            if let url = newValue{
+            if let url = newValue {
                 onFinishRecord(url)
                 dismiss()
             }

@@ -97,12 +97,16 @@ extension RootView {
                 .font(.largeTitle.bold())
                 .foregroundStyle(.white)
 
-            Text("Pick a video from your gallery, edit it, and get the rendered result back on this screen.")
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(.white)
-            Text("This screen now works as an example mode. It starts a temporary editing session and shows the exported output.")
-                .font(.subheadline)
-                .foregroundStyle(.white.opacity(0.78))
+            Text(
+                "Pick a video from your gallery, edit it, and get the rendered result back on this screen."
+            )
+            .font(.title3.weight(.semibold))
+            .foregroundStyle(.white)
+            Text(
+                "This screen now works as an example mode. It starts a temporary editing session and shows the exported output."
+            )
+            .font(.subheadline)
+            .foregroundStyle(.white.opacity(0.78))
         }
         .padding(24)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -192,7 +196,7 @@ extension RootView {
                     prepareEditorSession(with: video.url)
                 }
             } catch {
-                print("Failed to load video: \(error.localizedDescription)")
+                assertionFailure("Failed to load selected video: \(error.localizedDescription)")
             }
         }
     }
@@ -216,7 +220,7 @@ extension RootView {
 
     private func cleanupFileIfNeeded(_ url: URL?) {
         guard let url else { return }
-        FileManager.default.removefileExists(for: url)
+        FileManager.default.removeIfExists(for: url)
     }
 }
 

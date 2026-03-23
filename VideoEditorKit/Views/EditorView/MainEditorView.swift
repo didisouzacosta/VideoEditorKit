@@ -37,11 +37,17 @@ struct MainEditorView: View {
             GeometryReader { proxy in
                 VStack(spacing: 14) {
                     headerView
-                    PlayerHolderView(isFullScreen: $isFullScreen, editorVM: editorVM, videoPlayer: videoPlayer, textEditor: textEditor)
-                        .frame(height: proxy.size.height / (isFullScreen ? 1.25 : 1.85))
-                        .padding(.horizontal, 16)
-                    PlayerControl(isFullScreen: $isFullScreen, recorderManager: audioRecorder, editorVM: editorVM, videoPlayer: videoPlayer, textEditor: textEditor)
-                        .padding(.horizontal, 16)
+                    PlayerHolderView(
+                        isFullScreen: $isFullScreen, editorVM: editorVM, videoPlayer: videoPlayer,
+                        textEditor: textEditor
+                    )
+                    .frame(height: proxy.size.height / (isFullScreen ? 1.25 : 1.85))
+                    .padding(.horizontal, 16)
+                    PlayerControl(
+                        isFullScreen: $isFullScreen, recorderManager: audioRecorder, editorVM: editorVM,
+                        videoPlayer: videoPlayer, textEditor: textEditor
+                    )
+                    .padding(.horizontal, 16)
                     ToolsSectionView(videoPlayer: videoPlayer, editorVM: editorVM, textEditor: textEditor)
                         .opacity(isFullScreen ? 0 : 1)
                         .padding(.horizontal, 16)
@@ -53,8 +59,9 @@ struct MainEditorView: View {
                 }
             }
 
-            if showVideoQualitySheet, let video = editorVM.currentVideo{
-                VideoExporterBottomSheetView(isPresented: $showVideoQualitySheet, video: video) { exportedURL in
+            if showVideoQualitySheet, let video = editorVM.currentVideo {
+                VideoExporterBottomSheetView(isPresented: $showVideoQualitySheet, video: video) {
+                    exportedURL in
                     videoPlayer.pause()
                     onExported(exportedURL)
                     dismiss()
@@ -64,7 +71,7 @@ struct MainEditorView: View {
         .toolbar(.hidden, for: .navigationBar)
         .ignoresSafeArea(.all, edges: .top)
         .fullScreenCover(isPresented: $showRecordView) {
-            RecordVideoView{ url in
+            RecordVideoView { url in
                 videoPlayer.loadState = .loaded(url)
             }
         }
@@ -75,15 +82,15 @@ struct MainEditorView: View {
         .blur(radius: textEditor.showEditor ? 10 : 0)
         .ignoresSafeArea(.keyboard, edges: .bottom)
         .overlay {
-            if textEditor.showEditor{
+            if textEditor.showEditor {
                 TextEditorView(viewModel: textEditor, onSave: editorVM.setText)
             }
         }
     }
 }
 
-extension MainEditorView{
-    private var headerView: some View{
+extension MainEditorView {
+    private var headerView: some View {
         HStack {
             Button {
                 videoPlayer.pause()
@@ -122,7 +129,7 @@ extension MainEditorView{
         .padding(.horizontal, 16)
     }
 
-    private func setVideoIfNeeded(_ proxy: GeometryProxy){
+    private func setVideoIfNeeded(_ proxy: GeometryProxy) {
         guard !hasLoadedSourceVideo, let sourceVideoURL else { return }
         hasLoadedSourceVideo = true
         videoPlayer.loadState = .loaded(sourceVideoURL)

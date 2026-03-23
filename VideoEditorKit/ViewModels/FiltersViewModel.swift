@@ -5,10 +5,10 @@
 //  Created by Adriano Souza Costa on 23.03.2026.
 //
 
-import SwiftUI
 import CoreImage
 import CoreImage.CIFilterBuiltins
 import Observation
+import SwiftUI
 
 @MainActor
 @Observable
@@ -17,8 +17,8 @@ final class FiltersViewModel {
     var colorCorrection = ColorCorrection()
     var value = 1.0
     var image: UIImage?
-    
-    func loadFilters(for image: UIImage){
+
+    func loadFilters(for image: UIImage) {
         self.image = image
         images.removeAll()
 
@@ -32,7 +32,8 @@ final class FiltersViewModel {
             filter.setValue(ciImage, forKey: kCIInputImageKey)
 
             guard let outputImage = filter.outputImage,
-                  let cgImage = context.createCGImage(outputImage, from: ciImage.extent) else {
+                let cgImage = context.createCGImage(outputImage, from: ciImage.extent)
+            else {
                 return nil
             }
 

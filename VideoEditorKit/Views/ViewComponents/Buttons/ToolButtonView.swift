@@ -33,7 +33,9 @@ struct ToolButtonView: View {
                         .padding(8)
                 }
             }
-            .ios26Card(cornerRadius: 20, prominent: isChange, tint: isChange ? IOS26Theme.accent : IOS26Theme.accentSecondary)
+            .ios26Card(
+                cornerRadius: 20, prominent: isChange,
+                tint: isChange ? IOS26Theme.accent : IOS26Theme.accentSecondary)
         }
         .buttonStyle(.plain)
     }
@@ -42,9 +44,9 @@ struct ToolButtonView: View {
 struct ToolButtonView_Previews: PreviewProvider {
     static var previews: some View {
         VStack {
-            ToolButtonView(label: "Cut", image: "scissors", isChange: false){}
-            ToolButtonView(label: "Cut", image: "scissors", isChange: true){}
-             
+            ToolButtonView(label: "Cut", image: "scissors", isChange: false) {}
+            ToolButtonView(label: "Cut", image: "scissors", isChange: true) {}
+
         }
         .frame(width: 100)
     }

@@ -57,8 +57,8 @@ extension Int {
     }
 }
 
-private extension BinaryInteger {
-    var twoDigitString: String {
+extension BinaryInteger {
+    fileprivate var twoDigitString: String {
         let digits = String(self)
         return digits.count == 1 ? "0\(digits)" : digits
     }

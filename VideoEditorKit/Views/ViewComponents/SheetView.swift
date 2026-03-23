@@ -13,29 +13,29 @@ struct SheetView<Content: View>: View {
     @State private var slideGesture: CGSize
     var bgOpacity: CGFloat
     let content: Content
-    init(isPresented: Binding<Bool>, bgOpacity: CGFloat = 0.01,  @ViewBuilder content: () -> Content){
+    init(isPresented: Binding<Bool>, bgOpacity: CGFloat = 0.01, @ViewBuilder content: () -> Content) {
         self._isPresented = isPresented
         self.bgOpacity = bgOpacity
         self._slideGesture = State(initialValue: CGSize.zero)
         self.content = content()
-        
+
     }
     var body: some View {
-        ZStack(alignment: .bottom){
+        ZStack(alignment: .bottom) {
             IOS26Theme.scrim.opacity(max(bgOpacity * 2, 0.15))
                 .onTapGesture {
                     closeSheet()
                 }
-                .onAppear{
-                    withAnimation(.spring().delay(0.1)){
+                .onAppear {
+                    withAnimation(.spring().delay(0.1)) {
                         showSheet = true
                     }
                 }
-            if showSheet{
+            if showSheet {
                 sheetLayer
                     .transition(.move(edge: .bottom))
-                    .onDisappear{
-                        withAnimation(.easeIn(duration: 0.1)){
+                    .onDisappear {
+                        withAnimation(.easeIn(duration: 0.1)) {
                             isPresented = false
                         }
                     }
@@ -44,10 +44,9 @@ struct SheetView<Content: View>: View {
     }
 }
 
-
-extension SheetView{
-    private var sheetLayer: some View{
-        VStack(spacing: 0){
+extension SheetView {
+    private var sheetLayer: some View {
+        VStack(spacing: 0) {
             HStack {
                 Capsule()
                     .fill(.white.opacity(0.35))
@@ -75,33 +74,34 @@ extension SheetView{
         .padding(.horizontal, 12)
         .padding(.bottom, 12)
         .offset(y: max(slideGesture.height, 0))
-        .gesture(DragGesture().onChanged{ value in
-            self.slideGesture = value.translation
-        }
-            .onEnded{ value in
+        .gesture(
+            DragGesture().onChanged { value in
+                self.slideGesture = value.translation
+            }
+            .onEnded { value in
                 if self.slideGesture.height > 90 {
                     closeSheet()
                 }
                 self.slideGesture = .zero
             })
     }
-    
-    private func closeSheet(){
-        withAnimation(.easeIn(duration: 0.2)){
+
+    private func closeSheet() {
+        withAnimation(.easeIn(duration: 0.2)) {
             showSheet = false
         }
     }
 }
 
-
 struct CustomCorners: Shape {
-    
+
     var corners: UIRectCorner
     var radius: CGFloat
-    
+
     func path(in rect: CGRect) -> Path {
-        let path = UIBezierPath(roundedRect: rect, byRoundingCorners: corners, cornerRadii: CGSize(width: radius, height: radius))
+        let path = UIBezierPath(
+            roundedRect: rect, byRoundingCorners: corners,
+            cornerRadii: CGSize(width: radius, height: radius))
         return Path(path.cgPath)
     }
 }
-

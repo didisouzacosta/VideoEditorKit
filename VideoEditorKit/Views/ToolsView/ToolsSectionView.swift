@@ -5,9 +5,9 @@
 //  Created by Adriano Souza Costa on 23.03.2026.
 //
 
-import SwiftUI
 import AVKit
 import Observation
+import SwiftUI
 
 @MainActor
 struct ToolsSectionView: View {
@@ -20,7 +20,10 @@ struct ToolsSectionView: View {
         ZStack {
             LazyVGrid(columns: columns, alignment: .center, spacing: 10) {
                 ForEach(ToolEnum.allCases, id: \.self) { tool in
-                    ToolButtonView(label: tool.title, image: tool.image, isChange: editorVM.currentVideo?.isAppliedTool(for: tool) ?? false) {
+                    ToolButtonView(
+                        label: tool.title, image: tool.image,
+                        isChange: editorVM.currentVideo?.isAppliedTool(for: tool) ?? false
+                    ) {
                         editorVM.selectedTools = tool
                     }
                 }
@@ -29,7 +32,7 @@ struct ToolsSectionView: View {
             .ios26Card(cornerRadius: 30, tint: IOS26Theme.accentSecondary)
             .opacity(editorVM.selectedTools != nil ? 0 : 1)
 
-            if let toolState = editorVM.selectedTools, let video = editorVM.currentVideo{
+            if let toolState = editorVM.selectedTools, let video = editorVM.currentVideo {
                 bottomSheet(toolState, video)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
@@ -43,51 +46,55 @@ struct ToolsSectionView: View {
         }
         .onChange(of: editorVM.currentVideo?.thumbnailsImages.count ?? 0) { _, newValue in
             guard newValue > 0,
-                  let image = editorVM.currentVideo?.thumbnailsImages.first?.image else {
+                let image = editorVM.currentVideo?.thumbnailsImages.first?.image
+            else {
                 return
             }
 
             filtersVM.loadFilters(for: image)
         }
         .onChange(of: textEditor.selectedTextBox) { _, box in
-            if box != nil{
-                if editorVM.selectedTools != .text{
+            if box != nil {
+                if editorVM.selectedTools != .text {
                     editorVM.selectedTools = .text
                 }
-            }else{
+            } else {
                 editorVM.selectedTools = nil
             }
         }
         .onChange(of: editorVM.selectedTools) { _, newValue in
-            
-            if newValue == .text, textEditor.textBoxes.isEmpty{
+
+            if newValue == .text, textEditor.textBoxes.isEmpty {
                 textEditor.openTextEditor(isEdit: false, timeRange: editorVM.currentVideo?.rangeDuration)
             }
-            
-            if newValue == nil{
+
+            if newValue == nil {
                 editorVM.setText(textEditor.textBoxes)
             }
         }
     }
 }
 
-extension ToolsSectionView{
-    
+extension ToolsSectionView {
+
     @ViewBuilder
-    private func bottomSheet(_ tool: ToolEnum, _ video: Video) -> some View{
-        
+    private func bottomSheet(_ tool: ToolEnum, _ video: Video) -> some View {
+
         let isAppliedTool = video.isAppliedTool(for: tool)
-        
-        VStack(spacing: 16){
+
+        VStack(spacing: 16) {
             sheetHeader(tool)
             switch tool {
             case .cut:
-                ThumbnailsSliderView(curretTime: $videoPlayer.currentTime, video: $editorVM.currentVideo, isChangeState: isAppliedTool) {
+                ThumbnailsSliderView(
+                    currentTime: $videoPlayer.currentTime, video: $editorVM.currentVideo,
+                    isChangeState: isAppliedTool
+                ) {
                     videoPlayer.scrubState = .scrubEnded(videoPlayer.currentTime)
                     editorVM.setTools()
                 }
             case .speed:
-                VideoSpeedSlider(value: Double(video.rate), isChangeState: isAppliedTool) {rate in
+                VideoSpeedSlider(value: Double(video.rate), isChangeState: isAppliedTool) { rate in
                     videoPlayer.pause()
                     editorVM.updateRate(rate: rate)
                 }
@@ -99,20 +106,24 @@ extension ToolsSectionView{
                 TextToolsView(video: video, editor: textEditor)
             case .filters:
                 FiltersView(selectedFilterName: video.filterName, viewModel: filtersVM) { filterName in
-                    if let filterName{
-                        videoPlayer.setFilters(mainFilter: CIFilter(name: filterName), colorCorrection: filtersVM.colorCorrection)
-                    }else{
+                    if let filterName {
+                        videoPlayer.setFilters(
+                            mainFilter: CIFilter(name: filterName), colorCorrection: filtersVM.colorCorrection)
+                    } else {
                         videoPlayer.removeFilter()
                     }
                     editorVM.setFilter(filterName)
                 }
             case .corrections:
                 CorrectionsToolView(correction: $filtersVM.colorCorrection) { corrections in
-                    videoPlayer.setFilters(mainFilter: CIFilter(name: video.filterName ?? ""), colorCorrection: corrections)
+                    videoPlayer.setFilters(
+                        mainFilter: CIFilter(name: video.filterName ?? ""), colorCorrection: corrections)
                     editorVM.setCorrections(corrections)
                 }
             case .frames:
-                FramesToolView(selectedColor: $editorVM.frames.frameColor, scaleValue: $editorVM.frames.scaleValue, onChange: editorVM.setFrames)
+                FramesToolView(
+                    selectedColor: $editorVM.frames.frameColor, scaleValue: $editorVM.frames.scaleValue,
+                    onChange: editorVM.setFrames)
             }
             Spacer()
         }
@@ -122,9 +133,9 @@ extension ToolsSectionView{
     }
 }
 
-extension ToolsSectionView{
-    
-    private func sheetHeader(_ tool: ToolEnum) -> some View{
+extension ToolsSectionView {
+
+    private func sheetHeader(_ tool: ToolEnum) -> some View {
         HStack {
             Button {
                 editorVM.selectedTools = nil
@@ -138,7 +149,7 @@ extension ToolsSectionView{
             .buttonStyle(.plain)
 
             Spacer()
-            if tool != .filters, tool != .audio, tool != .text{
+            if tool != .filters, tool != .audio, tool != .text {
                 Button {
                     editorVM.reset()
                 } label: {
@@ -150,7 +161,7 @@ extension ToolsSectionView{
                         .ios26CapsuleControl()
                 }
                 .buttonStyle(.plain)
-            }else if !editorVM.isSelectVideo{
+            } else if !editorVM.isSelectVideo {
                 Button {
                     videoPlayer.pause()
                     editorVM.removeAudio()
@@ -170,7 +181,7 @@ extension ToolsSectionView{
                 .foregroundStyle(.white)
         }
     }
-    
+
 }
 
 #Preview {

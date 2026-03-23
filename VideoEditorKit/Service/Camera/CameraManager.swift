@@ -5,42 +5,43 @@
 //  Created by Adriano Souza Costa on 23.03.2026.
 //
 
-import SwiftUI
 import AVFoundation
 import Observation
+import SwiftUI
 
 @Observable
 final class CameraManager: NSObject, @unchecked Sendable {
-    
-    enum Status{
+
+    enum Status {
         case unconfigurate
         case configurate
         case unauthorized
         case faild
     }
-    
+
     var error: CameraError?
     var session = AVCaptureSession()
     var finalURL: URL?
     var recordedDuration: Double = .zero
     var cameraPosition: AVCaptureDevice.Position = .front
-    
-    let maxDuration: Double = 100 // sec
+
+    let maxDuration: Double = 100  // sec
     private var timer: Timer?
-    private let sessionQueue = DispatchQueue(label: "com.VideoEditorKit.camera.session", qos: .userInitiated)
+    private let sessionQueue = DispatchQueue(
+        label: "com.VideoEditorKit.camera.session", qos: .userInitiated)
     private let videoOutput = AVCaptureMovieFileOutput()
     private var status: Status = .unconfigurate
-    
-    var isRecording: Bool{
+
+    var isRecording: Bool {
         videoOutput.isRecording
     }
-    
-    override init(){
+
+    override init() {
         super.init()
         config()
     }
-    
-    private func config(){
+
+    private func config() {
         checkPermissions()
         sessionQueue.async { [weak self] in
             guard let self else { return }
@@ -49,25 +50,25 @@ final class CameraManager: NSObject, @unchecked Sendable {
             self.session.startRunning()
         }
     }
-    
-    func controllSession(start: Bool){
+
+    func controllSession(start: Bool) {
         guard status == .configurate else {
             config()
             return
         }
         sessionQueue.async { [weak self] in
             guard let self else { return }
-            if start{
-                if !self.session.isRunning{
+            if start {
+                if !self.session.isRunning {
                     self.session.startRunning()
                 }
-            }else{
+            } else {
                 self.session.stopRunning()
             }
         }
     }
-    
-    private func setError(_ error: CameraError?){
+
+    private func setError(_ error: CameraError?) {
         Task { @MainActor [weak self] in
             self?.error = error
         }
@@ -78,15 +79,15 @@ final class CameraManager: NSObject, @unchecked Sendable {
             self?.finalURL = url
         }
     }
-    
+
     ///Check user permissions
-    private func checkPermissions(){
-        switch AVCaptureDevice.authorizationStatus(for: .video){
-            
+    private func checkPermissions() {
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+
         case .notDetermined:
             sessionQueue.suspend()
             AVCaptureDevice.requestAccess(for: .video) { aurhorized in
-                if !aurhorized{
+                if !aurhorized {
                     self.status = .unauthorized
                     self.setError(.deniedAuthorization)
                 }
@@ -98,65 +99,68 @@ final class CameraManager: NSObject, @unchecked Sendable {
         case .denied:
             status = .unauthorized
             setError(.deniedAuthorization)
-            
+
         case .authorized: break
         @unknown default:
             status = .unauthorized
             setError(.unknowAuthorization)
         }
     }
-    
+
     ///Configuring a session and adding video, audio input and adding video output
-    private func configCaptureSession(){
+    private func configCaptureSession() {
         guard status == .unconfigurate else {
             return
         }
         session.beginConfiguration()
-        
+
         session.sessionPreset = .hd1280x720
-        
+
         let device = getCameraDevice(for: .back)
         let audioDevice = AVCaptureDevice.default(for: .audio)
-        
+
         guard let camera = device, let audio = audioDevice else {
             setError(.cameraUnavalible)
             status = .faild
             return
         }
-        
-        do{
+
+        do {
             let cameraInput = try AVCaptureDeviceInput(device: camera)
             let audioInput = try AVCaptureDeviceInput(device: audio)
-            
-            if session.canAddInput(cameraInput) && session.canAddInput(audioInput){
+
+            if session.canAddInput(cameraInput) && session.canAddInput(audioInput) {
                 session.addInput(audioInput)
                 session.addInput(cameraInput)
-            }else{
+            } else {
                 setError(.cannotAddInput)
                 status = .faild
                 return
             }
-        }catch{
+        } catch {
             setError(.createCaptureInput(error))
             status = .faild
             return
         }
-        
-        if session.canAddOutput(videoOutput){
+
+        if session.canAddOutput(videoOutput) {
             session.addOutput(videoOutput)
-        }else{
+        } else {
             setError(.cannotAddInput)
             status = .faild
             return
         }
-        
+
         session.commitConfiguration()
         status = .configurate
     }
-    
-    
-   private func getCameraDevice(for position: AVCaptureDevice.Position) -> AVCaptureDevice? {
-        let discoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.builtInTripleCamera, .builtInTelephotoCamera, .builtInDualCamera, .builtInTrueDepthCamera, .builtInDualWideCamera], mediaType: AVMediaType.video, position: .unspecified)
+
+    private func getCameraDevice(for position: AVCaptureDevice.Position) -> AVCaptureDevice? {
+        let discoverySession = AVCaptureDevice.DiscoverySession(
+            deviceTypes: [
+                .builtInTripleCamera, .builtInTelephotoCamera, .builtInDualCamera, .builtInTrueDepthCamera,
+                .builtInDualWideCamera,
+            ], mediaType: AVMediaType.video, position: .unspecified)
         for device in discoverySession.devices {
             if device.position == position {
                 return device
@@ -164,13 +168,13 @@ final class CameraManager: NSObject, @unchecked Sendable {
         }
         return nil
     }
-    
-    func stopRecord(){
+
+    func stopRecord() {
         timer?.invalidate()
         videoOutput.stopRecording()
     }
-    
-    func startRecording(){
+
+    func startRecording() {
         ///Temporary URL for recording Video
         recordedDuration = .zero
         let tempURL = URL(fileURLWithPath: NSTemporaryDirectory())
@@ -178,32 +182,29 @@ final class CameraManager: NSObject, @unchecked Sendable {
         videoOutput.startRecording(to: tempURL, recordingDelegate: self)
         startTimer()
     }
-    
-//    func set(_ delegate: AVCaptureVideoDataOutputSampleBufferDelegate,
-//             queue: DispatchQueue){
-//        sessionQueue.async {
-//            self.videoOutput.setSampleBufferDelegate(delegate, queue: queue)
-//        }
-//    }
-    
-    
+
+    //    func set(_ delegate: AVCaptureVideoDataOutputSampleBufferDelegate,
+    //             queue: DispatchQueue){
+    //        sessionQueue.async {
+    //            self.videoOutput.setSampleBufferDelegate(delegate, queue: queue)
+    //        }
+    //    }
+
 }
 
+extension CameraManager {
 
+    private func onTimerFires() {
 
-extension CameraManager{
-    
-    private func onTimerFires(){
-        
-        if recordedDuration <= maxDuration && videoOutput.isRecording{
+        if recordedDuration <= maxDuration && videoOutput.isRecording {
             recordedDuration += 1
         }
-        if recordedDuration >= maxDuration && videoOutput.isRecording{
+        if recordedDuration >= maxDuration && videoOutput.isRecording {
             stopRecord()
         }
     }
-    
-    private func startTimer(){
+
+    private func startTimer() {
         if timer == nil {
             timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] (timer) in
                 self?.onTimerFires()
@@ -212,23 +213,21 @@ extension CameraManager{
     }
 }
 
-
-
-extension CameraManager: AVCaptureFileOutputRecordingDelegate{
-    func fileOutput(_ output: AVCaptureFileOutput, didFinishRecordingTo outputFileURL: URL, from connections: [AVCaptureConnection], error: Error?) {
-        if let error{
+extension CameraManager: AVCaptureFileOutputRecordingDelegate {
+    func fileOutput(
+        _ output: AVCaptureFileOutput, didFinishRecordingTo outputFileURL: URL,
+        from connections: [AVCaptureConnection], error: Error?
+    ) {
+        if let error {
             setError(.outputError(error))
-        }else{
+        } else {
             setFinalURL(outputFileURL)
         }
     }
-    
-    
+
 }
 
-
-
-enum CameraError: Error{
+enum CameraError: Error {
     case deniedAuthorization
     case restrictedAuthorization
     case unknowAuthorization

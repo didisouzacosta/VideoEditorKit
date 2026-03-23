@@ -7,11 +7,10 @@
 
 import Foundation
 
-
-enum ToolEnum: Int, CaseIterable{
+enum ToolEnum: Int, CaseIterable {
     case cut, speed, crop, audio, text, filters, corrections, frames
-    
-    var title: String{
+
+    var title: String {
         switch self {
         case .cut: return "Cut"
         case .speed: return "Speed"
@@ -23,8 +22,8 @@ enum ToolEnum: Int, CaseIterable{
         case .frames: return "Frames"
         }
     }
-    
-    var image: String{
+
+    var image: String {
         switch self {
         case .cut: return "scissors"
         case .speed: return "timer"
@@ -36,15 +35,13 @@ enum ToolEnum: Int, CaseIterable{
         case .frames: return "person.crop.artframe"
         }
     }
-    
-    var timeState: TimeLineViewState{
-        switch self{
+
+    var timeState: TimeLineViewState {
+        switch self {
         case .audio: return .audio
         case .text: return .text
         default: return .empty
         }
     }
-    
-}
-    
 
+}

@@ -5,36 +5,30 @@
 //  Created by Adriano Souza Costa on 23.03.2026.
 //
 
-import Foundation
 import CoreGraphics
+import Foundation
 
 struct CropperRatio {
-    
     let width: CGFloat
     let height: CGFloat
-    
-    init(width: CGFloat, height: CGFloat) {
-        self.width = width
-        self.height = height
+
+    static var square: Self {
+        .init(width: 1, height: 1)
     }
-    
-    static var r_1_1: Self {
-        return .init(width: 1, height: 1)
+
+    static var landscape3x2: Self {
+        .init(width: 3, height: 2)
     }
-    
-    static var r_3_2: Self {
-        return .init(width: 3, height: 2)
+
+    static var landscape4x3: Self {
+        .init(width: 4, height: 3)
     }
-    
-    static var r_4_3: Self {
-        return .init(width: 4, height: 3)
+
+    static var widescreen16x9: Self {
+        .init(width: 16, height: 9)
     }
-    
-    static var r_16_9: Self {
-        return .init(width: 16, height: 9)
-    }
-    
-    static var r_18_6: Self {
-        return .init(width: 18, height: 6)
+
+    static var cinematic18x6: Self {
+        .init(width: 18, height: 6)
     }
 }

@@ -14,7 +14,7 @@ enum IOS26Theme {
         colors: [
             Color(red: 0.05, green: 0.10, blue: 0.18),
             Color(red: 0.17, green: 0.27, blue: 0.42),
-            Color(red: 0.56, green: 0.65, blue: 0.82)
+            Color(red: 0.56, green: 0.65, blue: 0.82),
         ],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
@@ -23,7 +23,7 @@ enum IOS26Theme {
         colors: [
             Color(red: 0.02, green: 0.04, blue: 0.08),
             Color(red: 0.07, green: 0.12, blue: 0.20),
-            Color(red: 0.16, green: 0.21, blue: 0.31)
+            Color(red: 0.16, green: 0.21, blue: 0.31),
         ],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
@@ -31,7 +31,7 @@ enum IOS26Theme {
     static let editorGlow = RadialGradient(
         colors: [
             accent.opacity(0.24),
-            .clear
+            .clear,
         ],
         center: .topTrailing,
         startRadius: 40,
@@ -49,7 +49,9 @@ extension View {
     ) -> some View {
         if #available(iOS 26, *) {
             if let tint {
-                self.glassEffect(.regular.tint(tint.opacity(prominent ? 0.30 : 0.18)), in: .rect(cornerRadius: cornerRadius))
+                self.glassEffect(
+                    .regular.tint(tint.opacity(prominent ? 0.30 : 0.18)),
+                    in: .rect(cornerRadius: cornerRadius))
             } else {
                 self.glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
             }
@@ -71,12 +73,14 @@ extension View {
     ) -> some View {
         if #available(iOS 26, *) {
             if let tint {
-                self.glassEffect(.regular.tint(tint.opacity(prominent ? 0.30 : 0.18)).interactive(), in: .circle)
+                self.glassEffect(
+                    .regular.tint(tint.opacity(prominent ? 0.30 : 0.18)).interactive(), in: .circle)
             } else {
                 self.glassEffect(.regular.interactive(), in: .circle)
             }
         } else {
-            let fill = tint?.opacity(prominent ? 0.26 : 0.14) ?? Color.white.opacity(prominent ? 0.18 : 0.10)
+            let fill =
+                tint?.opacity(prominent ? 0.26 : 0.14) ?? Color.white.opacity(prominent ? 0.18 : 0.10)
             self
                 .background(fill, in: .circle)
                 .overlay {
@@ -94,12 +98,14 @@ extension View {
     ) -> some View {
         if #available(iOS 26, *) {
             if let tint {
-                self.glassEffect(.regular.tint(tint.opacity(prominent ? 0.30 : 0.18)).interactive(), in: .capsule)
+                self.glassEffect(
+                    .regular.tint(tint.opacity(prominent ? 0.30 : 0.18)).interactive(), in: .capsule)
             } else {
                 self.glassEffect(.regular.interactive(), in: .capsule)
             }
         } else {
-            let fill = tint?.opacity(prominent ? 0.26 : 0.14) ?? Color.white.opacity(prominent ? 0.18 : 0.10)
+            let fill =
+                tint?.opacity(prominent ? 0.26 : 0.14) ?? Color.white.opacity(prominent ? 0.18 : 0.10)
             self
                 .background(fill, in: .capsule)
                 .overlay {

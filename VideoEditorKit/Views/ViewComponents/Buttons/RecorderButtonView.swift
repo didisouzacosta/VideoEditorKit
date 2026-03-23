@@ -15,16 +15,16 @@ struct RecorderButtonView: View {
     @State private var state: StateEnum = .empty
     let onRecorded: (Audio) -> Void
     let onRecordTime: (Double) -> Void
-    
-    private var isSetAudio: Bool{
+
+    private var isSetAudio: Bool {
         video.audio != nil
     }
-    
+
     var body: some View {
-        ZStack{
+        ZStack {
             switch state {
             case .empty:
-                if isSetAudio{}
+                if isSetAudio {}
                 recordButton
             case .timer:
                 timerButton
@@ -40,22 +40,20 @@ struct RecorderButtonView: View {
             state = .empty
         }
         .onChange(of: recorderManager.currentRecordTime) { _, newValue in
-            if newValue > 0{
+            if newValue > 0 {
                 onRecordTime(newValue)
             }
         }
     }
 }
 
-extension RecorderButtonView{
-    
-    
-    enum StateEnum: Int{
+extension RecorderButtonView {
+
+    enum StateEnum: Int {
         case empty, timer, record
     }
-    
-    
-    private var recordButton: some View{
+
+    private var recordButton: some View {
         Button {
             state = .timer
             startTimer()
@@ -68,8 +66,8 @@ extension RecorderButtonView{
         }
         .buttonStyle(.plain)
     }
-    
-    private var timerButton: some View{
+
+    private var timerButton: some View {
         Button {
             state = .empty
             stopTimer()
@@ -82,8 +80,8 @@ extension RecorderButtonView{
         }
         .buttonStyle(.plain)
     }
-    
-    private var stopButton:  some View{
+
+    private var stopButton: some View {
         Button {
             state = .empty
             recorderManager.stopRecording()
@@ -96,13 +94,12 @@ extension RecorderButtonView{
         }
         .buttonStyle(.plain)
     }
-    
-    
-    private func startTimer(){
-        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true){ _ in
+
+    private func startTimer() {
+        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
             Task { @MainActor in
                 timeRemaining -= 1
-                if timeRemaining == 0{
+                if timeRemaining == 0 {
                     state = .record
                     stopTimer()
                     recorderManager.startRecording(recordMaxTime: video.totalDuration)
@@ -110,8 +107,8 @@ extension RecorderButtonView{
             }
         }
     }
-    
-    private func stopTimer(){
+
+    private func stopTimer() {
         timeRemaining = 3
         timer?.invalidate()
         timer = nil
@@ -120,8 +117,11 @@ extension RecorderButtonView{
 
 struct RecorderButtonView_Previews: PreviewProvider {
     static var previews: some View {
-        RecorderButtonView(video: Video.mock, recorderManager: AudioRecorderManager(), onRecorded: { _ in }, onRecordTime: { _ in })
-            .padding()
-            .preferredColorScheme(.dark)
+        RecorderButtonView(
+            video: Video.mock, recorderManager: AudioRecorderManager(), onRecorded: { _ in },
+            onRecordTime: { _ in }
+        )
+        .padding()
+        .preferredColorScheme(.dark)
     }
 }

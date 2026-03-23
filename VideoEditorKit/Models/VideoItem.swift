@@ -8,7 +8,6 @@
 import AVKit
 import SwiftUI
 
-
 struct VideoItem: Transferable {
     let url: URL
 

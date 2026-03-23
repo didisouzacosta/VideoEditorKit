@@ -12,7 +12,7 @@ struct TextToolsView: View {
     var editor: TextEditorViewModel
     var body: some View {
         ScrollView(.horizontal) {
-            HStack(spacing: 15){
+            HStack(spacing: 15) {
                 ForEach(editor.textBoxes) { box in
                     cellView(box)
                 }
@@ -21,27 +21,27 @@ struct TextToolsView: View {
         }
         .scrollIndicators(.hidden)
         .animation(.easeIn(duration: 0.2), value: editor.textBoxes)
-        .onAppear{
+        .onAppear {
             editor.selectedTextBox = editor.textBoxes.first
         }
-        .onDisappear{
+        .onDisappear {
             editor.selectedTextBox = nil
         }
     }
 }
 
-extension TextToolsView{
-    
-    private func cellView(_ textBox: TextBox) -> some View{
+extension TextToolsView {
+
+    private func cellView(_ textBox: TextBox) -> some View {
         let isSelected = editor.isSelected(textBox.id)
         return Button {
-            if isSelected{
+            if isSelected {
                 editor.openTextEditor(isEdit: true, textBox)
-            }else{
+            } else {
                 editor.selectTextBox(textBox)
             }
         } label: {
-            ZStack{
+            ZStack {
                 Text(textBox.text)
                     .lineLimit(1)
                     .font(.caption.weight(.medium))
@@ -49,10 +49,12 @@ extension TextToolsView{
                     .padding(.horizontal, 10)
             }
             .frame(width: 80, height: 80)
-            .ios26Card(cornerRadius: 20, prominent: isSelected, tint: isSelected ? IOS26Theme.accent : IOS26Theme.accentSecondary)
+            .ios26Card(
+                cornerRadius: 20, prominent: isSelected,
+                tint: isSelected ? IOS26Theme.accent : IOS26Theme.accentSecondary)
         }
         .overlay(alignment: .topLeading) {
-            if isSelected{
+            if isSelected {
                 Button {
                     editor.removeTextBox()
                 } label: {
@@ -67,12 +69,12 @@ extension TextToolsView{
         }
         .buttonStyle(.plain)
     }
-    
-    private var addTextButton: some View{
+
+    private var addTextButton: some View {
         Button {
             editor.openTextEditor(isEdit: false, timeRange: video.rangeDuration)
         } label: {
-            ZStack{
+            ZStack {
                 Text("+T")
                     .font(.title2.weight(.light))
                     .foregroundStyle(.white)

@@ -15,7 +15,7 @@ struct TestCroppedView: View {
     var body: some View {
         VStack {
             Text("Current postion = (x: \(Int(position.x)), y: \(Int(position.y))")
-            
+
             Rectangle()
                 .fill(.gray)
                 .frame(width: frameSize.width, height: frameSize.height)
@@ -30,11 +30,14 @@ struct TestCroppedView: View {
                             DragGesture()
                                 .onChanged { value in
                                     // limit movement to min and max value
-                                    let limitedX = max(min(value.location.x, frameSize.width - size.width / 2), size.width / 2)
-                                    let limitedY = max(min(value.location.y, frameSize.height - size.height / 2), size.height / 2)
-                                    
-                                    self.position = CGPoint(x: limitedX,
-                                                            y: limitedY)
+                                    let limitedX = max(
+                                        min(value.location.x, frameSize.width - size.width / 2), size.width / 2)
+                                    let limitedY = max(
+                                        min(value.location.y, frameSize.height - size.height / 2), size.height / 2)
+
+                                    self.position = CGPoint(
+                                        x: limitedX,
+                                        y: limitedY)
                                 }
                         )
                 )
