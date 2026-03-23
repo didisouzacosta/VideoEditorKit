@@ -41,9 +41,8 @@ struct SliderView<V>: View where V: BinaryFloatingPoint, V.Stride: BinaryFloatin
     var body: some View {
         GeometryReader { proxy in
             ZStack(alignment: .center) {
-                // Thumb
                 Capsule()
-                    .foregroundColor(.orange)
+                    .foregroundStyle(IOS26Theme.accent)
                     .frame(width: length, height: height)
                     .offset(x: (proxy.size.width - length) * ratio)
                     .gesture(
@@ -119,7 +118,7 @@ struct StickerSliderView_Previews: PreviewProvider {
         VStack {
             SliderView(value: .constant(40), in: 10...100) {}
                 .frame(height: 60)
-                .background(Color.secondary)
+                .background(Color(uiColor: .secondarySystemBackground))
                 .padding()
         }
     }

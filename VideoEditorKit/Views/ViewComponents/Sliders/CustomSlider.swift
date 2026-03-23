@@ -162,13 +162,12 @@ struct CustomSlider_Previews: PreviewProvider {
             onEditingChanged: { _ in },
             track: {
                 Capsule()
-                    .foregroundColor(.init(red: 0.9, green: 0.9, blue: 0.9))
+                    .foregroundStyle(IOS26Theme.sliderTrack)
                     .frame(width: 200, height: 5)
             },
             thumb: {
                 Circle()
-                    .foregroundColor(.white)
-                    .shadow(radius: 20 / 1)
+                    .foregroundStyle(IOS26Theme.sliderThumb)
             }, thumbSize: CGSize(width: 20, height: 20))
     }
 }

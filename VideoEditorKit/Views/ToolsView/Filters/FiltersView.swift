@@ -45,7 +45,10 @@ extension FiltersView {
             .clipShape(.rect(cornerRadius: 18))
             .overlay {
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .strokeBorder(isSelected ? .white : .white.opacity(0.10), lineWidth: isSelected ? 2 : 1)
+                    .strokeBorder(
+                        isSelected ? IOS26Theme.primaryText : IOS26Theme.outline,
+                        lineWidth: isSelected ? 2 : 1
+                    )
             }
             .padding(4)
             .ios26Card(

@@ -51,7 +51,7 @@ struct RootView: View {
                             .font(.subheadline.weight(.semibold))
                             .padding(.horizontal, 16)
                             .padding(.vertical, 8)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(IOS26Theme.primaryText)
                             .ios26CapsuleControl(tint: IOS26Theme.accentSecondary)
                     }
                 }
@@ -69,9 +69,9 @@ struct RootView: View {
                         VStack(spacing: 12) {
                             Text("Loading video")
                                 .font(.headline)
-                                .foregroundStyle(.white)
+                                .foregroundStyle(IOS26Theme.primaryText)
                             ProgressView()
-                                .tint(.white)
+                                .tint(IOS26Theme.accent)
                         }
                         .padding(.horizontal, 24)
                         .padding(.vertical, 22)
@@ -88,25 +88,25 @@ extension RootView {
         VStack(alignment: .leading, spacing: 12) {
             Label("Temporary Editing Session", systemImage: "sparkles.rectangle.stack.fill")
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.white)
+                .foregroundStyle(IOS26Theme.primaryText)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
                 .ios26CapsuleControl(tint: IOS26Theme.accent)
 
             Text("Edit a clip with the iOS 26 visual language.")
                 .font(.largeTitle.bold())
-                .foregroundStyle(.white)
+                .foregroundStyle(IOS26Theme.primaryText)
 
             Text(
                 "Pick a video from your gallery, edit it, and get the rendered result back on this screen."
             )
             .font(.title3.weight(.semibold))
-            .foregroundStyle(.white)
+            .foregroundStyle(IOS26Theme.primaryText)
             Text(
                 "This screen now works as an example mode. It starts a temporary editing session and shows the exported output."
             )
             .font(.subheadline)
-            .foregroundStyle(.white.opacity(0.78))
+            .foregroundStyle(IOS26Theme.secondaryText)
         }
         .padding(24)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -119,23 +119,23 @@ extension RootView {
                 Image(systemName: "video.badge.plus")
                     .font(.system(size: 22, weight: .semibold))
                     .frame(width: 52, height: 52)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(IOS26Theme.primaryText)
                     .ios26CircleControl(prominent: true, tint: IOS26Theme.accent)
 
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Choose a Video")
                         .font(.headline)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(IOS26Theme.primaryText)
                     Text("Import a clip from Photos and open it directly in the editor.")
                         .font(.subheadline)
-                        .foregroundStyle(.white.opacity(0.78))
+                        .foregroundStyle(IOS26Theme.secondaryText)
                 }
 
                 Spacer()
 
                 Image(systemName: "arrow.up.right")
                     .font(.headline.weight(.semibold))
-                    .foregroundStyle(.white.opacity(0.9))
+                    .foregroundStyle(IOS26Theme.secondaryText)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(20)
@@ -149,7 +149,7 @@ extension RootView {
         VStack(alignment: .leading, spacing: 16) {
             Text("Edited Result")
                 .font(.headline)
-                .foregroundStyle(.white)
+                .foregroundStyle(IOS26Theme.primaryText)
 
             if let editedVideoURL {
                 VStack(alignment: .leading, spacing: 12) {
@@ -159,7 +159,7 @@ extension RootView {
 
                     Text(editedVideoURL.lastPathComponent)
                         .font(.footnote)
-                        .foregroundStyle(.white.opacity(0.78))
+                        .foregroundStyle(IOS26Theme.secondaryText)
                 }
                 .padding(18)
                 .ios26Card(tint: IOS26Theme.accentSecondary)
@@ -167,10 +167,10 @@ extension RootView {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("No edited video yet.")
                         .font(.headline)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(IOS26Theme.primaryText)
                     Text("After exporting from the editor, the rendered video will appear here.")
                         .font(.subheadline)
-                        .foregroundStyle(.white.opacity(0.78))
+                        .foregroundStyle(IOS26Theme.secondaryText)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(20)

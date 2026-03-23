@@ -61,7 +61,7 @@ extension RecorderButtonView {
             Image(systemName: "mic.fill")
                 .font(.headline.weight(.semibold))
                 .frame(width: 44, height: 44)
-                .foregroundStyle(.white)
+                .foregroundStyle(IOS26Theme.primaryText)
                 .ios26CircleControl(prominent: true, tint: IOS26Theme.accent)
         }
         .buttonStyle(.plain)
@@ -75,7 +75,7 @@ extension RecorderButtonView {
             Text("\(timeRemaining)")
                 .font(.subheadline.bold())
                 .frame(width: 44, height: 44)
-                .foregroundStyle(.white)
+                .foregroundStyle(IOS26Theme.primaryText)
                 .ios26CircleControl(prominent: true, tint: IOS26Theme.accentSecondary)
         }
         .buttonStyle(.plain)
@@ -89,8 +89,8 @@ extension RecorderButtonView {
             Image(systemName: "stop.fill")
                 .font(.headline.weight(.semibold))
                 .frame(width: 44, height: 44)
-                .foregroundStyle(.white)
-                .ios26CircleControl(prominent: true, tint: .red)
+                .foregroundStyle(IOS26Theme.primaryText)
+                .ios26CircleControl(prominent: true, tint: IOS26Theme.destructive)
         }
         .buttonStyle(.plain)
     }

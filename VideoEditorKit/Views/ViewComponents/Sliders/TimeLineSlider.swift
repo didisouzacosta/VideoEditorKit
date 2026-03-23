@@ -29,7 +29,7 @@ struct LineSlider: View {
                 },
                 thumb: {
                     Capsule()
-                        .foregroundColor(.orange)
+                        .foregroundStyle(IOS26Theme.accent)
                 }, thumbSize: CGSize(width: 10, height: proxy.size.height))
         }
     }
@@ -39,6 +39,6 @@ struct TimeLineSlider_Previews: PreviewProvider {
     static var previews: some View {
         LineSlider(value: .constant(100), range: 14...100) {}
             .frame(width: 250, height: 60)
-            .background(Color.secondary)
+            .background(Color(uiColor: .secondarySystemBackground))
     }
 }

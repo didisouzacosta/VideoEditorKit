@@ -49,7 +49,7 @@ extension SheetView {
         VStack(spacing: 0) {
             HStack {
                 Capsule()
-                    .fill(.white.opacity(0.35))
+                    .fill(IOS26Theme.outline)
                     .frame(width: 56, height: 5)
                 Spacer()
                 Button {
@@ -58,7 +58,7 @@ extension SheetView {
                     Image(systemName: "xmark")
                         .font(.footnote.weight(.bold))
                         .frame(width: 36, height: 36)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(IOS26Theme.primaryText)
                         .ios26CircleControl()
                 }
             }

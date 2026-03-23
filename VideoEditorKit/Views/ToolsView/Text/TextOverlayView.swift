@@ -58,7 +58,7 @@ struct TextOverlayView: View {
                                 if isSelected {
                                     RoundedRectangle(cornerRadius: 6)
                                         .stroke(lineWidth: 1)
-                                        .foregroundStyle(.cyan)
+                                        .foregroundStyle(IOS26Theme.selection)
                                 }
                             }
                             .onTapGesture {
@@ -124,7 +124,7 @@ extension TextOverlayView {
                     .background(Color(.systemGray2), in: Circle())
             }
         }
-        .foregroundStyle(.white)
+        .foregroundStyle(IOS26Theme.primaryText)
     }
 
     private func editOrSelectTextBox(_ textBox: TextBox, _ isSelected: Bool) {
@@ -148,7 +148,7 @@ struct TextOverlayView_Previews: PreviewProvider {
         viewModel.selectTextBox(TextBox.texts[0])
 
         return ZStack {
-            Color.black
+            Color(uiColor: .systemBackground)
             TextOverlayView(currentTime: 1.5, viewModel: viewModel)
         }
     }

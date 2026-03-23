@@ -128,7 +128,7 @@ extension ToolsSectionView {
             Spacer()
         }
         .padding(16)
-        .foregroundStyle(.white)
+        .foregroundStyle(IOS26Theme.primaryText)
         .ios26Card(cornerRadius: 30, prominent: true, tint: IOS26Theme.accentSecondary)
     }
 }
@@ -143,7 +143,7 @@ extension ToolsSectionView {
                 Image(systemName: "chevron.down")
                     .font(.headline.weight(.semibold))
                     .frame(width: 40, height: 40)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(IOS26Theme.primaryText)
                     .ios26CircleControl()
             }
             .buttonStyle(.plain)
@@ -157,7 +157,7 @@ extension ToolsSectionView {
                         .font(.subheadline.weight(.semibold))
                         .padding(.horizontal, 16)
                         .padding(.vertical, 10)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(IOS26Theme.primaryText)
                         .ios26CapsuleControl()
                 }
                 .buttonStyle(.plain)
@@ -168,7 +168,7 @@ extension ToolsSectionView {
                 } label: {
                     Image(systemName: "trash.fill")
                         .font(.headline.weight(.semibold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(IOS26Theme.primaryText)
                         .frame(width: 40, height: 40)
                         .ios26CircleControl()
                 }
@@ -178,7 +178,7 @@ extension ToolsSectionView {
         .overlay {
             Text(tool.title)
                 .font(.headline)
-                .foregroundStyle(.white)
+                .foregroundStyle(IOS26Theme.primaryText)
         }
     }
 

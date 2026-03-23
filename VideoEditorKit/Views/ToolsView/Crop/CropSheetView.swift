@@ -24,7 +24,7 @@ struct CropSheetView: View {
                 }
             }
         }
-        .foregroundStyle(.white)
+        .foregroundStyle(IOS26Theme.primaryText)
         .onAppear {
             rotateValue = editorVM.currentVideo?.rotation ?? 0
         }
@@ -50,13 +50,12 @@ extension CropSheetView {
                 },
                 track: {
                     Capsule()
-                        .fill(.white.opacity(0.28))
+                        .fill(IOS26Theme.sliderTrack)
                         .frame(width: 200, height: 5)
                 },
                 thumb: {
                     Circle()
-                        .fill(.white)
-                        .shadow(color: .black.opacity(0.18), radius: 12, y: 4)
+                        .fill(IOS26Theme.sliderThumb)
                 }, thumbSize: CGSize(width: 20, height: 20))
 
             Button {
@@ -65,7 +64,7 @@ extension CropSheetView {
                 Image(systemName: "arrow.triangle.2.circlepath")
                     .font(.headline.weight(.semibold))
                     .frame(width: 44, height: 44)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(IOS26Theme.primaryText)
                     .ios26CircleControl(tint: IOS26Theme.accentSecondary)
             }
             .buttonStyle(.plain)
@@ -76,7 +75,7 @@ extension CropSheetView {
                 Image(systemName: "arrow.left.and.right.righttriangle.left.righttriangle.right.fill")
                     .font(.headline.weight(.semibold))
                     .frame(width: 44, height: 44)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(IOS26Theme.primaryText)
                     .ios26CircleControl(
                         prominent: editorVM.currentVideo?.isMirror ?? false,
                         tint: (editorVM.currentVideo?.isMirror ?? false)
@@ -97,7 +96,7 @@ extension CropSheetView {
                         .font(.subheadline.weight(.semibold))
                         .padding(.horizontal, 16)
                         .padding(.vertical, 10)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(IOS26Theme.primaryText)
                         .ios26CapsuleControl(
                             prominent: currentTab == tab,
                             tint: currentTab == tab ? IOS26Theme.accent : IOS26Theme.accentSecondary

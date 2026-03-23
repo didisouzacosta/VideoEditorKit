@@ -92,7 +92,7 @@ extension TimeLineView {
                 if isSelectedTrack {
                     RoundedRectangle(cornerRadius: 5)
                         .strokeBorder(lineWidth: 2)
-                        .foregroundColor(.white)
+                        .foregroundStyle(IOS26Theme.primaryText)
                 }
                 HStack(spacing: 1) {
                     if video.volume > 0 {
@@ -103,7 +103,7 @@ extension TimeLineView {
                     }
                 }
                 .font(.system(size: 9))
-                .foregroundColor(.white)
+                .foregroundStyle(IOS26Theme.primaryText)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
                 .padding(5)
             }

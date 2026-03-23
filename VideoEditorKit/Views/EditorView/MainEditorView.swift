@@ -99,7 +99,7 @@ extension MainEditorView {
                 Image(systemName: "chevron.left")
                     .font(.headline.weight(.semibold))
                     .frame(width: 46, height: 46)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(IOS26Theme.primaryText)
                     .ios26CircleControl()
             }
             .buttonStyle(.plain)
@@ -113,7 +113,7 @@ extension MainEditorView {
                     .font(.subheadline.weight(.semibold))
                     .padding(.horizontal, 18)
                     .padding(.vertical, 12)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(IOS26Theme.primaryText)
                     .ios26CapsuleControl(prominent: true, tint: IOS26Theme.accent)
             }
             .buttonStyle(.plain)
@@ -123,7 +123,7 @@ extension MainEditorView {
                 .font(.subheadline.weight(.semibold))
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
-                .foregroundStyle(.white.opacity(0.95))
+                .foregroundStyle(IOS26Theme.primaryText)
                 .ios26CapsuleControl(tint: IOS26Theme.accentSecondary)
         }
         .padding(.horizontal, 16)

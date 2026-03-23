@@ -60,7 +60,7 @@ struct Swipe: ViewModifier {
     func body(content: Content) -> some View {
 
         ZStack {
-            Color.red
+            IOS26Theme.destructive
 
             HStack {
                 Spacer()
@@ -69,12 +69,12 @@ struct Swipe: ViewModifier {
                 } label: {
                     Image(systemName: "trash")
                         .font(.title2)
-                        .foregroundColor(.white)
+                        .foregroundStyle(IOS26Theme.primaryText)
                         .padding(.trailing)
                 }
             }
             content
-                .background(.white)
+                .background(Color(uiColor: .systemBackground))
                 .contentShape(Rectangle())
                 .offset(x: offset)
                 .gesture(DragGesture().onChanged(onChange).onEnded(onEnded))
@@ -131,10 +131,9 @@ struct Delete: ViewModifier {
                 GeometryReader { geometry in
                     ZStack {
                         Rectangle()
-                            //                            .clipShape(CustomCorners(corners: [.topLeft, .bottomLeft], radius: 7))
-                            .foregroundColor(.red)
+                            .foregroundStyle(IOS26Theme.destructive)
                         Image(systemName: "trash")
-                            .foregroundColor(.white)
+                            .foregroundStyle(IOS26Theme.primaryText)
                             .font(.title2.bold())
                             .layoutPriority(-1)
                     }

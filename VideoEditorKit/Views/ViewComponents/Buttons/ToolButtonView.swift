@@ -24,12 +24,12 @@ struct ToolButtonView: View {
                     .font(.caption.weight(.medium))
             }
             .frame(maxWidth: .infinity, minHeight: 85)
-            .foregroundStyle(.white)
+            .foregroundStyle(IOS26Theme.primaryText)
             .overlay(alignment: .topTrailing) {
                 if isChange {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.caption.weight(.bold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(IOS26Theme.primaryText)
                         .padding(8)
                 }
             }

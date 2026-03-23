@@ -24,10 +24,11 @@ struct AudioSheetView: View {
             Slider(value: value, in: 0...1) { change in
                 onChange()
             }
-            .tint(.white)
+            .tint(IOS26Theme.accent)
             Text("\(Int(value.wrappedValue * 100))")
         }
         .font(.caption)
+        .foregroundStyle(IOS26Theme.primaryText)
         .onAppear {
             setValue()
         }

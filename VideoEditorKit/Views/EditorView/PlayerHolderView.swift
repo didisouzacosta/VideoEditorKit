@@ -24,7 +24,7 @@ struct PlayerHolderView: View {
                 switch videoPlayer.loadState {
                 case .loading:
                     ProgressView()
-                        .tint(.white)
+                        .tint(IOS26Theme.accent)
                 case .unknown:
                     statusView("Add a video to start editing")
                 case .failed:
@@ -35,7 +35,7 @@ struct PlayerHolderView: View {
             }
             .allFrame()
         }
-        .foregroundStyle(.white)
+        .foregroundStyle(IOS26Theme.primaryText)
         .padding(14)
         .ios26Card(cornerRadius: 34, prominent: true, tint: IOS26Theme.accentSecondary)
     }
@@ -45,7 +45,7 @@ extension PlayerHolderView {
     private func statusView(_ text: String) -> some View {
         Text(text)
             .font(.headline)
-            .foregroundStyle(.white.opacity(0.9))
+            .foregroundStyle(IOS26Theme.primaryText)
             .padding(.horizontal, 18)
             .padding(.vertical, 12)
             .ios26CapsuleControl(tint: IOS26Theme.accentSecondary)
@@ -102,7 +102,7 @@ extension PlayerHolderView {
                     + Text(" / ") + Text(Int(video.totalDuration).secondsToTime())
             }
             .font(.caption2)
-            .foregroundStyle(.white)
+            .foregroundStyle(IOS26Theme.primaryText)
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
             .ios26CapsuleControl(tint: IOS26Theme.accentSecondary)
@@ -158,7 +158,7 @@ struct PlayerControl: View {
             Image(systemName: videoPlayer.isPlaying ? "pause.fill" : "play.fill")
                 .font(.title2.weight(.semibold))
                 .frame(width: 72, height: 72)
-                .foregroundStyle(.white)
+                .foregroundStyle(IOS26Theme.primaryText)
                 .ios26CircleControl(prominent: true, tint: IOS26Theme.accent)
         }
         .buttonStyle(.plain)
@@ -176,7 +176,7 @@ struct PlayerControl: View {
                 )
                 .font(.headline.weight(.semibold))
                 .frame(width: 46, height: 46)
-                .foregroundStyle(.white)
+                .foregroundStyle(IOS26Theme.primaryText)
                 .ios26CircleControl()
             }
             .buttonStyle(.plain)

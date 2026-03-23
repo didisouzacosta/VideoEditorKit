@@ -22,7 +22,7 @@ struct TestCroppedView: View {
                 .overlay(
                     Rectangle()
                         .fill(.clear)
-                        .border(.blue, width: 2.0)
+                        .border(Color(uiColor: .systemBlue), width: 2.0)
                         .contentShape(Rectangle())
                         .frame(width: size.width, height: size.height)
                         .position(position)

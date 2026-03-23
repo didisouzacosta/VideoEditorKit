@@ -14,71 +14,75 @@ struct TextEditorView: View {
     @State private var textHeight: CGFloat = 100
     @State private var isFocused: Bool = true
     let onSave: ([TextBox]) -> Void
+
     var body: some View {
-        IOS26Theme.scrim
-            .ignoresSafeArea()
-        VStack(spacing: 24) {
-            HStack {
-                Button {
-                    closeKeyboard()
-                    viewModel.cancelTextEditor()
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.headline.weight(.semibold))
-                        .frame(width: 44, height: 44)
-                        .foregroundStyle(.white)
-                        .ios26CircleControl()
+        ZStack {
+            IOS26Theme.scrim
+                .ignoresSafeArea()
+
+            VStack(spacing: 24) {
+                HStack {
+                    Button {
+                        closeKeyboard()
+                        viewModel.cancelTextEditor()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.headline.weight(.semibold))
+                            .frame(width: 44, height: 44)
+                            .foregroundStyle(IOS26Theme.primaryText)
+                            .ios26CircleControl()
+                    }
+                    .buttonStyle(.plain)
+
+                    Spacer()
                 }
-                .buttonStyle(.plain)
+
+                SystemColorSwatchPicker(
+                    title: "Text color",
+                    selection: $viewModel.currentTextBox.fontColor,
+                    options: SystemColorPalette.textForegrounds
+                )
+
+                SystemColorSwatchPicker(
+                    title: "Background color",
+                    selection: $viewModel.currentTextBox.bgColor,
+                    options: SystemColorPalette.textBackgrounds
+                )
 
                 Spacer()
 
-                HStack(spacing: 14) {
-                    ColorPicker(selection: $viewModel.currentTextBox.fontColor, supportsOpacity: true) {
-                    }
-                    .labelsHidden()
-                    .padding(10)
-                    .ios26CircleControl(tint: IOS26Theme.accent)
+                TextView(
+                    textBox: $viewModel.currentTextBox,
+                    isFirstResponder: $isFocused,
+                    minHeight: textHeight,
+                    calculatedHeight: $textHeight
+                )
+                .frame(maxHeight: textHeight)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 18)
+                .ios26Card(cornerRadius: 30, prominent: true, tint: IOS26Theme.accentSecondary)
 
-                    ColorPicker(selection: $viewModel.currentTextBox.bgColor, supportsOpacity: true) {
-                    }
-                    .labelsHidden()
-                    .padding(10)
-                    .ios26CircleControl(tint: IOS26Theme.accentSecondary)
+                Spacer()
+
+                Button {
+                    closeKeyboard()
+                    viewModel.saveTapped()
+                    onSave(viewModel.textBoxes)
+                } label: {
+                    Text("Save")
+                        .font(.headline.weight(.semibold))
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 14)
+                        .foregroundStyle(IOS26Theme.primaryText)
+                        .ios26CapsuleControl(prominent: true, tint: IOS26Theme.accent)
                 }
+                .buttonStyle(.plain)
+                .opacity(viewModel.currentTextBox.text.isEmpty ? 0.5 : 1)
+                .disabled(viewModel.currentTextBox.text.isEmpty)
             }
-
-            Spacer()
-
-            TextView(
-                textBox: $viewModel.currentTextBox, isFirstResponder: $isFocused, minHeight: textHeight,
-                calculatedHeight: $textHeight
-            )
-            .frame(maxHeight: textHeight)
             .padding(.horizontal, 20)
-            .padding(.vertical, 18)
-            .ios26Card(cornerRadius: 30, prominent: true, tint: IOS26Theme.accentSecondary)
-
-            Spacer()
-
-            Button {
-                closeKeyboard()
-                viewModel.saveTapped()
-                onSave(viewModel.textBoxes)
-            } label: {
-                Text("Save")
-                    .font(.headline.weight(.semibold))
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 14)
-                    .foregroundStyle(.white)
-                    .ios26CapsuleControl(prominent: true, tint: IOS26Theme.accent)
-            }
-            .buttonStyle(.plain)
-            .opacity(viewModel.currentTextBox.text.isEmpty ? 0.5 : 1)
-            .disabled(viewModel.currentTextBox.text.isEmpty)
+            .padding(.vertical, 24)
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 24)
     }
 
     private func closeKeyboard() {
@@ -113,7 +117,6 @@ struct TextView: UIViewRepresentable {
         let textView = UITextView()
         textView.delegate = context.coordinator
 
-        // Decrease priority of content resistance, so content would not push external layout set in SwiftUI
         textView.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         textView.text = self.textBox.text
         textView.isScrollEnabled = true
@@ -191,6 +194,54 @@ struct TextView: UIViewRepresentable {
         //        func textViewDidBeginEditing(_ textView: UITextView) {
         //            parent.isFirstResponder = true
         //        }
+    }
+}
+
+struct SystemColorSwatchPicker: View {
+    let title: String
+    @Binding var selection: Color
+    let options: [SystemColorOption]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(IOS26Theme.primaryText)
+
+            ScrollView(.horizontal) {
+                HStack(spacing: 12) {
+                    ForEach(options) { option in
+                        Button {
+                            selection = option.color
+                        } label: {
+                            Circle()
+                                .fill(option.color)
+                                .frame(width: 34, height: 34)
+                                .overlay {
+                                    Circle()
+                                        .strokeBorder(
+                                            isSelected(option) ? IOS26Theme.primaryText : IOS26Theme.outline,
+                                            lineWidth: isSelected(option) ? 2 : 1
+                                        )
+                                }
+                                .padding(5)
+                                .ios26CircleControl(
+                                    prominent: isSelected(option),
+                                    tint: isSelected(option) ? IOS26Theme.accentSecondary : nil
+                                )
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(option.id)
+                    }
+                }
+                .padding(.vertical, 2)
+            }
+            .scrollIndicators(.hidden)
+        }
+    }
+
+    private func isSelected(_ option: SystemColorOption) -> Bool {
+        SystemColorPalette.matches(selection, option.color)
     }
 }
 

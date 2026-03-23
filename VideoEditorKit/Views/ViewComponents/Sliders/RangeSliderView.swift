@@ -35,7 +35,7 @@ struct RangedSliderView<T: View>: View {
         let sliderViewYCenter = sliderSize.height / 2
         ZStack {
             Rectangle()
-                .fill(Color(.systemGray5).opacity(0.75))
+                .fill(Color(uiColor: .systemGray5).opacity(0.75))
                 .frame(height: sliderSize.height)
             ZStack {
                 let sliderBoundDifference = sliderBounds.upperBound / step
@@ -109,16 +109,14 @@ struct RangedSliderView<T: View>: View {
         let handleWidth: CGFloat = 14
         Rectangle()
             .frame(width: handleWidth, height: height)
-            .foregroundColor(.red)
-            .shadow(color: Color.black.opacity(0.16), radius: 8, x: 0, y: 2)
+            .foregroundStyle(IOS26Theme.destructive)
             .contentShape(Rectangle())
             .overlay(alignment: .center) {
                 Image(systemName: isLeftThumb ? "chevron.left" : "chevron.right")
                     .imageScale(.small)
-
+                    .foregroundStyle(IOS26Theme.primaryText)
             }
             .position(x: position.x + (isLeftThumb ? -(handleWidth / 2) : handleWidth / 2), y: position.y)
-
     }
 }
 

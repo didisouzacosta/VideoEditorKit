@@ -170,7 +170,7 @@ struct ThumbnailImage: Identifiable {
 
 struct VideoFrames {
     var scaleValue: Double = 0
-    var frameColor: Color = .white
+    var frameColor: Color = Color(uiColor: .systemBackground)
 
     var scale: Double {
         1 - scaleValue
@@ -182,6 +182,6 @@ struct VideoFrames {
 
     mutating func reset() {
         scaleValue = 0
-        frameColor = .white
+        frameColor = Color(uiColor: .systemBackground)
     }
 }

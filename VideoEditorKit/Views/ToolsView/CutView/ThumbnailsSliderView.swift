@@ -22,7 +22,7 @@ struct ThumbnailsSliderView: View {
     var body: some View {
         VStack(spacing: 6) {
             Text(totalDuration.formatterTimeString())
-                .foregroundColor(.white)
+                .foregroundStyle(IOS26Theme.primaryText)
                 .font(.subheadline)
 
             GeometryReader { proxy in

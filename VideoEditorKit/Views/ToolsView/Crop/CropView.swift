@@ -32,11 +32,11 @@ struct CropView<T: View>: View {
 
             if isActiveCrop {
                 ZStack {
-                    Color.black.opacity(0.3)
+                    IOS26Theme.scrim
                     Rectangle()
-                        .fill(Color.black.opacity(0.1))
+                        .fill(IOS26Theme.scrim.opacity(0.35))
                         .frame(width: size.width, height: size.height)
-                        .overlay(Rectangle().stroke(Color.white, lineWidth: lineWidth))
+                        .overlay(Rectangle().stroke(IOS26Theme.primaryText, lineWidth: lineWidth))
                         .position(position)
                         .gesture(
                             DragGesture()
@@ -69,7 +69,7 @@ struct CropView<T: View>: View {
             }
         }
         .frame(width: originalSize.width, height: originalSize.height)
-        .border(isActiveCrop ? Color.white : .clear)
+        .border(isActiveCrop ? IOS26Theme.primaryText : .clear)
         //        .clipShape(
         //            CropFrame(isActive: clipped, currentPosition: position, size: size)
         //        )
@@ -127,9 +127,9 @@ struct CropImage<T: View>: View {
                 frameView()
                     .offset(x: self.currentPosition.width, y: self.currentPosition.height)
                 Rectangle()
-                    .fill(Color.black.opacity(0.3))
+                    .fill(IOS26Theme.scrim)
                     .frame(width: frameSize.width, height: frameSize.height)
-                    .overlay(Rectangle().stroke(Color.white, lineWidth: 2))
+                    .overlay(Rectangle().stroke(IOS26Theme.primaryText, lineWidth: 2))
             }
             .clipShape(
                 CropFrame(isActive: clipped, currentPosition: currentPosition, size: frameSize)
@@ -152,9 +152,8 @@ struct CropImage<T: View>: View {
             Button(action: { self.clipped.toggle() }) {
                 Text("Crop Image")
                     .padding(.all, 10)
-                    .background(Color.blue)
-                    .foregroundColor(.white)
-                    .shadow(color: .gray, radius: 1)
+                    .background(IOS26Theme.accent)
+                    .foregroundStyle(IOS26Theme.primaryText)
                     .padding(.top, 50)
             }
         }

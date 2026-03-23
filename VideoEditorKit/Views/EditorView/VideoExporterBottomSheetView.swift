@@ -48,18 +48,18 @@ extension VideoExporterBottomSheetView {
         VStack(alignment: .leading, spacing: 18) {
             Text("Export Video")
                 .font(.title3.bold())
-                .foregroundStyle(.white)
+                .foregroundStyle(IOS26Theme.primaryText)
 
             Text("Choose the output quality for the rendered file.")
                 .font(.subheadline)
-                .foregroundStyle(.white.opacity(0.78))
+                .foregroundStyle(IOS26Theme.secondaryText)
 
             qualityListSection
 
             if case .failed = viewModel.renderState {
                 Text("The video could not be exported. Check the current edit state and try again.")
                     .font(.footnote)
-                    .foregroundStyle(.white.opacity(0.78))
+                    .foregroundStyle(IOS26Theme.secondaryText)
             }
 
             exportButton.padding(.top, 4)
@@ -70,16 +70,16 @@ extension VideoExporterBottomSheetView {
         VStack(spacing: 22) {
             ProgressView()
                 .controlSize(.large)
-                .tint(.white)
+                .tint(IOS26Theme.accent)
             Text(viewModel.progressTimer.formatted())
                 .font(.title.monospacedDigit())
-                .foregroundStyle(.white)
+                .foregroundStyle(IOS26Theme.primaryText)
             Text("Video export in progress")
                 .font(.headline)
-                .foregroundStyle(.white)
+                .foregroundStyle(IOS26Theme.primaryText)
             Text("The edited video will be returned to the example screen.")
                 .font(.subheadline)
-                .foregroundStyle(.white.opacity(0.78))
+                .foregroundStyle(IOS26Theme.secondaryText)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -96,7 +96,7 @@ extension VideoExporterBottomSheetView {
                                 .font(.headline)
                             Text(type.subtitle)
                                 .font(.subheadline)
-                                .foregroundStyle(.white.opacity(0.72))
+                                .foregroundStyle(IOS26Theme.secondaryText)
                         }
 
                         Spacer()
@@ -111,11 +111,14 @@ extension VideoExporterBottomSheetView {
                                 systemName: viewModel.selectedQuality == type ? "checkmark.circle.fill" : "circle"
                             )
                             .font(.headline)
-                            .foregroundStyle(viewModel.selectedQuality == type ? .white : .white.opacity(0.5))
+                            .foregroundStyle(
+                                viewModel.selectedQuality == type
+                                    ? IOS26Theme.primaryText : IOS26Theme.tertiaryText
+                            )
                         }
                     }
                     .padding(14)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(IOS26Theme.primaryText)
                     .ios26Card(
                         cornerRadius: 22,
                         prominent: viewModel.selectedQuality == type,
@@ -145,7 +148,7 @@ extension VideoExporterBottomSheetView {
         }
         .padding(.horizontal, 18)
         .padding(.vertical, 14)
-        .foregroundStyle(.white)
+        .foregroundStyle(IOS26Theme.primaryText)
         .ios26CapsuleControl(prominent: true, tint: IOS26Theme.accent)
     }
 

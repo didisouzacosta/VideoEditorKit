@@ -16,7 +16,7 @@ struct RecordVideoView: View {
             CameraPreviewHolder(captureSession: cameraManager.session)
             VStack(spacing: 0) {
                 Text(cameraManager.recordedDuration.formatterTimeString())
-                    .foregroundStyle(.white)
+                    .foregroundStyle(IOS26Theme.primaryText)
                 Spacer()
                 Button {
                     if cameraManager.isRecording {
@@ -26,7 +26,7 @@ struct RecordVideoView: View {
                     }
                 } label: {
                     Circle()
-                        .fill(cameraManager.isRecording ? .white : .red)
+                        .fill(cameraManager.isRecording ? IOS26Theme.primaryText : IOS26Theme.destructive)
                         .frame(width: 55, height: 55)
                 }
             }
