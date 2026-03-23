@@ -2,6 +2,7 @@ import CoreGraphics
 import Testing
 @testable import VideoEditorKit
 
+@MainActor
 struct ExportPresetTests {
 
     @Test func titlesMatchToolbarLabels() {

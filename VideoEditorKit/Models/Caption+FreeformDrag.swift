@@ -1,7 +1,7 @@
 import CoreGraphics
 
 extension Caption {
-    func beginningFreeformDrag(
+    nonisolated func beginningFreeformDrag(
         renderSize: CGSize,
         safeFrame: CGRect
     ) -> Caption {

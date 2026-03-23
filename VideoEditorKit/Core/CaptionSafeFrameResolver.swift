@@ -1,7 +1,7 @@
 import CoreGraphics
 
 struct CaptionSafeFrameResolver {
-    static func resolve(
+    nonisolated static func resolve(
         renderSize: CGSize,
         safeArea: CaptionSafeArea
     ) -> CGRect {

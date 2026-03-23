@@ -1,6 +1,7 @@
 import Testing
 @testable import VideoEditorKit
 
+@MainActor
 struct TimeRangeEngineTests {
 
     @Test func originalPresetUsesFullVideoDuration() {

@@ -11,7 +11,7 @@ struct CaptionStyle: Equatable {
 }
 
 extension CaptionStyle {
-    func resolvedFont() -> UIFont {
+    nonisolated func resolvedFont() -> UIFont {
         UIFont(name: fontName, size: fontSize) ?? .systemFont(ofSize: fontSize)
     }
 }

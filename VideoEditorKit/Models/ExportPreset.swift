@@ -8,7 +8,7 @@ enum ExportPreset: CaseIterable {
 }
 
 extension ExportPreset {
-    var title: String {
+    nonisolated var title: String {
         switch self {
         case .original:
             "Original"
@@ -21,7 +21,7 @@ extension ExportPreset {
         }
     }
 
-    var minDuration: Double {
+    nonisolated var minDuration: Double {
         switch self {
         case .original:
             0
@@ -34,7 +34,7 @@ extension ExportPreset {
         }
     }
 
-    var maxDuration: Double {
+    nonisolated var maxDuration: Double {
         switch self {
         case .original:
             .infinity
@@ -47,11 +47,11 @@ extension ExportPreset {
         }
     }
 
-    var durationRange: ClosedRange<Double> {
+    nonisolated var durationRange: ClosedRange<Double> {
         minDuration...maxDuration
     }
 
-    func resolve(videoSize: CGSize) -> CGSize {
+    nonisolated func resolve(videoSize: CGSize) -> CGSize {
         switch self {
         case .original:
             videoSize
@@ -60,7 +60,7 @@ extension ExportPreset {
         }
     }
 
-    var aspectRatio: CGFloat? {
+    nonisolated var aspectRatio: CGFloat? {
         switch self {
         case .original:
             nil
@@ -69,7 +69,7 @@ extension ExportPreset {
         }
     }
 
-    var captionSafeArea: CaptionSafeArea {
+    nonisolated var captionSafeArea: CaptionSafeArea {
         switch self {
         case .original:
             CaptionSafeArea(topInset: 24, leftInset: 24, bottomInset: 24, rightInset: 24)

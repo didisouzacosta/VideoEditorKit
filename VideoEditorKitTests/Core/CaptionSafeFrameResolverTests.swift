@@ -2,6 +2,7 @@ import CoreGraphics
 import Testing
 @testable import VideoEditorKit
 
+@MainActor
 struct CaptionSafeFrameResolverTests {
 
     @Test func originalPresetProducesExpectedInsetFrame() {

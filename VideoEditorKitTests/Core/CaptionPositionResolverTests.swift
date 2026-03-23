@@ -3,6 +3,7 @@ import Testing
 import UIKit
 @testable import VideoEditorKit
 
+@MainActor
 struct CaptionPositionResolverTests {
 
     @Test func topPresetUsesTopCenterOfSafeFrame() {

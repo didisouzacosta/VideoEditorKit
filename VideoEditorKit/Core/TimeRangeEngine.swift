@@ -1,7 +1,7 @@
 import Foundation
 
 struct TimeRangeEngine {
-    static func resolve(
+    nonisolated static func resolve(
         videoDuration: Double,
         currentSelection: ClosedRange<Double>,
         preset: ExportPreset
@@ -18,14 +18,14 @@ struct TimeRangeEngine {
         )
     }
 
-    static func clampTime(
+    nonisolated static func clampTime(
         _ time: Double,
         to selectedRange: ClosedRange<Double>
     ) -> Double {
         min(max(time, selectedRange.lowerBound), selectedRange.upperBound)
     }
 
-    private static func normalizedSelection(
+    nonisolated private static func normalizedSelection(
         _ currentSelection: ClosedRange<Double>,
         in validRange: ClosedRange<Double>
     ) -> ClosedRange<Double> {

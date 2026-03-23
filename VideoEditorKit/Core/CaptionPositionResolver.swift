@@ -1,7 +1,7 @@
 import CoreGraphics
 
 struct CaptionPositionResolver {
-    static func resolve(
+    nonisolated static func resolve(
         caption: Caption,
         renderSize: CGSize,
         safeFrame: CGRect
@@ -19,7 +19,7 @@ struct CaptionPositionResolver {
         }
     }
 
-    static func presetPoint(
+    nonisolated static func presetPoint(
         _ preset: CaptionPlacementPreset,
         in safeFrame: CGRect
     ) -> CGPoint {
@@ -33,7 +33,7 @@ struct CaptionPositionResolver {
         }
     }
 
-    static func normalizedPosition(
+    nonisolated static func normalizedPosition(
         for point: CGPoint,
         in renderSize: CGSize
     ) -> CGPoint {
@@ -45,14 +45,14 @@ struct CaptionPositionResolver {
 }
 
 private extension CaptionPositionResolver {
-    static func clamped(_ point: CGPoint, to safeFrame: CGRect) -> CGPoint {
+    nonisolated static func clamped(_ point: CGPoint, to safeFrame: CGRect) -> CGPoint {
         CGPoint(
             x: min(max(point.x, safeFrame.minX), safeFrame.maxX),
             y: min(max(point.y, safeFrame.minY), safeFrame.maxY)
         )
     }
 
-    static func normalizedAxis(
+    nonisolated static func normalizedAxis(
         _ value: CGFloat,
         dimension: CGFloat
     ) -> CGFloat {
