@@ -60,9 +60,14 @@ struct VideoEditorPreviewBuilderTests {
         )
 
         #expect(snapshot.captions.map(\.text) == ["Active"])
+        let expectedCenter = CaptionPositionResolver.resolve(
+            caption: activeCaption,
+            renderSize: snapshot.layout.renderSize,
+            safeFrame: snapshot.safeFrame
+        )
         assertPoint(
             snapshot.captions[0].center,
-            approximatelyEquals: CGPoint(x: 1896, y: 1056)
+            approximatelyEquals: expectedCenter
         )
     }
 }

@@ -76,8 +76,13 @@ private extension VideoEditorView {
             )
 
             ZStack {
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
-                    .fill(Color.black)
+                VideoPreviewSurfaceView(
+                    sourceVideoURL: controller.project.sourceVideoURL,
+                    gravity: controller.project.gravity,
+                    currentTime: controller.editorState.currentTime,
+                    isPlaying: controller.editorState.isPlaying,
+                    onPlaybackTimeUpdate: controller.handlePlaybackTimeUpdate(_:)
+                )
 
                 SafeFrameOverlay(
                     safeFrame: snapshot.safeFrame,
