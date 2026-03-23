@@ -1,0 +1,15 @@
+#!/bin/sh
+set -eu
+
+repo_root="$(git rev-parse --show-toplevel)"
+cd "$repo_root"
+
+if [ ! -f "AGENTS.md" ]; then
+  echo "pre-push: AGENTS.md must exist in the repository root." >&2
+  exit 1
+fi
+
+if ! git diff --quiet -- AGENTS.md || ! git diff --cached --quiet -- AGENTS.md; then
+  echo "pre-push: commit or discard your AGENTS.md changes before pushing." >&2
+  exit 1
+fi
