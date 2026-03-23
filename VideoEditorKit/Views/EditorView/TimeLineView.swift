@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct TimeLineView: View {
-    @ObservedObject var recorderManager: AudioRecorderManager
+    var recorderManager: AudioRecorderManager
     @State private var isActiveTextRangeSlider: Bool = false
     @State private var textTimeInterval: ClosedRange<Double> = 0...1
     @Binding var currentTime: Double
@@ -44,24 +44,24 @@ struct TimeLineView: View {
             }
         }
         .frame(height: viewState.height)
-        .onChange(of: textTimeInterval.lowerBound) { newValue in
+        .onChange(of: textTimeInterval.lowerBound) { _, newValue in
             isActiveTextRangeSlider = true
             currentTime = newValue
             onChangeTimeValue()
             onChangeTextTime(textTimeInterval)
         }
-        .onChange(of: textTimeInterval.upperBound) { newValue in
+        .onChange(of: textTimeInterval.upperBound) { _, newValue in
             isActiveTextRangeSlider = true
             currentTime = newValue
             onChangeTimeValue()
             onChangeTextTime(textTimeInterval)
         }
-        .onChange(of: textInterval) { newValue in
+        .onChange(of: textInterval) { _, newValue in
             if let newValue{
                 textTimeInterval = newValue
             }
         }
-        .onChange(of: viewState) { newValue in
+        .onChange(of: viewState) { _, newValue in
             if newValue == .empty{
                 currentTime = 0
                 onChangeTimeValue()
@@ -69,22 +69,6 @@ struct TimeLineView: View {
         }
     }
 }
-
-struct TimeLineView_Previews: PreviewProvider {
-    static var video: Video {
-        var video = Video.mock
-        video.thumbnailsImages = [.init(image: UIImage(systemName: "person")!)]
-        return video
-    }
-    static var previews: some View {
-        ZStack{
-            Color.secondary
-            TimeLineView(recorderManager: AudioRecorderManager(), currentTime: .constant(0), isSelectedTrack: .constant(true), viewState: .audio, video: video, onChangeTimeValue: {}, onChangeTextTime: {_ in}, onSetAudio: {_ in})
-        }
-    }
-}
-
-
 
 extension TimeLineView{
     
@@ -190,6 +174,27 @@ extension TimeLineView{
     }
 }
 
+struct TimeLineView_Previews: PreviewProvider {
+    static var previews: some View {
+        var video = Video.mock
+        video.thumbnailsImages = [.init(image: UIImage(systemName: "person")!)]
+
+        return ZStack {
+            Color.secondary
+            TimeLineView(
+                recorderManager: AudioRecorderManager(),
+                currentTime: .constant(0),
+                isSelectedTrack: .constant(true),
+                viewState: .audio,
+                video: video,
+                onChangeTimeValue: {},
+                onChangeTextTime: { _ in },
+                onSetAudio: { _ in }
+            )
+        }
+    }
+}
+
 enum TimeLineViewState: Int{
     case text, audio, empty
     
@@ -213,4 +218,3 @@ enum TimeLineViewState: Int{
         }
     }
 }
-

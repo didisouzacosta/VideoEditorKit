@@ -9,9 +9,9 @@ import SwiftUI
 
 struct TextToolsView: View {
     var video: Video
-    @ObservedObject var editor: TextEditorViewModel
+    var editor: TextEditorViewModel
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
+        ScrollView(.horizontal) {
             HStack(spacing: 15){
                 ForEach(editor.textBoxes) { box in
                     cellView(box)
@@ -19,6 +19,7 @@ struct TextToolsView: View {
                 addTextButton
             }
         }
+        .scrollIndicators(.hidden)
         .animation(.easeIn(duration: 0.2), value: editor.textBoxes)
         .onAppear{
             editor.selectedTextBox = editor.textBoxes.first
@@ -26,12 +27,6 @@ struct TextToolsView: View {
         .onDisappear{
             editor.selectedTextBox = nil
         }
-    }
-}
-
-struct TextToolsView_Previews: PreviewProvider {
-    static var previews: some View {
-        TextToolsView(video: Video.mock, editor: TextEditorViewModel())
     }
 }
 
@@ -54,7 +49,7 @@ extension TextToolsView{
                 } label: {
                     Image(systemName: "xmark")
                         .imageScale(.small)
-                        .foregroundColor(Color(.systemGray2))
+                        .foregroundStyle(Color(.systemGray2))
                         .padding(5)
                         .background(Color.black, in: Circle())
                 }
@@ -81,5 +76,15 @@ extension TextToolsView{
         .onTapGesture {
             editor.openTextEditor(isEdit: false, timeRange: video.rangeDuration)
         }
+    }
+}
+
+struct TextToolsView_Previews: PreviewProvider {
+    static var previews: some View {
+        let editor = TextEditorViewModel()
+        editor.textBoxes = TextBox.texts
+
+        return TextToolsView(video: Video.mock, editor: editor)
+            .padding()
     }
 }

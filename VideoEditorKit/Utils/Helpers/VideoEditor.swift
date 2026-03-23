@@ -8,12 +8,8 @@
 import Foundation
 import AVFoundation
 import UIKit
-import Combine
 
-class VideoEditor{
-    
-    @Published var currentTimePublisher: TimeInterval = 0.0
-    
+final class VideoEditor{
     
     ///The renderer is made up of half-sequential operations:
     func startRender(video: Video, videoQuality: VideoQuality) async throws -> URL{

@@ -10,11 +10,11 @@ import CoreData
 import PhotosUI
 import SwiftUI
 
-final class RootViewModel: ObservableObject{
-    
+@MainActor
+final class RootViewModel: ObservableObject {
     @Published var projects = [ProjectEntity]()
+
     private let dataManager: CoreDataManager
-    
     
     init(mainContext: NSManagedObjectContext){
         self.dataManager = CoreDataManager(mainContext: mainContext)

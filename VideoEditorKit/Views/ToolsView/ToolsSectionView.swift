@@ -31,14 +31,14 @@ struct ToolsSectionView: View {
             }
         }
         .animation(.easeIn(duration: 0.15), value: editorVM.selectedTools)
-        .onChange(of: editorVM.currentVideo){ newValue in
+        .onChange(of: editorVM.currentVideo){ _, newValue in
             if let video = newValue, let image = video.thumbnailsImages.first?.image{
                 filtersVM.loadFilters(for: image)
                 filtersVM.colorCorrection = video.colorCorrection
                 textEditor.textBoxes = video.textBoxes
             }
         }
-        .onChange(of: textEditor.selectedTextBox) { box in
+        .onChange(of: textEditor.selectedTextBox) { _, box in
             if box != nil{
                 if editorVM.selectedTools != .text{
                     editorVM.selectedTools = .text
@@ -47,7 +47,7 @@ struct ToolsSectionView: View {
                 editorVM.selectedTools = nil
             }
         }
-        .onChange(of: editorVM.selectedTools) { newValue in
+        .onChange(of: editorVM.selectedTools) { _, newValue in
             
             if newValue == .text, textEditor.textBoxes.isEmpty{
                 textEditor.openTextEditor(isEdit: false, timeRange: editorVM.currentVideo?.rangeDuration)
@@ -59,13 +59,6 @@ struct ToolsSectionView: View {
         }
     }
 }
-
-struct ToolsSectionView_Previews: PreviewProvider {
-    static var previews: some View {
-        MainEditorView(selectedVideoURl: Video.mock.url)
-    }
-}
-
 
 extension ToolsSectionView{
     
@@ -127,7 +120,7 @@ extension ToolsSectionView{
             } label: {
                 Image(systemName: "chevron.down")
                     .imageScale(.small)
-                    .foregroundColor(.white)
+                    .foregroundStyle(.white)
                     .padding(10)
                     .background(Color(.systemGray5), in: RoundedRectangle(cornerRadius: 5))
             }
@@ -146,7 +139,7 @@ extension ToolsSectionView{
                     editorVM.removeAudio()
                 } label: {
                     Image(systemName: "trash.fill")
-                        .foregroundColor(.white)
+                        .foregroundStyle(.white)
                 }
             }
         }
@@ -158,3 +151,9 @@ extension ToolsSectionView{
     
 }
 
+struct ToolsSectionView_Previews: PreviewProvider {
+    static var previews: some View {
+        MainEditorView(project: nil, selectedVideoURl: nil)
+            .preferredColorScheme(.dark)
+    }
+}

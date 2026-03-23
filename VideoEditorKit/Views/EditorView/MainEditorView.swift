@@ -11,15 +11,21 @@ import PhotosUI
 struct MainEditorView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dismiss) private var dismiss
-    var project: ProjectEntity?
-    var selectedVideoURl: URL?
-    @State var isFullScreen: Bool = false
-    @State var showVideoQualitySheet: Bool = false
-    @State var showRecordView: Bool = false
-    @StateObject var editorVM = EditorViewModel()
-    @StateObject var audioRecorder = AudioRecorderManager()
-    @StateObject var videoPlayer = VideoPlayerManager()
-    @StateObject var textEditor = TextEditorViewModel()
+    let project: ProjectEntity?
+    let selectedVideoURl: URL?
+    @State private var isFullScreen = false
+    @State private var showVideoQualitySheet = false
+    @State private var showRecordView = false
+    @StateObject private var editorVM = EditorViewModel()
+    @StateObject private var audioRecorder = AudioRecorderManager()
+    @StateObject private var videoPlayer = VideoPlayerManager()
+    @StateObject private var textEditor = TextEditorViewModel()
+
+    init(project: ProjectEntity? = nil, selectedVideoURl: URL? = nil) {
+        self.project = project
+        self.selectedVideoURl = selectedVideoURl
+    }
+
     var body: some View {
         ZStack{
             GeometryReader { proxy in
@@ -41,9 +47,8 @@ struct MainEditorView: View {
                 VideoExporterBottomSheetView(isPresented: $showVideoQualitySheet, video: video)
             }
         }
-        .background(Color.black)
-        .navigationBarHidden(true)
-        .navigationBarBackButtonHidden(true)
+        .background(.black)
+        .toolbar(.hidden, for: .navigationBar)
         .ignoresSafeArea(.all, edges: .top)
         .fullScreenCover(isPresented: $showRecordView) {
             RecordVideoView{ url in
@@ -51,7 +56,7 @@ struct MainEditorView: View {
             }
         }
         .statusBar(hidden: true)
-        .onChange(of: scenePhase) { phase in
+        .onChange(of: scenePhase) { _, phase in
             saveProject(phase)
         }
         .blur(radius: textEditor.showEditor ? 10 : 0)
@@ -61,12 +66,6 @@ struct MainEditorView: View {
                 TextEditorView(viewModel: textEditor, onSave: editorVM.setText)
             }
         }
-    }
-}
-
-struct RootView_Previews: PreviewProvider {
-    static var previews: some View {
-        MainEditorView(selectedVideoURl: URL(string: "file:///Users/bogdanzykov/Library/Developer/CoreSimulator/Devices/86D65E8C-7D49-47AF-A511-BFA631289CB1/data/Containers/Data/Application/52E5EF3C-9E78-4676-B3EA-03BD22CCD09A/Documents/video_copy.mp4"))
     }
 }
 
@@ -91,7 +90,7 @@ extension MainEditorView{
                 Image(systemName: "square.and.arrow.up.fill")
             }
         }
-        .foregroundColor(.white)
+        .foregroundStyle(.white)
         .padding(.horizontal, 20)
         .frame(height: 50)
         .padding(.bottom)
@@ -122,5 +121,9 @@ extension MainEditorView{
     }
 }
 
-
-
+struct MainEditorView_Previews: PreviewProvider {
+    static var previews: some View {
+        MainEditorView(project: nil, selectedVideoURl: nil)
+            .preferredColorScheme(.dark)
+    }
+}

@@ -9,17 +9,15 @@ import Foundation
 import AVKit
 import SwiftUI
 import Photos
-import Combine
 
-class EditorViewModel: ObservableObject{
-    
+@MainActor
+final class EditorViewModel: ObservableObject {
     @Published var currentVideo: Video?
     @Published var selectedTools: ToolEnum?
     @Published var frames = VideoFrames()
-    @Published var isSelectVideo: Bool = true
-    
+    @Published var isSelectVideo = true
+
     private var projectEntity: ProjectEntity?
-    
 
     func setNewVideo(_ url: URL, geo: GeometryProxy){
         currentVideo = .init(url: url)
@@ -150,10 +148,10 @@ extension EditorViewModel{
             frames.reset()
             currentVideo?.videoFrames = nil
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1){
-            self.removeTool()
+
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .milliseconds(100))
+            self?.removeTool()
         }
     }
 }
-
-

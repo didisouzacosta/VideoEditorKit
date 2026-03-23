@@ -9,11 +9,15 @@ import SwiftUI
 import PhotosUI
 
 struct RootView: View {
+    private struct EditorDestination: Hashable, Identifiable {
+        let id = UUID()
+        let url: URL
+    }
+
     @ObservedObject var rootVM: RootViewModel
     @State private var item: PhotosPickerItem?
-    @State private var selectedVideoURL: URL?
     @State private var showLoader: Bool = false
-    @State private var showEditor: Bool = false
+    @State private var editorDestination: EditorDestination?
     let columns = [
         GridItem(.adaptive(minimum: 150)),
         GridItem(.adaptive(minimum: 150)),
@@ -21,7 +25,7 @@ struct RootView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                ScrollView(.vertical, showsIndicators: false) {
+                ScrollView(.vertical) {
                     VStack(alignment: .leading) {
                         Text("My projects")
                             .font(.headline)
@@ -40,9 +44,10 @@ struct RootView: View {
                     }
                     .padding()
                 }
+                .scrollIndicators(.hidden)
             }
-            .navigationDestination(isPresented: $showEditor){
-                MainEditorView(selectedVideoURl: selectedVideoURL)
+            .navigationDestination(item: $editorDestination) { destination in
+                MainEditorView(selectedVideoURl: destination.url)
             }
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -50,10 +55,10 @@ struct RootView: View {
                         .font(.title2.bold())
                 }
             }
-            .onChange(of: item) { newItem in
+            .onChange(of: item) { _, newItem in
                 loadPhotosItem(newItem)
             }
-            .onAppear{
+            .task {
                 rootVM.fetch()
             }
             .overlay {
@@ -72,12 +77,6 @@ struct RootView: View {
     }
 }
 
-struct RootView_Previews2: PreviewProvider {
-    static var previews: some View {
-        RootView(rootVM: RootViewModel(mainContext: dev.viewContext))
-    }
-}
-
 extension RootView{
     
     
@@ -90,8 +89,8 @@ extension RootView{
             }
             .hCenter()
             .frame(height: 150)
-            .background(Color(.systemGray6), in: RoundedRectangle(cornerRadius: 5))
-            .foregroundColor(.white)
+            .background(Color(.systemGray6), in: .rect(cornerRadius: 5))
+            .foregroundStyle(.white)
         }
     }
        
@@ -105,7 +104,7 @@ extension RootView{
         }
         .hCenter()
         .frame(height: 150)
-        .cornerRadius(5)
+        .clipShape(.rect(cornerRadius: 5))
         .clipped()
         .overlay {
             VStack{
@@ -130,17 +129,21 @@ extension RootView{
     
     private func loadPhotosItem(_ newItem: PhotosPickerItem?){
         Task {
-            self.showLoader = true
+            showLoader = true
+            defer { showLoader = false }
+
             if let video = try await newItem?.loadTransferable(type: VideoItem.self) {
-                selectedVideoURL = video.url
+                editorDestination = .init(url: video.url)
                 try await Task.sleep(for: .milliseconds(50))
-                self.showLoader = false
-                self.showEditor.toggle()
-                
             } else {
                 print("Failed load video")
-                self.showLoader = false
             }
         }
+    }
+}
+
+struct RootView_Previews: PreviewProvider {
+    static var previews: some View {
+        RootView(rootVM: RootViewModel(mainContext: DeveloperPreview.instance.viewContext))
     }
 }

@@ -35,13 +35,6 @@ struct PlayerHolderView: View{
     }
 }
 
-struct PlayerHolderView_Previews: PreviewProvider {
-    static var previews: some View {
-        MainEditorView()
-            .preferredColorScheme(.dark)
-    }
-}
-
 extension PlayerHolderView{
 
     private var playerCropView: some View{
@@ -90,7 +83,7 @@ extension PlayerHolderView{
                 Text(Int(video.totalDuration).secondsToTime())
             }
             .font(.caption2)
-            .foregroundColor(.white)
+            .foregroundStyle(.white)
             .frame(width: 80)
             .padding(5)
             .background(Color(.black).opacity(0.5), in: RoundedRectangle(cornerRadius: 10))
@@ -159,5 +152,12 @@ struct PlayerControl: View{
             .buttonStyle(.plain)
         }
         .padding(.horizontal)
+    }
+}
+
+struct PlayerHolderView_Previews: PreviewProvider {
+    static var previews: some View {
+        MainEditorView(project: nil, selectedVideoURl: nil)
+            .preferredColorScheme(.dark)
     }
 }

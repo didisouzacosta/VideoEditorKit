@@ -6,34 +6,30 @@
 //
 
 import Foundation
-import Combine
 import Photos
 import UIKit
 import SwiftUI
 
-
-class ExporterViewModel: ObservableObject{
-    
+@MainActor
+final class ExporterViewModel: ObservableObject {
     let video: Video
-    
-    @Published var renderState: ExportState = .unknown
-    @Published var showAlert: Bool = false
+
+    @Published var renderState: ExportState = .unknown {
+        didSet {
+            guard renderState != oldValue else { return }
+            handleRenderStateChange(renderState)
+        }
+    }
+    @Published var showAlert = false
     @Published var progressTimer: TimeInterval = .zero
     @Published var selectedQuality: VideoQuality = .medium
-    private var cancellable = Set<AnyCancellable>()
+
     private var action: ActionEnum = .save
     private let editorHelper = VideoEditor()
     private var timer: Timer?
     
     init(video: Video){
         self.video = video
-        startRenderStateSubs()
-    }
-    
-    
-    deinit{
-        cancellable.forEach({$0.cancel()})
-        resetTimer()
     }
     
     
@@ -55,29 +51,38 @@ class ExporterViewModel: ObservableObject{
         await renderVideo()
     }
 
-  private func startRenderStateSubs(){
-        $renderState
-            .sink {[weak self] state in
-                guard let self = self else {return}
-                switch state {
-                case .loading:
-                    self.timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { time in
-                        self.progressTimer += 1
-                    }
-                case .loaded(let url):
-                    if self.action == .save{
-                        self.saveVideoInLib(url)
-                    }else{
-                        self.showShareSheet(data: url)
-                    }
-                    self.resetTimer()
-                default:
-                    break
-                }
+    private func handleRenderStateChange(_ state: ExportState) {
+        switch state {
+        case .unknown:
+            showAlert = false
+            resetTimer()
+        case .loading:
+            showAlert = false
+            startProgressTimer()
+        case .loaded(let url):
+            resetTimer()
+            if action == .save {
+                saveVideoInLib(url)
+            } else {
+                showShareSheet(data: url)
             }
-            .store(in: &cancellable)
+        case .failed:
+            resetTimer()
+            showAlert = true
+        case .saved:
+            showAlert = false
+            resetTimer()
+        }
     }
     
+    private func startProgressTimer() {
+        resetTimer()
+        timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.progressTimer += 0.1
+            }
+        }
+    }
     
     private func resetTimer(){
         timer?.invalidate()
@@ -86,9 +91,7 @@ class ExporterViewModel: ObservableObject{
     }
     
     private func showShareSheet(data: Any){
-        DispatchQueue.main.async {
-            self.renderState = .unknown
-        }
+        renderState = .unknown
         UIActivityViewController(activityItems: [data], applicationActivities: nil).presentInKeyWindow()
     }
     
@@ -98,7 +101,7 @@ class ExporterViewModel: ObservableObject{
         }) {[weak self] saved, error in
             guard let self = self else {return}
             if saved {
-                DispatchQueue.main.async {
+                Task { @MainActor in
                     self.renderState = .saved
                 }
             }

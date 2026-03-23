@@ -9,7 +9,7 @@ import SwiftUI
 
 struct TextOverlayView: View {
     var currentTime: Double
-    @ObservedObject var viewModel: TextEditorViewModel
+    var viewModel: TextEditorViewModel
     var disabledMagnification: Bool = false
     var body: some View {
         ZStack{
@@ -45,7 +45,7 @@ struct TextOverlayView: View {
                                 if isSelected{
                                     RoundedRectangle(cornerRadius: 6)
                                         .stroke(lineWidth: 1)
-                                        .foregroundColor(.cyan)
+                                        .foregroundStyle(.cyan)
                                 }
                             }
                             .onTapGesture {
@@ -85,13 +85,6 @@ struct TextOverlayView: View {
     }
 }
 
-struct TextOverlayView_Previews: PreviewProvider {
-    static var previews: some View {
-        MainEditorView(selectedVideoURl: Video.mock.url)
-    }
-}
-
-
 extension TextOverlayView{
     
     private func textBoxButtons(_ textBox: TextBox) -> some View{
@@ -112,7 +105,7 @@ extension TextOverlayView{
                     .background(Color(.systemGray2), in: Circle())
             }
         }
-        .foregroundColor(.white)
+        .foregroundStyle(.white)
     }
     
     private func editOrSelectTextBox(_ textBox: TextBox, _ isSelected: Bool){
@@ -129,7 +122,18 @@ extension TextOverlayView{
     }
 }
 
+struct TextOverlayView_Previews: PreviewProvider {
+    static var previews: some View {
+        let viewModel = TextEditorViewModel()
+        viewModel.textBoxes = TextBox.texts
+        viewModel.selectTextBox(TextBox.texts[0])
 
+        return ZStack {
+            Color.black
+            TextOverlayView(currentTime: 1.5, viewModel: viewModel)
+        }
+    }
+}
 
 
 

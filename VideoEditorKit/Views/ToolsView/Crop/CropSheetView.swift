@@ -9,7 +9,7 @@ import SwiftUI
 
 struct CropSheetView: View {
     @State var rotateValue: Double = 0
-    @ObservedObject var editorVM: EditorViewModel
+    var editorVM: EditorViewModel
     @State private var currentTab: Tab = .rotate
     var body: some View {
         VStack(spacing: 40){
@@ -26,15 +26,9 @@ struct CropSheetView: View {
         .onAppear{
             rotateValue = editorVM.currentVideo?.rotation ?? 0
         }
-        .onChange(of: editorVM.currentVideo?.rotation) { newValue in
+        .onChange(of: editorVM.currentVideo?.rotation) { _, newValue in
             rotateValue = newValue ?? 0
         }
-    }
-}
-
-struct CropSheetView_Previews: PreviewProvider {
-    static var previews: some View {
-        CropSheetView(editorVM: EditorViewModel())
     }
 }
 
@@ -109,4 +103,12 @@ extension CropSheetView{
         case format, rotate
     }
     
+}
+
+struct CropSheetView_Previews: PreviewProvider {
+    static var previews: some View {
+        CropSheetView(editorVM: EditorViewModel())
+            .padding()
+            .preferredColorScheme(.dark)
+    }
 }

@@ -11,7 +11,7 @@ import AVKit
 struct AudioButtonView: View {
     var video: Video
     @Binding var isSelectedTrack: Bool
-    @ObservedObject var recorderManager: AudioRecorderManager
+    var recorderManager: AudioRecorderManager
     @State private var audioSimples = [Audio.AudioSimple]()
     var body: some View {
         GeometryReader { proxy in
@@ -27,13 +27,6 @@ struct AudioButtonView: View {
         .frame(height: 40)
     }
 }
-
-struct AudioButtonView_Previews: PreviewProvider {
-    static var previews: some View {
-        AudioButtonView(video: Video.mock, isSelectedTrack: .constant(false), recorderManager: AudioRecorderManager())
-    }
-}
-
 
 extension AudioButtonView{
     
@@ -80,5 +73,13 @@ extension AudioButtonView{
 
     private func getWidthFromDuration(allWight: CGFloat, currentDuration: Double, totalDuration: Double) -> CGFloat{
         return (allWight / totalDuration) * currentDuration
+    }
+}
+
+struct AudioButtonView_Previews: PreviewProvider {
+    static var previews: some View {
+        AudioButtonView(video: Video.mock, isSelectedTrack: .constant(false), recorderManager: AudioRecorderManager())
+            .frame(height: 40)
+            .padding()
     }
 }

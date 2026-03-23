@@ -9,7 +9,7 @@ import SwiftUI
 
 struct RecorderButtonView: View {
     var video: Video
-    @ObservedObject var recorderManager: AudioRecorderManager
+    var recorderManager: AudioRecorderManager
     @State private var timeRemaining = 3
     @State private var timer: Timer? = nil
     @State private var state: StateEnum = .empty
@@ -34,22 +34,16 @@ struct RecorderButtonView: View {
         }
         .opacity(isSetAudio ? 0 : 1)
         .disabled(isSetAudio)
-        .onChange(of: recorderManager.finishedAudio) { newValue in
+        .onChange(of: recorderManager.finishedAudio) { _, newValue in
             guard let newValue else { return }
             onRecorded(newValue)
             state = .empty
         }
-        .onChange(of: recorderManager.currentRecordTime) { newValue in
+        .onChange(of: recorderManager.currentRecordTime) { _, newValue in
             if newValue > 0{
                 onRecordTime(newValue)
             }
         }
-    }
-}
-
-struct RecorderButtonView_Previews: PreviewProvider {
-    static var previews: some View {
-        RecorderButtonView(video: Video.mock, recorderManager: AudioRecorderManager(), onRecorded: {_ in}, onRecordTime: {_ in})
     }
 }
 
@@ -106,5 +100,13 @@ extension RecorderButtonView{
         timeRemaining = 3
         timer?.invalidate()
         timer = nil
+    }
+}
+
+struct RecorderButtonView_Previews: PreviewProvider {
+    static var previews: some View {
+        RecorderButtonView(video: Video.mock, recorderManager: AudioRecorderManager(), onRecorded: { _ in }, onRecordTime: { _ in })
+            .padding()
+            .preferredColorScheme(.dark)
     }
 }

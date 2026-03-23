@@ -7,40 +7,31 @@
 
 import SwiftUI
 
-
 struct FiltersView: View {
     @State var selectedFilterName: String? = nil
-    @ObservedObject var viewModel: FiltersViewModel
+    var viewModel: FiltersViewModel
     let onChangeFilter: (String?) -> Void
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
+        ScrollView(.horizontal) {
             LazyHStack(alignment: .center, spacing: 5) {
                 resetButton
-                ForEach(viewModel.images.sorted(by: {$0.filter.name < $1.filter.name})) { filterImage in
-                    imageView(filterImage.image, isSelected: selectedFilterName == filterImage.filter.name)
-                        .onTapGesture {
-                            selectedFilterName = filterImage.filter.name
-                        }
+                ForEach(viewModel.images) { filterImage in
+                    Button {
+                        selectedFilterName = filterImage.filter.name
+                    } label: {
+                        imageView(filterImage.image, isSelected: selectedFilterName == filterImage.filter.name)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
             .frame(height: 60)
             .padding(.horizontal)
         }
-        .onChange(of: selectedFilterName) { newValue in
+        .scrollIndicators(.hidden)
+        .onChange(of: selectedFilterName) { _, newValue in
             onChangeFilter(newValue)
         }
         .padding(.horizontal, -16)
-    }
-}
-
-struct FiltersView_Previews: PreviewProvider {
-    @StateObject static var vm = FiltersViewModel()
-    static var previews: some View {
-        FiltersView(selectedFilterName: nil, viewModel: vm, onChangeFilter: {_ in})
-            .padding()
-            .onAppear{
-                vm.loadFilters(for: UIImage(named: "simpleImage")!)
-            }
     }
 }
 
@@ -59,14 +50,26 @@ extension FiltersView{
     private var resetButton: some View{
         Group{
             if let image = viewModel.image{
-                imageView(image, isSelected: selectedFilterName == nil)
-                    .onTapGesture {
+                Button {
                         selectedFilterName = nil
-                    }
-                    .padding(.trailing, 30)
+                } label: {
+                    imageView(image, isSelected: selectedFilterName == nil)
+                }
+                .buttonStyle(.plain)
+                .padding(.trailing, 30)
             }
         }
     }
 }
 
+struct FiltersView_Previews: PreviewProvider {
+    static var previews: some View {
+        let viewModel = FiltersViewModel()
+        if let image = UIImage(named: "simpleImage") {
+            viewModel.loadFilters(for: image)
+        }
 
+        return FiltersView(selectedFilterName: nil, viewModel: viewModel, onChangeFilter: { _ in })
+            .padding()
+    }
+}

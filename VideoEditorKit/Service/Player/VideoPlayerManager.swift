@@ -11,29 +11,25 @@ import AVKit
 import PhotosUI
 import SwiftUI
 
-
-final class VideoPlayerManager: ObservableObject{
-    
+@MainActor
+final class VideoPlayerManager: ObservableObject {
     @Published var currentTime: Double = .zero
     @Published var selectedItem: PhotosPickerItem?
-    @Published var loadState: LoadState = .unknown
+    @Published var loadState: LoadState = .unknown {
+        didSet {
+            guard loadState != oldValue else { return }
+            handleLoadStateChange(loadState)
+        }
+    }
     @Published private(set) var videoPlayer = AVPlayer()
     @Published private(set) var audioPlayer = AVPlayer()
-    @Published private(set) var isPlaying: Bool = false
-    private var isSetAudio: Bool = false
-    private var cancellable = Set<AnyCancellable>()
+    @Published private(set) var isPlaying = false
+
+    private var isSetAudio = false
+    private var statusCancellable: AnyCancellable?
     private var timeObserver: Any?
     private var currentDurationRange: ClosedRange<Double>?
-    
-    
-    deinit {
-        removeTimeObserver()
-    }
-    
-    init(){
-        onSubsUrl()
-    }
-    
+    private var endPlaybackObserver: NSObjectProtocol?
     
     var scrubState: PlayerScrubState = .reset {
         didSet {
@@ -61,36 +57,29 @@ final class VideoPlayerManager: ObservableObject{
     func setAudio(_ url: URL?){
         guard let url else {
             isSetAudio = false
+            audioPlayer = AVPlayer()
             return
         }
         audioPlayer = .init(url: url)
         isSetAudio = true
     }
     
-    private func onSubsUrl(){
-        $loadState
-            .dropFirst()
-            .receive(on: DispatchQueue.main)
-            
-            .sink {[weak self] returnLoadState in
-                guard let self = self else {return}
-                
-                switch returnLoadState {
-                case .loaded(let url):
-                    self.pause()
-                    self.videoPlayer = AVPlayer(url: url)
-                    self.startStatusSubscriptions()
-                    print("AVPlayer set url:", url.absoluteString)
-                case .failed, .loading, .unknown:
-                    break
-                }
-            }
-            .store(in: &cancellable)
+    private func handleLoadStateChange(_ loadState: LoadState) {
+        switch loadState {
+        case .loaded(let url):
+            pause()
+            cleanupObservers()
+            videoPlayer = AVPlayer(url: url)
+            startStatusSubscriptions()
+        case .failed, .loading, .unknown:
+            break
+        }
     }
     
-    
     private func startStatusSubscriptions(){
-        videoPlayer.publisher(for: \.timeControlStatus)
+        statusCancellable?.cancel()
+        statusCancellable = videoPlayer.publisher(for: \.timeControlStatus)
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] status in
                 guard let self = self else {return}
                 switch status {
@@ -105,16 +94,12 @@ final class VideoPlayerManager: ObservableObject{
                     break
                 }
             }
-            .store(in: &cancellable)
     }
     
-    
     func pause(){
-        if isPlaying{
-            videoPlayer.pause()
-            if isSetAudio{
-                audioPlayer.pause()
-            }
+        videoPlayer.pause()
+        if isSetAudio{
+            audioPlayer.pause()
         }
     }
     
@@ -128,7 +113,6 @@ final class VideoPlayerManager: ObservableObject{
     }
 
     private func play(_ rate: Float?){
-        
         AVAudioSession.sharedInstance().configurePlaybackSession()
         
         if let currentDurationRange{
@@ -151,16 +135,9 @@ final class VideoPlayerManager: ObservableObject{
         
         if let rate{
             videoPlayer.rate = rate
-            if isSetAudio{
-                audioPlayer.play()
-            }
         }
         
-        if let currentDurationRange, videoPlayer.currentItem?.duration.seconds ?? 0 >= currentDurationRange.upperBound{
-            NotificationCenter.default.addObserver(forName: NSNotification.Name.AVPlayerItemDidPlayToEndTime, object: videoPlayer.currentItem, queue: .main) { _ in
-                self.playerDidFinishPlaying()
-            }
-        }
+        registerPlaybackObserverIfNeeded()
     }
     
     private func seek(_ seconds: Double, player: AVPlayer){
@@ -168,44 +145,83 @@ final class VideoPlayerManager: ObservableObject{
     }
     
     private func startTimer() {
-        
+        removeTimeObserver()
         let interval = CMTimeMake(value: 1, timescale: 10)
         timeObserver = videoPlayer.addPeriodicTimeObserver(forInterval: interval, queue: .main) { [weak self] time in
-            guard let self = self else { return }
-            if self.isPlaying{
-                let time = time.seconds
-                
-                if let currentDurationRange = self.currentDurationRange, time >= currentDurationRange.upperBound{
-                    self.pause()
-                }
+            Task { @MainActor [weak self] in
+                guard let self = self else { return }
+                if self.isPlaying{
+                    let time = time.seconds
+                    
+                    if let currentDurationRange = self.currentDurationRange, time >= currentDurationRange.upperBound{
+                        self.pause()
+                    }
 
-                switch self.scrubState {
-                case .reset:
-                    self.currentTime = time
-                case .scrubEnded:
-                    self.scrubState = .reset
-                case .scrubStarted:
-                    break
+                    switch self.scrubState {
+                    case .reset:
+                        self.currentTime = time
+                    case .scrubEnded:
+                        self.scrubState = .reset
+                    case .scrubStarted:
+                        break
+                    }
                 }
             }
         }
     }
     
+    private func registerPlaybackObserverIfNeeded() {
+        removeEndPlaybackObserver()
+
+        guard let currentDurationRange,
+              videoPlayer.currentItem?.duration.seconds ?? 0 >= currentDurationRange.upperBound else {
+            return
+        }
+
+        endPlaybackObserver = NotificationCenter.default.addObserver(
+            forName: .AVPlayerItemDidPlayToEndTime,
+            object: videoPlayer.currentItem,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.playerDidFinishPlaying()
+            }
+        }
+    }
     
     private func playerDidFinishPlaying() {
-        self.videoPlayer.seek(to: .zero)
+        let restartTime = currentDurationRange?.lowerBound ?? .zero
+        seek(restartTime, player: videoPlayer)
+        if isSetAudio {
+            seek(restartTime, player: audioPlayer)
+        }
+        pause()
     }
     
     private func removeTimeObserver(){
         if let timeObserver = timeObserver {
             videoPlayer.removeTimeObserver(timeObserver)
+            self.timeObserver = nil
         }
+    }
+
+    private func removeEndPlaybackObserver() {
+        if let endPlaybackObserver {
+            NotificationCenter.default.removeObserver(endPlaybackObserver)
+            self.endPlaybackObserver = nil
+        }
+    }
+
+    private func cleanupObservers() {
+        removeTimeObserver()
+        removeEndPlaybackObserver()
+        statusCancellable?.cancel()
+        statusCancellable = nil
     }
     
 }
 
 extension VideoPlayerManager{
-    
     @MainActor
     func loadVideoItem(_ selectedItem: PhotosPickerItem?) async{
         do {
@@ -224,20 +240,15 @@ extension VideoPlayerManager{
 
 
 extension VideoPlayerManager{
-    
-
     func setFilters(mainFilter: CIFilter?, colorCorrection: ColorCorrection?){
-       
         let filters = Helpers.createFilters(mainFilter: mainFilter, colorCorrection)
         
         if filters.isEmpty{
             return
         }
-        self.pause()
-        DispatchQueue.global(qos: .userInteractive).async {
-            let composition = self.videoPlayer.currentItem?.asset.setFilters(filters)
-            self.videoPlayer.currentItem?.videoComposition = composition
-        }
+        pause()
+        let composition = videoPlayer.currentItem?.asset.setFilters(filters)
+        videoPlayer.currentItem?.videoComposition = composition
     }
         
     func removeFilter(){

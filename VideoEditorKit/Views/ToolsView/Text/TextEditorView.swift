@@ -29,7 +29,7 @@ struct TextEditorView: View{
                 Text("Save")
                     .padding(.horizontal, 20)
                     .padding(.vertical, 12)
-                    .foregroundColor(.black)
+                    .foregroundStyle(.black)
                     .background(Color.white, in: RoundedRectangle(cornerRadius: 20))
                     .opacity(viewModel.currentTextBox.text.isEmpty ? 0.5 : 1)
                     .disabled(viewModel.currentTextBox.text.isEmpty)
@@ -43,7 +43,7 @@ struct TextEditorView: View{
                     } label: {
                         Image(systemName: "xmark")
                             .padding(12)
-                            .foregroundColor(.white)
+                            .foregroundStyle(.white)
                             .background(Color.secondary, in: Circle())
                     }
                     
@@ -67,13 +67,6 @@ struct TextEditorView: View{
         isFocused = false
     }
 }
-struct TextEditorView_Previews: PreviewProvider {
-    static var previews: some View {
-        TextEditorView(viewModel: TextEditorViewModel(), onSave: {_ in})
-    }
-}
-
-
 
 struct TextView: UIViewRepresentable {
     
@@ -171,5 +164,15 @@ struct TextView: UIViewRepresentable {
 //        func textViewDidBeginEditing(_ textView: UITextView) {
 //            parent.isFirstResponder = true
 //        }
+    }
+}
+
+struct TextEditorView_Previews: PreviewProvider {
+    static var previews: some View {
+        let viewModel = TextEditorViewModel()
+        viewModel.openTextEditor(isEdit: false, timeRange: 0...5)
+
+        return TextEditorView(viewModel: viewModel, onSave: { _ in })
+            .preferredColorScheme(.dark)
     }
 }

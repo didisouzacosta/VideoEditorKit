@@ -7,26 +7,59 @@
 
 import Foundation
 
-
 extension TimeInterval {
     var minutesSecondsMilliseconds: String {
-        String(format: "%02.0f:%02.0f:%02.0f",
-               (self / 60).truncatingRemainder(dividingBy: 60),
-               truncatingRemainder(dividingBy: 60),
-               (self * 100).truncatingRemainder(dividingBy: 100).rounded(.down))
+        guard isFinite, self >= 0 else {
+            return "00:00:00"
+        }
+
+        let totalSeconds = Int(self.rounded(.down))
+        let minutes = (totalSeconds / 60) % 60
+        let seconds = totalSeconds % 60
+        let centiseconds = Int((self * 100).rounded(.down)) % 100
+
+        return "\(minutes.twoDigitString):\(seconds.twoDigitString):\(centiseconds.twoDigitString)"
     }
-    
-    
+
     var minuteSeconds: String {
-        guard self > 0 && self < Double.infinity else {
+        guard isFinite, self > 0 else {
             return "unknown"
         }
-        let time = NSInteger(self)
-        
-        let seconds = time % 60
-        let minutes = (time / 60) % 60
-        
-        return String(format: "%0.2d:%0.2d", minutes, seconds)
-        
+
+        let totalSeconds = Int(self.rounded(.down))
+        let seconds = totalSeconds % 60
+        let minutes = (totalSeconds / 60) % 60
+
+        return "\(minutes.twoDigitString):\(seconds.twoDigitString)"
+    }
+
+    func formatterTimeString() -> String {
+        guard isFinite, self >= 0 else {
+            return "0:00.0"
+        }
+
+        let totalSeconds = Int(self.rounded(.down))
+        let minutes = totalSeconds / 60
+        let seconds = totalSeconds % 60
+        let tenths = Int((self.truncatingRemainder(dividingBy: 1) * 10).rounded(.down))
+
+        return "\(minutes):\(seconds.twoDigitString).\(tenths)"
+    }
+}
+
+extension Int {
+    func secondsToTime() -> String {
+        let totalSeconds = Swift.max(0, self)
+        let minutes = (totalSeconds % 3600) / 60
+        let seconds = totalSeconds % 60
+
+        return "\(minutes.twoDigitString):\(seconds.twoDigitString)"
+    }
+}
+
+private extension BinaryInteger {
+    var twoDigitString: String {
+        let digits = String(self)
+        return digits.count == 1 ? "0\(digits)" : digits
     }
 }

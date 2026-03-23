@@ -8,13 +8,14 @@
 import Foundation
 import SwiftUI
 
-class TextEditorViewModel: ObservableObject{
-    
+@MainActor
+final class TextEditorViewModel: ObservableObject {
     @Published var textBoxes: [TextBox] = []
-    @Published var showEditor: Bool = false
-    @Published var currentTextBox: TextBox = TextBox()
+    @Published var showEditor = false
+    @Published var currentTextBox = TextBox()
     @Published var selectedTextBox: TextBox?
-    private var isEditMode: Bool = false
+
+    private var isEditMode = false
     
     func cancelTextEditor(){
         showEditor = false
@@ -38,6 +39,7 @@ class TextEditorViewModel: ObservableObject{
     func removeTextBox(){
         guard let selectedTextBox else {return}
         textBoxes.removeAll(where: {$0.id == selectedTextBox.id})
+        self.selectedTextBox = nil
     }
     
     func copy(_ textBox: TextBox){
@@ -59,6 +61,13 @@ class TextEditorViewModel: ObservableObject{
     }
     
     func saveTapped(){
+        currentTextBox.text = currentTextBox.text.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !currentTextBox.text.isEmpty else {
+            cancelTextEditor()
+            return
+        }
+
         if isEditMode{
             if let index = textBoxes.firstIndex(where: {$0.id == currentTextBox.id}){
                 textBoxes[index] = currentTextBox

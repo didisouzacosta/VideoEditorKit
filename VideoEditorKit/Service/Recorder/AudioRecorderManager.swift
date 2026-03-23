@@ -6,27 +6,26 @@
 //
 
 import Foundation
-import Combine
 import AVFoundation
 
-
+@MainActor
 final class AudioRecorderManager: ObservableObject {
-    
-    private var audioRecorder: AVAudioRecorder!
-    
     @Published private(set) var recordState: AudioRecordEnum = .empty
     @Published private(set) var finishedAudio: Audio?
-    @Published private(set) var timerCount: Timer?
     @Published private(set) var currentRecordTime: TimeInterval = 0
+
+    private var audioRecorder: AVAudioRecorder?
+    private var timer: Timer?
 
     
     func startRecording(recordMaxTime: Double = 10){
-        print("DEBUG:", "startRecording")
         AVAudioSession.sharedInstance().configureRecordAudioSessionCategory()
         
         let path = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
         let audioURL = path.appendingPathComponent("video-record.m4a")
         FileManager.default.removefileExists(for: audioURL)
+        finishedAudio = nil
+        resetTimer()
         
         let settings = [
             AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
@@ -35,15 +34,18 @@ final class AudioRecorderManager: ObservableObject {
             AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
         ]
         do {
-            audioRecorder = try AVAudioRecorder(url: audioURL, settings: settings)
-            audioRecorder.prepareToRecord()
-            audioRecorder.record()
+            let recorder = try AVAudioRecorder(url: audioURL, settings: settings)
+            audioRecorder = recorder
+            recorder.prepareToRecord()
+            recorder.record()
             recordState = .recording
-            timerCount = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) {[weak self] (value) in
-                guard let self = self else {return}
-                self.currentRecordTime += 0.2
-                if self.currentRecordTime >= recordMaxTime{
-                    self.stopRecording()
+            timer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { [weak self] _ in
+                Task { @MainActor [weak self] in
+                    guard let self = self else { return }
+                    self.currentRecordTime += 0.2
+                    if self.currentRecordTime >= recordMaxTime {
+                        self.stopRecording()
+                    }
                 }
             }
         } catch {
@@ -54,7 +56,7 @@ final class AudioRecorderManager: ObservableObject {
     
     
     func stopRecording(){
-        print("DEBUG:", "stopRecording")
+        guard let audioRecorder else { return }
         audioRecorder.stop()
         recordState = .empty
         finishedAudio = .init(url: audioRecorder.url, duration: currentRecordTime)
@@ -62,30 +64,24 @@ final class AudioRecorderManager: ObservableObject {
     }
     
     func cancel(){
-        print("DEBUG:", "cancel")
+        guard let audioRecorder else { return }
         audioRecorder.stop()
         recordState = .empty
         resetTimer()
-        removeRecordedAudio()
+        FileManager.default.removefileExists(for: audioRecorder.url)
     }
         
    
     private func resetTimer(){
-        timerCount!.invalidate()
-        self.currentRecordTime = 0
-    }
-    
-    private func removeRecordedAudio(){
-        FileManager.default.removefileExists(for: audioRecorder.url)
+        timer?.invalidate()
+        timer = nil
+        currentRecordTime = 0
     }
     
     enum AudioRecordEnum: Int{
         case recording, empty, error
     }
 }
-
-
-
 
 
 

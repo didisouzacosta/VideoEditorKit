@@ -33,12 +33,6 @@ struct AudioSheetView: View {
     }
 }
 
-struct AudioSheetView_Previews: PreviewProvider {
-    static var previews: some View {
-        AudioSheetView(videoPlayer: VideoPlayerManager(), editorVM: EditorViewModel())
-    }
-}
-
 extension AudioSheetView{
     
     
@@ -58,5 +52,12 @@ extension AudioSheetView{
             editorVM.currentVideo?.audio?.setVolume(audioVolume)
         }
         videoPlayer.setVolume(editorVM.isSelectVideo, value: value.wrappedValue)
+    }
+}
+
+struct AudioSheetView_Previews: PreviewProvider {
+    static var previews: some View {
+        AudioSheetView(videoPlayer: VideoPlayerManager(), editorVM: EditorViewModel())
+            .padding()
     }
 }

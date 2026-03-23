@@ -16,35 +16,27 @@ struct VideoExporterBottomSheetView: View {
         self._viewModel = StateObject(wrappedValue: ExporterViewModel(video: video))
     }
     var body: some View {
-        SheetView(isPresented: $isPresented, bgOpacity: 0.1) {
-            VStack(alignment: .leading){
-                
-                switch viewModel.renderState{
-                case .unknown:
-                    list
-                case .failed:
-                    Text("Failed")
-                case .loading, .loaded:
-                    loadingView
-                case .saved:
-                    saveView
+        GeometryReader { proxy in
+            SheetView(isPresented: $isPresented, bgOpacity: 0.1) {
+                VStack(alignment: .leading){
+                    switch viewModel.renderState{
+                    case .unknown:
+                        list
+                    case .failed:
+                        Text("Failed")
+                    case .loading, .loaded:
+                        loadingView
+                    case .saved:
+                        saveView
+                    }
                 }
+                .hCenter()
+                .frame(height: proxy.size.height / 2.8)
             }
-            .hCenter()
-            .frame(height: getRect().height / 2.8)
-        }
-        .ignoresSafeArea()
-        .alert("Save video", isPresented: $viewModel.showAlert) {}
-        .disabled(viewModel.renderState == .loading)
-        .animation(.easeInOut, value: viewModel.renderState)
-    }
-}
-
-struct VideoQualityPopapView2_Previews: PreviewProvider {
-    static var previews: some View {
-        ZStack(alignment: .bottom){
-            Color.secondary.opacity(0.5)
-            VideoExporterBottomSheetView(isPresented: .constant(true), video: Video.mock)
+            .ignoresSafeArea()
+            .alert("Save video", isPresented: $viewModel.showAlert) {}
+            .disabled(viewModel.renderState == .loading)
+            .animation(.easeInOut, value: viewModel.renderState)
         }
     }
 }
@@ -73,7 +65,7 @@ extension VideoExporterBottomSheetView{
                 .font(.headline)
             Text("Do not close the app or lock the screen")
                 .font(.subheadline)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
         }
     }
     
@@ -86,7 +78,8 @@ extension VideoExporterBottomSheetView{
                 .font(.title2.bold())
         }
         .onAppear{
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5){
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(1.5))
                 viewModel.renderState = .unknown
             }
         }
@@ -101,11 +94,11 @@ extension VideoExporterBottomSheetView{
                         .font(.headline)
                     Text(type.subtitle)
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
                 Spacer()
                 if let value = type.calculateVideoSize(duration: viewModel.video.totalDuration){
-                    Text(String(format: "%.1fMb", value))
+                    Text("\(value.formatted(.number.precision(.fractionLength(1))))Mb")
                 }
             }
             .padding(10)
@@ -151,7 +144,7 @@ extension VideoExporterBottomSheetView{
                 .background(Color(.systemGray), in: Circle())
             Text(label)
         }
-        .foregroundColor(.white)
+        .foregroundStyle(.white)
     }
     
     
@@ -174,5 +167,14 @@ extension UIViewController {
     func presentInKeyWindow(animated: Bool = true, completion: (() -> Void)? = nil) {
         UIApplication.shared.windows.last { $0.isKeyWindow }?.rootViewController?
             .present(self, animated: animated, completion: completion)
+    }
+}
+
+struct VideoExporterBottomSheetView_Previews: PreviewProvider {
+    static var previews: some View {
+        ZStack(alignment: .bottom){
+            Color.secondary.opacity(0.5)
+            VideoExporterBottomSheetView(isPresented: .constant(true), video: Video.mock)
+        }
     }
 }

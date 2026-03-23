@@ -229,27 +229,3 @@ enum CameraError: Error{
     case createCaptureInput(Error)
     case outputError(Error)
 }
-
-
-extension Int {
-
-    func secondsToTime() -> String {
-
-        let (m,s) = ((self % 3600) / 60, (self % 3600) % 60)
-        let m_string =  m < 10 ? "0\(m)" : "\(m)"
-        let s_string =  s < 10 ? "0\(s)" : "\(s)"
-
-        return "\(m_string):\(s_string)"
-    }
-}
-
-extension Double{
-    
-    func formatterTimeString() -> String{
-        let minutes = Int(self / 60)
-          let seconds = Int(self.truncatingRemainder(dividingBy: 60))
-          let milliseconds = Int((self.truncatingRemainder(dividingBy: 1)) * 10)
-          return "\(minutes):\(String(format: "%02d", seconds)).\(milliseconds)"
-    }
-    
-}
