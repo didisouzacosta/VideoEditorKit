@@ -7,18 +7,55 @@ final class VideoEditorController {
     var editorState: EditorState
     var project: VideoProject
     var config: VideoEditorConfig
+    let playerEngine: PlayerEngine
     private let exportEngine: ExportEngine
 
     init(
         project: VideoProject,
         editorState: EditorState = .init(),
         config: VideoEditorConfig = .init(),
+        playerEngine: PlayerEngine = .init(),
         exportEngine: ExportEngine = .init()
     ) {
         self.project = project
         self.editorState = editorState
         self.config = config
+        self.playerEngine = playerEngine
         self.exportEngine = exportEngine
+    }
+
+    func loadVideo(duration: Double) throws {
+        try playerEngine.load(duration: duration)
+        resolveProjectState(using: project.selectedTimeRange)
+    }
+
+    func selectPreset(_ preset: ExportPreset) {
+        project.preset = preset
+        resolveProjectState(using: project.selectedTimeRange)
+    }
+
+    func updateSelectedTimeRange(_ selectedTimeRange: ClosedRange<Double>) {
+        resolveProjectState(using: selectedTimeRange)
+    }
+
+    func seek(to time: Double) {
+        playerEngine.seek(to: time, in: project.selectedTimeRange)
+        syncEditorStateFromPlayer()
+    }
+
+    func play() {
+        playerEngine.play()
+        syncEditorStateFromPlayer()
+    }
+
+    func pause() {
+        playerEngine.pause()
+        syncEditorStateFromPlayer()
+    }
+
+    func handlePlaybackTimeUpdate(_ time: Double) {
+        playerEngine.handlePlaybackTimeUpdate(time)
+        syncEditorStateFromPlayer()
     }
 
     func performCaptionAction(
@@ -140,6 +177,42 @@ private extension VideoEditorController {
         if project.captions.contains(where: { $0.id == selectedCaptionID }) == false {
             editorState.selectedCaptionID = nil
         }
+    }
+
+    func resolveProjectState(using selectedTimeRange: ClosedRange<Double>) {
+        guard playerEngine.duration > 0 else {
+            project.selectedTimeRange = selectedTimeRange
+            project.captions = CaptionEngine.normalizeCaptions(
+                project.captions,
+                to: selectedTimeRange
+            )
+            clearSelectionIfNeeded()
+            editorState.currentTime = TimeRangeEngine.clampTime(
+                editorState.currentTime,
+                to: selectedTimeRange
+            )
+            return
+        }
+
+        let resolvedTimeRange = TimeRangeEngine.resolve(
+            videoDuration: playerEngine.duration,
+            currentSelection: selectedTimeRange,
+            preset: project.preset
+        )
+
+        project.selectedTimeRange = resolvedTimeRange.selectedRange
+        project.captions = CaptionEngine.normalizeCaptions(
+            project.captions,
+            to: resolvedTimeRange.selectedRange
+        )
+        clearSelectionIfNeeded()
+        playerEngine.handleSelectedTimeRangeChange(resolvedTimeRange.selectedRange)
+        syncEditorStateFromPlayer()
+    }
+
+    func syncEditorStateFromPlayer() {
+        editorState.currentTime = playerEngine.currentTime
+        editorState.isPlaying = playerEngine.isPlaying
     }
 
     func message(for error: Error) -> String {
