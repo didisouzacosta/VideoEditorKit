@@ -10,6 +10,7 @@ import Combine
 import AVKit
 import PhotosUI
 import SwiftUI
+@preconcurrency import CoreImage
 
 @MainActor
 final class VideoPlayerManager: ObservableObject {
@@ -30,6 +31,7 @@ final class VideoPlayerManager: ObservableObject {
     private var timeObserver: Any?
     private var currentDurationRange: ClosedRange<Double>?
     private var endPlaybackObserver: NSObjectProtocol?
+    private var filterCompositionTask: Task<Void, Never>?
     
     var scrubState: PlayerScrubState = .reset {
         didSet {
@@ -244,14 +246,25 @@ extension VideoPlayerManager{
         let filters = Helpers.createFilters(mainFilter: mainFilter, colorCorrection)
         
         if filters.isEmpty{
+            filterCompositionTask?.cancel()
             return
         }
         pause()
-        let composition = videoPlayer.currentItem?.asset.setFilters(filters)
-        videoPlayer.currentItem?.videoComposition = composition
+        filterCompositionTask?.cancel()
+
+        guard let currentItem = videoPlayer.currentItem else { return }
+
+        filterCompositionTask = Task { [weak self] in
+            guard let composition = try? await currentItem.asset.setFilters(filters) else { return }
+            await MainActor.run {
+                guard let self, self.videoPlayer.currentItem === currentItem else { return }
+                currentItem.videoComposition = composition
+            }
+        }
     }
         
     func removeFilter(){
+        filterCompositionTask?.cancel()
         pause()
         videoPlayer.currentItem?.videoComposition = nil
     }
@@ -280,35 +293,58 @@ enum PlayerScrubState{
 
 extension AVAsset{
     
-    func setFilter(_ filter: CIFilter) -> AVVideoComposition{
-        let composition = AVVideoComposition(asset: self, applyingCIFiltersWithHandler: { request in
-            filter.setValue(request.sourceImage, forKey: kCIInputImageKey)
-            
-            guard let output = filter.outputImage else {return}
-            
-            request.finish(with: output, context: nil)
-        })
-        
-        return composition
+    func setFilter(_ filter: CIFilter) async throws -> AVVideoComposition{
+        try await withCheckedThrowingContinuation { continuation in
+            AVVideoComposition.videoComposition(with: self, applyingCIFiltersWithHandler: { request in
+                filter.setValue(request.sourceImage, forKey: kCIInputImageKey)
+                
+                guard let output = filter.outputImage else {
+                    request.finish(with: request.sourceImage, context: nil)
+                    return
+                }
+                
+                request.finish(with: output, context: nil)
+            }, completionHandler: { composition, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else if let composition {
+                    continuation.resume(returning: composition)
+                } else {
+                    continuation.resume(throwing: VideoCompositionError.creationFailed)
+                }
+            })
+        }
     }
     
-    func setFilters(_ filters: [CIFilter]) -> AVVideoComposition{
-        let composition = AVVideoComposition(asset: self, applyingCIFiltersWithHandler: { request in
-            
-            let source = request.sourceImage
-            var output = source
-            
-            filters.forEach { filter in
-                filter.setValue(output, forKey: kCIInputImageKey)
-                if let image = filter.outputImage{
-                    output = image
+    func setFilters(_ filters: [CIFilter]) async throws -> AVVideoComposition{
+        try await withCheckedThrowingContinuation { continuation in
+            AVVideoComposition.videoComposition(with: self, applyingCIFiltersWithHandler: { request in
+                
+                let source = request.sourceImage
+                var output = source
+                
+                filters.forEach { filter in
+                    filter.setValue(output, forKey: kCIInputImageKey)
+                    if let image = filter.outputImage{
+                        output = image
+                    }
                 }
-            }
-            
-            request.finish(with: output, context: nil)
-        })
-        
-        return composition
+                
+                request.finish(with: output, context: nil)
+            }, completionHandler: { composition, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else if let composition {
+                    continuation.resume(returning: composition)
+                } else {
+                    continuation.resume(throwing: VideoCompositionError.creationFailed)
+                }
+            })
+        }
     }
 
+}
+
+private enum VideoCompositionError: Error {
+    case creationFailed
 }

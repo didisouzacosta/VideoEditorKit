@@ -32,7 +32,7 @@ struct VideoSpeedSlider: View {
                     .shadow(radius: 20 / 1)
             }, thumbSize: CGSize(width: 20, height: 20))
         }
-        .onChange(of: isChangeState) { isChange in
+        .onChange(of: isChangeState) { _, isChange in
             if !(isChange ?? true){
                 value = 1
             }

@@ -10,17 +10,14 @@ import SwiftUI
 
 extension PreviewProvider {
     
-    
     static var dev: DeveloperPreview {
         return DeveloperPreview.instance
     }
     
-
-
-    
 }
 
-class DeveloperPreview {
+@MainActor
+final class DeveloperPreview {
     
     static let instance = DeveloperPreview()
     private init() { }

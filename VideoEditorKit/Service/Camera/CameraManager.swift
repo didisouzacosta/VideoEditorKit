@@ -8,9 +8,7 @@
 import SwiftUI
 import AVFoundation
 
-
-
-final class CameraManager: NSObject, ObservableObject{
+final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
     
     enum Status{
         case unconfigurate
@@ -27,7 +25,7 @@ final class CameraManager: NSObject, ObservableObject{
     
     let maxDuration: Double = 100 // sec
     private var timer: Timer?
-    private let sessionQueue = DispatchQueue(label: "com.VideoEditorKit")
+    private let sessionQueue = DispatchQueue(label: "com.VideoEditorKit.camera.session", qos: .userInitiated)
     private let videoOutput = AVCaptureMovieFileOutput()
     private var status: Status = .unconfigurate
     
@@ -42,8 +40,10 @@ final class CameraManager: NSObject, ObservableObject{
     
     private func config(){
         checkPermissions()
-        sessionQueue.async {
+        sessionQueue.async { [weak self] in
+            guard let self else { return }
             self.configCaptureSession()
+            guard self.status == .configurate else { return }
             self.session.startRunning()
         }
     }
@@ -53,7 +53,8 @@ final class CameraManager: NSObject, ObservableObject{
             config()
             return
         }
-        sessionQueue.async {
+        sessionQueue.async { [weak self] in
+            guard let self else { return }
             if start{
                 if !self.session.isRunning{
                     self.session.startRunning()
@@ -65,8 +66,14 @@ final class CameraManager: NSObject, ObservableObject{
     }
     
     private func setError(_ error: CameraError?){
-        DispatchQueue.main.async {
-            self.error = error
+        Task { @MainActor [weak self] in
+            self?.error = error
+        }
+    }
+
+    private func setFinalURL(_ url: URL) {
+        Task { @MainActor [weak self] in
+            self?.finalURL = url
         }
     }
     
@@ -142,6 +149,7 @@ final class CameraManager: NSObject, ObservableObject{
         }
         
         session.commitConfiguration()
+        status = .configurate
     }
     
     
@@ -156,16 +164,16 @@ final class CameraManager: NSObject, ObservableObject{
     }
     
     func stopRecord(){
-        print("stop")
         timer?.invalidate()
         videoOutput.stopRecording()
     }
     
     func startRecording(){
         ///Temporary URL for recording Video
-        let tempURL = NSTemporaryDirectory() + "\(Date().ISO8601Format()).mov"
-        print(tempURL)
-        videoOutput.startRecording(to: URL(fileURLWithPath: tempURL), recordingDelegate: self)
+        recordedDuration = .zero
+        let tempURL = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("\(UUID().uuidString).mov")
+        videoOutput.startRecording(to: tempURL, recordingDelegate: self)
         startTimer()
     }
     
@@ -186,7 +194,6 @@ extension CameraManager{
     private func onTimerFires(){
         
         if recordedDuration <= maxDuration && videoOutput.isRecording{
-            print("🟢 RECORDING")
             recordedDuration += 1
         }
         if recordedDuration >= maxDuration && videoOutput.isRecording{
@@ -207,11 +214,10 @@ extension CameraManager{
 
 extension CameraManager: AVCaptureFileOutputRecordingDelegate{
     func fileOutput(_ output: AVCaptureFileOutput, didFinishRecordingTo outputFileURL: URL, from connections: [AVCaptureConnection], error: Error?) {
-        print(outputFileURL)
         if let error{
-            self.error = .outputError(error)
+            setError(.outputError(error))
         }else{
-            self.finalURL = outputFileURL
+            setFinalURL(outputFileURL)
         }
     }
     

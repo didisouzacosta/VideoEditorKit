@@ -9,7 +9,7 @@ import Foundation
 import AVFoundation
 import UIKit
 
-final class VideoEditor{
+final class VideoEditor: @unchecked Sendable {
     
     ///The renderer is made up of half-sequential operations:
     func startRender(video: Video, videoQuality: VideoQuality) async throws -> URL{
@@ -82,16 +82,8 @@ final class VideoEditor{
         ///Create exportSession
         let session = try exportSession(composition: composition, videoComposition: videoComposition, outputURL: outputURL, timeRange: timeRange)
         
-        await session.export()
-        
-        if let error = session.error {
-            throw error
-        } else {
-            if let url = session.outputURL{
-                return url
-            }
-            throw ExporterError.failed
-        }
+        try await session.export(to: outputURL, as: .mp4)
+        return outputURL
     }
     
     
@@ -103,8 +95,8 @@ final class VideoEditor{
         if filters.isEmpty{
             return fromUrl
         }
-        let asset = AVAsset(url: fromUrl)
-        let composition = asset.setFilters(filters)
+        let asset = AVURLAsset(url: fromUrl)
+        let composition = try await asset.setFilters(filters)
         
         let outputURL = createTempPath()
         //export the video to as per your requirement conversion
@@ -118,19 +110,8 @@ final class VideoEditor{
             throw ExporterError.cannotCreateExportSession
         }
         session.videoComposition = composition
-        session.outputFileType = .mp4
-        session.outputURL = outputURL
-        
-        await session.export()
-        
-        if let error = session.error {
-            throw error
-        } else {
-            if let url = session.outputURL{
-                return url
-            }
-            throw ExporterError.failed
-        }
+        try await session.export(to: outputURL, as: .mp4)
+        return outputURL
     }
 }
 
@@ -147,8 +128,6 @@ extension VideoEditor{
             throw ExporterError.cannotCreateExportSession
         }
         export.videoComposition = videoComposition
-        export.outputFileType = .mp4
-        export.outputURL = outputURL
         export.timeRange = timeRange
     
         return export
@@ -235,7 +214,7 @@ extension VideoEditor{
         
         // Adding audio
         if let audio{
-            let asset = AVAsset(url: audio.url)
+            let asset = AVURLAsset(url: audio.url)
             guard let secondAudioTrack = try await asset.loadTracks(withMediaType: .audio).first else { return }
             let compositionAudioTrack = composition.addMutableTrack(withMediaType: AVMediaType.audio, preferredTrackID: kCMPersistentTrackID_Invalid)
             compositionAudioTrack?.preferredVolume = audio.volume

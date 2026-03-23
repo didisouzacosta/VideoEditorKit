@@ -130,7 +130,7 @@ struct CropImage<T: View>: View{
             .clipShape(
                 CropFrame(isActive: clipped, currentPosition: currentPosition, size: frameSize)
             )
-            .onChange(of: frameSize) { newValue in
+            .onChange(of: frameSize) { _, _ in
                 currentPosition = .zero
                 newPosition = .zero
             }

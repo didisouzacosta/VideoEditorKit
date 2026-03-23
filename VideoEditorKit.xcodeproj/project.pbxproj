@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 56;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -72,10 +72,9 @@
 		5AFA25C429FA727C00B820D0 /* FramesToolView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AFA25C329FA727C00B820D0 /* FramesToolView.swift */; };
 		5AFA25C629FA7D9300B820D0 /* Color.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AFA25C529FA7D9300B820D0 /* Color.swift */; };
 		5AFA25C829FC186F00B820D0 /* TextBox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AFA25C729FC186F00B820D0 /* TextBox.swift */; };
-		622FF63F9B3B6A74A60D36BD /* VideoModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8D3AFDEC9A79B995981F282 /* VideoModelTests.swift */; };
-		6E75BF197370CC3647334791 /* TextEditorViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80AEEA5D678FD14802F1E6C2 /* TextEditorViewModelTests.swift */; };
+		A1B2C301D1E2F3A400000001 /* AppIntents.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A1B2C301D1E2F3A400000003 /* AppIntents.framework */; };
+		A1B2C301D1E2F3A400000002 /* AppIntents.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A1B2C301D1E2F3A400000003 /* AppIntents.framework */; };
 		BC7988E2ACBAE67C54358E26 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0FCC6D5CF0D1D6027E8A3297 /* Foundation.framework */; };
-		D3E0B57024D5B15F76F6BE0C /* TimeIntervalFormattingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75F4E74233C6199ED26CA817 /* TimeIntervalFormattingTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -156,17 +155,20 @@
 		5AFA25C329FA727C00B820D0 /* FramesToolView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FramesToolView.swift; sourceTree = "<group>"; };
 		5AFA25C529FA7D9300B820D0 /* Color.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Color.swift; sourceTree = "<group>"; };
 		5AFA25C729FC186F00B820D0 /* TextBox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextBox.swift; sourceTree = "<group>"; };
-		75F4E74233C6199ED26CA817 /* TimeIntervalFormattingTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = TimeIntervalFormattingTests.swift; path = VideoEditorKitTests/TimeIntervalFormattingTests.swift; sourceTree = "<group>"; };
-		80AEEA5D678FD14802F1E6C2 /* TextEditorViewModelTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = TextEditorViewModelTests.swift; path = VideoEditorKitTests/TextEditorViewModelTests.swift; sourceTree = "<group>"; };
-		B8D3AFDEC9A79B995981F282 /* VideoModelTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = VideoModelTests.swift; path = VideoEditorKitTests/VideoModelTests.swift; sourceTree = "<group>"; };
-		FC233DAD5E07B50EE39B6940 /* VideoEditorKitTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; name = VideoEditorKitTests.xctest; path = VideoEditorKitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1B2C301D1E2F3A400000003 /* AppIntents.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppIntents.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/AppIntents.framework; sourceTree = DEVELOPER_DIR; };
+		FC233DAD5E07B50EE39B6940 /* VideoEditorKitTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = VideoEditorKitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		A98D11C12F71D8890025159E /* VideoEditorKitTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = VideoEditorKitTests; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		5ACFF96829E944FA00827A37 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A1B2C301D1E2F3A400000001 /* AppIntents.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -174,6 +176,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A1B2C301D1E2F3A400000002 /* AppIntents.framework in Frameworks */,
 				BC7988E2ACBAE67C54358E26 /* Foundation.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -184,6 +187,7 @@
 		07AD9B4E4756DF867BA4A2FC /* iOS */ = {
 			isa = PBXGroup;
 			children = (
+				A1B2C301D1E2F3A400000003 /* AppIntents.framework */,
 				0FCC6D5CF0D1D6027E8A3297 /* Foundation.framework */,
 			);
 			name = iOS;
@@ -264,8 +268,8 @@
 			isa = PBXGroup;
 			children = (
 				5ACFF96D29E944FA00827A37 /* VideoEditorKit */,
+				A98D11C12F71D8890025159E /* VideoEditorKitTests */,
 				5ACFF96C29E944FA00827A37 /* Products */,
-				8FAA0BE4BD6CA50EA847B4AF /* VideoEditorKitTests */,
 				623202D2D70D15A896584F95 /* Frameworks */,
 			);
 			sourceTree = "<group>";
@@ -520,16 +524,6 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
-		8FAA0BE4BD6CA50EA847B4AF /* VideoEditorKitTests */ = {
-			isa = PBXGroup;
-			children = (
-				80AEEA5D678FD14802F1E6C2 /* TextEditorViewModelTests.swift */,
-				75F4E74233C6199ED26CA817 /* TimeIntervalFormattingTests.swift */,
-				B8D3AFDEC9A79B995981F282 /* VideoModelTests.swift */,
-			);
-			name = VideoEditorKitTests;
-			sourceTree = "<group>";
-		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -562,6 +556,9 @@
 			);
 			dependencies = (
 				3C7254F2E6060C807CD65555 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				A98D11C12F71D8890025159E /* VideoEditorKitTests */,
 			);
 			name = VideoEditorKitTests;
 			productName = VideoEditorKitTests;
@@ -700,9 +697,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				6E75BF197370CC3647334791 /* TextEditorViewModelTests.swift in Sources */,
-				D3E0B57024D5B15F76F6BE0C /* TimeIntervalFormattingTests.swift in Sources */,
-				622FF63F9B3B6A74A60D36BD /* VideoModelTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -779,6 +773,7 @@
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
 			};
 			name = Debug;
 		};
@@ -836,6 +831,7 @@
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
@@ -872,7 +868,6 @@
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
@@ -909,7 +904,6 @@
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;

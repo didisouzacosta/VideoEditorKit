@@ -8,7 +8,7 @@
 import SwiftUI
 import AVKit
 
-struct Video: Identifiable{
+struct Video: Identifiable, @unchecked Sendable {
     
     var id: UUID = UUID()
     var url: URL
@@ -35,15 +35,15 @@ struct Video: Identifiable{
     
     init(url: URL){
         self.url = url
-        self.asset = AVAsset(url: url)
-        self.originalDuration = asset.videoDuration()
+        self.asset = AVURLAsset(url: url)
+        self.originalDuration = Self.loadDuration(for: url)
         self.rangeDuration = 0...originalDuration
     }
     
     init(url: URL, rangeDuration: ClosedRange<Double>, rate: Float = 1.0, rotation: Double = 0){
         self.url = url
-        self.asset = AVAsset(url: url)
-        self.originalDuration = asset.videoDuration()
+        self.asset = AVURLAsset(url: url)
+        self.originalDuration = Self.loadDuration(for: url)
         self.rangeDuration = rangeDuration
         self.rate = rate
         self.rotation = rotation
@@ -115,7 +115,24 @@ struct Video: Identifiable{
     }
     
     
-    static var mock: Video = .init(url:URL(string: "https://www.google.com/")!, rangeDuration: 0...250)
+    @MainActor
+    static let mock: Video = .init(url:URL(string: "https://www.google.com/")!, rangeDuration: 0...250)
+
+    private static func loadDuration(for url: URL) -> Double {
+        let box = SynchronousValueBox<Double>()
+        let semaphore = DispatchSemaphore(value: 0)
+
+        Task.detached {
+            defer { semaphore.signal() }
+            let asset = AVURLAsset(url: url)
+            if let duration = try? await asset.load(.duration) {
+                box.value = duration.seconds
+            }
+        }
+
+        semaphore.wait()
+        return box.value ?? .zero
+    }
 }
 
 
@@ -167,4 +184,8 @@ struct VideoFrames{
         scaleValue = 0
         frameColor = .white
     }
+}
+
+private final class SynchronousValueBox<Value>: @unchecked Sendable {
+    var value: Value?
 }

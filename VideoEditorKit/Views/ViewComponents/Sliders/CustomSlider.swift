@@ -93,7 +93,7 @@ where Value: BinaryFloatingPoint, Value.Stride: BinaryFloatingPoint, Track: View
                             lastOffset = xOffset
                         }
                     }
-                    .onChange(of: value) { _ in
+                    .onChange(of: value) { _, _ in
                         if !isOnChange{
                             xOffset = (trackSize.width - thumbSize.width) * CGFloat(percentage)
                             lastOffset = xOffset
@@ -168,7 +168,7 @@ struct CustomSlider_Previews: PreviewProvider {
 
 
 struct SizePreferenceKey: PreferenceKey {
-    static var defaultValue: CGSize = .zero
+    static let defaultValue: CGSize = .zero
     
     static func reduce(value: inout CGSize, nextValue: () -> CGSize) {
         value = nextValue()

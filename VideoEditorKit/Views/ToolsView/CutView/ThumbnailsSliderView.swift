@@ -33,21 +33,21 @@ struct ThumbnailsSliderView: View {
                         RangedSliderView(value: $rangeDuration, bounds: 0...video.originalDuration, onEndChange: { setOnChangeTrim(false)}) {
                             Rectangle().blendMode(.destinationOut)
                         }
-                        .onChange(of: self.video?.rangeDuration.upperBound) { upperBound in
+                        .onChange(of: self.video?.rangeDuration.upperBound) { _, upperBound in
                             if let upperBound{
                                 curretTime = Double(upperBound)
                                 onChangeTimeValue()
                                 setOnChangeTrim(true)
                             }
                         }
-                        .onChange(of: self.video?.rangeDuration.lowerBound) { lowerBound in
+                        .onChange(of: self.video?.rangeDuration.lowerBound) { _, lowerBound in
                             if let lowerBound{
                                 curretTime = Double(lowerBound)
                                 onChangeTimeValue()
                                 setOnChangeTrim(true)
                             }
                         }
-                        .onChange(of: rangeDuration) { newValue in
+                        .onChange(of: rangeDuration) { _, newValue in
                             self.video?.rangeDuration = newValue
                         }
                     }
@@ -59,7 +59,7 @@ struct ThumbnailsSliderView: View {
             }
             .frame(width: getRect().width - 64, height: 70)
         }
-        .onChange(of: isChangeState) { isChange in
+        .onChange(of: isChangeState) { _, isChange in
             if !(isChange ?? true){
                 setVideoRange()
             }
@@ -106,7 +106,6 @@ extension ThumbnailsSliderView{
         }
     }
 }
-
 
 
 

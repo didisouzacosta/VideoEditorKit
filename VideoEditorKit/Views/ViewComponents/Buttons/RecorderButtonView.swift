@@ -87,11 +87,13 @@ extension RecorderButtonView{
     
     private func startTimer(){
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true){ _ in
-            timeRemaining -= 1
-            if timeRemaining == 0{
-                state = .record
-                stopTimer()
-                recorderManager.startRecording(recordMaxTime: video.totalDuration)
+            Task { @MainActor in
+                timeRemaining -= 1
+                if timeRemaining == 0{
+                    state = .record
+                    stopTimer()
+                    recorderManager.startRecording(recordMaxTime: video.totalDuration)
+                }
             }
         }
     }

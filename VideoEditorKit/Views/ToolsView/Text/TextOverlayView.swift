@@ -18,12 +18,20 @@ struct TextOverlayView: View {
                     .simultaneousGesture(MagnificationGesture()
                         .onChanged({ value in
                             if let box = viewModel.selectedTextBox{
-                                let lastFontSize = viewModel.textBoxes[getIndex(box.id)].lastFontSize
-                                viewModel.textBoxes[getIndex(box.id)].fontSize = (value * 10) + lastFontSize
+                                let lastFontSize = viewModel.textBoxes.first(where: { $0.id == box.id })?.lastFontSize ?? box.lastFontSize
+                                let updatedFontSize = (value * 10) + lastFontSize
+                                updateTextBox(box.id) { textBox in
+                                    textBox.fontSize = updatedFontSize
+                                }
                             }
                         }).onEnded({ value in
                             if let box = viewModel.selectedTextBox{
-                                viewModel.textBoxes[getIndex(box.id)].lastFontSize = value * 10
+                                let lastFontSize = viewModel.textBoxes.first(where: { $0.id == box.id })?.lastFontSize ?? box.lastFontSize
+                                let updatedFontSize = (value * 10) + lastFontSize
+                                updateTextBox(box.id) { textBox in
+                                    textBox.fontSize = updatedFontSize
+                                    textBox.lastFontSize = updatedFontSize
+                                }
                             }
                         }))
             }
@@ -59,15 +67,18 @@ struct TextOverlayView: View {
                         let current = value.translation
                         let lastOffset = textBox.lastOffset
                         let newTranslation: CGSize = .init(width: current.width + lastOffset.width, height: current.height + lastOffset.height)
-                        
-                        DispatchQueue.main.async {
-                            viewModel.textBoxes[getIndex(textBox.id)].offset = newTranslation
+                        updateTextBox(textBox.id) { box in
+                            box.offset = newTranslation
                         }
                         
                     }).onEnded({ value in
                         guard isSelected else {return}
-                        DispatchQueue.main.async {
-                            viewModel.textBoxes[getIndex(textBox.id)].lastOffset = value.translation
+                        let current = value.translation
+                        let lastOffset = textBox.lastOffset
+                        let settledOffset = CGSize(width: current.width + lastOffset.width, height: current.height + lastOffset.height)
+                        updateTextBox(textBox.id) { box in
+                            box.offset = settledOffset
+                            box.lastOffset = settledOffset
                         }
                     }))
                 }
@@ -116,9 +127,9 @@ extension TextOverlayView{
         }
     }
     
-    private func getIndex(_ id: UUID) -> Int{
-        let index = viewModel.textBoxes.firstIndex(where: {$0.id == id})
-        return index ?? 0
+    private func updateTextBox(_ id: UUID, update: (inout TextBox) -> Void) {
+        guard let index = viewModel.textBoxes.firstIndex(where: { $0.id == id }) else { return }
+        update(&viewModel.textBoxes[index])
     }
 }
 
@@ -134,9 +145,6 @@ struct TextOverlayView_Previews: PreviewProvider {
         }
     }
 }
-
-
-
 
 
 

@@ -59,7 +59,7 @@ struct SliderView<V>: View where V : BinaryFloatingPoint, V.Stride : BinaryFloat
                 ratio = min(1, max(0,CGFloat(value / bounds.upperBound)))
             }
             
-            .onChange(of: value) { newValue in
+            .onChange(of: value) { _, newValue in
                 withAnimation(.easeIn(duration: 0.1)){
                     ratio = min(1, max(0,CGFloat(newValue / bounds.upperBound)))
                 }
@@ -123,6 +123,5 @@ struct StickerSliderView_Previews: PreviewProvider {
         }
     }
 }
-
 
 

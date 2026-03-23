@@ -77,11 +77,10 @@ extension VideoExporterBottomSheetView{
             Text("Video saved")
                 .font(.title2.bold())
         }
-        .onAppear{
-            Task { @MainActor in
-                try? await Task.sleep(for: .seconds(1.5))
-                viewModel.renderState = .unknown
-            }
+        .task {
+            try? await Task.sleep(for: .seconds(1.5))
+            guard !Task.isCancelled else { return }
+            viewModel.renderState = .unknown
         }
     }
     
@@ -164,9 +163,15 @@ extension VideoExporterBottomSheetView{
 
 extension UIViewController {
     
+    @MainActor
     func presentInKeyWindow(animated: Bool = true, completion: (() -> Void)? = nil) {
-        UIApplication.shared.windows.last { $0.isKeyWindow }?.rootViewController?
-            .present(self, animated: animated, completion: completion)
+        let rootViewController = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap(\.windows)
+            .last(where: \.isKeyWindow)?
+            .rootViewController
+
+        rootViewController?.present(self, animated: animated, completion: completion)
     }
 }
 

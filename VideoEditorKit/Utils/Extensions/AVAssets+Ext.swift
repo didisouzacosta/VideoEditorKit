@@ -23,23 +23,28 @@ extension AVAsset {
     
     func getImage(_ second: Int, compressionQuality: Double = 0.05) -> UIImage?{
         let imgGenerator = AVAssetImageGenerator(asset: self)
-        guard let cgImage = try? imgGenerator.copyCGImage(at: .init(seconds: Double(second), preferredTimescale: 1), actualTime: nil) else { return nil}
-        let uiImage = UIImage(cgImage: cgImage)
-        guard let imageData = uiImage.jpegData(compressionQuality: compressionQuality), let compressedUIImage = UIImage(data: imageData) else { return nil }
-        return compressedUIImage
-    }
-    
-    
-    func videoDuration() -> Double{
-        
-        self.duration.seconds
+        let requestedTime = CMTime(seconds: Double(second), preferredTimescale: 1)
+        let box = SynchronousImageBox()
+        let semaphore = DispatchSemaphore(value: 0)
 
+        imgGenerator.generateCGImagesAsynchronously(forTimes: [NSValue(time: requestedTime)]) { _, image, _, result, _ in
+            defer { semaphore.signal() }
+            guard result == .succeeded, let image else { return }
+
+            let uiImage = UIImage(cgImage: image)
+            guard let imageData = uiImage.jpegData(compressionQuality: compressionQuality),
+                  let compressedUIImage = UIImage(data: imageData) else {
+                return
+            }
+
+            box.image = compressedUIImage
+        }
+
+        semaphore.wait()
+        return box.image
     }
     
-//    guard let duration = try? await self.load(.duration) else { return nil }
-//
-//    return duration.seconds
-    
+    @MainActor
     func naturalSize() async -> CGSize? {
         guard let tracks = try? await loadTracks(withMediaType: .video) else { return nil }
         guard let track = tracks.first else { return nil }
@@ -48,6 +53,7 @@ extension AVAsset {
     }
     
     
+    @MainActor
     func adjustVideoSize(to viewSize: CGSize) async -> CGSize? {
         
         
@@ -66,4 +72,6 @@ extension AVAsset {
 
 }
 
-
+private final class SynchronousImageBox: @unchecked Sendable {
+    var image: UIImage?
+}

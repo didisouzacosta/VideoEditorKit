@@ -59,12 +59,12 @@ extension PlayerHolderView{
                         }
                         .allFrame()
                         .onAppear{
-                            Task{
+                            Task { @MainActor in
                                 guard let size = await editorVM.currentVideo?.asset.adjustVideoSize(to: proxy.size) else {return}
-                             editorVM.currentVideo?.frameSize = size
+                                editorVM.currentVideo?.frameSize = size
                                 editorVM.currentVideo?.geometrySize = proxy.size
-                         }
-                     }
+                            }
+                        }
                 }
             }
             timelineLabel

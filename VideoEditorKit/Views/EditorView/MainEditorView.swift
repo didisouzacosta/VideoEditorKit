@@ -16,6 +16,8 @@ struct MainEditorView: View {
     @State private var isFullScreen = false
     @State private var showVideoQualitySheet = false
     @State private var showRecordView = false
+    @State private var exportSheetTask: Task<Void, Never>?
+    @State private var filterRestoreTask: Task<Void, Never>?
     @StateObject private var editorVM = EditorViewModel()
     @StateObject private var audioRecorder = AudioRecorderManager()
     @StateObject private var videoPlayer = VideoPlayerManager()
@@ -59,6 +61,9 @@ struct MainEditorView: View {
         .onChange(of: scenePhase) { _, phase in
             saveProject(phase)
         }
+        .onDisappear {
+            cancelDeferredTasks()
+        }
         .blur(radius: textEditor.showEditor ? 10 : 0)
         .ignoresSafeArea(.keyboard, edges: .bottom)
         .overlay {
@@ -82,10 +87,7 @@ extension MainEditorView{
             Spacer()
             
             Button {
-                editorVM.selectedTools = nil
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2){
-                    showVideoQualitySheet.toggle()
-                }
+                presentExporter()
             } label: {
                 Image(systemName: "square.and.arrow.up.fill")
             }
@@ -114,10 +116,37 @@ extension MainEditorView{
         if let project, let url = project.videoURL{
             videoPlayer.loadState = .loaded(url)
             editorVM.setProject(project, geo: proxy)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1){
-                videoPlayer.setFilters(mainFilter: CIFilter(name: project.filterName ?? ""), colorCorrection: editorVM.currentVideo?.colorCorrection)
-            }
+            scheduleFilterRestore(project)
         }
+    }
+
+    private func presentExporter() {
+        exportSheetTask?.cancel()
+        editorVM.selectedTools = nil
+        exportSheetTask = Task {
+            try? await Task.sleep(for: .milliseconds(200))
+            guard !Task.isCancelled else { return }
+            showVideoQualitySheet.toggle()
+        }
+    }
+
+    private func scheduleFilterRestore(_ project: ProjectEntity) {
+        filterRestoreTask?.cancel()
+        filterRestoreTask = Task {
+            try? await Task.sleep(for: .milliseconds(100))
+            guard !Task.isCancelled else { return }
+            videoPlayer.setFilters(
+                mainFilter: project.filterName.flatMap(CIFilter.init(name:)),
+                colorCorrection: editorVM.currentVideo?.colorCorrection
+            )
+        }
+    }
+
+    private func cancelDeferredTasks() {
+        exportSheetTask?.cancel()
+        filterRestoreTask?.cancel()
+        exportSheetTask = nil
+        filterRestoreTask = nil
     }
 }
 

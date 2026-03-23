@@ -16,7 +16,7 @@ struct Audio: Identifiable, Equatable{
     var volume: Float = 1.0
     
     var asset: AVAsset{
-        AVAsset(url: url)
+        AVURLAsset(url: url)
     }
     
     func createSimples(_ size: CGFloat) -> [AudioSimple]{

@@ -66,7 +66,7 @@ struct TimelineSlider<T: View, A: View>: View {
                     }
             )
             .animation(.easeIn, value: offset)
-            .onChange(of: value) { _ in
+            .onChange(of: value) { _, _ in
                 if !disableOffset{
                     setOffset()
                 }

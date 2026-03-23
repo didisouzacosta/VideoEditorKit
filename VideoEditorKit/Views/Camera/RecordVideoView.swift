@@ -16,7 +16,7 @@ struct RecordVideoView: View {
             CameraPreviewHolder(captureSession: cameraManager.session)
             VStack(spacing: 0) {
                 Text(cameraManager.recordedDuration.formatterTimeString())
-                    .foregroundColor(.white)
+                    .foregroundStyle(.white)
                 Spacer()
                 Button {
                     if cameraManager.isRecording{
@@ -41,17 +41,18 @@ struct RecordVideoView: View {
                     .padding()
             }
         }
-        .onChange(of: cameraManager.finalURL) { newValue in
+        .onChange(of: cameraManager.finalURL) { _, newValue in
             if let url = newValue{
                 onFinishRecord(url)
                 dismiss()
             }
         }
+        .preferredColorScheme(.dark)
     }
 }
 
 struct RecordVideoView_Previews: PreviewProvider {
     static var previews: some View {
-        RecordVideoView( onFinishRecord: {_ in })
+        RecordVideoView(onFinishRecord: { _ in })
     }
 }
