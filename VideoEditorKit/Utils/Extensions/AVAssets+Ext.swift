@@ -54,18 +54,45 @@ extension AVAsset {
     }
 
     @MainActor
-    func adjustVideoSize(to viewSize: CGSize) async -> CGSize? {
+    func presentationSize() async -> CGSize? {
+        guard let tracks = try? await loadTracks(withMediaType: .video) else { return nil }
+        guard let track = tracks.first else { return nil }
+        guard let naturalSize = try? await track.load(.naturalSize) else { return nil }
+        guard let preferredTransform = try? await track.load(.preferredTransform) else { return nil }
 
-        guard let assetSize = await self.naturalSize() else { return nil }
+        let transformedSize = naturalSize.applying(preferredTransform)
+        let resolvedSize = CGSize(
+            width: abs(transformedSize.width),
+            height: abs(transformedSize.height)
+        )
 
-        let videoRatio = assetSize.width / assetSize.height
-        let isPortrait = assetSize.height > assetSize.width
-        var videoSize = viewSize
-        if isPortrait {
-            videoSize = CGSize(width: videoSize.height * videoRatio, height: videoSize.height)
-        } else {
-            videoSize = CGSize(width: videoSize.width, height: videoSize.width / videoRatio)
+        guard resolvedSize.width > 0, resolvedSize.height > 0 else {
+            return naturalSize
         }
-        return videoSize
+
+        return resolvedSize
+    }
+
+    @MainActor
+    func adjustVideoSize(to viewSize: CGSize, rotationAngle: Double = 0) async -> CGSize? {
+        guard viewSize.width > 0, viewSize.height > 0 else { return nil }
+        guard let assetSize = await self.presentationSize() else { return nil }
+
+        let normalizedAngle = Int(rotationAngle) % 180
+        let fittedAssetSize: CGSize
+        if normalizedAngle == 0 {
+            fittedAssetSize = assetSize
+        } else {
+            fittedAssetSize = CGSize(width: assetSize.height, height: assetSize.width)
+        }
+
+        let widthScale = viewSize.width / fittedAssetSize.width
+        let heightScale = viewSize.height / fittedAssetSize.height
+        let scale = min(widthScale, heightScale)
+
+        return CGSize(
+            width: fittedAssetSize.width * scale,
+            height: fittedAssetSize.height * scale
+        )
     }
 }

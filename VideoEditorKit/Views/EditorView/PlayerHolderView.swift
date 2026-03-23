@@ -14,9 +14,6 @@ struct PlayerHolderView: View {
     let editorVM: EditorViewModel
     let videoPlayer: VideoPlayerManager
     let textEditor: TextEditorViewModel
-    var scale: CGFloat {
-        isFullScreen ? 1.4 : 1
-    }
 
     var body: some View {
         VStack(spacing: 6) {
@@ -55,40 +52,91 @@ extension PlayerHolderView {
         Group {
             if let video = editorVM.currentVideo {
                 GeometryReader { proxy in
-                    CropView(
-                        originalSize: .init(
-                            width: video.frameSize.width * scale, height: video.frameSize.height * scale),
-                        rotation: editorVM.currentVideo?.rotation,
-                        isMirror: editorVM.currentVideo?.isMirror ?? false,
-                        isActiveCrop: editorVM.selectedTools == .crop
-                    ) {
-                        ZStack {
-                            editorVM.frames.frameColor
+                    let displaySize = resolvedDisplaySize(for: video, in: proxy.size)
+
+                    ZStack {
+                        CropView(
+                            originalSize: displaySize,
+                            rotation: editorVM.currentVideo?.rotation,
+                            isMirror: editorVM.currentVideo?.isMirror ?? false,
+                            isActiveCrop: editorVM.selectedTools == .crop
+                        ) {
                             ZStack {
-                                PlayerView(player: videoPlayer.videoPlayer)
-                                TextOverlayView(
-                                    currentTime: videoPlayer.currentTime, viewModel: textEditor,
-                                    disabledMagnification: isFullScreen
-                                )
-                                .scaleEffect(scale)
-                                .disabled(isFullScreen)
+                                editorVM.frames.frameColor
+                                ZStack {
+                                    PlayerView(player: videoPlayer.videoPlayer)
+                                    TextOverlayView(
+                                        currentTime: videoPlayer.currentTime, viewModel: textEditor,
+                                        disabledMagnification: isFullScreen
+                                    )
+                                    .disabled(isFullScreen)
+                                }
+                                .scaleEffect(editorVM.frames.scale)
                             }
-                            .scaleEffect(editorVM.frames.scale)
                         }
+                        .frame(width: displaySize.width, height: displaySize.height)
+                        .clipShape(.rect(cornerRadius: 24))
                     }
-                    .allFrame()
-                    .onAppear {
-                        Task { @MainActor in
-                            guard let size = await editorVM.currentVideo?.asset.adjustVideoSize(to: proxy.size)
-                            else { return }
-                            editorVM.currentVideo?.frameSize = size
-                            editorVM.currentVideo?.geometrySize = proxy.size
-                        }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipped()
+                    .task(
+                        id: playerLayoutID(
+                            for: proxy.size,
+                            rotation: video.rotation,
+                            videoID: video.id
+                        )
+                    ) {
+                        await updateVideoLayout(for: proxy.size)
                     }
                 }
             }
             timelineLabel
         }
+    }
+
+    private func resolvedDisplaySize(for video: Video, in containerSize: CGSize) -> CGSize {
+        let fallbackSize = CGSize(
+            width: max(containerSize.width, 1),
+            height: max(containerSize.height, 1)
+        )
+
+        if video.frameSize.width > 0, video.frameSize.height > 0 {
+            return fittedSize(video.frameSize, in: fallbackSize)
+        }
+
+        return fallbackSize
+    }
+
+    private func fittedSize(_ size: CGSize, in bounds: CGSize) -> CGSize {
+        guard size.width > 0, size.height > 0 else { return bounds }
+        guard bounds.width > 0, bounds.height > 0 else { return size }
+
+        let widthScale = bounds.width / size.width
+        let heightScale = bounds.height / size.height
+        let scale = min(widthScale, heightScale, 1)
+
+        return CGSize(
+            width: size.width * scale,
+            height: size.height * scale
+        )
+    }
+
+    private func playerLayoutID(for containerSize: CGSize, rotation: Double, videoID: UUID) -> String {
+        "\(videoID.uuidString)-\(Int(containerSize.width.rounded()))-\(Int(containerSize.height.rounded()))-\(Int(rotation))"
+    }
+
+    private func updateVideoLayout(for containerSize: CGSize) async {
+        guard let video = editorVM.currentVideo else { return }
+        guard
+            let size = await video.asset.adjustVideoSize(
+                to: containerSize,
+                rotationAngle: video.rotation
+            )
+        else { return }
+
+        guard editorVM.currentVideo?.id == video.id else { return }
+        editorVM.currentVideo?.frameSize = size
+        editorVM.currentVideo?.geometrySize = size
     }
 }
 

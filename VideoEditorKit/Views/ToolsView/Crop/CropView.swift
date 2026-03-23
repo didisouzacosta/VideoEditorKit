@@ -24,10 +24,6 @@ struct CropView<T: View>: View {
 
     var body: some View {
         ZStack {
-            //            VStack {
-            //                Text("\(currentPosition.width)")
-            //                Text("\(currentPosition.height)")
-            //            }
             frameView()
 
             if isActiveCrop {
@@ -63,19 +59,25 @@ struct CropView<T: View>: View {
                         }
                 }
                 .onAppear {
-                    position = .init(x: originalSize.width / 2, y: originalSize.height / 2)
-                    size = .init(width: originalSize.width - 100, height: originalSize.height - 100)
+                    updateCropState(for: originalSize)
+                }
+                .onChange(of: originalSize) { _, newValue in
+                    updateCropState(for: newValue)
                 }
             }
         }
         .frame(width: originalSize.width, height: originalSize.height)
         .border(isActiveCrop ? IOS26Theme.primaryText : .clear)
-        //        .clipShape(
-        //            CropFrame(isActive: clipped, currentPosition: position, size: size)
-        //        )
-        //.scaleEffect(scaleEffect)
         .rotationEffect(.degrees(rotation ?? 0))
         .rotation3DEffect(.degrees(isMirror ? 180 : 0), axis: (x: 0, y: 1, z: 0))
+    }
+
+    private func updateCropState(for size: CGSize) {
+        position = .init(x: size.width / 2, y: size.height / 2)
+        self.size = .init(
+            width: max(size.width - 100, size.width * 0.55),
+            height: max(size.height - 100, size.height * 0.55)
+        )
     }
 }
 

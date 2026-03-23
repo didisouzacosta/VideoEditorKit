@@ -41,7 +41,7 @@ struct MainEditorView: View {
                         isFullScreen: $isFullScreen, editorVM: editorVM, videoPlayer: videoPlayer,
                         textEditor: textEditor
                     )
-                    .frame(height: proxy.size.height / (isFullScreen ? 1.25 : 1.85))
+                    .frame(height: playerHeight(in: proxy.size))
                     .padding(.horizontal, 16)
                     PlayerControl(
                         isFullScreen: $isFullScreen, recorderManager: audioRecorder, editorVM: editorVM,
@@ -55,7 +55,7 @@ struct MainEditorView: View {
                 .padding(.top, 8)
                 .padding(.bottom, 16)
                 .onAppear {
-                    setVideoIfNeeded(proxy)
+                    setVideoIfNeeded(proxy.size)
                 }
             }
 
@@ -129,11 +129,24 @@ extension MainEditorView {
         .padding(.horizontal, 16)
     }
 
-    private func setVideoIfNeeded(_ proxy: GeometryProxy) {
+    private func setVideoIfNeeded(_ availableSize: CGSize) {
         guard !hasLoadedSourceVideo, let sourceVideoURL else { return }
         hasLoadedSourceVideo = true
         videoPlayer.loadState = .loaded(sourceVideoURL)
-        editorVM.setNewVideo(sourceVideoURL, containerSize: proxy.size)
+        editorVM.setNewVideo(sourceVideoURL, containerSize: playerContainerSize(in: availableSize))
+    }
+
+    private func playerHeight(in availableSize: CGSize) -> CGFloat {
+        let heightRatio = isFullScreen ? 0.62 : 0.40
+        let proposedHeight = availableSize.height * heightRatio
+        return max(220, proposedHeight)
+    }
+
+    private func playerContainerSize(in availableSize: CGSize) -> CGSize {
+        CGSize(
+            width: max(availableSize.width - 32, 1),
+            height: playerHeight(in: availableSize)
+        )
     }
 
     private func presentExporter() {
