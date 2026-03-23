@@ -7,12 +7,14 @@
 
 import SwiftUI
 import AVKit
+import Observation
 
+@MainActor
 struct ToolsSectionView: View {
-    @StateObject var filtersVM = FiltersViewModel()
-    @ObservedObject var videoPlayer: VideoPlayerManager
-    @ObservedObject var editorVM: EditorViewModel
-    @ObservedObject var textEditor: TextEditorViewModel
+    @State private var filtersVM = FiltersViewModel()
+    @Bindable var videoPlayer: VideoPlayerManager
+    @Bindable var editorVM: EditorViewModel
+    let textEditor: TextEditorViewModel
     private let columns = Array(repeating: GridItem(.flexible()), count: 4)
     var body: some View {
         ZStack{
@@ -151,9 +153,7 @@ extension ToolsSectionView{
     
 }
 
-struct ToolsSectionView_Previews: PreviewProvider {
-    static var previews: some View {
-        MainEditorView(project: nil, selectedVideoURl: nil)
-            .preferredColorScheme(.dark)
-    }
+#Preview {
+    MainEditorView(project: nil, selectedVideoURl: nil)
+        .preferredColorScheme(.dark)
 }

@@ -7,6 +7,7 @@
 
 import SwiftUI
 
+@MainActor
 struct CropSheetView: View {
     @State var rotateValue: Double = 0
     var editorVM: EditorViewModel
@@ -105,10 +106,8 @@ extension CropSheetView{
     
 }
 
-struct CropSheetView_Previews: PreviewProvider {
-    static var previews: some View {
-        CropSheetView(editorVM: EditorViewModel())
-            .padding()
-            .preferredColorScheme(.dark)
-    }
+#Preview {
+    CropSheetView(editorVM: EditorViewModel())
+        .padding()
+        .preferredColorScheme(.dark)
 }

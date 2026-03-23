@@ -7,11 +7,12 @@
 
 import SwiftUI
 
+@MainActor
 struct AudioSheetView: View {
     @State private var videoVolume: Float = 1.0
     @State private var audioVolume: Float = 1.0
-    @ObservedObject var videoPlayer: VideoPlayerManager
-    @ObservedObject var editorVM: EditorViewModel
+    let videoPlayer: VideoPlayerManager
+    let editorVM: EditorViewModel
     
     var value: Binding<Float>{
         editorVM.isSelectVideo ? $videoVolume : $audioVolume
@@ -55,9 +56,7 @@ extension AudioSheetView{
     }
 }
 
-struct AudioSheetView_Previews: PreviewProvider {
-    static var previews: some View {
-        AudioSheetView(videoPlayer: VideoPlayerManager(), editorVM: EditorViewModel())
-            .padding()
-    }
+#Preview {
+    AudioSheetView(videoPlayer: VideoPlayerManager(), editorVM: EditorViewModel())
+        .padding()
 }

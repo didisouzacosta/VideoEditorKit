@@ -9,10 +9,10 @@ import Foundation
 import AVFoundation
 import UIKit
 
-final class VideoEditor: @unchecked Sendable {
+enum VideoEditor {
     
     ///The renderer is made up of half-sequential operations:
-    func startRender(video: Video, videoQuality: VideoQuality) async throws -> URL{
+    static func startRender(video: Video, videoQuality: VideoQuality) async throws -> URL{
         do{
             let url = try await resizeAndLayerOperation(video: video, videoQuality: videoQuality)
             let finalUrl = try await applyFiltersOperations(video, fromUrl: url)
@@ -24,7 +24,7 @@ final class VideoEditor: @unchecked Sendable {
     
     
     ///Cut, resizing, rotate and set quality
-    private func resizeAndLayerOperation(video: Video,
+    private static func resizeAndLayerOperation(video: Video,
                                   videoQuality: VideoQuality) async throws -> URL{
         
         let composition = AVMutableComposition()
@@ -88,7 +88,7 @@ final class VideoEditor: @unchecked Sendable {
     
     
     ///Adding filters
-    private func applyFiltersOperations(_ video: Video, fromUrl: URL) async throws -> URL {
+    private static func applyFiltersOperations(_ video: Video, fromUrl: URL) async throws -> URL {
         
         let filters = Helpers.createFilters(mainFilter: CIFilter(name: video.filterName ?? ""), video.colorCorrection)
 
@@ -119,7 +119,7 @@ final class VideoEditor: @unchecked Sendable {
 extension VideoEditor{
     
 
-    private func exportSession(composition: AVMutableComposition, videoComposition: AVMutableVideoComposition, outputURL: URL, timeRange: CMTimeRange) throws -> AVAssetExportSession {
+    private static func exportSession(composition: AVMutableComposition, videoComposition: AVMutableVideoComposition, outputURL: URL, timeRange: CMTimeRange) throws -> AVAssetExportSession {
         guard let export = AVAssetExportSession(
             asset: composition,
             presetName: isSimulator ? AVAssetExportPresetPassthrough : AVAssetExportPresetHighestQuality)
@@ -134,7 +134,7 @@ extension VideoEditor{
     }
     
     
-    private func createLayers(_ videoFrame: VideoFrames?, video: Video, size: CGSize, videoComposition: AVMutableVideoComposition){
+    private static func createLayers(_ videoFrame: VideoFrames?, video: Video, size: CGSize, videoComposition: AVMutableVideoComposition){
         
         guard let videoFrame else {return}
         
@@ -175,7 +175,7 @@ extension VideoEditor{
     }
     
     ///Set new time scale for audio and video tracks
-    private func setTimeScaleAndAddTracks(to composition: AVMutableComposition,
+    private static func setTimeScaleAndAddTracks(to composition: AVMutableComposition,
                                           from asset: AVAsset,
                                           audio: Audio?,
                                           timeScale: Float64,
@@ -224,7 +224,7 @@ extension VideoEditor{
     }
     
     ///create CMTimeRange
-    private func getTimeRange(for duration: Double, with timeRange: ClosedRange<Double>) -> CMTimeRange {
+    private static func getTimeRange(for duration: Double, with timeRange: ClosedRange<Double>) -> CMTimeRange {
         let start = timeRange.lowerBound.clamped(to: 0...duration)
         let end = timeRange.upperBound.clamped(to: start...duration)
         
@@ -237,7 +237,7 @@ extension VideoEditor{
     
     
     ///set video size for AVMutableVideoCompositionLayerInstruction
-    private func videoCompositionInstructionForTrackWithSizeAndTime(preferredTransform: CGAffineTransform, naturalSize: CGSize, newSize: CGSize,  track: AVAssetTrack, scale: Double, isMirror: Bool) -> AVMutableVideoCompositionLayerInstruction {
+    private static func videoCompositionInstructionForTrackWithSizeAndTime(preferredTransform: CGAffineTransform, naturalSize: CGSize, newSize: CGSize,  track: AVAssetTrack, scale: Double, isMirror: Bool) -> AVMutableVideoCompositionLayerInstruction {
         
         let instruction = AVMutableVideoCompositionLayerInstruction(assetTrack: track)
         let assetInfo = orientationFromTransform(preferredTransform)
@@ -285,7 +285,7 @@ extension VideoEditor{
     }
     
     
-   private func getSizeFromOrientation(newSize: CGSize, videoTrackPreferredTransform: CGAffineTransform) -> CGSize{
+   private static func getSizeFromOrientation(newSize: CGSize, videoTrackPreferredTransform: CGAffineTransform) -> CGSize{
         let orientation = self.orientationFromTransform(videoTrackPreferredTransform)
         
         var outputSize = newSize
@@ -298,7 +298,7 @@ extension VideoEditor{
     }
     
     
-    private func orientationFromTransform(_ transform: CGAffineTransform) -> (orientation: UIImage.Orientation, isPortrait: Bool) {
+    private static func orientationFromTransform(_ transform: CGAffineTransform) -> (orientation: UIImage.Orientation, isPortrait: Bool) {
         var assetOrientation = UIImage.Orientation.up
         var isPortrait = false
         if transform.a == 0 && transform.b == 1.0 && transform.c == -1.0 && transform.d == 0 {
@@ -316,7 +316,7 @@ extension VideoEditor{
     }
     
     
-    private func createTempPath() -> URL{
+    private static func createTempPath() -> URL{
         let tempPath = "\(NSTemporaryDirectory())temp_video.mp4"
         let tempURL = URL(fileURLWithPath: tempPath)
         FileManager.default.removefileExists(for: tempURL)
@@ -325,7 +325,7 @@ extension VideoEditor{
     
     
     ///needed for simulator fix AVVideoCompositionCoreAnimationTool crash only in simulator
-    private var isSimulator: Bool {
+    private static var isSimulator: Bool {
       #if targetEnvironment(simulator)
       true
       #else
@@ -333,7 +333,7 @@ extension VideoEditor{
       #endif
     }
     
-    private func addImage(to layer: CALayer, watermark: UIImage, videoSize: CGSize) {
+    private static func addImage(to layer: CALayer, watermark: UIImage, videoSize: CGSize) {
         let imageLayer = CALayer()
         let aspect: CGFloat = watermark.size.width / watermark.size.height
         let width = videoSize.width / 4
@@ -348,7 +348,7 @@ extension VideoEditor{
     }
     
 
-    private func createTextLayer(with model: TextBox, size: CGSize, position: CGSize, ratio: Double, duration: Double) -> CATextLayer {
+    private static func createTextLayer(with model: TextBox, size: CGSize, position: CGSize, ratio: Double, duration: Double) -> CATextLayer {
         let textLayer = CATextLayer()
         textLayer.string = model.text
         textLayer.font = UIFont.systemFont(ofSize: 18, weight: .medium)
@@ -364,7 +364,7 @@ extension VideoEditor{
         return textLayer
     }
     
-    func convertSize(_ size: CGSize, fromFrame frameSize1: CGSize, toFrame frameSize2: CGSize) -> (size: CGSize, ratio: Double) {
+    static func convertSize(_ size: CGSize, fromFrame frameSize1: CGSize, toFrame frameSize2: CGSize) -> (size: CGSize, ratio: Double) {
         let widthRatio = frameSize2.width / frameSize1.width
         let heightRatio = frameSize2.height / frameSize1.height
         let ratio = max(widthRatio, heightRatio)
@@ -376,7 +376,7 @@ extension VideoEditor{
         return (CGSize(width: newSize.width, height: newSize.height), ratio)
     }
     
-    private func addAnimation(to textLayer: CATextLayer, with timeRange: ClosedRange<Double>, duration: Double) {
+    private static func addAnimation(to textLayer: CATextLayer, with timeRange: ClosedRange<Double>, duration: Double) {
         
         if timeRange.lowerBound > 0{
             let appearance = CABasicAnimation(keyPath: "opacity")

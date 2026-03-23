@@ -7,7 +7,9 @@
 import AVKit
 import SwiftUI
 import PhotosUI
+import Observation
 
+@MainActor
 struct MainEditorView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dismiss) private var dismiss
@@ -18,10 +20,10 @@ struct MainEditorView: View {
     @State private var showRecordView = false
     @State private var exportSheetTask: Task<Void, Never>?
     @State private var filterRestoreTask: Task<Void, Never>?
-    @StateObject private var editorVM = EditorViewModel()
-    @StateObject private var audioRecorder = AudioRecorderManager()
-    @StateObject private var videoPlayer = VideoPlayerManager()
-    @StateObject private var textEditor = TextEditorViewModel()
+    @State private var editorVM = EditorViewModel()
+    @State private var audioRecorder = AudioRecorderManager()
+    @State private var videoPlayer = VideoPlayerManager()
+    @State private var textEditor = TextEditorViewModel()
 
     init(project: ProjectEntity? = nil, selectedVideoURl: URL? = nil) {
         self.project = project
@@ -110,12 +112,12 @@ extension MainEditorView{
     private func setVideo(_ proxy: GeometryProxy){
         if let selectedVideoURl{
             videoPlayer.loadState = .loaded(selectedVideoURl)
-            editorVM.setNewVideo(selectedVideoURl, geo: proxy)
+            editorVM.setNewVideo(selectedVideoURl, containerSize: proxy.size)
         }
         
         if let project, let url = project.videoURL{
             videoPlayer.loadState = .loaded(url)
-            editorVM.setProject(project, geo: proxy)
+            editorVM.setProject(project, containerSize: proxy.size)
             scheduleFilterRestore(project)
         }
     }
@@ -150,9 +152,7 @@ extension MainEditorView{
     }
 }
 
-struct MainEditorView_Previews: PreviewProvider {
-    static var previews: some View {
-        MainEditorView(project: nil, selectedVideoURl: nil)
-            .preferredColorScheme(.dark)
-    }
+#Preview {
+    MainEditorView(project: nil, selectedVideoURl: nil)
+        .preferredColorScheme(.dark)
 }

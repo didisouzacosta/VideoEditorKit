@@ -6,16 +6,19 @@
 //
 
 import SwiftUI
+import Observation
 
+@MainActor
 struct VideoExporterBottomSheetView: View {
     @Binding var isPresented: Bool
-    @StateObject private var viewModel: ExporterViewModel
+    @State private var viewModel: ExporterViewModel
     
     init(isPresented: Binding<Bool>, video: Video) {
         self._isPresented = isPresented
-        self._viewModel = StateObject(wrappedValue: ExporterViewModel(video: video))
+        self._viewModel = State(initialValue: ExporterViewModel(video: video))
     }
     var body: some View {
+        @Bindable var bindableViewModel = viewModel
         GeometryReader { proxy in
             SheetView(isPresented: $isPresented, bgOpacity: 0.1) {
                 VStack(alignment: .leading){
@@ -34,7 +37,7 @@ struct VideoExporterBottomSheetView: View {
                 .frame(height: proxy.size.height / 2.8)
             }
             .ignoresSafeArea()
-            .alert("Save video", isPresented: $viewModel.showAlert) {}
+            .alert("Save video", isPresented: $bindableViewModel.showAlert) {}
             .disabled(viewModel.renderState == .loading)
             .animation(.easeInOut, value: viewModel.renderState)
         }
@@ -175,11 +178,9 @@ extension UIViewController {
     }
 }
 
-struct VideoExporterBottomSheetView_Previews: PreviewProvider {
-    static var previews: some View {
-        ZStack(alignment: .bottom){
-            Color.secondary.opacity(0.5)
-            VideoExporterBottomSheetView(isPresented: .constant(true), video: Video.mock)
-        }
+#Preview {
+    ZStack(alignment: .bottom){
+        Color.secondary.opacity(0.5)
+        VideoExporterBottomSheetView(isPresented: .constant(true), video: Video.mock)
     }
 }

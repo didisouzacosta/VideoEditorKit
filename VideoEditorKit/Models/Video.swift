@@ -49,8 +49,10 @@ struct Video: Identifiable, @unchecked Sendable {
         self.rotation = rotation
     }
     
-    mutating func updateThumbnails(_ geo: GeometryProxy){
-        let imagesCount = thumbnailCount(geo)
+    mutating func updateThumbnails(containerSize: CGSize){
+        thumbnailsImages.removeAll(keepingCapacity: true)
+        let imagesCount = thumbnailCount(containerSize)
+        guard imagesCount > 0 else { return }
         
         var offset: Float64 = 0
         for i in 0..<imagesCount{
@@ -107,9 +109,8 @@ struct Video: Identifiable, @unchecked Sendable {
     }
     
     
-    private func thumbnailCount(_ geo: GeometryProxy) -> Int {
-        
-        let num = Double(geo.size.width - 32) / Double(70 / 1.5)
+    private func thumbnailCount(_ containerSize: CGSize) -> Int {
+        let num = Double(containerSize.width - 32) / Double(70 / 1.5)
         
         return Int(ceil(num))
     }

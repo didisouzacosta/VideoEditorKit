@@ -6,12 +6,14 @@
 //
 
 import SwiftUI
+import Observation
 
+@MainActor
 struct PlayerHolderView: View{
     @Binding var isFullScreen: Bool
-    @ObservedObject var editorVM: EditorViewModel
-    @ObservedObject var videoPlayer: VideoPlayerManager
-    @ObservedObject var textEditor: TextEditorViewModel
+    let editorVM: EditorViewModel
+    let videoPlayer: VideoPlayerManager
+    let textEditor: TextEditorViewModel
     var scale: CGFloat{
         isFullScreen ? 1.4 : 1
     }
@@ -92,13 +94,13 @@ extension PlayerHolderView{
     }
 }
 
-
+@MainActor
 struct PlayerControl: View{
     @Binding var isFullScreen: Bool
-    @ObservedObject var recorderManager: AudioRecorderManager
-    @ObservedObject var editorVM: EditorViewModel
-    @ObservedObject var videoPlayer: VideoPlayerManager
-    @ObservedObject var textEditor: TextEditorViewModel
+    let recorderManager: AudioRecorderManager
+    @Bindable var editorVM: EditorViewModel
+    @Bindable var videoPlayer: VideoPlayerManager
+    let textEditor: TextEditorViewModel
     var body: some View{
         VStack(spacing: 6) {
             playSection
@@ -155,9 +157,7 @@ struct PlayerControl: View{
     }
 }
 
-struct PlayerHolderView_Previews: PreviewProvider {
-    static var previews: some View {
-        MainEditorView(project: nil, selectedVideoURl: nil)
-            .preferredColorScheme(.dark)
-    }
+#Preview {
+    MainEditorView(project: nil, selectedVideoURl: nil)
+        .preferredColorScheme(.dark)
 }

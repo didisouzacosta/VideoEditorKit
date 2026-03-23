@@ -9,7 +9,7 @@ import SwiftUI
 
 @main
 struct VideoEditorKitApp: App {
-    @StateObject var rootVM = RootViewModel(mainContext: PersistenceController.shared.viewContext)
+    @State private var rootVM = RootViewModel(mainContext: PersistenceController.shared.viewContext)
     
     var body: some Scene {
         WindowGroup {

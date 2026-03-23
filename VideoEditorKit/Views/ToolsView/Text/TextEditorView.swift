@@ -6,9 +6,11 @@
 //
 
 import SwiftUI
+import Observation
 
+@MainActor
 struct TextEditorView: View{
-    @ObservedObject var viewModel: TextEditorViewModel
+    @Bindable var viewModel: TextEditorViewModel
     @State private var textHeight: CGFloat = 100
     @State private var isFocused: Bool = true
     let onSave: ([TextBox]) -> Void
@@ -68,6 +70,7 @@ struct TextEditorView: View{
     }
 }
 
+@MainActor
 struct TextView: UIViewRepresentable {
     
     @Binding var isFirstResponder: Bool
@@ -146,7 +149,7 @@ struct TextView: UIViewRepresentable {
         }
     }
 
-    class Coordinator : NSObject, UITextViewDelegate {
+    final class Coordinator : NSObject, UITextViewDelegate {
 
         var parent: TextView
 
@@ -167,12 +170,14 @@ struct TextView: UIViewRepresentable {
     }
 }
 
-struct TextEditorView_Previews: PreviewProvider {
-    static var previews: some View {
-        let viewModel = TextEditorViewModel()
-        viewModel.openTextEditor(isEdit: false, timeRange: 0...5)
+@MainActor
+private func makeTextEditorPreviewModel() -> TextEditorViewModel {
+    let viewModel = TextEditorViewModel()
+    viewModel.openTextEditor(isEdit: false, timeRange: 0...5)
+    return viewModel
+}
 
-        return TextEditorView(viewModel: viewModel, onSave: { _ in })
-            .preferredColorScheme(.dark)
-    }
+#Preview {
+    TextEditorView(viewModel: makeTextEditorPreviewModel(), onSave: { _ in })
+        .preferredColorScheme(.dark)
 }

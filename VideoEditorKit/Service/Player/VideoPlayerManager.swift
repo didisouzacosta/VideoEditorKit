@@ -10,21 +10,23 @@ import Combine
 import AVKit
 import PhotosUI
 import SwiftUI
+import Observation
 @preconcurrency import CoreImage
 
 @MainActor
-final class VideoPlayerManager: ObservableObject {
-    @Published var currentTime: Double = .zero
-    @Published var selectedItem: PhotosPickerItem?
-    @Published var loadState: LoadState = .unknown {
+@Observable
+final class VideoPlayerManager {
+    var currentTime: Double = .zero
+    var selectedItem: PhotosPickerItem?
+    var loadState: LoadState = .unknown {
         didSet {
             guard loadState != oldValue else { return }
             handleLoadStateChange(loadState)
         }
     }
-    @Published private(set) var videoPlayer = AVPlayer()
-    @Published private(set) var audioPlayer = AVPlayer()
-    @Published private(set) var isPlaying = false
+    private(set) var videoPlayer = AVPlayer()
+    private(set) var audioPlayer = AVPlayer()
+    private(set) var isPlaying = false
 
     private var isSetAudio = false
     private var statusCancellable: AnyCancellable?

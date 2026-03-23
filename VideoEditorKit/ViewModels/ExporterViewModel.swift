@@ -9,23 +9,24 @@ import Foundation
 import Photos
 import UIKit
 import SwiftUI
+import Observation
 
 @MainActor
-final class ExporterViewModel: ObservableObject {
+@Observable
+final class ExporterViewModel {
     let video: Video
 
-    @Published var renderState: ExportState = .unknown {
+    var renderState: ExportState = .unknown {
         didSet {
             guard renderState != oldValue else { return }
             handleRenderStateChange(renderState)
         }
     }
-    @Published var showAlert = false
-    @Published var progressTimer: TimeInterval = .zero
-    @Published var selectedQuality: VideoQuality = .medium
+    var showAlert = false
+    var progressTimer: TimeInterval = .zero
+    var selectedQuality: VideoQuality = .medium
 
     private var action: ActionEnum = .save
-    private let editorHelper = VideoEditor()
     private var timer: Timer?
     
     init(video: Video){
@@ -37,7 +38,7 @@ final class ExporterViewModel: ObservableObject {
     private func renderVideo() async{
         renderState = .loading
         do{
-            let url = try await editorHelper.startRender(video: video, videoQuality: selectedQuality)
+            let url = try await VideoEditor.startRender(video: video, videoQuality: selectedQuality)
             renderState = .loaded(url)
         }catch{
             renderState = .failed(error)
@@ -107,7 +108,7 @@ final class ExporterViewModel: ObservableObject {
             }
         }
     }
-    
+
     enum ActionEnum: Int{
         case save, share
     }

@@ -7,8 +7,10 @@
 
 import SwiftUI
 import AVFoundation
+import Observation
 
-final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
+@Observable
+final class CameraManager: NSObject, @unchecked Sendable {
     
     enum Status{
         case unconfigurate
@@ -17,11 +19,11 @@ final class CameraManager: NSObject, ObservableObject, @unchecked Sendable {
         case faild
     }
     
-    @Published var error: CameraError?
-    @Published var session = AVCaptureSession()
-    @Published var finalURL: URL?
-    @Published var recordedDuration: Double = .zero
-    @Published var cameraPosition: AVCaptureDevice.Position = .front
+    var error: CameraError?
+    var session = AVCaptureSession()
+    var finalURL: URL?
+    var recordedDuration: Double = .zero
+    var cameraPosition: AVCaptureDevice.Position = .front
     
     let maxDuration: Double = 100 // sec
     private var timer: Timer?

@@ -8,7 +8,7 @@
 import Foundation
 import CoreImage
 
-final class Helpers{
+enum Helpers{
     
     
     static func createColorFilter(_ colorCorrection: ColorCorrection?) -> CIFilter?{

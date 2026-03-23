@@ -7,12 +7,14 @@
 
 import Foundation
 import AVFoundation
+import Observation
 
 @MainActor
-final class AudioRecorderManager: ObservableObject {
-    @Published private(set) var recordState: AudioRecordEnum = .empty
-    @Published private(set) var finishedAudio: Audio?
-    @Published private(set) var currentRecordTime: TimeInterval = 0
+@Observable
+final class AudioRecorderManager {
+    private(set) var recordState: AudioRecordEnum = .empty
+    private(set) var finishedAudio: Audio?
+    private(set) var currentRecordTime: TimeInterval = 0
 
     private var audioRecorder: AVAudioRecorder?
     private var timer: Timer?
@@ -82,5 +84,3 @@ final class AudioRecorderManager: ObservableObject {
         case recording, empty, error
     }
 }
-
-

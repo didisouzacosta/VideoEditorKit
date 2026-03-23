@@ -7,14 +7,13 @@
 
 import SwiftUI
 
+@MainActor
 struct ContentView: View {
     var body: some View {
         MainEditorView(project: nil, selectedVideoURl: nil)
     }
 }
 
-struct ContentView_Previews: PreviewProvider {
-    static var previews: some View {
-        ContentView()
-    }
+#Preview {
+    ContentView()
 }

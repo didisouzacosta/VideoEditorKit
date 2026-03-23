@@ -8,13 +8,14 @@
 import SwiftUI
 import PhotosUI
 
+@MainActor
 struct RootView: View {
     private struct EditorDestination: Hashable, Identifiable {
         let id = UUID()
         let url: URL
     }
 
-    @ObservedObject var rootVM: RootViewModel
+    let rootVM: RootViewModel
     @State private var item: PhotosPickerItem?
     @State private var showLoader: Bool = false
     @State private var editorDestination: EditorDestination?
@@ -81,7 +82,6 @@ struct RootView: View {
     }
 }
 
-@MainActor
 extension RootView{
     
     
@@ -156,8 +156,6 @@ extension RootView{
     }
 }
 
-struct RootView_Previews: PreviewProvider {
-    static var previews: some View {
-        RootView(rootVM: RootViewModel(mainContext: DeveloperPreview.instance.viewContext))
-    }
+#Preview {
+    RootView(rootVM: RootViewModel(mainContext: DeveloperPreview.instance.viewContext))
 }

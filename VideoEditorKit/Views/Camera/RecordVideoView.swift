@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct RecordVideoView: View {
-    @StateObject var cameraManager = CameraManager()
+    @State private var cameraManager = CameraManager()
     @Environment(\.dismiss) private var dismiss
     let onFinishRecord: (URL) -> Void
     var body: some View {
@@ -21,10 +21,9 @@ struct RecordVideoView: View {
                 Button {
                     if cameraManager.isRecording{
                         cameraManager.stopRecord()
-                    }else{
+                    } else {
                         cameraManager.startRecording()
                     }
-                    
                 } label: {
                     Circle()
                         .fill(cameraManager.isRecording ? .white : .red)
@@ -51,8 +50,6 @@ struct RecordVideoView: View {
     }
 }
 
-struct RecordVideoView_Previews: PreviewProvider {
-    static var previews: some View {
-        RecordVideoView(onFinishRecord: { _ in })
-    }
+#Preview {
+    RecordVideoView(onFinishRecord: { _ in })
 }

@@ -6,14 +6,15 @@
 //
 
 import Foundation
-import SwiftUI
+import Observation
 
 @MainActor
-final class TextEditorViewModel: ObservableObject {
-    @Published var textBoxes: [TextBox] = []
-    @Published var showEditor = false
-    @Published var currentTextBox = TextBox()
-    @Published var selectedTextBox: TextBox?
+@Observable
+final class TextEditorViewModel {
+    var textBoxes: [TextBox] = []
+    var showEditor = false
+    var currentTextBox = TextBox()
+    var selectedTextBox: TextBox?
 
     private var isEditMode = false
     

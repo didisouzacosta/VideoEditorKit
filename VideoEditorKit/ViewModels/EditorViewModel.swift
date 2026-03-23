@@ -7,25 +7,26 @@
 
 import Foundation
 import AVKit
-import SwiftUI
 import Photos
+import Observation
 
 @MainActor
-final class EditorViewModel: ObservableObject {
-    @Published var currentVideo: Video?
-    @Published var selectedTools: ToolEnum?
-    @Published var frames = VideoFrames()
-    @Published var isSelectVideo = true
+@Observable
+final class EditorViewModel {
+    var currentVideo: Video?
+    var selectedTools: ToolEnum?
+    var frames = VideoFrames()
+    var isSelectVideo = true
 
     private var projectEntity: ProjectEntity?
 
-    func setNewVideo(_ url: URL, geo: GeometryProxy){
+    func setNewVideo(_ url: URL, containerSize: CGSize){
         currentVideo = .init(url: url)
-        currentVideo?.updateThumbnails(geo)
+        currentVideo?.updateThumbnails(containerSize: containerSize)
         createProject()
     }
     
-    func setProject(_ project: ProjectEntity, geo: GeometryProxy){
+    func setProject(_ project: ProjectEntity, containerSize: CGSize){
         projectEntity = project
         
         guard let url = project.videoURL else {return}
@@ -37,7 +38,7 @@ final class EditorViewModel: ObservableObject {
         let frame = VideoFrames(scaleValue: project.frameScale, frameColor: project.wrappedColor)
         currentVideo?.videoFrames = frame
         self.frames = frame
-        currentVideo?.updateThumbnails(geo)
+        currentVideo?.updateThumbnails(containerSize: containerSize)
         currentVideo?.textBoxes = project.wrappedTextBoxes
         if let audio = project.audio?.audioModel{
             currentVideo?.audio = audio

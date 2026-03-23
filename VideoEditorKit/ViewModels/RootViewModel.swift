@@ -7,12 +7,12 @@
 
 import Foundation
 import CoreData
-import PhotosUI
-import SwiftUI
+import Observation
 
 @MainActor
-final class RootViewModel: ObservableObject {
-    @Published var projects = [ProjectEntity]()
+@Observable
+final class RootViewModel {
+    var projects = [ProjectEntity]()
 
     private let dataManager: CoreDataManager
     

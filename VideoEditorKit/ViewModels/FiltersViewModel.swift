@@ -8,12 +8,14 @@
 import SwiftUI
 import CoreImage
 import CoreImage.CIFilterBuiltins
+import Observation
 
 @MainActor
-final class FiltersViewModel: ObservableObject {
-    @Published var images = [FilteredImage]()
-    @Published var colorCorrection = ColorCorrection()
-    @Published var value = 1.0
+@Observable
+final class FiltersViewModel {
+    var images = [FilteredImage]()
+    var colorCorrection = ColorCorrection()
+    var value = 1.0
     var image: UIImage?
     
     func loadFilters(for image: UIImage){
