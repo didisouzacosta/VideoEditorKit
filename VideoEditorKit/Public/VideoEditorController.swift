@@ -47,6 +47,61 @@ final class VideoEditorController {
         resolveProjectState(using: selectedTimeRange)
     }
 
+    func updatePlaybackRate(_ playbackRate: Double) {
+        let normalizedPlaybackRate = VideoAdjustmentSettings.normalizedPlaybackRate(playbackRate)
+
+        guard project.adjustments.playbackRate != normalizedPlaybackRate else {
+            return
+        }
+
+        project.adjustments.playbackRate = normalizedPlaybackRate
+    }
+
+    func rotateVideoClockwise() {
+        project.adjustments.rotation = project.adjustments.rotation.rotatedClockwise()
+    }
+
+    func setVideoMirroring(_ isMirrored: Bool) {
+        guard project.adjustments.isMirrored != isMirrored else {
+            return
+        }
+
+        project.adjustments.isMirrored = isMirrored
+    }
+
+    func setFilterName(_ filterName: String?) {
+        let normalizedFilterName = VideoAdjustmentSettings.normalizedFilterName(filterName)
+
+        guard project.adjustments.filterName != normalizedFilterName else {
+            return
+        }
+
+        project.adjustments.filterName = normalizedFilterName
+    }
+
+    func updateColorCorrection(_ colorCorrection: VideoColorCorrection) {
+        guard project.adjustments.colorCorrection != colorCorrection else {
+            return
+        }
+
+        project.adjustments.colorCorrection = colorCorrection
+    }
+
+    func updateFrameStyle(_ frameStyle: VideoFrameStyle?) {
+        let normalizedFrameStyle = frameStyle.map {
+            VideoFrameStyle(
+                backgroundColor: $0.backgroundColor,
+                scale: $0.scale
+            )
+        }
+
+        guard project.adjustments.frameStyle != normalizedFrameStyle else {
+            return
+        }
+
+        project.adjustments.frameStyle = normalizedFrameStyle
+    }
+
     func selectCaption(_ captionID: Caption.ID?) {
         guard let captionID else {
             editorState.selectedCaptionID = nil

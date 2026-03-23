@@ -6,18 +6,21 @@ struct FrozenExportProject: @unchecked Sendable {
     nonisolated let preset: ExportPreset
     nonisolated let gravity: VideoGravity
     nonisolated let selectedTimeRange: ClosedRange<Double>
+    nonisolated let adjustments: VideoAdjustmentSettings
 
     nonisolated init(
         sourceVideoURL: URL,
         captions: [Caption],
         preset: ExportPreset,
         gravity: VideoGravity,
-        selectedTimeRange: ClosedRange<Double>
+        selectedTimeRange: ClosedRange<Double>,
+        adjustments: VideoAdjustmentSettings
     ) {
         self.sourceVideoURL = sourceVideoURL
         self.captions = captions
         self.preset = preset
         self.gravity = gravity
         self.selectedTimeRange = selectedTimeRange
+        self.adjustments = adjustments
     }
 }

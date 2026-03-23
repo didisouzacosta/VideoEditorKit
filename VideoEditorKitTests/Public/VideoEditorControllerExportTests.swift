@@ -45,7 +45,15 @@ struct VideoEditorControllerExportTests {
             project: makeProject(
                 captions: [makeCaption(text: "Original", startTime: 1, endTime: 9)],
                 preset: .instagram,
-                selectedTimeRange: 2...8
+                selectedTimeRange: 2...8,
+                adjustments: VideoAdjustmentSettings(
+                    playbackRate: 1.25,
+                    rotation: .degrees90,
+                    isMirrored: true,
+                    filterName: "CIPhotoEffectNoir",
+                    colorCorrection: .init(brightness: 0.2, contrast: -0.1, saturation: 0.3),
+                    frameStyle: VideoFrameStyle(backgroundColor: .black, scale: 0.9)
+                )
             ),
             exportEngine: ExportEngine(
                 assetLoader: TestControllerVideoAssetLoader(),
@@ -62,6 +70,12 @@ struct VideoEditorControllerExportTests {
         controller.project.preset = .tiktok
         controller.project.selectedTimeRange = 0...3
         controller.project.captions = [makeCaption(text: "Mutated", startTime: 0, endTime: 2)]
+        controller.project.adjustments = VideoAdjustmentSettings(
+            playbackRate: 0.5,
+            rotation: .degrees180,
+            isMirrored: false,
+            filterName: "CISepiaTone"
+        )
 
         await gate.open()
         try await exportTask.value
@@ -70,6 +84,10 @@ struct VideoEditorControllerExportTests {
         #expect(request.snapshot.preset == .instagram)
         #expect(request.snapshot.selectedTimeRange == 2...8)
         #expect(request.snapshot.captions.map(\.text) == ["Original"])
+        #expect(request.snapshot.adjustments.playbackRate == 1.25)
+        #expect(request.snapshot.adjustments.rotation == .degrees90)
+        #expect(request.snapshot.adjustments.isMirrored)
+        #expect(request.snapshot.adjustments.filterName == "CIPhotoEffectNoir")
     }
 
     @Test func performExportRejectsConcurrentRequestsWithoutOverwritingActiveState() async throws {
@@ -108,14 +126,16 @@ private extension VideoEditorControllerExportTests {
         captions: [Caption] = [],
         preset: ExportPreset = .original,
         gravity: VideoGravity = .fit,
-        selectedTimeRange: ClosedRange<Double> = 0...10
+        selectedTimeRange: ClosedRange<Double> = 0...10,
+        adjustments: VideoAdjustmentSettings = .init()
     ) -> VideoProject {
         VideoProject(
             sourceVideoURL: URL(fileURLWithPath: "/tmp/source-video.mov"),
             captions: captions,
             preset: preset,
             gravity: gravity,
-            selectedTimeRange: selectedTimeRange
+            selectedTimeRange: selectedTimeRange,
+            adjustments: adjustments
         )
     }
 

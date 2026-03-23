@@ -58,7 +58,8 @@ final class ExportEngine {
             ),
             preset: project.preset,
             gravity: project.gravity,
-            selectedTimeRange: timeRange.selectedRange
+            selectedTimeRange: timeRange.selectedRange,
+            adjustments: project.adjustments
         )
         let layout = LayoutEngine.computeLayout(
             videoSize: asset.naturalSize,

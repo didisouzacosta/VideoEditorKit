@@ -101,6 +101,43 @@ struct VideoEditorControllerEditingTests {
         #expect(frame.minY >= 200)
         #expect(frame.maxY <= 1400)
     }
+
+    @Test func editingAdjustmentsUpdateProjectWithNormalizedValues() throws {
+        let controller = VideoEditorController(
+            project: makeProject()
+        )
+
+        controller.updatePlaybackRate(-3)
+        controller.rotateVideoClockwise()
+        controller.setVideoMirroring(true)
+        controller.setFilterName("  CISepiaTone ")
+        controller.updateColorCorrection(
+            VideoColorCorrection(
+                brightness: 1.5,
+                contrast: -1.5,
+                saturation: 0.25
+            )
+        )
+        controller.updateFrameStyle(
+            VideoFrameStyle(
+                backgroundColor: .red,
+                scale: 0.3
+            )
+        )
+
+        #expect(controller.project.adjustments.playbackRate == 1)
+        #expect(controller.project.adjustments.rotation == .degrees90)
+        #expect(controller.project.adjustments.isMirrored)
+        #expect(controller.project.adjustments.filterName == "CISepiaTone")
+        #expect(controller.project.adjustments.colorCorrection == VideoColorCorrection(
+            brightness: 1,
+            contrast: -1,
+            saturation: 0.25
+        ))
+
+        let frameStyle = try #require(controller.project.adjustments.frameStyle)
+        #expect(frameStyle.scale == 0.5)
+    }
 }
 
 private extension VideoEditorControllerEditingTests {

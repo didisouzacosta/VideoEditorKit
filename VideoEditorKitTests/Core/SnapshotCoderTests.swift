@@ -17,6 +17,19 @@ struct SnapshotCoderTests {
         #expect(snapshot.preset == .tiktok)
         #expect(snapshot.gravity == .fill)
         #expect(snapshot.selectedTimeRange == 3...18)
+        #expect(snapshot.adjustments.playbackRate == 1.5)
+        #expect(snapshot.adjustments.rotation == .degrees90)
+        #expect(snapshot.adjustments.isMirrored)
+        #expect(snapshot.adjustments.filterName == "CISepiaTone")
+        #expect(snapshot.adjustments.colorCorrection == .init(
+            brightness: 0.1,
+            contrast: -0.2,
+            saturation: 0.35
+        ))
+        #expect(snapshot.adjustments.frameStyle == .init(
+            backgroundColorHex: "0000FFFF",
+            scale: 0.82
+        ))
         #expect(snapshot.captions.count == 2)
 
         let firstCaption = try #require(snapshot.captions.first)
@@ -42,6 +55,15 @@ struct SnapshotCoderTests {
         #expect(project.preset == .instagram)
         #expect(project.gravity == .fit)
         #expect(project.selectedTimeRange == 1...9)
+        #expect(project.adjustments.playbackRate == 0.75)
+        #expect(project.adjustments.rotation == .degrees270)
+        #expect(project.adjustments.isMirrored)
+        #expect(project.adjustments.filterName == "CIPhotoEffectNoir")
+        #expect(project.adjustments.colorCorrection == VideoColorCorrection(
+            brightness: 0.2,
+            contrast: 0.1,
+            saturation: -0.25
+        ))
         #expect(project.captions.count == 2)
         #expect(project.captions[0].placementMode == .freeform)
         #expect(project.captions[1].placementMode == .preset(.bottom))
@@ -50,6 +72,8 @@ struct SnapshotCoderTests {
         #expect(project.captions[0].style.fontSize == 16)
         assertColor(project.captions[0].style.textColor, equals: .white)
         assertColor(project.captions[0].style.backgroundColor, equals: .black)
+        assertColor(project.adjustments.frameStyle?.backgroundColor, equals: .blue)
+        #expect(project.adjustments.frameStyle?.scale == 0.7)
     }
 
     @Test func encodeAndDecodeProjectRoundTripsThroughData() throws {
@@ -63,6 +87,7 @@ struct SnapshotCoderTests {
         #expect(restoredProject.preset == project.preset)
         #expect(restoredProject.gravity == project.gravity)
         #expect(restoredProject.selectedTimeRange == project.selectedTimeRange)
+        #expect(restoredProject.adjustments == project.adjustments)
         #expect(restoredProject.captions.count == project.captions.count)
         #expect(restoredProject.captions[0].placementMode == project.captions[0].placementMode)
         #expect(restoredProject.captions[1].placementMode == project.captions[1].placementMode)
@@ -131,7 +156,19 @@ struct SnapshotCoderTests {
               "captions": [],
               "preset": "instagram",
               "gravity": "fit",
-              "selectedTimeRange": [9, 1]
+              "selectedTimeRange": [9, 1],
+              "adjustments": {
+                "playbackRate": 1,
+                "rotation": "degrees0",
+                "isMirrored": false,
+                "filterName": null,
+                "colorCorrection": {
+                  "brightness": 0,
+                  "contrast": 0,
+                  "saturation": 0
+                },
+                "frameStyle": null
+              }
             }
             """.utf8
         )
@@ -139,6 +176,25 @@ struct SnapshotCoderTests {
         #expect(throws: VideoEditorError.snapshotDecodingFailed) {
             try coder.decodeProject(from: data)
         }
+    }
+
+    @Test func decodeProjectDefaultsMissingAdjustmentsToNeutralValues() throws {
+        let coder = SnapshotCoder()
+        let data = Data(
+            """
+            {
+              "sourceVideoPath": "/tmp/source-video.mov",
+              "captions": [],
+              "preset": "instagram",
+              "gravity": "fit",
+              "selectedTimeRange": [1, 9]
+            }
+            """.utf8
+        )
+
+        let project = try coder.decodeProject(from: data)
+
+        #expect(project.adjustments == .init())
     }
 }
 
@@ -182,7 +238,22 @@ private extension SnapshotCoderTests {
             ],
             preset: .tiktok,
             gravity: .fill,
-            selectedTimeRange: 3...18
+            selectedTimeRange: 3...18,
+            adjustments: VideoAdjustmentSettings(
+                playbackRate: 1.5,
+                rotation: .degrees90,
+                isMirrored: true,
+                filterName: "CISepiaTone",
+                colorCorrection: VideoColorCorrection(
+                    brightness: 0.1,
+                    contrast: -0.2,
+                    saturation: 0.35
+                ),
+                frameStyle: VideoFrameStyle(
+                    backgroundColor: .blue,
+                    scale: 0.82
+                )
+            )
         )
     }
 
@@ -231,7 +302,22 @@ private extension SnapshotCoderTests {
             ],
             preset: .instagram,
             gravity: .fit,
-            selectedTimeRange: 1...9
+            selectedTimeRange: 1...9,
+            adjustments: VideoAdjustmentSettingsSnapshot(
+                playbackRate: 0.75,
+                rotation: .degrees270,
+                isMirrored: true,
+                filterName: "CIPhotoEffectNoir",
+                colorCorrection: .init(
+                    brightness: 0.2,
+                    contrast: 0.1,
+                    saturation: -0.25
+                ),
+                frameStyle: .init(
+                    backgroundColorHex: "0000FFFF",
+                    scale: 0.7
+                )
+            )
         )
     }
 

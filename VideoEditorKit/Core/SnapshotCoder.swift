@@ -33,7 +33,8 @@ struct SnapshotCoder: VideoProjectSnapshotCoding {
             captions: captionSnapshots,
             preset: ExportPresetSnapshot(project.preset),
             gravity: VideoGravitySnapshot(project.gravity),
-            selectedTimeRange: project.selectedTimeRange
+            selectedTimeRange: project.selectedTimeRange,
+            adjustments: try makeAdjustmentSnapshot(from: project.adjustments)
         )
     }
 
@@ -48,7 +49,8 @@ struct SnapshotCoder: VideoProjectSnapshotCoding {
                 captions: captions,
                 preset: snapshot.preset.runtimeValue,
                 gravity: snapshot.gravity.runtimeValue,
-                selectedTimeRange: snapshot.selectedTimeRange
+                selectedTimeRange: snapshot.selectedTimeRange,
+                adjustments: try makeRuntimeAdjustments(from: snapshot.adjustments)
             )
         } catch let error as VideoEditorError {
             throw error
@@ -131,12 +133,62 @@ private extension SnapshotCoder {
         )
     }
 
+    func makeAdjustmentSnapshot(
+        from adjustments: VideoAdjustmentSettings
+    ) throws -> VideoAdjustmentSettingsSnapshot {
+        try validatePlaybackRate(adjustments.playbackRate, error: .snapshotEncodingFailed)
+        try validateColorCorrection(adjustments.colorCorrection, error: .snapshotEncodingFailed)
+
+        return VideoAdjustmentSettingsSnapshot(
+            playbackRate: adjustments.playbackRate,
+            rotation: adjustments.rotation,
+            isMirrored: adjustments.isMirrored,
+            filterName: VideoAdjustmentSettings.normalizedFilterName(adjustments.filterName),
+            colorCorrection: adjustments.colorCorrection,
+            frameStyle: try adjustments.frameStyle.map(makeFrameStyleSnapshot(from:))
+        )
+    }
+
+    func makeRuntimeAdjustments(
+        from snapshot: VideoAdjustmentSettingsSnapshot
+    ) throws -> VideoAdjustmentSettings {
+        try validateAdjustmentSnapshot(snapshot)
+
+        return VideoAdjustmentSettings(
+            playbackRate: snapshot.playbackRate,
+            rotation: snapshot.rotation,
+            isMirrored: snapshot.isMirrored,
+            filterName: snapshot.filterName,
+            colorCorrection: snapshot.colorCorrection,
+            frameStyle: try snapshot.frameStyle.map(makeRuntimeFrameStyle(from:))
+        )
+    }
+
+    func makeFrameStyleSnapshot(
+        from frameStyle: VideoFrameStyle
+    ) throws -> VideoFrameStyleSnapshot {
+        VideoFrameStyleSnapshot(
+            backgroundColorHex: try hexString(from: frameStyle.backgroundColor),
+            scale: frameStyle.scale
+        )
+    }
+
+    func makeRuntimeFrameStyle(
+        from snapshot: VideoFrameStyleSnapshot
+    ) throws -> VideoFrameStyle {
+        VideoFrameStyle(
+            backgroundColor: try color(from: snapshot.backgroundColorHex),
+            scale: snapshot.scale
+        )
+    }
+
     func validateSnapshot(_ snapshot: VideoProjectSnapshot) throws {
         guard snapshot.sourceVideoPath.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false else {
             throw VideoEditorError.snapshotDecodingFailed
         }
 
         try validateSnapshotRange(snapshot.selectedTimeRange)
+        try validateAdjustmentSnapshot(snapshot.adjustments)
 
         for caption in snapshot.captions {
             try validateSnapshotCaption(caption)
@@ -188,6 +240,17 @@ private extension SnapshotCoder {
         _ = try caption.style.backgroundColorHex.map(color(from:))
     }
 
+    func validateAdjustmentSnapshot(
+        _ adjustments: VideoAdjustmentSettingsSnapshot
+    ) throws {
+        try validatePlaybackRate(adjustments.playbackRate, error: .snapshotDecodingFailed)
+        try validateColorCorrection(adjustments.colorCorrection, error: .snapshotDecodingFailed)
+
+        if let frameStyle = adjustments.frameStyle {
+            try validateFrameStyleSnapshot(frameStyle)
+        }
+    }
+
     func validateRuntimeRange(_ range: ClosedRange<Double>) throws {
         guard range.lowerBound.isFinite, range.upperBound.isFinite, range.lowerBound <= range.upperBound else {
             throw VideoEditorError.snapshotEncodingFailed
@@ -216,6 +279,42 @@ private extension SnapshotCoder {
         guard value.isFinite, value >= 0 else {
             throw encodingError
         }
+    }
+
+    func validatePlaybackRate(
+        _ value: Double,
+        error: VideoEditorError
+    ) throws {
+        guard value.isFinite, (0.25...4).contains(value) else {
+            throw error
+        }
+    }
+
+    func validateColorCorrection(
+        _ correction: VideoColorCorrection,
+        error: VideoEditorError
+    ) throws {
+        let values = [
+            correction.brightness,
+            correction.contrast,
+            correction.saturation
+        ]
+
+        for value in values {
+            guard value.isFinite, (-1...1).contains(value) else {
+                throw error
+            }
+        }
+    }
+
+    func validateFrameStyleSnapshot(
+        _ frameStyle: VideoFrameStyleSnapshot
+    ) throws {
+        guard frameStyle.scale.isFinite, (0.5...1).contains(frameStyle.scale) else {
+            throw VideoEditorError.snapshotDecodingFailed
+        }
+
+        _ = try color(from: frameStyle.backgroundColorHex)
     }
 
     func hexString(from color: UIColor) throws -> String {

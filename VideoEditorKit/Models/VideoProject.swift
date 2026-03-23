@@ -6,4 +6,5 @@ struct VideoProject {
     var preset: ExportPreset
     var gravity: VideoGravity
     var selectedTimeRange: ClosedRange<Double>
+    var adjustments: VideoAdjustmentSettings = .init()
 }
