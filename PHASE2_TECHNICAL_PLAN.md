@@ -112,18 +112,15 @@ Regras:
 Há uma tensão entre duas definições atuais:
 
 - o projeto define coordenadas normalizadas no frame final renderizado
-- a interface atual de `CaptionPositionResolver.resolve` recebe apenas `caption` e `safeFrame`
+- a interface inicial de `CaptionPositionResolver.resolve` recebia apenas `caption` e `safeFrame`
 
-Assunção operacional da Fase 2:
-
-- o resolvedor continuará com a interface atual do plano
-- o `safeFrame` será tratado como pertencente ao mesmo espaço final em que a posição da legenda é interpretada
-
-Se a implementação mostrar ambiguidade prática, o ajuste preferível é:
+Decisão aplicada na implementação da Fase 2:
 
 - expandir a API do resolvedor para receber também o `renderSize`
+- manter o `safeFrame` no espaço absoluto do frame final renderizado
+- converter posição normalizada `0...1` em ponto absoluto antes do clamp
 
-Essa mudança só deve ser feita se os testes demonstrarem que o contrato atual é insuficiente.
+Essa mudança elimina ambiguidade entre preview e export e preserva a regra central do projeto sobre coordenadas normalizadas.
 
 ## Estrutura proposta
 
@@ -146,6 +143,46 @@ VideoEditorKitTests/
 3. implementar o cálculo mínimo para fazer os testes falharem corretamente
 4. ajustar a implementação até verde
 5. revisar edge cases de clamp e degeneração de frame
+
+## Contrato implementado
+
+```swift
+struct CaptionSafeFrameResolver {
+    static func resolve(
+        renderSize: CGSize,
+        safeArea: CaptionSafeArea
+    ) -> CGRect
+}
+
+struct CaptionPositionResolver {
+    static func resolve(
+        caption: Caption,
+        renderSize: CGSize,
+        safeFrame: CGRect
+    ) -> CGPoint
+
+    static func presetPoint(
+        _ preset: CaptionPlacementPreset,
+        in safeFrame: CGRect
+    ) -> CGPoint
+
+    static func normalizedPosition(
+        for point: CGPoint,
+        in renderSize: CGSize
+    ) -> CGPoint
+}
+```
+
+Helper adicional usado para o fluxo de drag:
+
+```swift
+extension Caption {
+    func beginningFreeformDrag(
+        renderSize: CGSize,
+        safeFrame: CGRect
+    ) -> Caption
+}
+```
 
 ## Critérios de aceite
 

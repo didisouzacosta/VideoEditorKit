@@ -891,6 +891,7 @@ Resolver o frame seguro para legendas com base em:
     struct CaptionPositionResolver {
         static func resolve(
             caption: Caption,
+            renderSize: CGSize,
             safeFrame: CGRect
         ) -> CGPoint
 
@@ -898,12 +899,18 @@ Resolver o frame seguro para legendas com base em:
             _ preset: CaptionPlacementPreset,
             in safeFrame: CGRect
         ) -> CGPoint
+
+        static func normalizedPosition(
+            for point: CGPoint,
+            in renderSize: CGSize
+        ) -> CGPoint
     }
 
 ### Regras
 
 - `top`, `middle`, `bottom` usam alinhamento horizontal central
 - `freeform` mantém posição normalizada
+- `resolve` converte posição normalizada em ponto absoluto usando `renderSize`
 - o centro da legenda deve ficar dentro do safe frame
 - iniciar drag em legenda preset converte para `.freeform`
 
