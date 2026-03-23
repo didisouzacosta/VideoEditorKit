@@ -30,17 +30,33 @@ final class VideoEditorController {
     }
 
     func selectPreset(_ preset: ExportPreset) {
+        guard project.preset != preset else {
+            return
+        }
+
         project.preset = preset
         resolveProjectState(using: project.selectedTimeRange)
     }
 
     func updateSelectedTimeRange(_ selectedTimeRange: ClosedRange<Double>) {
+        guard project.selectedTimeRange != selectedTimeRange else {
+            return
+        }
+
         resolveProjectState(using: selectedTimeRange)
     }
 
     func seek(to time: Double) {
         playerEngine.seek(to: time, in: project.selectedTimeRange)
         syncEditorStateFromPlayer()
+    }
+
+    func togglePlayback() {
+        if editorState.isPlaying {
+            pause()
+        } else {
+            play()
+        }
     }
 
     func play() {
