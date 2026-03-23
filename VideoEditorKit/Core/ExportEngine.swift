@@ -75,7 +75,7 @@ final class ExportEngine {
             destinationURL: destinationURL
         )
 
-        await progressHandler?(0)
+        progressHandler?(0)
 
         return try await renderer.export(
             request: request,
