@@ -27,12 +27,14 @@ struct AVFoundationExportRenderer: VideoExportRendering {
             throw VideoEditorError.exportFailed(reason: Self.unableToCreateExportSession)
         }
 
-        exportSession.outputURL = request.destinationURL
-        exportSession.outputFileType = .mov
         exportSession.shouldOptimizeForNetworkUse = false
         exportSession.videoComposition = preparedComposition.videoComposition
 
-        try await export(with: exportSession)
+        try await export(
+            with: exportSession,
+            destinationURL: request.destinationURL,
+            fileType: .mov
+        )
         await progressHandler?(1)
 
         return request.destinationURL
@@ -48,11 +50,11 @@ private extension AVFoundationExportRenderer {
 
     struct PreparedComposition {
         nonisolated(unsafe) let composition: AVMutableComposition
-        nonisolated let videoComposition: AVMutableVideoComposition
+        nonisolated let videoComposition: AVVideoComposition
 
         nonisolated init(
             composition: AVMutableComposition,
-            videoComposition: AVMutableVideoComposition
+            videoComposition: AVVideoComposition
         ) {
             self.composition = composition
             self.videoComposition = videoComposition
@@ -95,10 +97,10 @@ private extension AVFoundationExportRenderer {
             }
         }
 
-        let videoComposition = AVMutableVideoComposition()
-        videoComposition.renderSize = request.layout.renderSize
-        videoComposition.frameDuration = frameDuration(for: request.asset.nominalFrameRate)
-        videoComposition.instructions = [
+        var videoCompositionConfiguration = AVVideoComposition.Configuration()
+        videoCompositionConfiguration.renderSize = request.layout.renderSize
+        videoCompositionConfiguration.frameDuration = frameDuration(for: request.asset.nominalFrameRate)
+        videoCompositionConfiguration.instructions = [
             makeInstruction(
                 for: compositionVideoTrack,
                 transform: request.layout.transform,
@@ -107,8 +109,10 @@ private extension AVFoundationExportRenderer {
         ]
 
         if request.snapshot.captions.isEmpty == false {
-            videoComposition.animationTool = makeAnimationTool(from: request)
+            videoCompositionConfiguration.animationTool = makeAnimationTool(from: request)
         }
+
+        let videoComposition = AVVideoComposition(configuration: videoCompositionConfiguration)
 
         return PreparedComposition(
             composition: composition,
@@ -120,15 +124,18 @@ private extension AVFoundationExportRenderer {
         for track: AVCompositionTrack,
         transform: CGAffineTransform,
         duration: CMTime
-    ) -> AVMutableVideoCompositionInstruction {
-        let instruction = AVMutableVideoCompositionInstruction()
-        instruction.timeRange = CMTimeRange(start: .zero, duration: duration)
+    ) -> AVVideoCompositionInstruction {
+        var layerInstructionConfiguration = AVVideoCompositionLayerInstruction.Configuration(assetTrack: track)
+        layerInstructionConfiguration.setTransform(transform, at: .zero)
 
-        let layerInstruction = AVMutableVideoCompositionLayerInstruction(assetTrack: track)
-        layerInstruction.setTransform(transform, at: .zero)
-        instruction.layerInstructions = [layerInstruction]
-
-        return instruction
+        return AVVideoCompositionInstruction(
+            configuration: AVVideoCompositionInstruction.Configuration(
+                layerInstructions: [
+                    AVVideoCompositionLayerInstruction(configuration: layerInstructionConfiguration)
+                ],
+                timeRange: CMTimeRange(start: .zero, duration: duration)
+            )
+        )
     }
 
     nonisolated func makeAnimationTool(from request: ExportRenderRequest) -> AVVideoCompositionCoreAnimationTool {
@@ -159,8 +166,10 @@ private extension AVFoundationExportRenderer {
         }
 
         return AVVideoCompositionCoreAnimationTool(
-            postProcessingAsVideoLayer: videoLayer,
-            in: parentLayer
+            configuration: .init(
+                postProcessingAsVideoLayer: videoLayer,
+                containingLayer: parentLayer
+            )
         )
     }
 
@@ -304,30 +313,17 @@ private extension AVFoundationExportRenderer {
         return CMTimeRange(start: start, duration: duration)
     }
 
-    nonisolated func export(with session: AVAssetExportSession) async throws {
-        try await withCheckedThrowingContinuation { continuation in
-            session.exportAsynchronously {
-                switch session.status {
-                case .completed:
-                    continuation.resume()
-                case .cancelled:
-                    continuation.resume(
-                        throwing: VideoEditorError.exportFailed(reason: Self.exportCancelled)
-                    )
-                case .failed:
-                    continuation.resume(
-                        throwing: VideoEditorError.exportFailed(
-                            reason: session.error?.localizedDescription ?? Self.exportFailed
-                        )
-                    )
-                default:
-                    continuation.resume(
-                        throwing: VideoEditorError.exportFailed(
-                            reason: session.error?.localizedDescription ?? Self.exportFailed
-                        )
-                    )
-                }
-            }
+    nonisolated func export(
+        with session: AVAssetExportSession,
+        destinationURL: URL,
+        fileType: AVFileType
+    ) async throws {
+        do {
+            try await session.export(to: destinationURL, as: fileType)
+        } catch is CancellationError {
+            throw VideoEditorError.exportFailed(reason: Self.exportCancelled)
+        } catch {
+            throw VideoEditorError.exportFailed(reason: error.localizedDescription)
         }
     }
 }
