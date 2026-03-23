@@ -61,3 +61,11 @@ private extension PresetToolbarButton {
         isSelected ? .white : Color.white.opacity(0.72)
     }
 }
+
+#Preview {
+    ZStack {
+        Color.black.ignoresSafeArea()
+        PresetToolbarView(selectedPreset: .instagram) { _ in }
+            .padding()
+    }
+}

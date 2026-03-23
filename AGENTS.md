@@ -27,6 +27,7 @@ Biblioteca modular iOS (SwiftUI + Swift 6) para edição de vídeo no estilo do 
 - **Nunca** usar `ObservableObject` ou `@Published` como padrão — apenas em caso excepcional documentado.
 - Structs para modelos de valor que não precisam de observação direta.
 - Separação clara: modelos de valor / estado observável / engines puras.
+- Toda view SwiftUI criada ou alterada deve incluir um `#Preview` funcional com dados de exemplo adequados ao estado esperado da interface.
 
 ### Concorrência (Swift 6)
 - UI e estado de edição no `@MainActor`.
