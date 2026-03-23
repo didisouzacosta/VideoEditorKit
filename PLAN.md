@@ -238,6 +238,7 @@ As skills devem ser tratadas como referência obrigatória especialmente em:
      │    ├── VideoEditorView
      │    ├── PresetToolbarView
      │    ├── TimelineView
+     │    ├── TimelineRangeSelectorView
      │    ├── CaptionOverlayView
      │    └── CaptionActionButtonView
      │
@@ -260,6 +261,7 @@ A UX deve seguir o editor atual da Apple:
 - dark mode como padrão visual
 - toolbar simples
 - timeline horizontal inferior
+- seletor de range com janela destacada sobre thumbnails
 - feedback imediato ao alterar preset
 - ícones SF Symbols quando necessário
 - microanimações suaves e discretas
@@ -282,7 +284,28 @@ Trocar preset deve atualizar imediatamente:
 - selected time range
 - legendas visíveis e exportáveis
 
-## 5.3 Posição da legenda
+## 5.3 Timeline range selector
+
+O componente principal da timeline deve seguir o comportamento visual do seletor de range mostrado na referência:
+
+- a faixa horizontal mostra thumbnails do vídeo inteiro
+- existe uma janela de seleção destacada representando o `selectedTimeRange`
+- a área fora da seleção continua visível, porém escurecida
+- a seleção possui duas alças laterais independentes para ajustar início e fim
+- o playhead/scrub é um elemento separado visualmente da seleção
+- a timeline deve exibir os tempos de início e fim do range selecionado
+
+Regras obrigatórias:
+
+- a timeline pode mostrar o vídeo inteiro, mesmo quando apenas parte dele é editável
+- `selectedTimeRange` é a fonte de verdade da janela destacada
+- `currentTime` é independente da janela, mas toda navegação deve ser clampada ao `selectedTimeRange`
+- trocar preset deve reduzir a seleção quando necessário, sem expandi-la automaticamente ao voltar para `original`
+- arrastar a alça esquerda altera apenas o `lowerBound`
+- arrastar a alça direita altera apenas o `upperBound`
+- o trecho fora do range continua legível para contexto, mas não interativo quando estiver fora do `validRange`
+
+## 5.4 Posição da legenda
 
 O usuário deve poder escolher entre:
 
@@ -704,6 +727,8 @@ Sugestão de modelagem:
 - expor current time
 - controlar play, pause e seek
 - ser a fonte de verdade do tempo
+- publicar estado suficiente para timeline e range selector
+- reagir a mudanças de `selectedTimeRange` sem deixar `currentTime` inválido
 
     @MainActor
     @Observable
@@ -717,6 +742,66 @@ Sugestão de modelagem:
 
 - `currentTime` sempre deve ser clampado no `selectedTimeRange`
 - toda UI temporal depende do tempo do player
+- `PlayerEngine` não decide o range; ele consome `selectedTimeRange` já resolvido
+- o player é a única fonte de verdade do playhead
+- timeline e preview apenas refletem o estado publicado pelo player
+
+### Contrato técnico com timeline
+
+`TimelineView` e `TimelineRangeSelectorView` devem consumir do `PlayerEngine` pelo menos:
+
+- `currentTime`
+- `duration`
+- `isPlaying`
+
+E devem consumir de `TimeRangeEngine`/estado do projeto:
+
+- `validRange`
+- `selectedTimeRange`
+
+Operações esperadas do `PlayerEngine`:
+
+    @MainActor
+    @Observable
+    final class PlayerEngine {
+        var currentTime: Double
+        var duration: Double
+        var isPlaying: Bool
+
+        func load(asset: AVAsset) async throws
+        func play()
+        func pause()
+        func seek(to time: Double, in selectedTimeRange: ClosedRange<Double>)
+        func handleSelectedTimeRangeChange(_ selectedTimeRange: ClosedRange<Double>)
+    }
+
+Regras obrigatórias da integração:
+
+- `seek(to:in:)` sempre faz clamp no `selectedTimeRange`
+- ao mudar `selectedTimeRange`, `handleSelectedTimeRangeChange` deve clampar `currentTime`
+- `play()` nunca avança `currentTime` para fora do `selectedTimeRange`
+- se playback atingir `selectedTimeRange.upperBound`, deve pausar ou estacionar no fim do range
+
+### Contrato do range selector com PlayerEngine
+
+O `TimelineRangeSelectorView`:
+
+- nunca altera `currentTime` diretamente
+- altera apenas `selectedTimeRange`
+- pode solicitar clamp do playhead indiretamente após mudança de range
+
+O `TimelineView`:
+
+- desenha o playhead com base em `player.currentTime`
+- desenha a janela de seleção com base em `selectedTimeRange`
+- desenha regiões escurecidas com base em `validRange`
+
+Separação obrigatória:
+
+- `selectedTimeRange` representa a janela destacada
+- `currentTime` representa a posição do playhead
+- mover o playhead não altera o range
+- mover as alças do range não deve redefinir o playhead, exceto quando o clamp for necessário
 
 ## 9.2 TimeRangeEngine
 
@@ -963,9 +1048,32 @@ Exemplo:
 - trecho válido: normal
 - trecho inválido ou excedente: escurecido
 
+O componente visual da timeline deve ter:
+
+- strip contínuo de thumbnails do vídeo inteiro
+- janela de seleção destacada para o `selectedTimeRange`
+- alça esquerda para ajustar início
+- alça direita para ajustar fim
+- labels de tempo do range selecionado
+- playhead independente da janela de seleção
+
+Regras adicionais:
+
+- o range selecionado continua visível mesmo enquanto o usuário move o playhead
+- o playhead pode se mover dentro da janela sem alterar o range
+- arrastar as alças não move o playhead automaticamente, salvo necessidade de clamp
+- o trecho fora da seleção deve fornecer contexto visual, sem parecer removido da timeline
+
 ## 10.4 Clamp obrigatório
 
 Toda tentativa de seek por scrub deve ser clampada ao `selectedTimeRange`.
+
+Isso inclui:
+
+- drag do playhead na timeline
+- taps na faixa de thumbnails
+- seeks programáticos acionados pela UI
+- continuação do playback após troca de preset ou mudança de range
 
 ## 10.5 Selected time range
 
@@ -976,6 +1084,9 @@ Toda tentativa de seek por scrub deve ser clampada ao `selectedTimeRange`.
 - deve caber em `validRange`
 - ao trocar preset, pode ser reduzido
 - ao voltar para `original`, não deve expandir automaticamente; preserva a intenção do usuário
+- representa exatamente a janela destacada no seletor de range
+- deve ser ajustado por duas alças independentes na timeline
+- deve continuar visível em contraste com o restante do strip de thumbnails
 
 ---
 
@@ -1092,6 +1203,8 @@ Exemplo:
 
 - `validRange = 0...60`
 - timeline mostra excedente escurecido
+- timeline mantém o vídeo inteiro visível para contexto
+- seletor de range destaca apenas o trecho exportável/editável
 - scrub fora do range é bloqueado
 - export usa apenas o range permitido
 
@@ -1433,10 +1546,40 @@ Nenhuma fase deve começar sem esse pré-requisito atendido.
 
 - testes unitários de `PlayerEngine` nas regras que puderem ser isoladas
 - testes unitários de validações relacionadas ao tempo atual e clamp
+- testes unitários do contrato entre `PlayerEngine` e `selectedTimeRange`
+- testes unitários do comportamento do playhead ao tocar os limites do range
 
 ### Implementação
 
 - `PlayerEngine`
+
+### Escopo detalhado
+
+Implementar o contrato temporal que permitirá à timeline operar sem lógica própria de tempo:
+
+- carregamento de duração real do asset
+- publicação de `currentTime`, `duration` e `isPlaying`
+- `seek` com clamp obrigatório no `selectedTimeRange`
+- reação a troca de preset e mudança de range
+- parada/clamp ao atingir o fim do range selecionado
+
+### Casos obrigatórios de teste
+
+- `seek` abaixo do range vai para `lowerBound`
+- `seek` acima do range vai para `upperBound`
+- `seek` dentro do range preserva o valor
+- ao reduzir `selectedTimeRange`, `currentTime` é clampado imediatamente
+- ao voltar para `original`, `currentTime` permanece válido sem expansão automática do range
+- playback não ultrapassa `selectedTimeRange.upperBound`
+- timeline pode desenhar o playhead apenas lendo o estado publicado pelo player
+
+### Resultado esperado da fase
+
+Ao final da Fase 5, deve existir um contrato estável para a UI:
+
+- `PlayerEngine` controla o playhead
+- `TimeRangeEngine` controla os limites
+- a Fase 9 pode implementar `TimelineView` sem reintroduzir regras temporais em SwiftUI
 
 ## Fase 6
 
@@ -1481,13 +1624,101 @@ Nenhuma fase deve começar sem esse pré-requisito atendido.
 
 - complementar cobertura de regressão
 - adicionar testes unitários para bugs encontrados durante integração da UI
+- adicionar testes unitários de mapeamento entre coordenadas da timeline e tempo/range
+- adicionar testes unitários de interação fina do `TimelineRangeSelectorView` em modelos/helpers puros
 
 ### Implementação
 
 - `VideoEditorView`
 - `PresetToolbarView`
 - `TimelineView`
+- `TimelineRangeSelectorView`
 - `CaptionOverlayView`
+
+### Escopo detalhado de timeline
+
+`TimelineView` deve ser a composição visual de três responsabilidades distintas:
+
+- strip de thumbnails do vídeo inteiro
+- playhead baseado em `PlayerEngine.currentTime`
+- janela de seleção baseada em `selectedTimeRange`
+
+`TimelineRangeSelectorView` deve ser o componente responsável por:
+
+- desenhar a seleção destacada
+- desenhar as duas alças laterais
+- escurecer o trecho fora da seleção
+- transformar gesto horizontal em atualização de `lowerBound` ou `upperBound`
+- respeitar `validRange` e as restrições do preset
+
+### Contrato técnico de `TimelineView`
+
+Entradas mínimas:
+
+    struct TimelineView: View {
+        let thumbnails: [TimelineThumbnail]
+        let duration: Double
+        let currentTime: Double
+        let validRange: ClosedRange<Double>
+        let selectedTimeRange: ClosedRange<Double>
+        let onScrub: (Double) -> Void
+        let onSelectedRangeChange: (ClosedRange<Double>) -> Void
+    }
+
+Regras:
+
+- thumbnails representam o vídeo inteiro, não apenas o range
+- `currentTime` é renderizado como playhead independente
+- `selectedTimeRange` é renderizado como janela destacada
+- regiões fora de `selectedTimeRange` são escurecidas, mas continuam visíveis
+- regiões fora de `validRange` são não interativas
+
+### Contrato técnico de `TimelineRangeSelectorView`
+
+Entradas mínimas:
+
+    struct TimelineRangeSelectorView: View {
+        let duration: Double
+        let validRange: ClosedRange<Double>
+        let selectedTimeRange: ClosedRange<Double>
+        let minimumSelectionDuration: Double
+        let maximumSelectionDuration: Double?
+        let onChange: (ClosedRange<Double>) -> Void
+    }
+
+Regras:
+
+- alça esquerda altera somente `lowerBound`
+- alça direita altera somente `upperBound`
+- o range nunca sai de `validRange`
+- o range nunca colapsa abaixo da duração mínima permitida
+- se existir duração máxima de seleção, ela deve ser respeitada durante o drag
+- o componente não controla playback
+- o componente não controla thumbnails
+- o componente não recalcula regras de preset por conta própria
+
+### Helpers puros recomendados
+
+Para manter a UI fina, a Fase 9 deve introduzir helpers testáveis, por exemplo:
+
+- `TimelineGeometryMapper`
+- `TimelineRangeSelectionEngine`
+
+Responsabilidades desses helpers:
+
+- converter `x` em tempo
+- converter tempo em `x`
+- calcular frames do playhead e da janela de seleção
+- aplicar clamp de drag antes de enviar o novo range à view
+
+### Resultado esperado da fase
+
+Ao final da Fase 9:
+
+- `TimelineView` apenas apresenta estado e repassa eventos
+- `TimelineRangeSelectorView` é um componente visual fino
+- `PlayerEngine` continua sendo a fonte de verdade do playhead
+- `TimeRangeEngine` continua sendo a fonte de verdade dos limites do range
 
 ## Observação importante
 
