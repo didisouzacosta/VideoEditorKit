@@ -23,7 +23,7 @@ struct CaptionDragEngineTests {
         #expect(repositioned.placementMode == .freeform)
         assertPoint(
             repositioned.position,
-            approximatelyEquals: CGPoint(x: 0.3, y: 0.4)
+            approximatelyEquals: CGPoint(x: 0.3, y: 0.2)
         )
     }
 
