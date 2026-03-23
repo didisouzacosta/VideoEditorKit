@@ -12,32 +12,31 @@ import Observation
 struct VideoExporterBottomSheetView: View {
     @Binding var isPresented: Bool
     @State private var viewModel: ExporterViewModel
+    let onExported: (URL) -> Void
     
-    init(isPresented: Binding<Bool>, video: Video) {
+    init(isPresented: Binding<Bool>, video: Video, onExported: @escaping (URL) -> Void) {
         self._isPresented = isPresented
         self._viewModel = State(initialValue: ExporterViewModel(video: video))
+        self.onExported = onExported
     }
+
     var body: some View {
         @Bindable var bindableViewModel = viewModel
         GeometryReader { proxy in
             SheetView(isPresented: $isPresented, bgOpacity: 0.1) {
-                VStack(alignment: .leading){
-                    switch viewModel.renderState{
-                    case .unknown:
+                VStack(alignment: .leading) {
+                    switch viewModel.renderState {
+                    case .unknown, .failed:
                         list
-                    case .failed:
-                        Text("Failed")
                     case .loading, .loaded:
                         loadingView
-                    case .saved:
-                        saveView
                     }
                 }
                 .hCenter()
                 .frame(height: proxy.size.height / 2.8)
             }
             .ignoresSafeArea()
-            .alert("Save video", isPresented: $bindableViewModel.showAlert) {}
+            .alert("Unable to export video", isPresented: $bindableViewModel.showAlert) {}
             .disabled(viewModel.renderState == .loading)
             .animation(.easeInOut, value: viewModel.renderState)
         }
@@ -50,12 +49,16 @@ extension VideoExporterBottomSheetView{
     private var list: some View{
         Group{
             qualityListSection
-            
-            HStack {
-                saveButton
-                shareButton
+
+            if case .failed = viewModel.renderState {
+                Text("The video could not be exported. Check the current edit state and try again.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .padding(.top, 8)
             }
-            .padding(.top, 10)
+
+            exportButton
+                .padding(.top, 14)
         }
     }
     
@@ -66,24 +69,9 @@ extension VideoExporterBottomSheetView{
             Text(viewModel.progressTimer.formatted())
             Text("Video export in progress")
                 .font(.headline)
-            Text("Do not close the app or lock the screen")
+            Text("The edited video will be returned to the example screen.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-        }
-    }
-    
-    
-    private var saveView: some View{
-        VStack(spacing: 30){
-            Image(systemName: "checkmark.circle")
-                .font(.system(size: 40, weight: .light))
-            Text("Video saved")
-                .font(.title2.bold())
-        }
-        .task {
-            try? await Task.sleep(for: .seconds(1.5))
-            guard !Task.isCancelled else { return }
-            viewModel.renderState = .unknown
         }
     }
     
@@ -119,68 +107,44 @@ extension VideoExporterBottomSheetView{
     }
     
     
-    private var saveButton: some View{
+    private var exportButton: some View{
         Button {
-            mainAction(.save)
+            mainAction()
         } label: {
-            buttonLabel("Save", icon: "square.and.arrow.down")
-        }
-        .hCenter()
-    }
-    
-    private var shareButton: some View{
-        Button {
-            mainAction(.share)
-        } label: {
-            buttonLabel("Share", icon: "square.and.arrow.up")
+            buttonLabel("Export Video", icon: "wand.and.stars")
         }
         .hCenter()
     }
     
     private func buttonLabel(_ label: String, icon: String) -> some View{
         
-        VStack{
+        HStack(spacing: 12){
             Image(systemName: icon)
                 .imageScale(.large)
                 .padding(10)
                 .background(Color(.systemGray), in: Circle())
             Text(label)
+                .font(.headline)
         }
-        .foregroundStyle(.white)
+        .padding(.horizontal, 18)
+        .padding(.vertical, 10)
+        .background(Color(.systemGray6), in: .rect(cornerRadius: 16))
+        .foregroundStyle(.primary)
     }
     
     
-    private func mainAction(_ action: ExporterViewModel.ActionEnum){
-        Task{
-           await viewModel.action(action)
+    private func mainAction() {
+        Task {
+            guard let url = await viewModel.export() else { return }
+            isPresented = false
+            onExported(url)
         }
-    }
-
-}
-
-
-
-
-
-
-
-extension UIViewController {
-    
-    @MainActor
-    func presentInKeyWindow(animated: Bool = true, completion: (() -> Void)? = nil) {
-        let rootViewController = UIApplication.shared.connectedScenes
-            .compactMap { $0 as? UIWindowScene }
-            .flatMap(\.windows)
-            .last(where: \.isKeyWindow)?
-            .rootViewController
-
-        rootViewController?.present(self, animated: animated, completion: completion)
     }
 }
 
 #Preview {
-    ZStack(alignment: .bottom){
+    ZStack(alignment: .bottom) {
         Color.secondary.opacity(0.5)
-        VideoExporterBottomSheetView(isPresented: .constant(true), video: Video.mock)
+        VideoExporterBottomSheetView(isPresented: .constant(true), video: Video.mock) { _ in }
     }
 }

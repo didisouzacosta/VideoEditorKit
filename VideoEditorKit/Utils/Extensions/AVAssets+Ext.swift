@@ -21,27 +21,27 @@ extension AVAsset {
         }
     }
     
-    func getImage(_ second: Int, compressionQuality: Double = 0.05) -> UIImage?{
+    func generateImage(at second: Double, compressionQuality: Double = 0.05) async -> UIImage? {
         let imgGenerator = AVAssetImageGenerator(asset: self)
-        let requestedTime = CMTime(seconds: Double(second), preferredTimescale: 1)
-        let box = SynchronousImageBox()
-        let semaphore = DispatchSemaphore(value: 0)
+        imgGenerator.appliesPreferredTrackTransform = true
+        let requestedTime = CMTime(seconds: second, preferredTimescale: 600)
 
-        imgGenerator.generateCGImagesAsynchronously(forTimes: [NSValue(time: requestedTime)]) { _, image, _, result, _ in
-            defer { semaphore.signal() }
-            guard result == .succeeded, let image else { return }
+        return await withCheckedContinuation { continuation in
+            imgGenerator.generateCGImagesAsynchronously(forTimes: [NSValue(time: requestedTime)]) { _, image, _, result, _ in
+                guard result == .succeeded, let image else {
+                    continuation.resume(returning: nil)
+                    return
+                }
 
-            let uiImage = UIImage(cgImage: image)
-            guard let imageData = uiImage.jpegData(compressionQuality: compressionQuality),
-                  let compressedUIImage = UIImage(data: imageData) else {
-                return
+                let uiImage = UIImage(cgImage: image)
+                guard let imageData = uiImage.jpegData(compressionQuality: compressionQuality) else {
+                    continuation.resume(returning: uiImage)
+                    return
+                }
+
+                continuation.resume(returning: UIImage(data: imageData) ?? uiImage)
             }
-
-            box.image = compressedUIImage
         }
-
-        semaphore.wait()
-        return box.image
     }
     
     @MainActor
@@ -69,9 +69,4 @@ extension AVAsset {
         }
         return videoSize
     }
-
-}
-
-private final class SynchronousImageBox: @unchecked Sendable {
-    var image: UIImage?
 }

@@ -6,9 +6,6 @@
 //
 
 import Foundation
-import Photos
-import UIKit
-import SwiftUI
 import Observation
 
 @MainActor
@@ -26,7 +23,6 @@ final class ExporterViewModel {
     var progressTimer: TimeInterval = .zero
     var selectedQuality: VideoQuality = .medium
 
-    private var action: ActionEnum = .save
     private var timer: Timer?
     
     init(video: Video){
@@ -34,22 +30,16 @@ final class ExporterViewModel {
     }
     
     
-    @MainActor
-    private func renderVideo() async{
+    func export() async -> URL? {
         renderState = .loading
-        do{
+        do {
             let url = try await VideoEditor.startRender(video: video, videoQuality: selectedQuality)
             renderState = .loaded(url)
-        }catch{
+            return url
+        } catch {
             renderState = .failed(error)
+            return nil
         }
-    }
-    
-    
-   
-    func action(_ action: ActionEnum) async{
-        self.action = action
-        await renderVideo()
     }
 
     private func handleRenderStateChange(_ state: ExportState) {
@@ -60,19 +50,11 @@ final class ExporterViewModel {
         case .loading:
             showAlert = false
             startProgressTimer()
-        case .loaded(let url):
+        case .loaded:
             resetTimer()
-            if action == .save {
-                saveVideoInLib(url)
-            } else {
-                showShareSheet(data: url)
-            }
         case .failed:
             resetTimer()
             showAlert = true
-        case .saved:
-            showAlert = false
-            resetTimer()
         }
     }
     
@@ -91,33 +73,9 @@ final class ExporterViewModel {
         progressTimer = .zero
     }
     
-    private func showShareSheet(data: Any){
-        renderState = .unknown
-        UIActivityViewController(activityItems: [data], applicationActivities: nil).presentInKeyWindow()
-    }
-    
-    private func saveVideoInLib(_ url: URL){
-        PHPhotoLibrary.shared().performChanges({
-            PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: url)
-        }) {[weak self] saved, error in
-            guard let self = self else {return}
-            if saved {
-                Task { @MainActor in
-                    self.renderState = .saved
-                }
-            }
-        }
-    }
-
-    enum ActionEnum: Int{
-        case save, share
-    }
-    
-    
-    
     enum ExportState: Identifiable, Equatable {
         
-        case unknown, loading, loaded(URL), failed(Error), saved
+        case unknown, loading, loaded(URL), failed(Error)
         
         var id: Int{
             switch self {
@@ -125,7 +83,6 @@ final class ExporterViewModel {
             case .loading: return 1
             case .loaded: return 2
             case .failed: return 3
-            case .saved: return 4
             }
         }
         

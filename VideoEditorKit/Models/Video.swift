@@ -32,34 +32,42 @@ struct Video: Identifiable, @unchecked Sendable {
     var totalDuration: Double{
         rangeDuration.upperBound - rangeDuration.lowerBound
     }
-    
-    init(url: URL){
+
+    init(url: URL, asset: AVAsset, originalDuration: Double, rangeDuration: ClosedRange<Double>, rate: Float = 1.0, rotation: Double = 0) {
         self.url = url
-        self.asset = AVURLAsset(url: url)
-        self.originalDuration = Self.loadDuration(for: url)
-        self.rangeDuration = 0...originalDuration
-    }
-    
-    init(url: URL, rangeDuration: ClosedRange<Double>, rate: Float = 1.0, rotation: Double = 0){
-        self.url = url
-        self.asset = AVURLAsset(url: url)
-        self.originalDuration = Self.loadDuration(for: url)
+        self.asset = asset
+        self.originalDuration = originalDuration
         self.rangeDuration = rangeDuration
         self.rate = rate
         self.rotation = rotation
     }
     
-    mutating func updateThumbnails(containerSize: CGSize){
-        thumbnailsImages.removeAll(keepingCapacity: true)
+    init(url: URL){
+        let asset = AVURLAsset(url: url)
+        self.init(url: url, asset: asset, originalDuration: .zero, rangeDuration: .zero ... .zero)
+    }
+    
+    init(url: URL, rangeDuration: ClosedRange<Double>, rate: Float = 1.0, rotation: Double = 0){
+        let asset = AVURLAsset(url: url)
+        let originalDuration = max(rangeDuration.upperBound, .zero)
+        self.init(url: url, asset: asset, originalDuration: originalDuration, rangeDuration: rangeDuration, rate: rate, rotation: rotation)
+    }
+
+ 
+    func makeThumbnails(containerSize: CGSize) async -> [ThumbnailImage] {
         let imagesCount = thumbnailCount(containerSize)
-        guard imagesCount > 0 else { return }
-        
-        var offset: Float64 = 0
-        for i in 0..<imagesCount{
-            let thumbnailImage = ThumbnailImage(image: asset.getImage(Int(offset)))
-            offset = Double(i) * (originalDuration / Double(imagesCount))
-            thumbnailsImages.append(thumbnailImage)
+        guard imagesCount > 0 else { return [] }
+
+        var thumbnails = [ThumbnailImage]()
+        thumbnails.reserveCapacity(imagesCount)
+
+        for index in 0..<imagesCount {
+            let offset = Double(index) * (originalDuration / Double(imagesCount))
+            let thumbnailImage = ThumbnailImage(image: await asset.generateImage(at: offset))
+            thumbnails.append(thumbnailImage)
         }
+
+        return thumbnails
     }
         
     ///reset and update
@@ -119,20 +127,11 @@ struct Video: Identifiable, @unchecked Sendable {
     @MainActor
     static let mock: Video = .init(url:URL(string: "https://www.google.com/")!, rangeDuration: 0...250)
 
-    private static func loadDuration(for url: URL) -> Double {
-        let box = SynchronousValueBox<Double>()
-        let semaphore = DispatchSemaphore(value: 0)
-
-        Task.detached {
-            defer { semaphore.signal() }
-            let asset = AVURLAsset(url: url)
-            if let duration = try? await asset.load(.duration) {
-                box.value = duration.seconds
-            }
-        }
-
-        semaphore.wait()
-        return box.value ?? .zero
+    static func load(from url: URL) async -> Video {
+        let asset = AVURLAsset(url: url)
+        let duration = (try? await asset.load(.duration).seconds) ?? .zero
+        let resolvedDuration = duration.isFinite ? duration : .zero
+        return Video(url: url, asset: asset, originalDuration: resolvedDuration, rangeDuration: .zero ... resolvedDuration)
     }
 }
 
@@ -185,8 +184,4 @@ struct VideoFrames{
         scaleValue = 0
         frameColor = .white
     }
-}
-
-private final class SynchronousValueBox<Value>: @unchecked Sendable {
-    var value: Value?
 }

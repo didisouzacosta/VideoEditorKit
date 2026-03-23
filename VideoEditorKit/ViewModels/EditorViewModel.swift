@@ -7,7 +7,6 @@
 
 import Foundation
 import AVKit
-import Photos
 import Observation
 
 @MainActor
@@ -17,48 +16,41 @@ final class EditorViewModel {
     var selectedTools: ToolEnum?
     var frames = VideoFrames()
     var isSelectVideo = true
-
-    private var projectEntity: ProjectEntity?
+    @ObservationIgnored private var loadVideoTask: Task<Void, Never>?
+    @ObservationIgnored private var thumbnailsTask: Task<Void, Never>?
 
     func setNewVideo(_ url: URL, containerSize: CGSize){
-        currentVideo = .init(url: url)
-        currentVideo?.updateThumbnails(containerSize: containerSize)
-        createProject()
-    }
-    
-    func setProject(_ project: ProjectEntity, containerSize: CGSize){
-        projectEntity = project
-        
-        guard let url = project.videoURL else {return}
-        
-        currentVideo = .init(url: url, rangeDuration: project.lowerBound...project.upperBound, rate: Float(project.rate), rotation: project.rotation)
-        currentVideo?.toolsApplied = project.wrappedTools
-        currentVideo?.filterName = project.filterName
-        currentVideo?.colorCorrection = .init(brightness: project.brightness, contrast: project.contrast, saturation: project.saturation)
-        let frame = VideoFrames(scaleValue: project.frameScale, frameColor: project.wrappedColor)
-        currentVideo?.videoFrames = frame
-        self.frames = frame
-        currentVideo?.updateThumbnails(containerSize: containerSize)
-        currentVideo?.textBoxes = project.wrappedTextBoxes
-        if let audio = project.audio?.audioModel{
-            currentVideo?.audio = audio
+        loadVideoTask?.cancel()
+        thumbnailsTask?.cancel()
+        currentVideo = nil
+
+        loadVideoTask = Task { [weak self] in
+            let video = await Video.load(from: url)
+            guard !Task.isCancelled else { return }
+
+            self?.currentVideo = video
+            self?.loadThumbnails(for: video, containerSize: containerSize)
         }
     }
-        
+
+    deinit {
+        loadVideoTask?.cancel()
+        thumbnailsTask?.cancel()
+    }
 }
 
-//MARK: - Core data logic
-extension EditorViewModel{
-    
-    private func createProject(){
-        guard let currentVideo else { return }
-        let context = PersistenceController.shared.viewContext
-        ProjectEntity.create(video: currentVideo, context: context)
-    }
-    
-    func updateProject(){
-        guard let projectEntity, let currentVideo else { return }
-        ProjectEntity.update(for: currentVideo, project: projectEntity)
+extension EditorViewModel {
+    private func loadThumbnails(for video: Video, containerSize: CGSize) {
+        let videoID = video.id
+        thumbnailsTask = Task.detached(priority: .userInitiated) {
+            let thumbnails = await video.makeThumbnails(containerSize: containerSize)
+            guard !Task.isCancelled else { return }
+
+            await MainActor.run { [weak self] in
+                guard let self, self.currentVideo?.id == videoID else { return }
+                self.currentVideo?.thumbnailsImages = thumbnails
+            }
+        }
     }
 }
 
@@ -127,7 +119,6 @@ extension EditorViewModel{
         currentVideo?.audio = nil
         isSelectVideo = true
         removeTool()
-        updateProject()
     }
   
     func reset(){

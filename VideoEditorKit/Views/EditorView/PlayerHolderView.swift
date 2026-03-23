@@ -158,6 +158,6 @@ struct PlayerControl: View{
 }
 
 #Preview {
-    MainEditorView(project: nil, selectedVideoURl: nil)
+    MainEditorView()
         .preferredColorScheme(.dark)
 }

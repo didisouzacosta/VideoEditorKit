@@ -6,28 +6,25 @@
 //
 import AVKit
 import SwiftUI
-import PhotosUI
-import Observation
 
 @MainActor
 struct MainEditorView: View {
-    @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dismiss) private var dismiss
-    let project: ProjectEntity?
-    let selectedVideoURl: URL?
+    let sourceVideoURL: URL?
+    let onExported: (URL) -> Void
     @State private var isFullScreen = false
     @State private var showVideoQualitySheet = false
     @State private var showRecordView = false
     @State private var exportSheetTask: Task<Void, Never>?
-    @State private var filterRestoreTask: Task<Void, Never>?
+    @State private var hasLoadedSourceVideo = false
     @State private var editorVM = EditorViewModel()
     @State private var audioRecorder = AudioRecorderManager()
     @State private var videoPlayer = VideoPlayerManager()
     @State private var textEditor = TextEditorViewModel()
 
-    init(project: ProjectEntity? = nil, selectedVideoURl: URL? = nil) {
-        self.project = project
-        self.selectedVideoURl = selectedVideoURl
+    init(sourceVideoURL: URL? = nil, onExported: @escaping (URL) -> Void = { _ in }) {
+        self.sourceVideoURL = sourceVideoURL
+        self.onExported = onExported
     }
 
     var body: some View {
@@ -42,13 +39,17 @@ struct MainEditorView: View {
                         .opacity(isFullScreen ? 0 : 1)
                         .padding(.top, 5)
                 }
-                .onAppear{
-                    setVideo(proxy)
+                .onAppear {
+                    setVideoIfNeeded(proxy)
                 }
             }
             
             if showVideoQualitySheet, let video = editorVM.currentVideo{
-                VideoExporterBottomSheetView(isPresented: $showVideoQualitySheet, video: video)
+                VideoExporterBottomSheetView(isPresented: $showVideoQualitySheet, video: video) { exportedURL in
+                    videoPlayer.pause()
+                    onExported(exportedURL)
+                    dismiss()
+                }
             }
         }
         .background(.black)
@@ -60,9 +61,6 @@ struct MainEditorView: View {
             }
         }
         .statusBar(hidden: true)
-        .onChange(of: scenePhase) { _, phase in
-            saveProject(phase)
-        }
         .onDisappear {
             cancelDeferredTasks()
         }
@@ -80,10 +78,10 @@ extension MainEditorView{
     private var headerView: some View{
         HStack{
             Button {
-                editorVM.updateProject()
+                videoPlayer.pause()
                 dismiss()
             } label: {
-                Image(systemName: "folder.fill")
+                Image(systemName: "chevron.left")
             }
 
             Spacer()
@@ -99,27 +97,12 @@ extension MainEditorView{
         .frame(height: 50)
         .padding(.bottom)
     }
-    
-    private func saveProject(_ phase: ScenePhase){
-        switch phase{
-        case .background, .inactive:
-            editorVM.updateProject()
-        default:
-            break
-        }
-    }
-    
-    private func setVideo(_ proxy: GeometryProxy){
-        if let selectedVideoURl{
-            videoPlayer.loadState = .loaded(selectedVideoURl)
-            editorVM.setNewVideo(selectedVideoURl, containerSize: proxy.size)
-        }
-        
-        if let project, let url = project.videoURL{
-            videoPlayer.loadState = .loaded(url)
-            editorVM.setProject(project, containerSize: proxy.size)
-            scheduleFilterRestore(project)
-        }
+
+    private func setVideoIfNeeded(_ proxy: GeometryProxy){
+        guard !hasLoadedSourceVideo, let sourceVideoURL else { return }
+        hasLoadedSourceVideo = true
+        videoPlayer.loadState = .loaded(sourceVideoURL)
+        editorVM.setNewVideo(sourceVideoURL, containerSize: proxy.size)
     }
 
     private func presentExporter() {
@@ -132,27 +115,13 @@ extension MainEditorView{
         }
     }
 
-    private func scheduleFilterRestore(_ project: ProjectEntity) {
-        filterRestoreTask?.cancel()
-        filterRestoreTask = Task {
-            try? await Task.sleep(for: .milliseconds(100))
-            guard !Task.isCancelled else { return }
-            videoPlayer.setFilters(
-                mainFilter: project.filterName.flatMap(CIFilter.init(name:)),
-                colorCorrection: editorVM.currentVideo?.colorCorrection
-            )
-        }
-    }
-
     private func cancelDeferredTasks() {
         exportSheetTask?.cancel()
-        filterRestoreTask?.cancel()
         exportSheetTask = nil
-        filterRestoreTask = nil
     }
 }
 
 #Preview {
-    MainEditorView(project: nil, selectedVideoURl: nil)
+    MainEditorView()
         .preferredColorScheme(.dark)
 }

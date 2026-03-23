@@ -317,8 +317,8 @@ extension VideoEditor{
     
     
     private static func createTempPath() -> URL{
-        let tempPath = "\(NSTemporaryDirectory())temp_video.mp4"
-        let tempURL = URL(fileURLWithPath: tempPath)
+        let fileName = "edited-video-\(UUID().uuidString).mp4"
+        let tempURL = URL.temporaryDirectory.appending(path: fileName)
         FileManager.default.removefileExists(for: tempURL)
         return tempURL
     }

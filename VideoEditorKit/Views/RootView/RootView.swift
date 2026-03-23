@@ -5,8 +5,9 @@
 //  Created by Adriano Souza Costa on 23.03.2026.
 //
 
-import SwiftUI
+import AVKit
 import PhotosUI
+import SwiftUI
 
 @MainActor
 struct RootView: View {
@@ -15,61 +16,47 @@ struct RootView: View {
         let url: URL
     }
 
-    let rootVM: RootViewModel
     @State private var item: PhotosPickerItem?
-    @State private var showLoader: Bool = false
+    @State private var showLoader = false
     @State private var editorDestination: EditorDestination?
+    @State private var editedVideoURL: URL?
+    @State private var resultPlayer = AVPlayer()
+    @State private var sessionSourceURL: URL?
     @State private var itemLoadTask: Task<Void, Never>?
-    private let columns = [
-        GridItem(.adaptive(minimum: 150)),
-        GridItem(.adaptive(minimum: 150)),
-    ]
+
     var body: some View {
         NavigationStack {
-            ZStack {
-                ScrollView(.vertical) {
-                    VStack(alignment: .leading) {
-                        Text("My projects")
-                            .font(.headline)
-                        LazyVGrid(columns: columns, alignment: .center, spacing: 10) {
-                            newProjectButton
-                            
-                            ForEach(rootVM.projects) { project in
-                                
-                                NavigationLink {
-                                    MainEditorView(project: project)
-                                } label: {
-                                    cellView(project)
-                                }
-                            }
-                        }
-                    }
-                    .padding()
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    heroSection
+                    selectVideoCard
+                    resultSection
                 }
-                .scrollIndicators(.hidden)
+                .padding(20)
             }
+            .scrollIndicators(.hidden)
             .navigationDestination(item: $editorDestination) { destination in
-                MainEditorView(selectedVideoURl: destination.url)
+                MainEditorView(sourceVideoURL: destination.url) { exportedURL in
+                    replaceEditedVideo(with: exportedURL)
+                }
             }
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Text("Video editor")
+                    Text("Example Mode")
                         .font(.title2.bold())
                 }
             }
             .onChange(of: item) { _, newItem in
                 loadPhotosItem(newItem)
             }
-            .task {
-                rootVM.fetch()
-            }
             .onDisappear {
                 itemLoadTask?.cancel()
+                resultPlayer.pause()
             }
             .overlay {
-                if showLoader{
-                    Color.secondary.opacity(0.2).ignoresSafeArea()
-                    VStack(spacing: 10){
+                if showLoader {
+                    Color.black.opacity(0.25).ignoresSafeArea()
+                    VStack(spacing: 10) {
                         Text("Loading video")
                         ProgressView()
                     }
@@ -82,58 +69,69 @@ struct RootView: View {
     }
 }
 
-extension RootView{
-    
-    
-    private var newProjectButton: some View{
-        
+extension RootView {
+    private var heroSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Pick a video from your gallery, edit it, and get the rendered result back on this screen.")
+                .font(.title3.bold())
+            Text("This screen now works as an example mode. It starts a temporary editing session and shows the exported output.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var selectVideoCard: some View {
         PhotosPicker(selection: $item, matching: .videos) {
-            VStack(spacing: 10) {
-                Image(systemName: "plus")
-                Text("New project")
+            VStack(alignment: .leading, spacing: 14) {
+                Image(systemName: "video.badge.plus")
+                    .font(.system(size: 24, weight: .semibold))
+                Text("Choose a Video")
+                    .font(.headline)
+                Text("Import a clip from Photos and open it directly in the editor.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
             }
-            .frame(maxWidth: .infinity, alignment: .center)
-            .frame(height: 150)
-            .background(Color(.systemGray6), in: .rect(cornerRadius: 5))
-            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(20)
+            .background(Color(.systemGray6), in: .rect(cornerRadius: 20))
+            .foregroundStyle(.primary)
         }
+        .buttonStyle(.plain)
     }
-       
-    private func cellView(_ project: ProjectEntity) -> some View{
-        ZStack {
-            Color.white
-            Image(uiImage: project.uiImage)
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-            LinearGradient(colors: [.black.opacity(0.35), .black.opacity(0.2), .black.opacity(0.1)], startPoint: .bottom, endPoint: .top)
-        }
-        .frame(maxWidth: .infinity, alignment: .center)
-        .frame(height: 150)
-        .clipShape(.rect(cornerRadius: 5))
-        .clipped()
-        .overlay {
-            VStack{
-                Button {
-                    rootVM.removeProject(project)
-                } label: {
-                    Image(systemName: "trash.fill")
-                        .foregroundStyle(.white)
-                        .shadow(color: .black.opacity(0.3), radius: 5)
+
+    @ViewBuilder
+    private var resultSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Edited Result")
+                .font(.headline)
+
+            if let editedVideoURL {
+                VStack(alignment: .leading, spacing: 12) {
+                    PlayerView(player: resultPlayer)
+                        .frame(height: 260)
+                        .clipShape(.rect(cornerRadius: 24))
+
+                    Text(editedVideoURL.lastPathComponent)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
                 }
-                .accessibilityLabel("Delete project")
-                .frame(maxWidth: .infinity, alignment: .trailing)
-                Spacer()
-                Text(project.createAt?.formatted(date: .abbreviated, time: .omitted) ?? "")
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("No edited video yet.")
+                        .font(.headline)
+                    Text("After exporting from the editor, the rendered video will appear here.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(20)
+                .background(Color(.systemGray6), in: .rect(cornerRadius: 20))
             }
-            .font(.footnote.weight(.medium))
-            .padding(10)
         }
     }
-    
-    
-    private func loadPhotosItem(_ newItem: PhotosPickerItem?){
+
+    private func loadPhotosItem(_ newItem: PhotosPickerItem?) {
         itemLoadTask?.cancel()
 
         guard let newItem else {
@@ -147,15 +145,37 @@ extension RootView{
 
             do {
                 if let video = try await newItem.loadTransferable(type: VideoItem.self), !Task.isCancelled {
-                    editorDestination = .init(url: video.url)
+                    prepareEditorSession(with: video.url)
                 }
             } catch {
                 print("Failed to load video: \(error.localizedDescription)")
             }
         }
     }
+
+    private func prepareEditorSession(with url: URL) {
+        resultPlayer.pause()
+        resultPlayer.replaceCurrentItem(with: nil)
+        cleanupFileIfNeeded(sessionSourceURL)
+        cleanupFileIfNeeded(editedVideoURL)
+        editedVideoURL = nil
+        sessionSourceURL = url
+        editorDestination = .init(url: url)
+    }
+
+    private func replaceEditedVideo(with url: URL) {
+        cleanupFileIfNeeded(editedVideoURL)
+        editedVideoURL = url
+        resultPlayer.replaceCurrentItem(with: AVPlayerItem(url: url))
+        resultPlayer.seek(to: .zero)
+    }
+
+    private func cleanupFileIfNeeded(_ url: URL?) {
+        guard let url else { return }
+        FileManager.default.removefileExists(for: url)
+    }
 }
 
 #Preview {
-    RootView(rootVM: RootViewModel(mainContext: DeveloperPreview.instance.viewContext))
+    RootView()
 }

@@ -33,12 +33,19 @@ struct ToolsSectionView: View {
             }
         }
         .animation(.easeIn(duration: 0.15), value: editorVM.selectedTools)
-        .onChange(of: editorVM.currentVideo){ _, newValue in
-            if let video = newValue, let image = video.thumbnailsImages.first?.image{
-                filtersVM.loadFilters(for: image)
+        .onChange(of: editorVM.currentVideo) { _, newValue in
+            if let video = newValue {
                 filtersVM.colorCorrection = video.colorCorrection
                 textEditor.textBoxes = video.textBoxes
             }
+        }
+        .onChange(of: editorVM.currentVideo?.thumbnailsImages.count ?? 0) { _, newValue in
+            guard newValue > 0,
+                  let image = editorVM.currentVideo?.thumbnailsImages.first?.image else {
+                return
+            }
+
+            filtersVM.loadFilters(for: image)
         }
         .onChange(of: textEditor.selectedTextBox) { _, box in
             if box != nil{
@@ -154,6 +161,6 @@ extension ToolsSectionView{
 }
 
 #Preview {
-    MainEditorView(project: nil, selectedVideoURl: nil)
+    MainEditorView()
         .preferredColorScheme(.dark)
 }
