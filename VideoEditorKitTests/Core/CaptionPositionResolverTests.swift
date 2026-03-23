@@ -6,12 +6,22 @@ import UIKit
 @MainActor
 struct CaptionPositionResolverTests {
 
-    @Test func topPresetUsesTopCenterOfSafeFrame() {
+    @Test func topPresetUsesTopCenterInsetByCaptionBounds() {
         let safeFrame = CGRect(x: 100, y: 200, width: 800, height: 1200)
+        let caption = makeCaption(
+            text: "Top caption",
+            position: .zero,
+            placementMode: .preset(.top)
+        )
 
-        let point = CaptionPositionResolver.presetPoint(.top, in: safeFrame)
+        let point = CaptionPositionResolver.resolve(
+            caption: caption,
+            renderSize: CGSize(width: 1000, height: 2000),
+            safeFrame: safeFrame
+        )
 
-        #expect(point == CGPoint(x: 500, y: 200))
+        #expect(point.x == 500)
+        #expect(point.y > safeFrame.minY)
     }
 
     @Test func middlePresetUsesCenterOfSafeFrame() {
@@ -22,12 +32,22 @@ struct CaptionPositionResolverTests {
         #expect(point == CGPoint(x: 500, y: 800))
     }
 
-    @Test func bottomPresetUsesBottomCenterOfSafeFrame() {
+    @Test func bottomPresetUsesBottomCenterInsetByCaptionBounds() {
         let safeFrame = CGRect(x: 100, y: 200, width: 800, height: 1200)
+        let caption = makeCaption(
+            text: "Bottom caption",
+            position: .zero,
+            placementMode: .preset(.bottom)
+        )
 
-        let point = CaptionPositionResolver.presetPoint(.bottom, in: safeFrame)
+        let point = CaptionPositionResolver.resolve(
+            caption: caption,
+            renderSize: CGSize(width: 1000, height: 2000),
+            safeFrame: safeFrame
+        )
 
-        #expect(point == CGPoint(x: 500, y: 1400))
+        #expect(point.x == 500)
+        #expect(point.y < safeFrame.maxY)
     }
 
     @Test func freeformPositionInsideSafeFrameRemainsUnchanged() {
@@ -61,7 +81,19 @@ struct CaptionPositionResolverTests {
             safeFrame: safeFrame
         )
 
-        #expect(point == CGPoint(x: 100, y: 1400))
+        #expect(point.x > safeFrame.minX)
+        #expect(point.y < safeFrame.maxY)
+
+        let frame = CaptionPositionResolver.resolveFrame(
+            caption: caption,
+            renderSize: renderSize,
+            safeFrame: safeFrame
+        )
+
+        #expect(frame.minX >= safeFrame.minX)
+        #expect(frame.maxX <= safeFrame.maxX)
+        #expect(frame.minY >= safeFrame.minY)
+        #expect(frame.maxY <= safeFrame.maxY)
     }
 
     @Test func startingDragConvertsPresetCaptionToFreeformAtResolvedPoint() {
@@ -79,18 +111,19 @@ struct CaptionPositionResolverTests {
 
         #expect(convertedCaption.placementMode == .freeform)
         #expect(abs(convertedCaption.position.x - 0.5) < 0.0001)
-        #expect(abs(convertedCaption.position.y - 0.7) < 0.0001)
+        #expect(convertedCaption.position.y < 0.7)
     }
 }
 
 private extension CaptionPositionResolverTests {
     func makeCaption(
+        text: String = "Caption",
         position: CGPoint,
         placementMode: CaptionPlacementMode
     ) -> Caption {
         Caption(
             id: UUID(),
-            text: "Caption",
+            text: text,
             startTime: 0,
             endTime: 3,
             position: position,

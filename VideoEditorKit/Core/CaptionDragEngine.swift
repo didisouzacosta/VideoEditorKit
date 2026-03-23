@@ -23,13 +23,18 @@ struct CaptionDragEngine {
             x: scaledAxis(displayPoint.x, sourceDimension: displaySize.width, destinationDimension: renderSize.width),
             y: scaledAxis(displayPoint.y, sourceDimension: displaySize.height, destinationDimension: renderSize.height)
         )
-        let clampedPoint = CGPoint(
-            x: min(max(renderPoint.x, safeFrame.minX), safeFrame.maxX),
-            y: min(max(renderPoint.y, safeFrame.minY), safeFrame.maxY)
+        repositionedCaption.position = CaptionPositionResolver.normalizedPosition(
+            for: renderPoint,
+            in: renderSize
+        )
+        let resolvedPoint = CaptionPositionResolver.resolve(
+            caption: repositionedCaption,
+            renderSize: renderSize,
+            safeFrame: safeFrame
         )
 
         repositionedCaption.position = CaptionPositionResolver.normalizedPosition(
-            for: clampedPoint,
+            for: resolvedPoint,
             in: renderSize
         )
         return repositionedCaption

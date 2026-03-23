@@ -24,14 +24,16 @@ struct VideoEditorPreviewBuilder {
             at: currentTime,
             in: project.selectedTimeRange
         ).map { caption in
-            VideoEditorPreviewCaption(
+            let frame = CaptionPositionResolver.resolveFrame(
+                caption: caption,
+                renderSize: layout.renderSize,
+                safeFrame: safeFrame
+            )
+
+            return VideoEditorPreviewCaption(
                 id: caption.id,
                 text: caption.text,
-                center: CaptionPositionResolver.resolve(
-                    caption: caption,
-                    renderSize: layout.renderSize,
-                    safeFrame: safeFrame
-                ),
+                frame: frame,
                 style: caption.style
             )
         }

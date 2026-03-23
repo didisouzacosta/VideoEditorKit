@@ -6,7 +6,7 @@ import UIKit
 @MainActor
 struct VideoEditorPreviewBuilderTests {
 
-    @Test func buildResolvesSafeFrameAndPresetCaptionPlacement() {
+    @Test func buildResolvesSafeFrameAndKeepsBottomPresetInsideSafeFrame() {
         let caption = makeCaption(
             text: "Bottom",
             startTime: 0,
@@ -28,10 +28,8 @@ struct VideoEditorPreviewBuilderTests {
             approximatelyEquals: CGRect(x: 32, y: 120, width: 1016, height: 1540)
         )
         #expect(snapshot.captions.count == 1)
-        assertPoint(
-            snapshot.captions[0].center,
-            approximatelyEquals: CGPoint(x: 540, y: 1660)
-        )
+        #expect(abs(snapshot.captions[0].center.x - 540) <= 0.0001)
+        #expect(snapshot.captions[0].center.y < snapshot.safeFrame.maxY)
     }
 
     @Test func buildFiltersInactiveCaptionsAndClampsFreeformCaptionToSafeFrame() {

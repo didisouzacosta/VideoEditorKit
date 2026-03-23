@@ -87,10 +87,19 @@ struct VideoEditorControllerEditingTests {
         #expect(controller.editorState.selectedCaptionID == caption.id)
         #expect(controller.project.captions.count == 1)
         #expect(controller.project.captions[0].placementMode == .freeform)
-        assertPoint(
-            controller.project.captions[0].position,
-            approximatelyEquals: CGPoint(x: 0.9, y: 0.7)
+        #expect(controller.project.captions[0].position.x < 0.9)
+        #expect(controller.project.captions[0].position.y < 0.7)
+
+        let frame = CaptionPositionResolver.resolveFrame(
+            caption: controller.project.captions[0],
+            renderSize: CGSize(width: 1000, height: 2000),
+            safeFrame: CGRect(x: 100, y: 200, width: 800, height: 1200)
         )
+
+        #expect(frame.minX >= 100)
+        #expect(frame.maxX <= 900)
+        #expect(frame.minY >= 200)
+        #expect(frame.maxY <= 1400)
     }
 }
 

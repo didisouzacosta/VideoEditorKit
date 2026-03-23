@@ -179,7 +179,7 @@ private extension AVFoundationExportRenderer {
         safeFrame: CGRect,
         exportRange: ClosedRange<Double>
     ) -> CALayer {
-        let point = CaptionPositionResolver.resolve(
+        let frame = CaptionPositionResolver.resolveFrame(
             caption: caption,
             renderSize: renderSize,
             safeFrame: safeFrame
@@ -187,32 +187,16 @@ private extension AVFoundationExportRenderer {
         let font = caption.style.resolvedFont()
         let textAttributes: [NSAttributedString.Key: Any] = [
             .font: font,
-            .foregroundColor: caption.style.textColor.cgColor
+            .foregroundColor: caption.style.textColor
         ]
         let attributedText = NSAttributedString(
             string: caption.text,
             attributes: textAttributes
         )
-        let maxTextSize = CGSize(width: max(safeFrame.width, 1), height: .greatestFiniteMagnitude)
-        let measuredText = attributedText.boundingRect(
-            with: maxTextSize,
-            options: [.usesLineFragmentOrigin, .usesFontLeading],
-            context: nil
-        ).integral
         let padding = caption.style.padding
-        let size = CGSize(
-            width: min(max(measuredText.width + (padding * 2), 1), max(safeFrame.width, 1)),
-            height: max(measuredText.height + (padding * 2), 1)
-        )
-        let origin = clampedOrigin(
-            for: point,
-            size: size,
-            safeFrame: safeFrame,
-            anchorPoint: anchorPoint(for: caption.placementMode)
-        )
 
         let containerLayer = CALayer()
-        containerLayer.frame = CGRect(origin: origin, size: size)
+        containerLayer.frame = frame
         containerLayer.opacity = 0
 
         if let backgroundColor = caption.style.backgroundColor {
@@ -265,36 +249,6 @@ private extension AVFoundationExportRenderer {
         animationGroup.isRemovedOnCompletion = false
 
         return animationGroup
-    }
-
-    nonisolated func clampedOrigin(
-        for point: CGPoint,
-        size: CGSize,
-        safeFrame: CGRect,
-        anchorPoint: CGPoint
-    ) -> CGPoint {
-        let rawX = point.x - (size.width * anchorPoint.x)
-        let rawY = point.y - (size.height * anchorPoint.y)
-        let maxX = max(safeFrame.minX, safeFrame.maxX - size.width)
-        let maxY = max(safeFrame.minY, safeFrame.maxY - size.height)
-
-        return CGPoint(
-            x: min(max(rawX, safeFrame.minX), maxX),
-            y: min(max(rawY, safeFrame.minY), maxY)
-        )
-    }
-
-    nonisolated func anchorPoint(for placementMode: CaptionPlacementMode) -> CGPoint {
-        switch placementMode {
-        case .freeform:
-            CGPoint(x: 0.5, y: 0.5)
-        case .preset(.top):
-            CGPoint(x: 0.5, y: 0)
-        case .preset(.middle):
-            CGPoint(x: 0.5, y: 0.5)
-        case .preset(.bottom):
-            CGPoint(x: 0.5, y: 1)
-        }
     }
 
     nonisolated func frameDuration(for nominalFrameRate: Float) -> CMTime {

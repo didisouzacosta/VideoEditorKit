@@ -9,6 +9,10 @@ struct VideoEditorPreviewSnapshot: Equatable {
 struct VideoEditorPreviewCaption: Identifiable, Equatable {
     let id: Caption.ID
     let text: String
-    let center: CGPoint
+    let frame: CGRect
     let style: CaptionStyle
+
+    nonisolated var center: CGPoint {
+        CGPoint(x: frame.midX, y: frame.midY)
+    }
 }
