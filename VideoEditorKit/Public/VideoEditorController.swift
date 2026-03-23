@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 import Observation
 
@@ -44,6 +45,40 @@ final class VideoEditorController {
         }
 
         resolveProjectState(using: selectedTimeRange)
+    }
+
+    func selectCaption(_ captionID: Caption.ID?) {
+        guard let captionID else {
+            editorState.selectedCaptionID = nil
+            return
+        }
+
+        if project.captions.contains(where: { $0.id == captionID }) {
+            editorState.selectedCaptionID = captionID
+        } else {
+            editorState.selectedCaptionID = nil
+        }
+    }
+
+    func moveCaption(
+        _ captionID: Caption.ID,
+        to displayPoint: CGPoint,
+        displaySize: CGSize,
+        renderSize: CGSize,
+        safeFrame: CGRect
+    ) {
+        guard let index = project.captions.firstIndex(where: { $0.id == captionID }) else {
+            return
+        }
+
+        project.captions[index] = CaptionDragEngine.reposition(
+            project.captions[index],
+            to: displayPoint,
+            displaySize: displaySize,
+            renderSize: renderSize,
+            safeFrame: safeFrame
+        )
+        editorState.selectedCaptionID = captionID
     }
 
     func seek(to time: Double) {

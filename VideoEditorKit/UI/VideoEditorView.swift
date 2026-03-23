@@ -88,7 +88,18 @@ private extension VideoEditorView {
                 CaptionOverlayView(
                     captions: snapshot.captions,
                     renderSize: snapshot.layout.renderSize,
-                    displaySize: geometry.size
+                    displaySize: geometry.size,
+                    selectedCaptionID: controller.editorState.selectedCaptionID,
+                    onSelect: controller.selectCaption(_:),
+                    onMove: { captionID, point in
+                        controller.moveCaption(
+                            captionID,
+                            to: point,
+                            displaySize: geometry.size,
+                            renderSize: snapshot.layout.renderSize,
+                            safeFrame: snapshot.safeFrame
+                        )
+                    }
                 )
 
                 VStack(alignment: .leading, spacing: 8) {

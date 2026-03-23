@@ -50,6 +50,48 @@ struct VideoEditorControllerEditingTests {
         #expect(controller.editorState.selectedCaptionID == nil)
         #expect(controller.playerEngine.currentTime == 6)
     }
+
+    @Test func selectCaptionStoresExistingIdentifierAndClearsMissingSelection() {
+        let caption = makeCaption(text: "Selected", startTime: 0, endTime: 4)
+        let controller = VideoEditorController(
+            project: makeProject(captions: [caption])
+        )
+
+        controller.selectCaption(caption.id)
+        #expect(controller.editorState.selectedCaptionID == caption.id)
+
+        controller.selectCaption(UUID())
+        #expect(controller.editorState.selectedCaptionID == nil)
+    }
+
+    @Test func moveCaptionUpdatesProjectAndConvertsPresetPlacementToFreeform() {
+        let caption = makeCaption(
+            text: "Preset",
+            startTime: 0,
+            endTime: 4,
+            position: .zero,
+            placementMode: .preset(.bottom)
+        )
+        let controller = VideoEditorController(
+            project: makeProject(captions: [caption])
+        )
+
+        controller.moveCaption(
+            caption.id,
+            to: CGPoint(x: 240, y: 490),
+            displaySize: CGSize(width: 250, height: 500),
+            renderSize: CGSize(width: 1000, height: 2000),
+            safeFrame: CGRect(x: 100, y: 200, width: 800, height: 1200)
+        )
+
+        #expect(controller.editorState.selectedCaptionID == caption.id)
+        #expect(controller.project.captions.count == 1)
+        #expect(controller.project.captions[0].placementMode == .freeform)
+        assertPoint(
+            controller.project.captions[0].position,
+            approximatelyEquals: CGPoint(x: 0.9, y: 0.7)
+        )
+    }
 }
 
 private extension VideoEditorControllerEditingTests {
@@ -70,15 +112,17 @@ private extension VideoEditorControllerEditingTests {
     func makeCaption(
         text: String,
         startTime: Double,
-        endTime: Double
+        endTime: Double,
+        position: CGPoint = CGPoint(x: 0.5, y: 0.5),
+        placementMode: CaptionPlacementMode = .freeform
     ) -> Caption {
         Caption(
             id: UUID(),
             text: text,
             startTime: startTime,
             endTime: endTime,
-            position: CGPoint(x: 0.5, y: 0.5),
-            placementMode: .freeform,
+            position: position,
+            placementMode: placementMode,
             style: CaptionStyle(
                 fontName: UIFont.systemFont(ofSize: 16).fontName,
                 fontSize: 16,
@@ -88,5 +132,14 @@ private extension VideoEditorControllerEditingTests {
                 cornerRadius: 8
             )
         )
+    }
+
+    func assertPoint(
+        _ actual: CGPoint,
+        approximatelyEquals expected: CGPoint,
+        tolerance: CGFloat = 0.0001
+    ) {
+        #expect(abs(actual.x - expected.x) <= tolerance)
+        #expect(abs(actual.y - expected.y) <= tolerance)
     }
 }
