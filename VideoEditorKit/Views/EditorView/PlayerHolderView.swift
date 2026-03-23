@@ -20,24 +20,36 @@ struct PlayerHolderView: View{
 
     var body: some View{
         VStack(spacing: 6) {
-            ZStack(alignment: .bottom){
+            ZStack(alignment: .bottom) {
                 switch videoPlayer.loadState{
                 case .loading:
                     ProgressView()
+                        .tint(.white)
                 case .unknown:
-                    Text("Add new video")
+                    statusView("Add a video to start editing")
                 case .failed:
-                    Text("Failed to open video")
+                    statusView("Failed to open video")
                 case .loaded:
                     playerCropView
                 }
             }
             .allFrame()
         }
+        .foregroundStyle(.white)
+        .padding(14)
+        .ios26Card(cornerRadius: 34, prominent: true, tint: IOS26Theme.accentSecondary)
     }
 }
 
 extension PlayerHolderView{
+    private func statusView(_ text: String) -> some View {
+        Text(text)
+            .font(.headline)
+            .foregroundStyle(.white.opacity(0.9))
+            .padding(.horizontal, 18)
+            .padding(.vertical, 12)
+            .ios26CapsuleControl(tint: IOS26Theme.accentSecondary)
+    }
 
     private var playerCropView: some View{
         Group{
@@ -86,9 +98,9 @@ extension PlayerHolderView{
             }
             .font(.caption2)
             .foregroundStyle(.white)
-            .frame(width: 80)
-            .padding(5)
-            .background(Color(.black).opacity(0.5), in: RoundedRectangle(cornerRadius: 10))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .ios26CapsuleControl(tint: IOS26Theme.accentSecondary)
             .padding()
         }
     }
@@ -102,9 +114,13 @@ struct PlayerControl: View{
     @Bindable var videoPlayer: VideoPlayerManager
     let textEditor: TextEditorViewModel
     var body: some View{
-        VStack(spacing: 6) {
+        VStack(spacing: 14) {
             playSection
-            timeLineControlSection
+            if editorVM.currentVideo != nil {
+                timeLineControlSection
+                    .padding(12)
+                    .ios26Card(cornerRadius: 28, tint: IOS26Theme.accentSecondary)
+            }
         }
     }
     
@@ -129,18 +145,19 @@ struct PlayerControl: View{
     }
     
     private var playSection: some View{
-        
         Button {
             if let video = editorVM.currentVideo{
                 videoPlayer.action(video)
             }
         } label: {
             Image(systemName: videoPlayer.isPlaying ? "pause.fill" : "play.fill")
-                .imageScale(.medium)
+                .font(.title2.weight(.semibold))
+                .frame(width: 72, height: 72)
+                .foregroundStyle(.white)
+                .ios26CircleControl(prominent: true, tint: IOS26Theme.accent)
         }
         .buttonStyle(.plain)
         .hCenter()
-        .frame(height: 30)
         .overlay(alignment: .trailing) {
             Button {
                 videoPlayer.pause()
@@ -149,11 +166,13 @@ struct PlayerControl: View{
                 }
             } label: {
                 Image(systemName: isFullScreen ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right")
-                    .imageScale(.medium)
+                    .font(.headline.weight(.semibold))
+                    .frame(width: 46, height: 46)
+                    .foregroundStyle(.white)
+                    .ios26CircleControl()
             }
             .buttonStyle(.plain)
         }
-        .padding(.horizontal)
     }
 }
 

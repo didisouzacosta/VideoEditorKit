@@ -13,7 +13,7 @@ struct CropSheetView: View {
     var editorVM: EditorViewModel
     @State private var currentTab: Tab = .rotate
     var body: some View {
-        VStack(spacing: 40){
+        VStack(spacing: 28){
             tabButtons
             Group{
                 switch currentTab{
@@ -24,6 +24,7 @@ struct CropSheetView: View {
                 }
             }
         }
+        .foregroundStyle(.white)
         .onAppear{
             rotateValue = editorVM.currentVideo?.rotation ?? 0
         }
@@ -38,10 +39,7 @@ extension CropSheetView{
     
     
     private var rotateSection: some View{
-        
-        
-        HStack(spacing: 30){
-            
+        HStack(spacing: 20){
             CustomSlider(value: $rotateValue,
                          in: 0...360,
                          step: 90,
@@ -52,27 +50,36 @@ extension CropSheetView{
                 }
             }, track: {
                 Capsule()
-                    .foregroundColor(.secondary)
+                    .fill(.white.opacity(0.28))
                     .frame(width: 200, height: 5)
             }, thumb: {
                 Circle()
-                    .foregroundColor(.white)
-                    .shadow(radius: 20 / 1)
+                    .fill(.white)
+                    .shadow(color: .black.opacity(0.18), radius: 12, y: 4)
             }, thumbSize: CGSize(width: 20, height: 20))
-            
-            
+
             Button {
                 editorVM.rotate()
             } label: {
                 Image(systemName: "arrow.triangle.2.circlepath")
+                    .font(.headline.weight(.semibold))
+                    .frame(width: 44, height: 44)
+                    .foregroundStyle(.white)
+                    .ios26CircleControl(tint: IOS26Theme.accentSecondary)
             }
             .buttonStyle(.plain)
-            
+
             Button {
                 editorVM.toggleMirror()
             } label: {
                 Image(systemName: "arrow.left.and.right.righttriangle.left.righttriangle.right.fill")
-                    .foregroundColor((editorVM.currentVideo?.isMirror ?? false) ? .secondary : .white)
+                    .font(.headline.weight(.semibold))
+                    .frame(width: 44, height: 44)
+                    .foregroundStyle(.white)
+                    .ios26CircleControl(
+                        prominent: editorVM.currentVideo?.isMirror ?? false,
+                        tint: (editorVM.currentVideo?.isMirror ?? false) ? IOS26Theme.accent : IOS26Theme.accentSecondary
+                    )
             }
             .buttonStyle(.plain)
         }
@@ -80,22 +87,22 @@ extension CropSheetView{
     
     
     private var tabButtons: some View{
-        HStack{
+        HStack(spacing: 12){
             ForEach(Tab.allCases, id: \.self){tab in
-                VStack(spacing: 0) {
-                    Text(tab.rawValue.capitalized)
-                        .font(.subheadline)
-                        .padding(.bottom, 5)
-                    if currentTab == tab{
-                        Rectangle()
-                          .frame(height: 1)
-                    }
-                }
-                .foregroundColor(tab == currentTab ? .white : .secondary)
-                .hCenter()
-                .onTapGesture {
+                Button {
                     currentTab = tab
+                } label: {
+                    Text(tab.rawValue.capitalized)
+                        .font(.subheadline.weight(.semibold))
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .foregroundStyle(.white)
+                        .ios26CapsuleControl(
+                            prominent: currentTab == tab,
+                            tint: currentTab == tab ? IOS26Theme.accent : IOS26Theme.accentSecondary
+                        )
                 }
+                .buttonStyle(.plain)
             }
         }
     }

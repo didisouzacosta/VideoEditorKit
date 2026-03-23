@@ -28,22 +28,31 @@ struct MainEditorView: View {
     }
 
     var body: some View {
-        ZStack{
+        ZStack {
+            IOS26Theme.editorBackground
+                .ignoresSafeArea()
+            IOS26Theme.editorGlow
+                .ignoresSafeArea()
+
             GeometryReader { proxy in
-                VStack(spacing: 0){
+                VStack(spacing: 14) {
                     headerView
                     PlayerHolderView(isFullScreen: $isFullScreen, editorVM: editorVM, videoPlayer: videoPlayer, textEditor: textEditor)
-                        .frame(height: proxy.size.height / (isFullScreen ?  1.25 : 1.8))
+                        .frame(height: proxy.size.height / (isFullScreen ? 1.25 : 1.85))
+                        .padding(.horizontal, 16)
                     PlayerControl(isFullScreen: $isFullScreen, recorderManager: audioRecorder, editorVM: editorVM, videoPlayer: videoPlayer, textEditor: textEditor)
+                        .padding(.horizontal, 16)
                     ToolsSectionView(videoPlayer: videoPlayer, editorVM: editorVM, textEditor: textEditor)
                         .opacity(isFullScreen ? 0 : 1)
-                        .padding(.top, 5)
+                        .padding(.horizontal, 16)
                 }
+                .padding(.top, 8)
+                .padding(.bottom, 16)
                 .onAppear {
                     setVideoIfNeeded(proxy)
                 }
             }
-            
+
             if showVideoQualitySheet, let video = editorVM.currentVideo{
                 VideoExporterBottomSheetView(isPresented: $showVideoQualitySheet, video: video) { exportedURL in
                     videoPlayer.pause()
@@ -52,7 +61,6 @@ struct MainEditorView: View {
                 }
             }
         }
-        .background(.black)
         .toolbar(.hidden, for: .navigationBar)
         .ignoresSafeArea(.all, edges: .top)
         .fullScreenCover(isPresented: $showRecordView) {
@@ -76,26 +84,42 @@ struct MainEditorView: View {
 
 extension MainEditorView{
     private var headerView: some View{
-        HStack{
+        HStack {
             Button {
                 videoPlayer.pause()
                 dismiss()
             } label: {
                 Image(systemName: "chevron.left")
+                    .font(.headline.weight(.semibold))
+                    .frame(width: 46, height: 46)
+                    .foregroundStyle(.white)
+                    .ios26CircleControl()
             }
+            .buttonStyle(.plain)
 
             Spacer()
-            
+
             Button {
                 presentExporter()
             } label: {
-                Image(systemName: "square.and.arrow.up.fill")
+                Label("Export", systemImage: "square.and.arrow.up.fill")
+                    .font(.subheadline.weight(.semibold))
+                    .padding(.horizontal, 18)
+                    .padding(.vertical, 12)
+                    .foregroundStyle(.white)
+                    .ios26CapsuleControl(prominent: true, tint: IOS26Theme.accent)
             }
+            .buttonStyle(.plain)
         }
-        .foregroundStyle(.white)
-        .padding(.horizontal, 20)
-        .frame(height: 50)
-        .padding(.bottom)
+        .overlay {
+            Text("Editor")
+                .font(.subheadline.weight(.semibold))
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .foregroundStyle(.white.opacity(0.95))
+                .ios26CapsuleControl(tint: IOS26Theme.accentSecondary)
+        }
+        .padding(.horizontal, 16)
     }
 
     private func setVideoIfNeeded(_ proxy: GeometryProxy){

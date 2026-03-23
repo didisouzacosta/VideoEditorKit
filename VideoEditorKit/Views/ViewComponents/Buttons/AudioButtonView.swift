@@ -15,16 +15,23 @@ struct AudioButtonView: View {
     @State private var audioSimples = [Audio.AudioSimple]()
     var body: some View {
         GeometryReader { proxy in
-            ZStack{
-                Color(.systemGray5)
+            ZStack {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(.white.opacity(0.10))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .strokeBorder(.white.opacity(0.10), lineWidth: 1)
+                    }
+
                 if let audio = video.audio{
                     audioButton(proxy, audio)
                 }else if recorderManager.recordState == .recording{
                     recordRectangle(proxy)
                 }
             }
+            .clipShape(.rect(cornerRadius: 14))
         }
-        .frame(height: 40)
+        .frame(height: 44)
     }
 }
 
@@ -36,7 +43,7 @@ extension AudioButtonView{
     private func recordRectangle(_ proxy: GeometryProxy) -> some View{
         let width = getWidthFromDuration(allWight: proxy.size.width, currentDuration: recorderManager.currentRecordTime, totalDuration: video.totalDuration)
         return RoundedRectangle(cornerRadius: 8)
-            .fill(Color.red.opacity(0.5))
+            .fill(IOS26Theme.accent.opacity(0.65))
             .frame(width: width)
             .hLeading()
             .animation(.easeIn, value: recorderManager.currentRecordTime)
@@ -45,12 +52,12 @@ extension AudioButtonView{
     private func audioButton(_ proxy: GeometryProxy, _ audio: Audio) -> some View{
         let width = getWidthFromDuration(allWight: proxy.size.width, currentDuration: audio.duration, totalDuration: video.totalDuration)
         return RoundedRectangle(cornerRadius: 8)
-            .fill(Color.red.opacity(0.5))
+            .fill(IOS26Theme.accent.opacity(isSelectedTrack ? 0.48 : 0.70))
             .overlay {
                 ZStack{
                     if !isSelectedTrack{
                         RoundedRectangle(cornerRadius: 8)
-                            .strokeBorder(lineWidth: 2)
+                            .strokeBorder(.white, lineWidth: 2)
                     }
                     HStack(spacing: 1){
                         ForEach(audioSimples) { simple in
@@ -67,7 +74,9 @@ extension AudioButtonView{
                 audioSimples = audio.createSimples(width)
             }
             .onTapGesture {
-                isSelectedTrack.toggle()
+                withAnimation(.easeInOut(duration: 0.15)) {
+                    isSelectedTrack.toggle()
+                }
             }
     }
 

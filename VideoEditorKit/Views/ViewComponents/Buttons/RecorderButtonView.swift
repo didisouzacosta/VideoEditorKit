@@ -61,27 +61,40 @@ extension RecorderButtonView{
             startTimer()
         } label: {
             Image(systemName: "mic.fill")
-                .foregroundColor(.white)
+                .font(.headline.weight(.semibold))
+                .frame(width: 44, height: 44)
+                .foregroundStyle(.white)
+                .ios26CircleControl(prominent: true, tint: IOS26Theme.accent)
         }
+        .buttonStyle(.plain)
     }
     
     private var timerButton: some View{
-        Text("\(timeRemaining)")
-            .font(.subheadline.bold())
-            .foregroundColor(.red)
-            .onTapGesture {
-                state = .empty
-                stopTimer()
-            }
+        Button {
+            state = .empty
+            stopTimer()
+        } label: {
+            Text("\(timeRemaining)")
+                .font(.subheadline.bold())
+                .frame(width: 44, height: 44)
+                .foregroundStyle(.white)
+                .ios26CircleControl(prominent: true, tint: IOS26Theme.accentSecondary)
+        }
+        .buttonStyle(.plain)
     }
     
     private var stopButton:  some View{
-        Image(systemName: "stop.fill")
-            .foregroundColor(.red)
-            .onTapGesture {
-                state = .empty
-                recorderManager.stopRecording()
-            }
+        Button {
+            state = .empty
+            recorderManager.stopRecording()
+        } label: {
+            Image(systemName: "stop.fill")
+                .font(.headline.weight(.semibold))
+                .frame(width: 44, height: 44)
+                .foregroundStyle(.white)
+                .ios26CircleControl(prominent: true, tint: .red)
+        }
+        .buttonStyle(.plain)
     }
     
     

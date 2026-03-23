@@ -34,48 +34,53 @@ extension TextToolsView{
     
     private func cellView(_ textBox: TextBox) -> some View{
         let isSelected = editor.isSelected(textBox.id)
-        return ZStack{
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color(isSelected ?  .systemGray : .systemGray4))
-            Text(textBox.text)
-                .lineLimit(1)
-                .font(.caption)
+        return Button {
+            if isSelected{
+                editor.openTextEditor(isEdit: true, textBox)
+            }else{
+                editor.selectTextBox(textBox)
+            }
+        } label: {
+            ZStack{
+                Text(textBox.text)
+                    .lineLimit(1)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 10)
+            }
+            .frame(width: 80, height: 80)
+            .ios26Card(cornerRadius: 20, prominent: isSelected, tint: isSelected ? IOS26Theme.accent : IOS26Theme.accentSecondary)
         }
-        .frame(width: 80, height: 80)
         .overlay(alignment: .topLeading) {
             if isSelected{
                 Button {
                     editor.removeTextBox()
                 } label: {
                     Image(systemName: "xmark")
-                        .imageScale(.small)
-                        .foregroundStyle(Color(.systemGray2))
-                        .padding(5)
-                        .background(Color.black, in: Circle())
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 28, height: 28)
+                        .ios26CircleControl()
                 }
                 .padding(5)
             }
         }
-        .onTapGesture {
-            if isSelected{
-                editor.openTextEditor(isEdit: true, textBox)
-            }else{
-                editor.selectTextBox(textBox)
-            }
-        }
+        .buttonStyle(.plain)
     }
     
     private var addTextButton: some View{
-        ZStack{
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color(.systemGray4))
-            Text("+T")
-                .font(.title2.weight(.light))
-        }
-        .frame(width: 80, height: 80)
-        .onTapGesture {
+        Button {
             editor.openTextEditor(isEdit: false, timeRange: video.rangeDuration)
+        } label: {
+            ZStack{
+                Text("+T")
+                    .font(.title2.weight(.light))
+                    .foregroundStyle(.white)
+            }
+            .frame(width: 80, height: 80)
+            .ios26Card(cornerRadius: 20, tint: IOS26Theme.accentSecondary)
         }
+        .buttonStyle(.plain)
     }
 }
 

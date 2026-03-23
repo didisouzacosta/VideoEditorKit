@@ -17,16 +17,18 @@ struct ToolsSectionView: View {
     let textEditor: TextEditorViewModel
     private let columns = Array(repeating: GridItem(.flexible()), count: 4)
     var body: some View {
-        ZStack{
-            LazyVGrid(columns: columns, alignment: .center, spacing: 8) {
+        ZStack {
+            LazyVGrid(columns: columns, alignment: .center, spacing: 10) {
                 ForEach(ToolEnum.allCases, id: \.self) { tool in
                     ToolButtonView(label: tool.title, image: tool.image, isChange: editorVM.currentVideo?.isAppliedTool(for: tool) ?? false) {
                         editorVM.selectedTools = tool
                     }
                 }
             }
-            .padding()
+            .padding(14)
+            .ios26Card(cornerRadius: 30, tint: IOS26Theme.accentSecondary)
             .opacity(editorVM.selectedTools != nil ? 0 : 1)
+
             if let toolState = editorVM.selectedTools, let video = editorVM.currentVideo{
                 bottomSheet(toolState, video)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -77,7 +79,6 @@ extension ToolsSectionView{
         let isAppliedTool = video.isAppliedTool(for: tool)
         
         VStack(spacing: 16){
-            
             sheetHeader(tool)
             switch tool {
             case .cut:
@@ -115,8 +116,9 @@ extension ToolsSectionView{
             }
             Spacer()
         }
-        .padding([.horizontal, .top])
-        .background(Color(.systemGray6))
+        .padding(16)
+        .foregroundStyle(.white)
+        .ios26Card(cornerRadius: 30, prominent: true, tint: IOS26Theme.accentSecondary)
     }
 }
 
@@ -128,18 +130,24 @@ extension ToolsSectionView{
                 editorVM.selectedTools = nil
             } label: {
                 Image(systemName: "chevron.down")
-                    .imageScale(.small)
+                    .font(.headline.weight(.semibold))
+                    .frame(width: 40, height: 40)
                     .foregroundStyle(.white)
-                    .padding(10)
-                    .background(Color(.systemGray5), in: RoundedRectangle(cornerRadius: 5))
+                    .ios26CircleControl()
             }
+            .buttonStyle(.plain)
+
             Spacer()
             if tool != .filters, tool != .audio, tool != .text{
                 Button {
                     editorVM.reset()
                 } label: {
                     Text("Reset")
-                        .font(.subheadline)
+                        .font(.subheadline.weight(.semibold))
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .foregroundStyle(.white)
+                        .ios26CapsuleControl()
                 }
                 .buttonStyle(.plain)
             }else if !editorVM.isSelectVideo{
@@ -148,13 +156,18 @@ extension ToolsSectionView{
                     editorVM.removeAudio()
                 } label: {
                     Image(systemName: "trash.fill")
+                        .font(.headline.weight(.semibold))
                         .foregroundStyle(.white)
+                        .frame(width: 40, height: 40)
+                        .ios26CircleControl()
                 }
+                .buttonStyle(.plain)
             }
         }
         .overlay {
             Text(tool.title)
                 .font(.headline)
+                .foregroundStyle(.white)
         }
     }
     

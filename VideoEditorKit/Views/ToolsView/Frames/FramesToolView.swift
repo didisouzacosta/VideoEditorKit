@@ -15,22 +15,39 @@ struct FramesToolView: View {
     var body: some View {
         VStack(spacing: 20){
             ScrollView(.horizontal){
-                HStack{
+                HStack(spacing: 12){
                     ForEach(colors, id: \.self) { color in
-                        color
-                            .frame(width: 30, height: 30)
-                            .clipShape(Circle())
-                            .onTapGesture {
-                                selectedColor = color
-                                onChange()
-                            }
+                        Button {
+                            selectedColor = color
+                            onChange()
+                        } label: {
+                            color
+                                .frame(width: 34, height: 34)
+                                .clipShape(Circle())
+                                .overlay {
+                                    Circle()
+                                        .strokeBorder(selectedColor == color ? .white : .white.opacity(0.16), lineWidth: selectedColor == color ? 2 : 1)
+                                }
+                                .padding(5)
+                                .ios26CircleControl(
+                                    prominent: selectedColor == color,
+                                    tint: selectedColor == color ? IOS26Theme.accentSecondary : nil
+                                )
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
             }
-            Slider(value: $scaleValue, in: 0...0.5) { change in
-                if !change{
-                    onChange()
+            VStack(spacing: 12) {
+                Text("Frame Scale")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.white)
+                Slider(value: $scaleValue, in: 0...0.5) { change in
+                    if !change{
+                        onChange()
+                    }
                 }
+                .tint(IOS26Theme.accent)
             }
         }
     }

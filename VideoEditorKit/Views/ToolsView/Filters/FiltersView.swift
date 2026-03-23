@@ -13,7 +13,7 @@ struct FiltersView: View {
     let onChangeFilter: (String?) -> Void
     var body: some View {
         ScrollView(.horizontal) {
-            LazyHStack(alignment: .center, spacing: 5) {
+            LazyHStack(alignment: .center, spacing: 10) {
                 resetButton
                 ForEach(viewModel.images) { filterImage in
                     Button {
@@ -24,7 +24,7 @@ struct FiltersView: View {
                     .buttonStyle(.plain)
                 }
             }
-            .frame(height: 60)
+            .frame(height: 76)
             .padding(.horizontal)
         }
         .scrollIndicators(.hidden)
@@ -40,9 +40,15 @@ extension FiltersView{
         Image(uiImage: uiImage)
             .resizable()
             .aspectRatio(contentMode: .fill)
-            .frame(width: 55, height: 55)
+            .frame(width: 60, height: 60)
             .clipped()
-            .border(.white, width: isSelected ? 2 : 0)
+            .clipShape(.rect(cornerRadius: 18))
+            .overlay {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(isSelected ? .white : .white.opacity(0.10), lineWidth: isSelected ? 2 : 1)
+            }
+            .padding(4)
+            .ios26Card(cornerRadius: 22, prominent: isSelected, tint: isSelected ? IOS26Theme.accent : IOS26Theme.accentSecondary)
     }
     
     
@@ -51,12 +57,12 @@ extension FiltersView{
         Group{
             if let image = viewModel.image{
                 Button {
-                        selectedFilterName = nil
+                    selectedFilterName = nil
                 } label: {
                     imageView(image, isSelected: selectedFilterName == nil)
                 }
                 .buttonStyle(.plain)
-                .padding(.trailing, 30)
+                .padding(.trailing, 14)
             }
         }
     }

@@ -12,21 +12,28 @@ struct CorrectionsToolView: View {
     @Binding var correction: ColorCorrection
     let onChange: (ColorCorrection) -> Void
     var body: some View {
-        VStack(spacing: 20){
-            
-            HStack{
+        VStack(spacing: 24){
+            HStack(spacing: 12){
                 ForEach(CorrectionType.allCases, id: \.self) { type in
-                    Text(type.rawValue)
-                        .font(.subheadline)
-                        .hCenter()
-                        .foregroundColor(currentTab == type ? .white : .secondary)
-                        .onTapGesture {
-                            currentTab = type
-                        }
+                    Button {
+                        currentTab = type
+                    } label: {
+                        Text(type.rawValue)
+                            .font(.subheadline.weight(.semibold))
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 10)
+                            .foregroundStyle(.white)
+                            .ios26CapsuleControl(
+                                prominent: currentTab == type,
+                                tint: currentTab == type ? IOS26Theme.accent : IOS26Theme.accentSecondary
+                            )
+                    }
+                    .buttonStyle(.plain)
                 }
             }
             slider
         }
+        .foregroundStyle(.white)
     }
 }
 
@@ -38,25 +45,21 @@ struct CorrectionsToolView_Previews: PreviewProvider {
 
 
 extension CorrectionsToolView{
-    
-   
-    
     private var slider: some View{
-        
         let value = getValue(currentTab)
-            
-        return VStack {
-            Text(String(format: "%.1f",  value.wrappedValue))
-                .font(.subheadline)
+
+        return VStack(spacing: 14) {
+            Text(value.wrappedValue, format: .number.precision(.fractionLength(1)))
+                .font(.title3.monospacedDigit().weight(.semibold))
             Slider(value: value, in: -1...1) { change in
                 if !change{
                     onChange(correction)
                 }
             }
-            .tint(Color.white)
+            .tint(IOS26Theme.accent)
         }
     }
-    
+
     func getValue(_ type: CorrectionType) -> Binding<Double>{
         switch type {
         case .brightness:

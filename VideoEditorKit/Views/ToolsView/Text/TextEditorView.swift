@@ -15,53 +15,67 @@ struct TextEditorView: View{
     @State private var isFocused: Bool = true
     let onSave: ([TextBox]) -> Void
     var body: some View{
-        Color.black.opacity(0.35)
+        IOS26Theme.scrim
                 .ignoresSafeArea()
-        VStack{
+        VStack(spacing: 24) {
+            HStack {
+                Button{
+                    closeKeyboard()
+                    viewModel.cancelTextEditor()
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.headline.weight(.semibold))
+                        .frame(width: 44, height: 44)
+                        .foregroundStyle(.white)
+                        .ios26CircleControl()
+                }
+                .buttonStyle(.plain)
+
+                Spacer()
+
+                HStack(spacing: 14){
+                    ColorPicker(selection: $viewModel.currentTextBox.fontColor, supportsOpacity: true) {
+                    }
+                    .labelsHidden()
+                    .padding(10)
+                    .ios26CircleControl(tint: IOS26Theme.accent)
+
+                    ColorPicker(selection: $viewModel.currentTextBox.bgColor, supportsOpacity: true) {
+                    }
+                    .labelsHidden()
+                    .padding(10)
+                    .ios26CircleControl(tint: IOS26Theme.accentSecondary)
+                }
+            }
+
             Spacer()
+
             TextView(textBox: $viewModel.currentTextBox, isFirstResponder: $isFocused, minHeight: textHeight, calculatedHeight: $textHeight)
                 .frame(maxHeight: textHeight)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 18)
+                .ios26Card(cornerRadius: 30, prominent: true, tint: IOS26Theme.accentSecondary)
+
             Spacer()
-            
+
             Button {
                 closeKeyboard()
                 viewModel.saveTapped()
                 onSave(viewModel.textBoxes)
             } label: {
                 Text("Save")
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 12)
-                    .foregroundStyle(.black)
-                    .background(Color.white, in: RoundedRectangle(cornerRadius: 20))
-                    .opacity(viewModel.currentTextBox.text.isEmpty ? 0.5 : 1)
-                    .disabled(viewModel.currentTextBox.text.isEmpty)
+                    .font(.headline.weight(.semibold))
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 14)
+                    .foregroundStyle(.white)
+                    .ios26CapsuleControl(prominent: true, tint: IOS26Theme.accent)
             }
-            .hCenter()
-            .overlay(alignment: .leading) {
-                HStack {
-                    Button{
-                        closeKeyboard()
-                        viewModel.cancelTextEditor()
-                    } label: {
-                        Image(systemName: "xmark")
-                            .padding(12)
-                            .foregroundStyle(.white)
-                            .background(Color.secondary, in: Circle())
-                    }
-                    
-                    Spacer()
-                    HStack(spacing: 20){
-                        ColorPicker(selection: $viewModel.currentTextBox.fontColor, supportsOpacity: true) {
-                        }.labelsHidden()
-                       
-                        ColorPicker(selection: $viewModel.currentTextBox.bgColor, supportsOpacity: true) {
-                        }.labelsHidden()
-                    }
-                }
-            }
+            .buttonStyle(.plain)
+            .opacity(viewModel.currentTextBox.text.isEmpty ? 0.5 : 1)
+            .disabled(viewModel.currentTextBox.text.isEmpty)
         }
-        .padding(.bottom)
-        .padding(.horizontal)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 24)
     }
     
     

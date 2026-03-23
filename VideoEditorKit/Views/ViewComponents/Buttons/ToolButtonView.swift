@@ -12,24 +12,28 @@ struct ToolButtonView: View {
     let image: String
     let isChange: Bool
     let action: () -> Void
-    
-    
-    private var bgColor: Color{
-        Color(isChange ? .systemGray5 : .systemGray6)
-    }
+
     var body: some View {
         Button {
             action()
         } label: {
             VStack(spacing: 4) {
                 Image(systemName: image)
-                    .imageScale(.medium)
+                    .font(.headline.weight(.semibold))
                 Text(label)
-                    .font(.caption)
+                    .font(.caption.weight(.medium))
             }
-            .frame(height: 85)
-            .hCenter()
-            .background(bgColor, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .frame(maxWidth: .infinity, minHeight: 85)
+            .foregroundStyle(.white)
+            .overlay(alignment: .topTrailing) {
+                if isChange {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.white)
+                        .padding(8)
+                }
+            }
+            .ios26Card(cornerRadius: 20, prominent: isChange, tint: isChange ? IOS26Theme.accent : IOS26Theme.accentSecondary)
         }
         .buttonStyle(.plain)
     }

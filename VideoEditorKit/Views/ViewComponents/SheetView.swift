@@ -22,7 +22,7 @@ struct SheetView<Content: View>: View {
     }
     var body: some View {
         ZStack(alignment: .bottom){
-            Color.black.opacity(bgOpacity)
+            IOS26Theme.scrim.opacity(max(bgOpacity * 2, 0.15))
                 .onTapGesture {
                     closeSheet()
                 }
@@ -48,36 +48,38 @@ struct SheetView<Content: View>: View {
 extension SheetView{
     private var sheetLayer: some View{
         VStack(spacing: 0){
-            HStack(alignment: .top, spacing: -20){
-                Spacer()
+            HStack {
                 Capsule()
-                    .fill(Color(.systemGray4))
-                    .frame(width: 80, height: 6)
+                    .fill(.white.opacity(0.35))
+                    .frame(width: 56, height: 5)
                 Spacer()
                 Button {
                     closeSheet()
                 } label: {
                     Image(systemName: "xmark")
-                        .imageScale(.medium)
-                        .foregroundColor(.white)
+                        .font(.footnote.weight(.bold))
+                        .frame(width: 36, height: 36)
+                        .foregroundStyle(.white)
+                        .ios26CircleControl()
                 }
             }
-            .padding(.top, 10)
-            .padding(.horizontal)
+            .padding(.top, 18)
+            .padding(.horizontal, 18)
             content
-                .padding(.horizontal)
-                .padding(.top, 10)
-                .padding(.bottom, 40)
+                .padding(.horizontal, 18)
+                .padding(.top, 14)
+                .padding(.bottom, 28)
         }
         .frame(maxWidth: .infinity)
-        .background(Color(.systemGray6))
-        .clipShape(CustomCorners(corners: [.topLeft, .topRight], radius: 12))
-        .shadow(color: .black.opacity(0.1), radius: 5, x: 0, y: -5)
+        .ios26Card(cornerRadius: 32, prominent: true, tint: IOS26Theme.accentSecondary)
+        .padding(.horizontal, 12)
+        .padding(.bottom, 12)
+        .offset(y: max(slideGesture.height, 0))
         .gesture(DragGesture().onChanged{ value in
             self.slideGesture = value.translation
         }
             .onEnded{ value in
-                if self.slideGesture.height > -10 {
+                if self.slideGesture.height > 90 {
                     closeSheet()
                 }
                 self.slideGesture = .zero
@@ -102,5 +104,4 @@ struct CustomCorners: Shape {
         return Path(path.cgPath)
     }
 }
-
 

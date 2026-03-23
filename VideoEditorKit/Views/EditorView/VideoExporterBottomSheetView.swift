@@ -44,68 +44,86 @@ struct VideoExporterBottomSheetView: View {
 }
 
 extension VideoExporterBottomSheetView{
-    
-    
     private var list: some View{
-        Group{
+        VStack(alignment: .leading, spacing: 18) {
+            Text("Export Video")
+                .font(.title3.bold())
+                .foregroundStyle(.white)
+
+            Text("Choose the output quality for the rendered file.")
+                .font(.subheadline)
+                .foregroundStyle(.white.opacity(0.78))
+
             qualityListSection
 
             if case .failed = viewModel.renderState {
                 Text("The video could not be exported. Check the current edit state and try again.")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .padding(.top, 8)
+                    .foregroundStyle(.white.opacity(0.78))
             }
 
-            exportButton
-                .padding(.top, 14)
+            exportButton.padding(.top, 4)
         }
     }
     
     private var loadingView: some View{
-        VStack(spacing: 30){
+        VStack(spacing: 22){
             ProgressView()
-                .scaleEffect(2)
+                .controlSize(.large)
+                .tint(.white)
             Text(viewModel.progressTimer.formatted())
+                .font(.title.monospacedDigit())
+                .foregroundStyle(.white)
             Text("Video export in progress")
                 .font(.headline)
+                .foregroundStyle(.white)
             Text("The edited video will be returned to the example screen.")
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.white.opacity(0.78))
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     
     private var qualityListSection: some View{
-        ForEach(VideoQuality.allCases.reversed(), id: \.self) { type in
-            
-            HStack{
-                VStack(alignment: .leading) {
-                    Text(type.title)
-                        .font(.headline)
-                    Text(type.subtitle)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+        VStack(spacing: 12) {
+            ForEach(VideoQuality.allCases.reversed(), id: \.self) { type in
+                Button {
+                    viewModel.selectedQuality = type
+                } label: {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(type.title)
+                                .font(.headline)
+                            Text(type.subtitle)
+                                .font(.subheadline)
+                                .foregroundStyle(.white.opacity(0.72))
+                        }
+
+                        Spacer()
+
+                        VStack(alignment: .trailing, spacing: 4) {
+                            if let value = type.calculateVideoSize(duration: viewModel.video.totalDuration){
+                                Text("\(value.formatted(.number.precision(.fractionLength(1))))Mb")
+                                    .font(.subheadline.weight(.semibold))
+                            }
+
+                            Image(systemName: viewModel.selectedQuality == type ? "checkmark.circle.fill" : "circle")
+                                .font(.headline)
+                                .foregroundStyle(viewModel.selectedQuality == type ? .white : .white.opacity(0.5))
+                        }
+                    }
+                    .padding(14)
+                    .foregroundStyle(.white)
+                    .ios26Card(
+                        cornerRadius: 22,
+                        prominent: viewModel.selectedQuality == type,
+                        tint: viewModel.selectedQuality == type ? IOS26Theme.accent : IOS26Theme.accentSecondary
+                    )
                 }
-                Spacer()
-                if let value = type.calculateVideoSize(duration: viewModel.video.totalDuration){
-                    Text("\(value.formatted(.number.precision(.fractionLength(1))))Mb")
-                }
-            }
-            .padding(10)
-            .hLeading()
-            .background{
-                if viewModel.selectedQuality == type{
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill( Color(.systemGray5))
-                }
-            }
-            .contentShape(Rectangle())
-            .onTapGesture {
-                viewModel.selectedQuality = type
+                .buttonStyle(.plain)
             }
         }
     }
-    
     
     private var exportButton: some View{
         Button {
@@ -117,19 +135,16 @@ extension VideoExporterBottomSheetView{
     }
     
     private func buttonLabel(_ label: String, icon: String) -> some View{
-        
-        HStack(spacing: 12){
+        HStack(spacing: 12) {
             Image(systemName: icon)
-                .imageScale(.large)
-                .padding(10)
-                .background(Color(.systemGray), in: Circle())
+                .font(.headline.weight(.semibold))
             Text(label)
-                .font(.headline)
+                .font(.headline.weight(.semibold))
         }
         .padding(.horizontal, 18)
-        .padding(.vertical, 10)
-        .background(Color(.systemGray6), in: .rect(cornerRadius: 16))
-        .foregroundStyle(.primary)
+        .padding(.vertical, 14)
+        .foregroundStyle(.white)
+        .ios26CapsuleControl(prominent: true, tint: IOS26Theme.accent)
     }
     
     

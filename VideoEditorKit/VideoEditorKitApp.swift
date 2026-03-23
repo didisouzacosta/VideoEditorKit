@@ -12,6 +12,7 @@ struct VideoEditorKitApp: App {
     var body: some Scene {
         WindowGroup {
             RootView()
+                .tint(IOS26Theme.accent)
         }
     }
 }
