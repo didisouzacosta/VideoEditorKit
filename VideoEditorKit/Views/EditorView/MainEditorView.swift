@@ -30,28 +30,35 @@ struct MainEditorView: View {
     var body: some View {
         NavigationStack {
             GeometryReader { proxy in
-                VStack(spacing: 14) {
+                VStack(spacing: 32) {
                     PlayerHolderView(
-                        isFullScreen: $isFullScreen, editorVM: editorVM, videoPlayer: videoPlayer,
+                        isFullScreen: $isFullScreen,
+                        editorVM: editorVM,
+                        videoPlayer: videoPlayer,
                         textEditor: textEditor
                     )
-                    .frame(height: playerHeight(in: proxy.size))
-                    .padding(.horizontal, 16)
+                    
                     PlayerControl(
-                        isFullScreen: $isFullScreen, recorderManager: audioRecorder, editorVM: editorVM,
-                        videoPlayer: videoPlayer, textEditor: textEditor
+                        isFullScreen: $isFullScreen,
+                        recorderManager: audioRecorder,
+                        editorVM: editorVM,
+                        videoPlayer: videoPlayer,
+                        textEditor: textEditor
                     )
-                    .padding(.horizontal, 16)
-                    ToolsSectionView(videoPlayer: videoPlayer, editorVM: editorVM, textEditor: textEditor)
-                        .opacity(isFullScreen ? 0 : 1)
-                        .padding(.horizontal, 16)
+                    
+                    if !isFullScreen {
+                        ToolsSectionView(
+                            videoPlayer: videoPlayer,
+                            editorVM: editorVM,
+                            textEditor: textEditor
+                        )
+                    }
                 }
-                .padding(.top, 12)
-                .padding(.bottom, max(proxy.safeAreaInsets.bottom, 16))
                 .onAppear {
                     setVideoIfNeeded(proxy.size)
                 }
             }
+            .safeAreaPadding()
 
             if showVideoQualitySheet, let video = editorVM.currentVideo {
                 VideoExporterBottomSheetView(isPresented: $showVideoQualitySheet, video: video) {
@@ -62,8 +69,6 @@ struct MainEditorView: View {
                 }
             }
         }
-        .navigationBarBackButtonHidden(true)
-        .toolbarBackground(.hidden, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button(role: .cancel) {
@@ -88,7 +93,6 @@ struct MainEditorView: View {
             cancelDeferredTasks()
         }
         .blur(radius: textEditor.showEditor ? 10 : 0)
-        .ignoresSafeArea(.keyboard, edges: .bottom)
         .overlay {
             if textEditor.showEditor {
                 TextEditorView(viewModel: textEditor, onSave: editorVM.setText)

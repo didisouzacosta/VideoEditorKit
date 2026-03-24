@@ -10,8 +10,10 @@ import SwiftUI
 @MainActor
 struct CropSheetView: View {
     @State var rotateValue: Double = 0
-    var editorVM: EditorViewModel
     @State private var currentTab: Tab = .rotate
+    
+    var editorVM: EditorViewModel
+    
     var body: some View {
         VStack(spacing: 28) {
             tabButtons
@@ -65,7 +67,6 @@ extension CropSheetView {
                     .frame(width: 44, height: 44)
                     .circleControl(tint: Theme.secondary)
             }
-            .buttonStyle(.plain)
 
             Button {
                 editorVM.toggleMirror()
@@ -79,7 +80,6 @@ extension CropSheetView {
                             ? Theme.accent : Theme.secondary
                     )
             }
-            .buttonStyle(.plain)
         }
     }
 
@@ -98,7 +98,6 @@ extension CropSheetView {
                             tint: currentTab == tab ? Theme.accent : Theme.secondary
                         )
                 }
-                .buttonStyle(.plain)
             }
         }
     }
