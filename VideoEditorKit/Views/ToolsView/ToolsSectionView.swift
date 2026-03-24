@@ -28,8 +28,6 @@ struct ToolsSectionView: View {
                     }
                 }
             }
-            .padding(14)
-            .card(cornerRadius: 30, tint: Theme.secondary)
             .opacity(editorVM.selectedTools != nil ? 0 : 1)
 
             if let toolState = editorVM.selectedTools, let video = editorVM.currentVideo {
@@ -63,7 +61,6 @@ struct ToolsSectionView: View {
             }
         }
         .onChange(of: editorVM.selectedTools) { _, newValue in
-
             if newValue == .text, textEditor.textBoxes.isEmpty {
                 textEditor.openTextEditor(isEdit: false, timeRange: editorVM.currentVideo?.rangeDuration)
             }

@@ -32,9 +32,6 @@ struct PlayerHolderView: View {
             }
             .allFrame()
         }
-        .foregroundStyle(Theme.accent)
-        .padding(14)
-        .card(cornerRadius: 34, prominent: true, tint: Theme.secondary)
     }
 }
 
@@ -172,8 +169,6 @@ struct PlayerControl: View {
             playSection
             if editorVM.currentVideo != nil {
                 timeLineControlSection
-                    .padding(12)
-                    .card(cornerRadius: 28, tint: Theme.secondary)
             }
         }
     }
@@ -215,7 +210,6 @@ struct PlayerControl: View {
                 editorVM.refreshThumbnailsIfNeeded(containerSize: size)
             }
         }
-        .padding(.horizontal)
     }
 
     private var playSection: some View {

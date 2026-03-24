@@ -45,6 +45,7 @@ struct MainEditorView: View {
                         videoPlayer: videoPlayer,
                         textEditor: textEditor
                     )
+                    .padding(.horizontal, 32)
                     
                     if !isFullScreen {
                         ToolsSectionView(
@@ -54,11 +55,11 @@ struct MainEditorView: View {
                         )
                     }
                 }
+                .safeAreaPadding()
                 .onAppear {
                     setVideoIfNeeded(proxy.size)
                 }
             }
-            .safeAreaPadding()
 
             if showVideoQualitySheet, let video = editorVM.currentVideo {
                 VideoExporterBottomSheetView(isPresented: $showVideoQualitySheet, video: video) {

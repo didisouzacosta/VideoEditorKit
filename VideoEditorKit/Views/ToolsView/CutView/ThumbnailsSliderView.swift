@@ -9,12 +9,18 @@ import AVKit
 import SwiftUI
 
 struct ThumbnailsSliderView: View {
+    private enum InteractionMode {
+        case scrub
+        case trim
+    }
+
     @State var rangeDuration: ClosedRange<Double> = 0...1
     @Binding var currentTime: Double
     @Binding var video: Video?
     var isChangeState: Bool?
     let onChangeTimeValue: () -> Void
     let onRequestThumbnails: (CGSize) -> Void
+    @State private var interactionMode: InteractionMode?
 
     private var totalDuration: Double {
         rangeDuration.upperBound - rangeDuration.lowerBound
@@ -61,7 +67,18 @@ struct ThumbnailsSliderView: View {
                 .simultaneousGesture(
                     DragGesture(minimumDistance: 0)
                         .onChanged { value in
+                            if interactionMode == nil {
+                                interactionMode = resolveInteractionMode(
+                                    startLocationX: value.startLocation.x,
+                                    width: proxy.size.width
+                                )
+                            }
+
+                            guard interactionMode == .scrub else { return }
                             updatePlaybackPosition(for: value.location.x, width: proxy.size.width)
+                        }
+                        .onEnded { _ in
+                            interactionMode = nil
                         }
                 )
                 .onAppear {
@@ -159,6 +176,24 @@ extension ThumbnailsSliderView {
         let rawTime = progress * video.originalDuration
         currentTime = rawTime.clamped(to: video.rangeDuration)
         onChangeTimeValue()
+    }
+
+    private func resolveInteractionMode(startLocationX: CGFloat, width: CGFloat) -> InteractionMode {
+        guard let video, width > 0, video.originalDuration > 0 else { return .scrub }
+
+        let lowerProgress = video.rangeDuration.lowerBound / video.originalDuration
+        let upperProgress = video.rangeDuration.upperBound / video.originalDuration
+        let lowerHandleX = width * lowerProgress
+        let upperHandleX = width * upperProgress
+        let trimHandleHitArea: CGFloat = 28
+
+        if abs(startLocationX - lowerHandleX) <= trimHandleHitArea
+            || abs(startLocationX - upperHandleX) <= trimHandleHitArea
+        {
+            return .trim
+        }
+
+        return .scrub
     }
 
     private func thumbnailRequestID(for size: CGSize) -> String {
