@@ -2,6 +2,7 @@ import XCTest
 
 @testable import VideoEditorKit
 
+@MainActor
 final class VideoModelTests: XCTestCase {
     func testUpdateRateRescalesSelectedRange() {
         var video = Video.mock

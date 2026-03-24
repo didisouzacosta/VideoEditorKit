@@ -42,7 +42,7 @@ struct SliderView<V>: View where V: BinaryFloatingPoint, V.Stride: BinaryFloatin
         GeometryReader { proxy in
             ZStack(alignment: .center) {
                 Capsule()
-                    .foregroundStyle(IOS26Theme.accent)
+                    .foregroundStyle(Theme.accent)
                     .frame(width: length, height: height)
                     .offset(x: (proxy.size.width - length) * ratio)
                     .gesture(

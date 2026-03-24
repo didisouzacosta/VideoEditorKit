@@ -46,14 +46,14 @@ extension FiltersView {
             .overlay {
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
                     .strokeBorder(
-                        isSelected ? IOS26Theme.primaryText : IOS26Theme.outline,
+                        isSelected ? Theme.primary : Theme.outline,
                         lineWidth: isSelected ? 2 : 1
                     )
             }
             .padding(4)
             .ios26Card(
                 cornerRadius: 22, prominent: isSelected,
-                tint: isSelected ? IOS26Theme.accent : IOS26Theme.accentSecondary)
+                tint: isSelected ? Theme.accent : Theme.secondary)
     }
 
     private var resetButton: some View {

@@ -29,7 +29,7 @@ struct LineSlider: View {
                 },
                 thumb: {
                     Capsule()
-                        .foregroundStyle(IOS26Theme.accent)
+                        .foregroundStyle(Theme.accent)
                 }, thumbSize: CGSize(width: 10, height: proxy.size.height))
         }
     }

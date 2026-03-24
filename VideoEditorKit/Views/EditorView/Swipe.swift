@@ -60,7 +60,7 @@ struct Swipe: ViewModifier {
     func body(content: Content) -> some View {
 
         ZStack {
-            IOS26Theme.destructive
+            Theme.destructive
 
             HStack {
                 Spacer()
@@ -69,7 +69,6 @@ struct Swipe: ViewModifier {
                 } label: {
                     Image(systemName: "trash")
                         .font(.title2)
-                        .foregroundStyle(IOS26Theme.primaryText)
                         .padding(.trailing)
                 }
             }
@@ -131,9 +130,9 @@ struct Delete: ViewModifier {
                 GeometryReader { geometry in
                     ZStack {
                         Rectangle()
-                            .foregroundStyle(IOS26Theme.destructive)
+                            .foregroundStyle(Theme.destructive)
                         Image(systemName: "trash")
-                            .foregroundStyle(IOS26Theme.primaryText)
+                            .foregroundStyle(Theme.primary)
                             .font(.title2.bold())
                             .layoutPriority(-1)
                     }

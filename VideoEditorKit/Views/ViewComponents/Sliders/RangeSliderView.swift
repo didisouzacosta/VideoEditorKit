@@ -109,12 +109,12 @@ struct RangedSliderView<T: View>: View {
         let handleWidth: CGFloat = 14
         Rectangle()
             .frame(width: handleWidth, height: height)
-            .foregroundStyle(IOS26Theme.destructive)
+            .foregroundStyle(Theme.destructive)
             .contentShape(Rectangle())
             .overlay(alignment: .center) {
                 Image(systemName: isLeftThumb ? "chevron.left" : "chevron.right")
                     .imageScale(.small)
-                    .foregroundStyle(IOS26Theme.primaryText)
+                    .foregroundStyle(Theme.primary)
             }
             .position(x: position.x + (isLeftThumb ? -(handleWidth / 2) : handleWidth / 2), y: position.y)
     }

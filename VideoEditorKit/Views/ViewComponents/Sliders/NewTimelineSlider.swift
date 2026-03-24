@@ -33,7 +33,7 @@ struct TimelineSlider<T: View, A: View>: View {
                     .position(x: sliderPositionX - actionWidth / 2, y: sliderViewYCenter)
                 HStack(spacing: 0) {
                     Capsule()
-                        .fill(IOS26Theme.sliderThumb)
+                        .fill(Theme.sliderThumb)
                         .frame(width: 4, height: proxy.size.height)
                     actionView()
                         .frame(width: actionWidth)

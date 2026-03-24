@@ -22,7 +22,7 @@ struct SheetView<Content: View>: View {
     }
     var body: some View {
         ZStack(alignment: .bottom) {
-            IOS26Theme.scrim.opacity(max(bgOpacity * 2, 0.15))
+            Theme.scrim.opacity(max(bgOpacity * 2, 0.15))
                 .onTapGesture {
                     closeSheet()
                 }
@@ -49,7 +49,7 @@ extension SheetView {
         VStack(spacing: 0) {
             HStack {
                 Capsule()
-                    .fill(IOS26Theme.outline)
+                    .fill(Theme.outline)
                     .frame(width: 56, height: 5)
                 Spacer()
                 Button {
@@ -58,7 +58,7 @@ extension SheetView {
                     Image(systemName: "xmark")
                         .font(.footnote.weight(.bold))
                         .frame(width: 36, height: 36)
-                        .foregroundStyle(IOS26Theme.primaryText)
+                        .foregroundStyle(Theme.primary)
                         .ios26CircleControl()
                 }
             }
@@ -70,7 +70,7 @@ extension SheetView {
                 .padding(.bottom, 28)
         }
         .frame(maxWidth: .infinity)
-        .ios26Card(cornerRadius: 32, prominent: true, tint: IOS26Theme.accentSecondary)
+        .ios26Card(cornerRadius: 32, prominent: true, tint: Theme.secondary)
         .padding(.horizontal, 12)
         .padding(.bottom, 12)
         .offset(y: max(slideGesture.height, 0))

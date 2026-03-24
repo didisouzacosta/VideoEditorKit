@@ -18,10 +18,10 @@ struct AudioButtonView: View {
         GeometryReader { proxy in
             ZStack {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(IOS26Theme.outline.opacity(0.25))
+                    .fill(Theme.outline.opacity(0.25))
                     .overlay {
                         RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .strokeBorder(IOS26Theme.outline, lineWidth: 1)
+                            .strokeBorder(Theme.outline, lineWidth: 1)
                     }
 
                 if let audio = video.audio {
@@ -45,7 +45,7 @@ extension AudioButtonView {
         )
 
         return RoundedRectangle(cornerRadius: 8)
-            .fill(IOS26Theme.accent.opacity(0.65))
+            .fill(Theme.accent.opacity(0.65))
             .frame(width: width)
             .hLeading()
             .animation(.easeIn, value: recorderManager.currentRecordTime)
@@ -59,18 +59,18 @@ extension AudioButtonView {
         )
 
         return RoundedRectangle(cornerRadius: 8)
-            .fill(IOS26Theme.accent.opacity(isSelectedTrack ? 0.48 : 0.70))
+            .fill(Theme.accent.opacity(isSelectedTrack ? 0.48 : 0.70))
             .overlay {
                 ZStack {
                     if !isSelectedTrack {
                         RoundedRectangle(cornerRadius: 8)
-                            .strokeBorder(IOS26Theme.primaryText, lineWidth: 2)
+                            .strokeBorder(Theme.primary, lineWidth: 2)
                     }
 
                     HStack(spacing: 1) {
                         ForEach(audioSamples) { sample in
                             Capsule()
-                                .fill(IOS26Theme.primaryText)
+                                .fill(Theme.primary)
                                 .frame(width: 2, height: sample.size)
                         }
                     }

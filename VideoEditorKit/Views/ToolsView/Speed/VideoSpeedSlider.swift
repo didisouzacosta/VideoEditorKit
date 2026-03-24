@@ -16,7 +16,6 @@ struct VideoSpeedSlider: View {
         VStack(spacing: 16) {
             Text("\(value, format: .number.precision(.fractionLength(1)))x")
                 .font(.title3.monospacedDigit().weight(.semibold))
-                .foregroundStyle(IOS26Theme.primaryText)
             CustomSlider(
                 value: $value,
                 in: rateRange,
@@ -28,12 +27,12 @@ struct VideoSpeedSlider: View {
                 },
                 track: {
                     Capsule()
-                        .fill(IOS26Theme.sliderTrack)
+                        .fill(Theme.sliderTrack)
                         .frame(width: 250, height: 5)
                 },
                 thumb: {
                     Circle()
-                        .fill(IOS26Theme.sliderThumb)
+                        .fill(Theme.sliderThumb)
                 }, thumbSize: CGSize(width: 20, height: 20))
         }
         .onChange(of: isChangeState) { _, isChange in

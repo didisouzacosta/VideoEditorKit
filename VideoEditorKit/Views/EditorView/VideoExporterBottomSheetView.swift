@@ -48,18 +48,17 @@ extension VideoExporterBottomSheetView {
         VStack(alignment: .leading, spacing: 18) {
             Text("Export Video")
                 .font(.title3.bold())
-                .foregroundStyle(IOS26Theme.primaryText)
 
             Text("Choose the output quality for the rendered file.")
                 .font(.subheadline)
-                .foregroundStyle(IOS26Theme.secondaryText)
+                .foregroundStyle(Theme.secondary)
 
             qualityListSection
 
             if case .failed = viewModel.renderState {
                 Text("The video could not be exported. Check the current edit state and try again.")
                     .font(.footnote)
-                    .foregroundStyle(IOS26Theme.secondaryText)
+                    .foregroundStyle(Theme.secondary)
             }
 
             exportButton.padding(.top, 4)
@@ -70,16 +69,14 @@ extension VideoExporterBottomSheetView {
         VStack(spacing: 22) {
             ProgressView()
                 .controlSize(.large)
-                .tint(IOS26Theme.accent)
+                .tint(Theme.accent)
             Text(viewModel.progressTimer.formatted())
                 .font(.title.monospacedDigit())
-                .foregroundStyle(IOS26Theme.primaryText)
             Text("Video export in progress")
                 .font(.headline)
-                .foregroundStyle(IOS26Theme.primaryText)
             Text("The edited video will be returned to the example screen.")
                 .font(.subheadline)
-                .foregroundStyle(IOS26Theme.secondaryText)
+                .foregroundStyle(Theme.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -96,7 +93,7 @@ extension VideoExporterBottomSheetView {
                                 .font(.headline)
                             Text(type.subtitle)
                                 .font(.subheadline)
-                                .foregroundStyle(IOS26Theme.secondaryText)
+                                .foregroundStyle(.secondary)
                         }
 
                         Spacer()
@@ -113,16 +110,15 @@ extension VideoExporterBottomSheetView {
                             .font(.headline)
                             .foregroundStyle(
                                 viewModel.selectedQuality == type
-                                    ? IOS26Theme.primaryText : IOS26Theme.tertiaryText
+                                ? Theme.primary : Theme.secondary
                             )
                         }
                     }
                     .padding(14)
-                    .foregroundStyle(IOS26Theme.primaryText)
                     .ios26Card(
                         cornerRadius: 22,
                         prominent: viewModel.selectedQuality == type,
-                        tint: viewModel.selectedQuality == type ? IOS26Theme.accent : IOS26Theme.accentSecondary
+                        tint: viewModel.selectedQuality == type ? Theme.accent : Theme.secondary
                     )
                 }
                 .buttonStyle(.plain)
@@ -148,8 +144,7 @@ extension VideoExporterBottomSheetView {
         }
         .padding(.horizontal, 18)
         .padding(.vertical, 14)
-        .foregroundStyle(IOS26Theme.primaryText)
-        .ios26CapsuleControl(prominent: true, tint: IOS26Theme.accent)
+        .ios26CapsuleControl(prominent: true, tint: Theme.accent)
     }
 
     private func mainAction() {

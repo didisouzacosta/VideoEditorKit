@@ -22,10 +22,9 @@ struct CorrectionsToolView: View {
                             .font(.subheadline.weight(.semibold))
                             .padding(.horizontal, 14)
                             .padding(.vertical, 10)
-                            .foregroundStyle(IOS26Theme.primaryText)
                             .ios26CapsuleControl(
                                 prominent: currentTab == type,
-                                tint: currentTab == type ? IOS26Theme.accent : IOS26Theme.accentSecondary
+                                tint: currentTab == type ? Theme.accent : Theme.accent
                             )
                     }
                     .buttonStyle(.plain)
@@ -33,7 +32,6 @@ struct CorrectionsToolView: View {
             }
             slider
         }
-        .foregroundStyle(IOS26Theme.primaryText)
     }
 }
 
@@ -55,18 +53,15 @@ extension CorrectionsToolView {
                     onChange(correction)
                 }
             }
-            .tint(IOS26Theme.accent)
+            .tint(Theme.accent)
         }
     }
 
     func getValue(_ type: CorrectionType) -> Binding<Double> {
         switch type {
-        case .brightness:
-            return $correction.brightness
-        case .contrast:
-            return $correction.contrast
-        case .saturation:
-            return $correction.saturation
+        case .brightness: $correction.brightness
+        case .contrast: $correction.contrast
+        case .saturation: $correction.saturation
         }
     }
 }

@@ -1,5 +1,5 @@
 //
-//  View+IOS26Style.swift
+//  View+Style.swift
 //  VideoEditorKit
 //
 //  Created by Adriano Souza Costa on 23.03.2026.
@@ -8,12 +8,10 @@
 import SwiftUI
 import UIKit
 
-enum IOS26Theme {
-    static let accent = Color(uiColor: .systemBlue)
-    static let accentSecondary = Color(uiColor: .systemTeal)
-    static let primaryText = Color(uiColor: .label)
-    static let secondaryText = Color(uiColor: .secondaryLabel)
-    static let tertiaryText = Color(uiColor: .tertiaryLabel)
+enum Theme {
+    static let accent = Color.accentColor
+    static let primary = Color.primary
+    static let secondary = Color.secondary
     static let selection = Color(uiColor: .systemBlue)
     static let destructive = Color(uiColor: .systemRed)
     static let outline = Color(uiColor: .separator).opacity(0.35)

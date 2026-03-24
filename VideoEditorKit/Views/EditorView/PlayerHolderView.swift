@@ -21,7 +21,7 @@ struct PlayerHolderView: View {
                 switch videoPlayer.loadState {
                 case .loading:
                     ProgressView()
-                        .tint(IOS26Theme.accent)
+                        .tint(Theme.accent)
                 case .unknown:
                     statusView("Add a video to start editing")
                 case .failed:
@@ -32,9 +32,9 @@ struct PlayerHolderView: View {
             }
             .allFrame()
         }
-        .foregroundStyle(IOS26Theme.primaryText)
+        .foregroundStyle(Theme.accent)
         .padding(14)
-        .ios26Card(cornerRadius: 34, prominent: true, tint: IOS26Theme.accentSecondary)
+        .ios26Card(cornerRadius: 34, prominent: true, tint: Theme.secondary)
     }
 }
 
@@ -42,10 +42,10 @@ extension PlayerHolderView {
     private func statusView(_ text: String) -> some View {
         Text(text)
             .font(.headline)
-            .foregroundStyle(IOS26Theme.primaryText)
+            .foregroundStyle(Theme.accent)
             .padding(.horizontal, 18)
             .padding(.vertical, 12)
-            .ios26CapsuleControl(tint: IOS26Theme.accentSecondary)
+            .ios26CapsuleControl(tint: Theme.secondary)
     }
 
     private var playerCropView: some View {
@@ -151,10 +151,10 @@ extension PlayerHolderView {
                 )
             }
             .font(.caption2)
-            .foregroundStyle(IOS26Theme.primaryText)
+            .foregroundStyle(Theme.accent)
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .ios26CapsuleControl(tint: IOS26Theme.accentSecondary)
+            .ios26CapsuleControl(tint: Theme.secondary)
             .padding()
         }
     }
@@ -173,7 +173,7 @@ struct PlayerControl: View {
             if editorVM.currentVideo != nil {
                 timeLineControlSection
                     .padding(12)
-                    .ios26Card(cornerRadius: 28, tint: IOS26Theme.accentSecondary)
+                    .ios26Card(cornerRadius: 28, tint: Theme.secondary)
             }
         }
     }
@@ -207,8 +207,8 @@ struct PlayerControl: View {
             Image(systemName: videoPlayer.isPlaying ? "pause.fill" : "play.fill")
                 .font(.title2.weight(.semibold))
                 .frame(width: 72, height: 72)
-                .foregroundStyle(IOS26Theme.primaryText)
-                .ios26CircleControl(prominent: true, tint: IOS26Theme.accent)
+                .foregroundStyle(Theme.primary)
+                .ios26CircleControl(prominent: true, tint: Theme.accent)
         }
         .buttonStyle(.plain)
         .hCenter()
@@ -225,7 +225,7 @@ struct PlayerControl: View {
                 )
                 .font(.headline.weight(.semibold))
                 .frame(width: 46, height: 46)
-                .foregroundStyle(IOS26Theme.primaryText)
+                .foregroundStyle(Theme.primary)
                 .ios26CircleControl()
             }
             .buttonStyle(.plain)
