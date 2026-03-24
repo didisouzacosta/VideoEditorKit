@@ -60,26 +60,26 @@ enum VideoEditor {
             isMirror: video.isMirror
         )
 
-        ///Create mutable video composition
-        let videoComposition = AVMutableVideoComposition()
-        ///Set rander video  size
-        videoComposition.renderSize = outputSize
-        ///Set frame duration 30fps
-        videoComposition.frameDuration = CMTimeMake(value: 1, timescale: 30)
-
         ///Create background layer color and scale video
-        createLayers(
-            video.videoFrames, video: video, size: outputSize, videoComposition: videoComposition)
+        let animationTool = createAnimationTool(video.videoFrames, video: video, size: outputSize)
 
         ///Set Video Composition Instruction
-        let instruction = AVMutableVideoCompositionInstruction()
+        let instruction = AVVideoCompositionInstruction(
+            configuration: .init(
+                layerInstructions: [layerInstruction],
+                timeRange: timeRange
+            )
+        )
 
-        ///Set time range
-        instruction.timeRange = timeRange
-        instruction.layerInstructions = [layerInstruction]
+        var configuration = AVVideoComposition.Configuration(
+            animationTool: animationTool,
+            frameDuration: CMTime(value: 1, timescale: 30),
+            instructions: [instruction],
+            renderSize: outputSize
+        )
+        configuration.renderScale = 1
 
-        ///Set instruction in videoComposition
-        videoComposition.instructions = [instruction]
+        let videoComposition = AVVideoComposition(configuration: configuration)
 
         ///Create file path in temp directory
         let outputURL = createTempPath()
@@ -128,7 +128,7 @@ enum VideoEditor {
 extension VideoEditor {
 
     private static func exportSession(
-        composition: AVMutableComposition, videoComposition: AVMutableVideoComposition, outputURL: URL,
+        composition: AVMutableComposition, videoComposition: AVVideoComposition, outputURL: URL,
         timeRange: CMTimeRange
     ) throws -> AVAssetExportSession {
         guard
@@ -146,12 +146,13 @@ extension VideoEditor {
         return export
     }
 
-    private static func createLayers(
-        _ videoFrame: VideoFrames?, video: Video, size: CGSize,
-        videoComposition: AVMutableVideoComposition
-    ) {
+    private static func createAnimationTool(
+        _ videoFrame: VideoFrames?,
+        video: Video,
+        size: CGSize
+    ) -> AVVideoCompositionCoreAnimationTool? {
 
-        guard let videoFrame else { return }
+        guard let videoFrame else { return nil }
 
         let color = videoFrame.frameColor
         let scale = videoFrame.scale
@@ -181,9 +182,12 @@ extension VideoEditor {
             }
         }
 
-        videoComposition.animationTool = AVVideoCompositionCoreAnimationTool(
-            postProcessingAsVideoLayer: videoLayer,
-            in: outputLayer)
+        return AVVideoCompositionCoreAnimationTool(
+            configuration: .init(
+                postProcessingAsVideoLayer: videoLayer,
+                containingLayer: outputLayer
+            )
+        )
     }
 
     ///Set new time scale for audio and video tracks
@@ -255,13 +259,13 @@ extension VideoEditor {
         return timeRange
     }
 
-    ///set video size for AVMutableVideoCompositionLayerInstruction
+    ///set video size for AVVideoCompositionLayerInstruction
     private static func videoCompositionInstructionForTrackWithSizeAndTime(
         preferredTransform: CGAffineTransform, naturalSize: CGSize, newSize: CGSize,
         track: AVAssetTrack, scale: Double, isMirror: Bool
-    ) -> AVMutableVideoCompositionLayerInstruction {
+    ) -> AVVideoCompositionLayerInstruction {
 
-        let instruction = AVMutableVideoCompositionLayerInstruction(assetTrack: track)
+        var configuration = AVVideoCompositionLayerInstruction.Configuration(assetTrack: track)
         let assetInfo = orientationFromTransform(preferredTransform)
 
         var aspectFillRatio: CGFloat = 1
@@ -278,7 +282,7 @@ extension VideoEditor {
             let posX = newSize.width / 2 - (naturalSize.height * aspectFillRatio) / 2
             let posY = newSize.height / 2 - (naturalSize.width * aspectFillRatio) / 2
             let moveFactor = CGAffineTransform(translationX: posX, y: posY)
-            instruction.setTransform(
+            configuration.setTransform(
                 preferredTransform.concatenating(scaleFactor).concatenating(moveFactor), at: .zero)
 
         } else {
@@ -293,16 +297,16 @@ extension VideoEditor {
                 concat = fixUpsideDown.concatenating(scaleFactor).concatenating(moveFactor)
 
             }
-            instruction.setTransform(concat, at: .zero)
+            configuration.setTransform(concat, at: .zero)
         }
 
         if isMirror {
             var transform: CGAffineTransform = CGAffineTransform(scaleX: -1.0, y: 1.0)
             transform = transform.translatedBy(x: -newSize.width, y: 0.0)
-            instruction.setTransform(transform, at: .zero)
+            configuration.setTransform(transform, at: .zero)
         }
 
-        return instruction
+        return AVVideoCompositionLayerInstruction(configuration: configuration)
     }
 
     private static func getSizeFromOrientation(

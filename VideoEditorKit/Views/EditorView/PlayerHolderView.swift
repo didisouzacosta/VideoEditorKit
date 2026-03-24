@@ -146,8 +146,9 @@ extension PlayerHolderView {
     private var timelineLabel: some View {
         if let video = editorVM.currentVideo {
             HStack {
-                Text((videoPlayer.currentTime - video.rangeDuration.lowerBound).formatterTimeString())
-                    + Text(" / ") + Text(Int(video.totalDuration).secondsToTime())
+                Text(
+                    "\((videoPlayer.currentTime - video.rangeDuration.lowerBound).formatterTimeString()) / \(Int(video.totalDuration).secondsToTime())"
+                )
             }
             .font(.caption2)
             .foregroundStyle(IOS26Theme.primaryText)

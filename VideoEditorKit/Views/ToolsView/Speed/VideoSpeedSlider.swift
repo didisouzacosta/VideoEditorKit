@@ -14,7 +14,7 @@ struct VideoSpeedSlider: View {
     private let rateRange = 0.1...8
     var body: some View {
         VStack(spacing: 16) {
-            (Text(value, format: .number.precision(.fractionLength(1))) + Text("x"))
+            Text("\(value, format: .number.precision(.fractionLength(1)))x")
                 .font(.title3.monospacedDigit().weight(.semibold))
                 .foregroundStyle(IOS26Theme.primaryText)
             CustomSlider(
