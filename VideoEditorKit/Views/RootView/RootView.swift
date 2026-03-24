@@ -27,7 +27,7 @@ struct RootView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                IOS26Theme.rootBackground
+                Theme.rootBackground
                     .ignoresSafeArea()
 
                 ScrollView {
@@ -51,8 +51,7 @@ struct RootView: View {
                             .font(.subheadline.weight(.semibold))
                             .padding(.horizontal, 16)
                             .padding(.vertical, 8)
-                            .foregroundStyle(IOS26Theme.primaryText)
-                            .ios26CapsuleControl(tint: IOS26Theme.accentSecondary)
+                            .ios26CapsuleControl(tint: Theme.accent)
                     }
                 }
                 .toolbarBackground(.hidden, for: .navigationBar)
@@ -65,17 +64,16 @@ struct RootView: View {
                 }
                 .overlay {
                     if showLoader {
-                        IOS26Theme.scrim.ignoresSafeArea()
+                        Theme.scrim.ignoresSafeArea()
                         VStack(spacing: 12) {
                             Text("Loading video")
                                 .font(.headline)
-                                .foregroundStyle(IOS26Theme.primaryText)
                             ProgressView()
-                                .tint(IOS26Theme.accent)
+                                .tint(Theme.accent)
                         }
                         .padding(.horizontal, 24)
                         .padding(.vertical, 22)
-                        .ios26Card(prominent: true, tint: IOS26Theme.accent)
+                        .ios26Card(prominent: true, tint: Theme.accent)
                     }
                 }
             }
@@ -88,29 +86,26 @@ extension RootView {
         VStack(alignment: .leading, spacing: 12) {
             Label("Temporary Editing Session", systemImage: "sparkles.rectangle.stack.fill")
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(IOS26Theme.primaryText)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
-                .ios26CapsuleControl(tint: IOS26Theme.accent)
+                .ios26CapsuleControl(tint: Theme.accent)
 
             Text("Edit a clip with the iOS 26 visual language.")
                 .font(.largeTitle.bold())
-                .foregroundStyle(IOS26Theme.primaryText)
 
             Text(
                 "Pick a video from your gallery, edit it, and get the rendered result back on this screen."
             )
             .font(.title3.weight(.semibold))
-            .foregroundStyle(IOS26Theme.primaryText)
             Text(
                 "This screen now works as an example mode. It starts a temporary editing session and shows the exported output."
             )
             .font(.subheadline)
-            .foregroundStyle(IOS26Theme.secondaryText)
+            .foregroundStyle(Theme.secondary)
         }
         .padding(24)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .ios26Card(prominent: true, tint: IOS26Theme.accentSecondary)
+        .ios26Card(prominent: true, tint: Theme.accent)
     }
 
     private var selectVideoCard: some View {
@@ -119,27 +114,26 @@ extension RootView {
                 Image(systemName: "video.badge.plus")
                     .font(.system(size: 22, weight: .semibold))
                     .frame(width: 52, height: 52)
-                    .foregroundStyle(IOS26Theme.primaryText)
-                    .ios26CircleControl(prominent: true, tint: IOS26Theme.accent)
+                    .foregroundStyle(Theme.primary)
+                    .ios26CircleControl(prominent: true, tint: Theme.accent)
 
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Choose a Video")
                         .font(.headline)
-                        .foregroundStyle(IOS26Theme.primaryText)
                     Text("Import a clip from Photos and open it directly in the editor.")
                         .font(.subheadline)
-                        .foregroundStyle(IOS26Theme.secondaryText)
+                        .foregroundStyle(Theme.secondary)
                 }
 
                 Spacer()
 
                 Image(systemName: "arrow.up.right")
                     .font(.headline.weight(.semibold))
-                    .foregroundStyle(IOS26Theme.secondaryText)
+                    .foregroundStyle(Theme.secondary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(20)
-            .ios26Card(prominent: true, tint: IOS26Theme.accent)
+            .ios26Card(prominent: true, tint: Theme.accent)
         }
         .buttonStyle(.plain)
     }
@@ -149,7 +143,6 @@ extension RootView {
         VStack(alignment: .leading, spacing: 16) {
             Text("Edited Result")
                 .font(.headline)
-                .foregroundStyle(IOS26Theme.primaryText)
 
             if let editedVideoURL {
                 VStack(alignment: .leading, spacing: 12) {
@@ -159,22 +152,21 @@ extension RootView {
 
                     Text(editedVideoURL.lastPathComponent)
                         .font(.footnote)
-                        .foregroundStyle(IOS26Theme.secondaryText)
+                        .foregroundStyle(Theme.secondary)
                 }
                 .padding(18)
-                .ios26Card(tint: IOS26Theme.accentSecondary)
+                .ios26Card(tint: Theme.accent)
             } else {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("No edited video yet.")
                         .font(.headline)
-                        .foregroundStyle(IOS26Theme.primaryText)
                     Text("After exporting from the editor, the rendered video will appear here.")
                         .font(.subheadline)
-                        .foregroundStyle(IOS26Theme.secondaryText)
+                        .foregroundStyle(Theme.secondary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(20)
-                .ios26Card(tint: IOS26Theme.accentSecondary)
+                .ios26Card(tint: Theme.accent)
             }
         }
     }

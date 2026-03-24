@@ -73,7 +73,7 @@ struct MainEditorView: View {
                     Image(systemName: "chevron.left")
                         .font(.headline.weight(.semibold))
                         .frame(width: 46, height: 46)
-                        .foregroundStyle(IOS26Theme.primaryText)
+                        .foregroundStyle(Theme.primary)
                         .ios26CircleControl()
                 }
                 .buttonStyle(.plain)
@@ -84,8 +84,7 @@ struct MainEditorView: View {
                     .font(.subheadline.weight(.semibold))
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
-                    .foregroundStyle(IOS26Theme.primaryText)
-                    .ios26CapsuleControl(tint: IOS26Theme.accentSecondary)
+                    .ios26CapsuleControl(tint: Theme.secondary)
             }
 
             ToolbarItem(placement: .topBarTrailing) {
@@ -96,8 +95,7 @@ struct MainEditorView: View {
                         .font(.subheadline.weight(.semibold))
                         .padding(.horizontal, 18)
                         .padding(.vertical, 12)
-                        .foregroundStyle(IOS26Theme.primaryText)
-                        .ios26CapsuleControl(prominent: true, tint: IOS26Theme.accent)
+                        .ios26CapsuleControl(prominent: true, tint: Theme.accent)
                 }
                 .buttonStyle(.plain)
             }

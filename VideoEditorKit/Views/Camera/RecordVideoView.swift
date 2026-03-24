@@ -27,7 +27,7 @@ struct RecordVideoView: View {
                     }
                 } label: {
                     Circle()
-                        .fill(cameraManager.isRecording ? IOS26Theme.primaryText : IOS26Theme.destructive)
+                        .fill(cameraManager.isRecording ? Theme.primary : Theme.destructive)
                         .frame(width: 55, height: 55)
                 }
                 .padding(.bottom, 16)
@@ -42,7 +42,7 @@ struct RecordVideoView: View {
                         Image(systemName: "xmark")
                             .font(.headline.weight(.semibold))
                             .frame(width: 44, height: 44)
-                            .foregroundStyle(IOS26Theme.primaryText)
+                            .foregroundStyle(Theme.primary)
                             .ios26CircleControl()
                     }
                     .buttonStyle(.plain)
@@ -51,7 +51,6 @@ struct RecordVideoView: View {
                 ToolbarItem(placement: .principal) {
                     Text(cameraManager.recordedDuration.formatterTimeString())
                         .font(.headline.monospacedDigit())
-                        .foregroundStyle(IOS26Theme.primaryText)
                 }
             }
         }

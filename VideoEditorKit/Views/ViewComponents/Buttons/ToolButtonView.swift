@@ -20,22 +20,22 @@ struct ToolButtonView: View {
             VStack(spacing: 4) {
                 Image(systemName: image)
                     .font(.headline.weight(.semibold))
+                    .foregroundStyle(Theme.primary)
                 Text(label)
                     .font(.caption.weight(.medium))
             }
             .frame(maxWidth: .infinity, minHeight: 85)
-            .foregroundStyle(IOS26Theme.primaryText)
             .overlay(alignment: .topTrailing) {
                 if isChange {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.caption.weight(.bold))
-                        .foregroundStyle(IOS26Theme.primaryText)
+                        .foregroundStyle(Theme.primary)
                         .padding(8)
                 }
             }
             .ios26Card(
                 cornerRadius: 20, prominent: isChange,
-                tint: isChange ? IOS26Theme.accent : IOS26Theme.accentSecondary)
+                tint: isChange ? Theme.accent : Theme.secondary)
         }
         .buttonStyle(.plain)
     }

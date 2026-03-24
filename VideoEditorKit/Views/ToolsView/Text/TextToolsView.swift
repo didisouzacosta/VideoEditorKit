@@ -45,13 +45,12 @@ extension TextToolsView {
                 Text(textBox.text)
                     .lineLimit(1)
                     .font(.caption.weight(.medium))
-                    .foregroundStyle(IOS26Theme.primaryText)
-                    .padding(.horizontal, 10)
+                    .padding(.horizontal)
             }
             .frame(width: 80, height: 80)
             .ios26Card(
                 cornerRadius: 20, prominent: isSelected,
-                tint: isSelected ? IOS26Theme.accent : IOS26Theme.accentSecondary)
+                tint: isSelected ? Theme.accent : Theme.accent)
         }
         .overlay(alignment: .topLeading) {
             if isSelected {
@@ -60,7 +59,7 @@ extension TextToolsView {
                 } label: {
                     Image(systemName: "xmark")
                         .font(.caption.weight(.bold))
-                        .foregroundStyle(IOS26Theme.primaryText)
+                        .foregroundStyle(Theme.primary)
                         .frame(width: 28, height: 28)
                         .ios26CircleControl()
                 }
@@ -77,10 +76,9 @@ extension TextToolsView {
             ZStack {
                 Text("+T")
                     .font(.title2.weight(.light))
-                    .foregroundStyle(IOS26Theme.primaryText)
             }
             .frame(width: 80, height: 80)
-            .ios26Card(cornerRadius: 20, tint: IOS26Theme.accentSecondary)
+            .ios26Card(cornerRadius: 20, tint: Theme.accent)
         }
         .buttonStyle(.plain)
     }

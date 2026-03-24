@@ -28,11 +28,11 @@ struct CropView<T: View>: View {
 
             if isActiveCrop {
                 ZStack {
-                    IOS26Theme.scrim
+                    Theme.scrim
                     Rectangle()
-                        .fill(IOS26Theme.scrim.opacity(0.35))
+                        .fill(Theme.scrim.opacity(0.35))
                         .frame(width: size.width, height: size.height)
-                        .overlay(Rectangle().stroke(IOS26Theme.primaryText, lineWidth: lineWidth))
+                        .overlay(Rectangle().stroke(Theme.primary, lineWidth: lineWidth))
                         .position(position)
                         .gesture(
                             DragGesture()
@@ -67,7 +67,7 @@ struct CropView<T: View>: View {
             }
         }
         .frame(width: originalSize.width, height: originalSize.height)
-        .border(isActiveCrop ? IOS26Theme.primaryText : .clear)
+        .border(isActiveCrop ? Theme.primary : .clear)
         .rotationEffect(.degrees(rotation ?? 0))
         .rotation3DEffect(.degrees(isMirror ? 180 : 0), axis: (x: 0, y: 1, z: 0))
     }
@@ -129,9 +129,9 @@ struct CropImage<T: View>: View {
                 frameView()
                     .offset(x: self.currentPosition.width, y: self.currentPosition.height)
                 Rectangle()
-                    .fill(IOS26Theme.scrim)
+                    .fill(Theme.scrim)
                     .frame(width: frameSize.width, height: frameSize.height)
-                    .overlay(Rectangle().stroke(IOS26Theme.primaryText, lineWidth: 2))
+                    .overlay(Rectangle().stroke(Theme.primary, lineWidth: 2))
             }
             .clipShape(
                 CropFrame(isActive: clipped, currentPosition: currentPosition, size: frameSize)
@@ -140,22 +140,11 @@ struct CropImage<T: View>: View {
                 currentPosition = .zero
                 newPosition = .zero
             }
-            //            .gesture(DragGesture()
-            //                .onChanged { value in
-            //
-            //                    self.currentPosition = CGSize(width: value.translation.width + self.newPosition.width, height: value.translation.height + self.newPosition.height)
-            //            }
-            //            .onEnded { value in
-            //                self.currentPosition = CGSize(width: value.translation.width + self.newPosition.width, height: value.translation.height + self.newPosition.height)
-            //
-            //                self.newPosition = self.currentPosition
-            //            })
 
             Button(action: { self.clipped.toggle() }) {
                 Text("Crop Image")
                     .padding(.all, 10)
-                    .background(IOS26Theme.accent)
-                    .foregroundStyle(IOS26Theme.primaryText)
+                    .background(Theme.accent)
                     .padding(.top, 50)
             }
         }

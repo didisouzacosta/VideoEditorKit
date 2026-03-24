@@ -22,13 +22,12 @@ struct FramesToolView: View {
             VStack(spacing: 12) {
                 Text("Frame Scale")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(IOS26Theme.primaryText)
                 Slider(value: $scaleValue, in: 0...0.5) { change in
                     if !change {
                         onChange()
                     }
                 }
-                .tint(IOS26Theme.accent)
+                .tint(Theme.accent)
             }
         }
     }

@@ -18,7 +18,7 @@ struct TextEditorView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                IOS26Theme.scrim
+                Theme.scrim
                     .ignoresSafeArea()
 
                 ScrollView {
@@ -44,7 +44,7 @@ struct TextEditorView: View {
                         .frame(maxHeight: textHeight)
                         .padding(.horizontal, 20)
                         .padding(.vertical, 18)
-                        .ios26Card(cornerRadius: 30, prominent: true, tint: IOS26Theme.accentSecondary)
+                        .ios26Card(cornerRadius: 30, prominent: true, tint: Theme.accent)
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 24)
@@ -62,7 +62,7 @@ struct TextEditorView: View {
                         Image(systemName: "xmark")
                             .font(.headline.weight(.semibold))
                             .frame(width: 44, height: 44)
-                            .foregroundStyle(IOS26Theme.primaryText)
+                            .foregroundStyle(Theme.primary)
                             .ios26CircleControl()
                     }
                     .buttonStyle(.plain)
@@ -71,7 +71,6 @@ struct TextEditorView: View {
                 ToolbarItem(placement: .principal) {
                     Text("Text")
                         .font(.headline)
-                        .foregroundStyle(IOS26Theme.primaryText)
                 }
             }
             .safeAreaInset(edge: .bottom) {
@@ -85,8 +84,7 @@ struct TextEditorView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.horizontal, 24)
                         .padding(.vertical, 14)
-                        .foregroundStyle(IOS26Theme.primaryText)
-                        .ios26CapsuleControl(prominent: true, tint: IOS26Theme.accent)
+                        .ios26CapsuleControl(prominent: true, tint: Theme.accent)
                 }
                 .buttonStyle(.plain)
                 .opacity(viewModel.currentTextBox.text.isEmpty ? 0.5 : 1)
@@ -202,10 +200,6 @@ struct TextView: UIViewRepresentable {
                 parent.recalculateHeight(view: textView)
             }
         }
-
-        //        func textViewDidBeginEditing(_ textView: UITextView) {
-        //            parent.isFirstResponder = true
-        //        }
     }
 }
 
@@ -218,7 +212,6 @@ struct SystemColorSwatchPicker: View {
         VStack(alignment: .leading, spacing: 12) {
             Text(title)
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(IOS26Theme.primaryText)
 
             ScrollView(.horizontal) {
                 HStack(spacing: 12) {
@@ -232,14 +225,14 @@ struct SystemColorSwatchPicker: View {
                                 .overlay {
                                     Circle()
                                         .strokeBorder(
-                                            isSelected(option) ? IOS26Theme.primaryText : IOS26Theme.outline,
+                                            isSelected(option) ? Theme.primary : Theme.outline,
                                             lineWidth: isSelected(option) ? 2 : 1
                                         )
                                 }
                                 .padding(5)
                                 .ios26CircleControl(
                                     prominent: isSelected(option),
-                                    tint: isSelected(option) ? IOS26Theme.accentSecondary : nil
+                                    tint: isSelected(option) ? Theme.accent : nil
                                 )
                         }
                         .buttonStyle(.plain)
