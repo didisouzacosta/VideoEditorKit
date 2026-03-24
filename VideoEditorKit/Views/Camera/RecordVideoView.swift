@@ -11,13 +11,14 @@ struct RecordVideoView: View {
     @State private var cameraManager = CameraManager()
     @Environment(\.dismiss) private var dismiss
     let onFinishRecord: (URL) -> Void
+
     var body: some View {
-        ZStack {
-            CameraPreviewHolder(captureSession: cameraManager.session)
-            VStack(spacing: 0) {
-                Text(cameraManager.recordedDuration.formatterTimeString())
-                    .foregroundStyle(IOS26Theme.primaryText)
-                Spacer()
+        NavigationStack {
+            ZStack {
+                CameraPreviewHolder(captureSession: cameraManager.session)
+                    .ignoresSafeArea()
+            }
+            .safeAreaInset(edge: .bottom) {
                 Button {
                     if cameraManager.isRecording {
                         cameraManager.stopRecord()
@@ -29,15 +30,29 @@ struct RecordVideoView: View {
                         .fill(cameraManager.isRecording ? IOS26Theme.primaryText : IOS26Theme.destructive)
                         .frame(width: 55, height: 55)
                 }
+                .padding(.bottom, 16)
             }
-            .padding()
-        }
-        .overlay(alignment: .topLeading) {
-            Button {
-                dismiss()
-            } label: {
-                Image(systemName: "xmark")
-                    .padding()
+            .navigationBarBackButtonHidden(true)
+            .toolbarBackground(.hidden, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.headline.weight(.semibold))
+                            .frame(width: 44, height: 44)
+                            .foregroundStyle(IOS26Theme.primaryText)
+                            .ios26CircleControl()
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                ToolbarItem(placement: .principal) {
+                    Text(cameraManager.recordedDuration.formatterTimeString())
+                        .font(.headline.monospacedDigit())
+                        .foregroundStyle(IOS26Theme.primaryText)
+                }
             }
         }
         .onChange(of: cameraManager.finalURL) { _, newValue in

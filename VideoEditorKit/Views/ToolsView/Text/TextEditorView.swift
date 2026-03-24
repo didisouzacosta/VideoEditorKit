@@ -16,12 +16,45 @@ struct TextEditorView: View {
     let onSave: ([TextBox]) -> Void
 
     var body: some View {
-        ZStack {
-            IOS26Theme.scrim
-                .ignoresSafeArea()
+        NavigationStack {
+            ZStack {
+                IOS26Theme.scrim
+                    .ignoresSafeArea()
 
-            VStack(spacing: 24) {
-                HStack {
+                ScrollView {
+                    VStack(spacing: 24) {
+                        SystemColorSwatchPicker(
+                            title: "Text color",
+                            selection: $viewModel.currentTextBox.fontColor,
+                            options: SystemColorPalette.textForegrounds
+                        )
+
+                        SystemColorSwatchPicker(
+                            title: "Background color",
+                            selection: $viewModel.currentTextBox.bgColor,
+                            options: SystemColorPalette.textBackgrounds
+                        )
+
+                        TextView(
+                            textBox: $viewModel.currentTextBox,
+                            isFirstResponder: $isFocused,
+                            minHeight: textHeight,
+                            calculatedHeight: $textHeight
+                        )
+                        .frame(maxHeight: textHeight)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 18)
+                        .ios26Card(cornerRadius: 30, prominent: true, tint: IOS26Theme.accentSecondary)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 24)
+                    .padding(.bottom, 120)
+                }
+            }
+            .navigationBarBackButtonHidden(true)
+            .toolbarBackground(.hidden, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
                     Button {
                         closeKeyboard()
                         viewModel.cancelTextEditor()
@@ -33,37 +66,15 @@ struct TextEditorView: View {
                             .ios26CircleControl()
                     }
                     .buttonStyle(.plain)
-
-                    Spacer()
                 }
 
-                SystemColorSwatchPicker(
-                    title: "Text color",
-                    selection: $viewModel.currentTextBox.fontColor,
-                    options: SystemColorPalette.textForegrounds
-                )
-
-                SystemColorSwatchPicker(
-                    title: "Background color",
-                    selection: $viewModel.currentTextBox.bgColor,
-                    options: SystemColorPalette.textBackgrounds
-                )
-
-                Spacer()
-
-                TextView(
-                    textBox: $viewModel.currentTextBox,
-                    isFirstResponder: $isFocused,
-                    minHeight: textHeight,
-                    calculatedHeight: $textHeight
-                )
-                .frame(maxHeight: textHeight)
-                .padding(.horizontal, 20)
-                .padding(.vertical, 18)
-                .ios26Card(cornerRadius: 30, prominent: true, tint: IOS26Theme.accentSecondary)
-
-                Spacer()
-
+                ToolbarItem(placement: .principal) {
+                    Text("Text")
+                        .font(.headline)
+                        .foregroundStyle(IOS26Theme.primaryText)
+                }
+            }
+            .safeAreaInset(edge: .bottom) {
                 Button {
                     closeKeyboard()
                     viewModel.saveTapped()
@@ -71,6 +82,7 @@ struct TextEditorView: View {
                 } label: {
                     Text("Save")
                         .font(.headline.weight(.semibold))
+                        .frame(maxWidth: .infinity)
                         .padding(.horizontal, 24)
                         .padding(.vertical, 14)
                         .foregroundStyle(IOS26Theme.primaryText)
@@ -79,9 +91,9 @@ struct TextEditorView: View {
                 .buttonStyle(.plain)
                 .opacity(viewModel.currentTextBox.text.isEmpty ? 0.5 : 1)
                 .disabled(viewModel.currentTextBox.text.isEmpty)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 12)
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 24)
         }
     }
 

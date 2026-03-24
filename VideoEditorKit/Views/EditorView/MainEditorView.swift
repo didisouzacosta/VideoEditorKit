@@ -29,14 +29,8 @@ struct MainEditorView: View {
 
     var body: some View {
         ZStack {
-            IOS26Theme.editorBackground
-                .ignoresSafeArea()
-            IOS26Theme.editorGlow
-                .ignoresSafeArea()
-
             GeometryReader { proxy in
                 VStack(spacing: 14) {
-                    headerView
                     PlayerHolderView(
                         isFullScreen: $isFullScreen, editorVM: editorVM, videoPlayer: videoPlayer,
                         textEditor: textEditor
@@ -52,8 +46,8 @@ struct MainEditorView: View {
                         .opacity(isFullScreen ? 0 : 1)
                         .padding(.horizontal, 16)
                 }
-                .padding(.top, 8)
-                .padding(.bottom, 16)
+                .padding(.top, 12)
+                .padding(.bottom, max(proxy.safeAreaInsets.bottom, 16))
                 .onAppear {
                     setVideoIfNeeded(proxy.size)
                 }
@@ -68,14 +62,51 @@ struct MainEditorView: View {
                 }
             }
         }
-        .toolbar(.hidden, for: .navigationBar)
-        .ignoresSafeArea(.all, edges: .top)
+        .navigationBarBackButtonHidden(true)
+        .toolbarBackground(.hidden, for: .navigationBar)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    videoPlayer.pause()
+                    dismiss()
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.headline.weight(.semibold))
+                        .frame(width: 46, height: 46)
+                        .foregroundStyle(IOS26Theme.primaryText)
+                        .ios26CircleControl()
+                }
+                .buttonStyle(.plain)
+            }
+
+            ToolbarItem(placement: .principal) {
+                Text("Editor")
+                    .font(.subheadline.weight(.semibold))
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .foregroundStyle(IOS26Theme.primaryText)
+                    .ios26CapsuleControl(tint: IOS26Theme.accentSecondary)
+            }
+
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    presentExporter()
+                } label: {
+                    Label("Export", systemImage: "square.and.arrow.up.fill")
+                        .font(.subheadline.weight(.semibold))
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 12)
+                        .foregroundStyle(IOS26Theme.primaryText)
+                        .ios26CapsuleControl(prominent: true, tint: IOS26Theme.accent)
+                }
+                .buttonStyle(.plain)
+            }
+        }
         .fullScreenCover(isPresented: $showRecordView) {
             RecordVideoView { url in
                 videoPlayer.loadState = .loaded(url)
             }
         }
-        .statusBar(hidden: true)
         .onDisappear {
             cancelDeferredTasks()
         }
@@ -90,45 +121,6 @@ struct MainEditorView: View {
 }
 
 extension MainEditorView {
-    private var headerView: some View {
-        HStack {
-            Button {
-                videoPlayer.pause()
-                dismiss()
-            } label: {
-                Image(systemName: "chevron.left")
-                    .font(.headline.weight(.semibold))
-                    .frame(width: 46, height: 46)
-                    .foregroundStyle(IOS26Theme.primaryText)
-                    .ios26CircleControl()
-            }
-            .buttonStyle(.plain)
-
-            Spacer()
-
-            Button {
-                presentExporter()
-            } label: {
-                Label("Export", systemImage: "square.and.arrow.up.fill")
-                    .font(.subheadline.weight(.semibold))
-                    .padding(.horizontal, 18)
-                    .padding(.vertical, 12)
-                    .foregroundStyle(IOS26Theme.primaryText)
-                    .ios26CapsuleControl(prominent: true, tint: IOS26Theme.accent)
-            }
-            .buttonStyle(.plain)
-        }
-        .overlay {
-            Text("Editor")
-                .font(.subheadline.weight(.semibold))
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-                .foregroundStyle(IOS26Theme.primaryText)
-                .ios26CapsuleControl(tint: IOS26Theme.accentSecondary)
-        }
-        .padding(.horizontal, 16)
-    }
-
     private func setVideoIfNeeded(_ availableSize: CGSize) {
         guard !hasLoadedSourceVideo, let sourceVideoURL else { return }
         hasLoadedSourceVideo = true
