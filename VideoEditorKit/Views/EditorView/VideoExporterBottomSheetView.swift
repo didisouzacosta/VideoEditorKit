@@ -32,10 +32,8 @@ struct VideoExporterBottomSheetView: View {
                         loadingView
                     }
                 }
-                .hCenter()
-                .frame(height: proxy.size.height / 2.8)
             }
-            .ignoresSafeArea()
+            .safeAreaPadding()
             .alert("Unable to export video", isPresented: $bindableViewModel.showAlert) {}
             .disabled(viewModel.renderState == .loading)
             .animation(.easeInOut, value: viewModel.renderState)
@@ -159,6 +157,7 @@ extension VideoExporterBottomSheetView {
 #Preview {
     ZStack(alignment: .bottom) {
         Color.secondary.opacity(0.5)
+            .ignoresSafeArea()
         VideoExporterBottomSheetView(isPresented: .constant(true), video: Video.mock) { _ in }
     }
 }

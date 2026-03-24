@@ -40,12 +40,4 @@ enum ToolEnum: Int, CaseIterable {
         }
     }
 
-    var timeState: TimeLineViewState {
-        switch self {
-        case .audio: return .audio
-        case .text: return .text
-        default: return .empty
-        }
-    }
-
 }

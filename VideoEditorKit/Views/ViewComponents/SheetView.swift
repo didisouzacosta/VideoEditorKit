@@ -22,7 +22,8 @@ struct SheetView<Content: View>: View {
     }
     var body: some View {
         ZStack(alignment: .bottom) {
-            Theme.scrim.opacity(max(bgOpacity * 2, 0.15))
+            Theme.scrim
+                .ignoresSafeArea()
                 .onTapGesture {
                     closeSheet()
                 }
