@@ -59,7 +59,7 @@ struct Video: Identifiable, @unchecked Sendable {
     }
 
     func makeThumbnails(containerSize: CGSize) async -> [ThumbnailImage] {
-        let imagesCount = thumbnailCount(containerSize)
+        let imagesCount = thumbnailCount(for: containerSize)
         guard imagesCount > 0 else { return [] }
 
         var thumbnails = [ThumbnailImage]()
@@ -120,10 +120,11 @@ struct Video: Identifiable, @unchecked Sendable {
         toolsApplied.contains(tool.rawValue)
     }
 
-    private func thumbnailCount(_ containerSize: CGSize) -> Int {
-        let num = Double(containerSize.width - 32) / Double(70 / 1.5)
+    func thumbnailCount(for containerSize: CGSize) -> Int {
+        let usableWidth = max(containerSize.width - 32, 1)
+        let count = Int(ceil(usableWidth / Double(70 / 1.5)))
 
-        return Int(ceil(num))
+        return max(count, 1)
     }
 
     @MainActor

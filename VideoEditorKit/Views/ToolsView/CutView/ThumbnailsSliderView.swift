@@ -14,6 +14,7 @@ struct ThumbnailsSliderView: View {
     @Binding var video: Video?
     var isChangeState: Bool?
     let onChangeTimeValue: () -> Void
+    let onRequestThumbnails: (CGSize) -> Void
 
     private var totalDuration: Double {
         rangeDuration.upperBound - rangeDuration.lowerBound
@@ -27,12 +28,13 @@ struct ThumbnailsSliderView: View {
             GeometryReader { proxy in
                 ZStack {
                     thumbnailsImagesSection(proxy)
+                    playbackIndicator(proxy)
 
                     if let video {
                         RangedSliderView(
                             value: $rangeDuration,
                             bounds: 0...video.originalDuration,
-                            onEndChange: { setOnChangeTrim(false) }
+                            onEndChange: {}
                         ) {
                             Rectangle().blendMode(.destinationOut)
                         }
@@ -40,24 +42,33 @@ struct ThumbnailsSliderView: View {
                             if let upperBound {
                                 currentTime = Double(upperBound)
                                 onChangeTimeValue()
-                                setOnChangeTrim(true)
                             }
                         }
                         .onChange(of: self.video?.rangeDuration.lowerBound) { _, lowerBound in
                             if let lowerBound {
                                 currentTime = Double(lowerBound)
                                 onChangeTimeValue()
-                                setOnChangeTrim(true)
                             }
                         }
                         .onChange(of: rangeDuration) { _, newValue in
                             self.video?.rangeDuration = newValue
+                            currentTime = currentTime.clamped(to: newValue)
                         }
                     }
                 }
                 .frame(width: proxy.size.width, height: proxy.size.height)
+                .contentShape(Rectangle())
+                .simultaneousGesture(
+                    DragGesture(minimumDistance: 0)
+                        .onChanged { value in
+                            updatePlaybackPosition(for: value.location.x, width: proxy.size.width)
+                        }
+                )
                 .onAppear {
                     setVideoRange()
+                }
+                .task(id: thumbnailRequestID(for: proxy.size)) {
+                    onRequestThumbnails(proxy.size)
                 }
             }
             .frame(height: 70)
@@ -66,6 +77,9 @@ struct ThumbnailsSliderView: View {
             if !(isChange ?? true) {
                 setVideoRange()
             }
+        }
+        .onChange(of: video?.id) { _, _ in
+            setVideoRange()
         }
     }
 }
@@ -76,7 +90,8 @@ struct ThumbnailsSliderView_Previews: PreviewProvider {
             currentTime: .constant(0),
             video: .constant(Video.mock),
             isChangeState: nil,
-            onChangeTimeValue: {}
+            onChangeTimeValue: {},
+            onRequestThumbnails: { _ in }
         )
     }
 }
@@ -91,27 +106,65 @@ extension ThumbnailsSliderView {
     @ViewBuilder
     private func thumbnailsImagesSection(_ proxy: GeometryProxy) -> some View {
         if let video {
-            HStack(spacing: 0) {
-                ForEach(video.thumbnailsImages) { trimData in
-                    if let image = trimData.image {
-                        Image(uiImage: image)
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                            .frame(
-                                width: proxy.size.width / CGFloat(video.thumbnailsImages.count),
-                                height: proxy.size.height - 5
-                            )
-                            .clipped()
+            if video.thumbnailsImages.isEmpty {
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color(uiColor: .tertiarySystemFill))
+                    .overlay {
+                        ProgressView()
+                            .tint(Theme.accent)
+                    }
+            } else {
+                HStack(spacing: 0) {
+                    ForEach(video.thumbnailsImages) { trimData in
+                        if let image = trimData.image {
+                            Image(uiImage: image)
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(
+                                    width: proxy.size.width / CGFloat(video.thumbnailsImages.count),
+                                    height: proxy.size.height - 5
+                                )
+                                .clipped()
+                        }
                     }
                 }
             }
         }
     }
 
-    private func setOnChangeTrim(_ isChange: Bool) {
-        if !isChange {
-            currentTime = video?.rangeDuration.upperBound ?? 0
-            onChangeTimeValue()
+    @ViewBuilder
+    private func playbackIndicator(_ proxy: GeometryProxy) -> some View {
+        if let video {
+            Capsule()
+                .fill(Theme.accent)
+                .frame(width: 4, height: proxy.size.height + 8)
+                .shadow(color: Theme.primary.opacity(0.25), radius: 4)
+                .position(
+                    x: playbackPositionX(for: video, width: proxy.size.width),
+                    y: proxy.size.height / 2
+                )
         }
+    }
+
+    private func playbackPositionX(for video: Video, width: CGFloat) -> CGFloat {
+        guard video.originalDuration > 0, width > 0 else { return 2 }
+        let clampedTime = currentTime.clamped(to: video.rangeDuration)
+        let progress = clampedTime / video.originalDuration
+        return min(max(width * progress, 2), width - 2)
+    }
+
+    private func updatePlaybackPosition(for locationX: CGFloat, width: CGFloat) {
+        guard let video, width > 0 else { return }
+        let progress = min(max(locationX / width, 0), 1)
+        let rawTime = progress * video.originalDuration
+        currentTime = rawTime.clamped(to: video.rangeDuration)
+        onChangeTimeValue()
+    }
+
+    private func thumbnailRequestID(for size: CGSize) -> String {
+        let width = Int(size.width.rounded())
+        let height = Int(size.height.rounded())
+        let videoID = video?.id.uuidString ?? "none"
+        return "\(videoID)-\(width)-\(height)"
     }
 }

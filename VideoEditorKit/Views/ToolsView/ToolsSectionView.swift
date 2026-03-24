@@ -19,7 +19,7 @@ struct ToolsSectionView: View {
     var body: some View {
         ZStack {
             LazyVGrid(columns: columns, alignment: .center, spacing: 10) {
-                ForEach(ToolEnum.allCases, id: \.self) { tool in
+                ForEach(ToolEnum.menuCases, id: \.self) { tool in
                     ToolButtonView(
                         label: tool.title, image: tool.image,
                         isChange: editorVM.currentVideo?.isAppliedTool(for: tool) ?? false
@@ -85,14 +85,6 @@ extension ToolsSectionView {
         VStack(spacing: 16) {
             sheetHeader(tool)
             switch tool {
-            case .cut:
-                ThumbnailsSliderView(
-                    currentTime: $videoPlayer.currentTime, video: $editorVM.currentVideo,
-                    isChangeState: isAppliedTool
-                ) {
-                    videoPlayer.scrubState = .scrubEnded(videoPlayer.currentTime)
-                    editorVM.setTools()
-                }
             case .speed:
                 VideoSpeedSlider(value: Double(video.rate), isChangeState: isAppliedTool) { rate in
                     videoPlayer.pause()
@@ -124,6 +116,8 @@ extension ToolsSectionView {
                 FramesToolView(
                     selectedColor: $editorVM.frames.frameColor, scaleValue: $editorVM.frames.scaleValue,
                     onChange: editorVM.setFrames)
+            case .cut:
+                EmptyView()
             }
             Spacer()
         }

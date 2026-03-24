@@ -10,6 +10,10 @@ import Foundation
 enum ToolEnum: Int, CaseIterable {
     case cut, speed, crop, audio, text, filters, corrections, frames
 
+    static var menuCases: [ToolEnum] {
+        allCases.filter { $0 != .cut }
+    }
+
     var title: String {
         switch self {
         case .cut: return "Cut"

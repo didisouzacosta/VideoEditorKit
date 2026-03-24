@@ -52,6 +52,20 @@ extension EditorViewModel {
             }
         }
     }
+
+    func refreshThumbnailsIfNeeded(containerSize: CGSize) {
+        guard let video = currentVideo else { return }
+        guard containerSize.width > 0, containerSize.height > 0 else { return }
+
+        let expectedCount = video.thumbnailCount(for: containerSize)
+        guard expectedCount > 0 else { return }
+
+        let isMissingThumbnails = video.thumbnailsImages.isEmpty
+        let needsResize = video.thumbnailsImages.count != expectedCount
+
+        guard isMissingThumbnails || needsResize else { return }
+        loadThumbnails(for: video, containerSize: containerSize)
+    }
 }
 
 //MARK: - Tools logic
@@ -84,6 +98,25 @@ extension EditorViewModel {
     func updateRate(rate: Float) {
         currentVideo?.updateRate(rate)
         setTools()
+    }
+
+    func setCut() {
+        guard let video = currentVideo else { return }
+
+        let isTrimmed =
+            video.rangeDuration.lowerBound > 0
+            || abs(video.rangeDuration.upperBound - video.originalDuration) > 0.001
+
+        if isTrimmed {
+            currentVideo?.appliedTool(for: .cut)
+        } else {
+            currentVideo?.removeTool(for: .cut)
+        }
+    }
+
+    func resetCut() {
+        currentVideo?.resetRangeDuration()
+        currentVideo?.removeTool(for: .cut)
     }
 
     func rotate() {

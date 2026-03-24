@@ -181,21 +181,41 @@ struct PlayerControl: View {
     @ViewBuilder
     private var timeLineControlSection: some View {
         if let video = editorVM.currentVideo {
-            TimeLineView(
-                recorderManager: recorderManager,
+            trimSection(video)
+        }
+    }
+
+    private func trimSection(_ video: Video) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                if video.isAppliedTool(for: .cut) {
+                    Button {
+                        videoPlayer.pause()
+                        editorVM.resetCut()
+                        videoPlayer.currentTime = editorVM.currentVideo?.rangeDuration.lowerBound ?? 0
+                        videoPlayer.scrubState = .scrubEnded(videoPlayer.currentTime)
+                    } label: {
+                        Text("Reset")
+                            .font(.subheadline.weight(.semibold))
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
+                            .capsuleControl()
+                    }
+                }
+            }
+
+            ThumbnailsSliderView(
                 currentTime: $videoPlayer.currentTime,
-                isSelectedTrack: $editorVM.isSelectVideo,
-                viewState: editorVM.selectedTools?.timeState ?? .empty,
-                video: video, textInterval: textEditor.selectedTextBox?.timeRange
+                video: $editorVM.currentVideo,
+                isChangeState: video.isAppliedTool(for: .cut)
             ) {
                 videoPlayer.scrubState = .scrubEnded(videoPlayer.currentTime)
-            } onChangeTextTime: { textTime in
-                textEditor.setTime(textTime)
-            } onSetAudio: { audio in
-                editorVM.setAudio(audio)
-                videoPlayer.setAudio(audio.url)
+                editorVM.setCut()
+            } onRequestThumbnails: { size in
+                editorVM.refreshThumbnailsIfNeeded(containerSize: size)
             }
         }
+        .padding(.horizontal)
     }
 
     private var playSection: some View {
@@ -210,7 +230,6 @@ struct PlayerControl: View {
                 .foregroundStyle(Theme.primary)
                 .circleControl(prominent: true, tint: Theme.accent)
         }
-        .buttonStyle(.plain)
         .hCenter()
         .overlay(alignment: .trailing) {
             Button {
@@ -235,5 +254,4 @@ struct PlayerControl: View {
 
 #Preview {
     MainEditorView()
-        .preferredColorScheme(.dark)
 }
