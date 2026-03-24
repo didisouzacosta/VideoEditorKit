@@ -11,9 +11,9 @@ import SwiftUI
 struct CropSheetView: View {
     @State var rotateValue: Double = 0
     @State private var currentTab: Tab = .rotate
-    
+
     var editorVM: EditorViewModel
-    
+
     var body: some View {
         VStack(spacing: 28) {
             tabButtons
@@ -43,11 +43,9 @@ extension CropSheetView {
                 value: $rotateValue,
                 in: 0...360,
                 step: 90,
-                onEditingChanged: { started in
-                    if !started {
-                        editorVM.currentVideo?.rotation = rotateValue
-                        editorVM.setTools()
-                    }
+                onEditingChanged: { _ in },
+                onChanged: {
+                    editorVM.setRotation(rotateValue)
                 },
                 track: {
                     Capsule()

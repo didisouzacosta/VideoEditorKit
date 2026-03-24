@@ -18,6 +18,7 @@ struct Video: Identifiable, @unchecked Sendable {
     var thumbnailsImages = [ThumbnailImage]()
     var rate: Float = 1.0
     var rotation: Double = 0
+    var presentationSize: CGSize = .zero
     var frameSize: CGSize = .zero
     var geometrySize: CGSize = .zero
     var isMirror: Bool = false
@@ -34,8 +35,13 @@ struct Video: Identifiable, @unchecked Sendable {
     }
 
     init(
-        url: URL, asset: AVAsset, originalDuration: Double, rangeDuration: ClosedRange<Double>,
-        rate: Float = 1.0, rotation: Double = 0
+        url: URL,
+        asset: AVAsset,
+        originalDuration: Double,
+        rangeDuration: ClosedRange<Double>,
+        rate: Float = 1.0,
+        rotation: Double = 0,
+        presentationSize: CGSize = .zero
     ) {
         self.url = url
         self.asset = asset
@@ -43,6 +49,7 @@ struct Video: Identifiable, @unchecked Sendable {
         self.rangeDuration = rangeDuration
         self.rate = rate
         self.rotation = rotation
+        self.presentationSize = presentationSize
     }
 
     init(url: URL) {
@@ -135,9 +142,11 @@ struct Video: Identifiable, @unchecked Sendable {
         let asset = AVURLAsset(url: url)
         let duration = (try? await asset.load(.duration).seconds) ?? .zero
         let resolvedDuration = duration.isFinite ? duration : .zero
+        let presentationSize = await asset.presentationSize() ?? .zero
         return Video(
             url: url, asset: asset, originalDuration: resolvedDuration,
-            rangeDuration: .zero...resolvedDuration)
+            rangeDuration: .zero...resolvedDuration,
+            presentationSize: presentationSize)
     }
 }
 

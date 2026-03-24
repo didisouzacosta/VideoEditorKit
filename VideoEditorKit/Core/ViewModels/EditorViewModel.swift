@@ -124,6 +124,12 @@ extension EditorViewModel {
         setTools()
     }
 
+    func setRotation(_ rotation: Double) {
+        guard currentVideo?.rotation != rotation else { return }
+        currentVideo?.rotation = rotation
+        setTools()
+    }
+
     func toggleMirror() {
         currentVideo?.isMirror.toggle()
         setTools()

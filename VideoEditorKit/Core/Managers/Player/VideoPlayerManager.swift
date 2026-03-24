@@ -73,6 +73,8 @@ final class VideoPlayerManager {
         case .loaded(let url):
             pause()
             cleanupObservers()
+            currentDurationRange = nil
+            currentTime = .zero
             videoPlayer = AVPlayer(url: url)
             startStatusSubscriptions()
         case .failed, .loading, .unknown:
@@ -105,6 +107,8 @@ final class VideoPlayerManager {
         if isSetAudio {
             audioPlayer.pause()
         }
+        isPlaying = false
+        syncCurrentTimeFromPlayer()
     }
 
     func setVolume(_ isVideo: Bool, value: Float) {
@@ -152,29 +156,53 @@ final class VideoPlayerManager {
         registerPlaybackObserverIfNeeded()
     }
 
+    func updatePlaybackRange(_ range: ClosedRange<Double>) {
+        currentDurationRange = range
+
+        let playbackTime = videoPlayer.currentTime().seconds
+        let referenceTime = playbackTime.isFinite ? playbackTime : currentTime
+        let clampedTime = referenceTime.clamped(to: range)
+
+        currentTime = clampedTime
+
+        guard !playbackTime.isFinite || abs(playbackTime - clampedTime) > 0.01 else { return }
+
+        seek(clampedTime, player: videoPlayer)
+        if isSetAudio {
+            seek(clampedTime, player: audioPlayer)
+        }
+    }
+
     private func seek(_ seconds: Double, player: AVPlayer) {
-        player.seek(to: CMTime(seconds: seconds, preferredTimescale: 600))
+        player.seek(
+            to: CMTime(seconds: seconds, preferredTimescale: 600),
+            toleranceBefore: .zero,
+            toleranceAfter: .zero
+        )
     }
 
     private func startTimer() {
         removeTimeObserver()
-        let interval = CMTimeMake(value: 1, timescale: 10)
+        let interval = CMTimeMake(value: 1, timescale: 30)
         timeObserver = videoPlayer.addPeriodicTimeObserver(forInterval: interval, queue: .main) {
             [weak self] time in
             Task { @MainActor [weak self] in
                 guard let self = self else { return }
                 if self.isPlaying {
-                    let time = time.seconds
+                    let playbackTime = time.seconds
+                    let resolvedTime = self.resolvedCurrentTime(from: playbackTime)
 
                     if let currentDurationRange = self.currentDurationRange,
-                        time >= currentDurationRange.upperBound
+                        playbackTime >= currentDurationRange.upperBound
                     {
+                        self.currentTime = currentDurationRange.upperBound
                         self.pause()
+                        return
                     }
 
                     switch self.scrubState {
                     case .reset:
-                        self.currentTime = time
+                        self.currentTime = resolvedTime
                     case .scrubEnded:
                         self.scrubState = .reset
                     case .scrubStarted:
@@ -207,11 +235,12 @@ final class VideoPlayerManager {
 
     private func playerDidFinishPlaying() {
         let restartTime = currentDurationRange?.lowerBound ?? .zero
+        pause()
         seek(restartTime, player: videoPlayer)
         if isSetAudio {
             seek(restartTime, player: audioPlayer)
         }
-        pause()
+        currentTime = restartTime
     }
 
     private func removeTimeObserver() {
@@ -233,6 +262,19 @@ final class VideoPlayerManager {
         removeEndPlaybackObserver()
         statusCancellable?.cancel()
         statusCancellable = nil
+    }
+
+    private func resolvedCurrentTime(from playbackTime: Double) -> Double {
+        guard playbackTime.isFinite else {
+            return currentDurationRange.map { currentTime.clamped(to: $0) } ?? currentTime
+        }
+
+        guard let currentDurationRange else { return playbackTime }
+        return playbackTime.clamped(to: currentDurationRange)
+    }
+
+    private func syncCurrentTimeFromPlayer() {
+        currentTime = resolvedCurrentTime(from: videoPlayer.currentTime().seconds)
     }
 
 }

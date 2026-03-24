@@ -13,7 +13,7 @@ struct ThumbnailsSliderView: View {
     @Binding var currentTime: Double
     @Binding var video: Video?
     var isChangeState: Bool?
-    let onChangeTimeValue: () -> Void
+    let onChangeTimeValue: (ClosedRange<Double>) -> Void
     let onRequestThumbnails: (CGSize) -> Void
 
     private var totalDuration: Double {
@@ -40,7 +40,7 @@ struct ThumbnailsSliderView: View {
                         }
                         .onChange(of: rangeDuration) { _, newValue in
                             self.video?.rangeDuration = newValue
-                            onChangeTimeValue()
+                            onChangeTimeValue(newValue)
                         }
                     }
                 }
@@ -71,7 +71,7 @@ struct ThumbnailsSliderView_Previews: PreviewProvider {
             currentTime: .constant(0),
             video: .constant(Video.mock),
             isChangeState: nil,
-            onChangeTimeValue: {},
+            onChangeTimeValue: { _ in },
             onRequestThumbnails: { _ in }
         )
     }

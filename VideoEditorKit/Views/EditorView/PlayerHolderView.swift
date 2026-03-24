@@ -83,7 +83,7 @@ extension PlayerHolderView {
                             videoID: video.id
                         )
                     ) {
-                        await updateVideoLayout(for: proxy.size)
+                        syncVideoLayout(for: proxy.size)
                     }
                 }
             }
@@ -97,11 +97,10 @@ extension PlayerHolderView {
             height: max(containerSize.height, 1)
         )
 
-        if video.frameSize.width > 0, video.frameSize.height > 0 {
-            return fittedSize(video.frameSize, in: fallbackSize)
-        }
+        let baseSize = rotatedBaseSize(for: video)
+        guard baseSize.width > 0, baseSize.height > 0 else { return fallbackSize }
 
-        return fallbackSize
+        return fittedSize(baseSize, in: fallbackSize)
     }
 
     private func fittedSize(_ size: CGSize, in bounds: CGSize) -> CGSize {
@@ -122,18 +121,38 @@ extension PlayerHolderView {
         "\(videoID.uuidString)-\(Int(containerSize.width.rounded()))-\(Int(containerSize.height.rounded()))-\(Int(rotation))"
     }
 
-    private func updateVideoLayout(for containerSize: CGSize) async {
+    private func rotatedBaseSize(for video: Video) -> CGSize {
+        let baseSize: CGSize
+        if video.presentationSize.width > 0, video.presentationSize.height > 0 {
+            baseSize = video.presentationSize
+        } else {
+            baseSize = video.frameSize
+        }
+
+        guard baseSize.width > 0, baseSize.height > 0 else { return .zero }
+
+        let normalizedRotation = abs(Int(video.rotation)) % 180
+        if normalizedRotation == 90 {
+            return CGSize(width: baseSize.height, height: baseSize.width)
+        }
+
+        return baseSize
+    }
+
+    private func syncVideoLayout(for containerSize: CGSize) {
         guard let video = editorVM.currentVideo else { return }
-        guard
-            let size = await video.asset.adjustVideoSize(
-                to: containerSize,
-                rotationAngle: video.rotation
-            )
-        else { return }
+        let size = resolvedDisplaySize(for: video, in: containerSize)
+        guard size.width > 0, size.height > 0 else { return }
 
         guard editorVM.currentVideo?.id == video.id else { return }
-        editorVM.currentVideo?.frameSize = size
-        editorVM.currentVideo?.geometrySize = size
+
+        if editorVM.currentVideo?.frameSize != size {
+            editorVM.currentVideo?.frameSize = size
+        }
+
+        if editorVM.currentVideo?.geometrySize != size {
+            editorVM.currentVideo?.geometrySize = size
+        }
     }
 }
 
@@ -142,9 +161,10 @@ extension PlayerHolderView {
     @ViewBuilder
     private var timelineLabel: some View {
         if let video = editorVM.currentVideo {
+            let displayTime = videoPlayer.currentTime.clamped(to: video.rangeDuration)
             HStack {
                 Text(
-                    "\((videoPlayer.currentTime - video.rangeDuration.lowerBound).formatterTimeString()) / \(Int(video.totalDuration).secondsToTime())"
+                    "\((displayTime - video.rangeDuration.lowerBound).formatterTimeString()) / \(Int(video.totalDuration).secondsToTime())"
                 )
             }
             .font(.caption2)
@@ -167,7 +187,7 @@ struct PlayerControl: View {
     var body: some View {
         VStack(spacing: 8) {
             playSection
-            
+
             if editorVM.currentVideo != nil {
                 timeLineControlSection
             }
@@ -186,8 +206,9 @@ struct PlayerControl: View {
             currentTime: $videoPlayer.currentTime,
             video: $editorVM.currentVideo,
             isChangeState: video.isAppliedTool(for: .cut)
-        ) {
+        ) { newRange in
             videoPlayer.pause()
+            videoPlayer.updatePlaybackRange(newRange)
             editorVM.setCut()
         } onRequestThumbnails: { size in
             editorVM.refreshThumbnailsIfNeeded(containerSize: size)
