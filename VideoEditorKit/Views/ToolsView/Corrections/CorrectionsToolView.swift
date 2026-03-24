@@ -22,7 +22,7 @@ struct CorrectionsToolView: View {
                             .font(.subheadline.weight(.semibold))
                             .padding(.horizontal, 14)
                             .padding(.vertical, 10)
-                            .ios26CapsuleControl(
+                            .capsuleControl(
                                 prominent: currentTab == type,
                                 tint: currentTab == type ? Theme.accent : Theme.accent
                             )

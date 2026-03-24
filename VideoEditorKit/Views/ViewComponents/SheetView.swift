@@ -59,7 +59,7 @@ extension SheetView {
                         .font(.footnote.weight(.bold))
                         .frame(width: 36, height: 36)
                         .foregroundStyle(Theme.primary)
-                        .ios26CircleControl()
+                        .circleControl()
                 }
             }
             .padding(.top, 18)
@@ -70,7 +70,7 @@ extension SheetView {
                 .padding(.bottom, 28)
         }
         .frame(maxWidth: .infinity)
-        .ios26Card(cornerRadius: 32, prominent: true, tint: Theme.secondary)
+        .card(cornerRadius: 32, prominent: true, tint: Theme.secondary)
         .padding(.horizontal, 12)
         .padding(.bottom, 12)
         .offset(y: max(slideGesture.height, 0))

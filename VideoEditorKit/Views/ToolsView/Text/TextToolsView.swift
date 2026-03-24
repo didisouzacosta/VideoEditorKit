@@ -48,7 +48,7 @@ extension TextToolsView {
                     .padding(.horizontal)
             }
             .frame(width: 80, height: 80)
-            .ios26Card(
+            .card(
                 cornerRadius: 20, prominent: isSelected,
                 tint: isSelected ? Theme.accent : Theme.accent)
         }
@@ -61,7 +61,7 @@ extension TextToolsView {
                         .font(.caption.weight(.bold))
                         .foregroundStyle(Theme.primary)
                         .frame(width: 28, height: 28)
-                        .ios26CircleControl()
+                        .circleControl()
                 }
                 .padding(5)
             }
@@ -78,7 +78,7 @@ extension TextToolsView {
                     .font(.title2.weight(.light))
             }
             .frame(width: 80, height: 80)
-            .ios26Card(cornerRadius: 20, tint: Theme.accent)
+            .card(cornerRadius: 20, tint: Theme.accent)
         }
         .buttonStyle(.plain)
     }

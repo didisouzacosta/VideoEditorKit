@@ -34,7 +34,7 @@ struct PlayerHolderView: View {
         }
         .foregroundStyle(Theme.accent)
         .padding(14)
-        .ios26Card(cornerRadius: 34, prominent: true, tint: Theme.secondary)
+        .card(cornerRadius: 34, prominent: true, tint: Theme.secondary)
     }
 }
 
@@ -45,7 +45,7 @@ extension PlayerHolderView {
             .foregroundStyle(Theme.accent)
             .padding(.horizontal, 18)
             .padding(.vertical, 12)
-            .ios26CapsuleControl(tint: Theme.secondary)
+            .capsuleControl(tint: Theme.secondary)
     }
 
     private var playerCropView: some View {
@@ -154,7 +154,7 @@ extension PlayerHolderView {
             .foregroundStyle(Theme.accent)
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .ios26CapsuleControl(tint: Theme.secondary)
+            .capsuleControl(tint: Theme.secondary)
             .padding()
         }
     }
@@ -173,7 +173,7 @@ struct PlayerControl: View {
             if editorVM.currentVideo != nil {
                 timeLineControlSection
                     .padding(12)
-                    .ios26Card(cornerRadius: 28, tint: Theme.secondary)
+                    .card(cornerRadius: 28, tint: Theme.secondary)
             }
         }
     }
@@ -208,7 +208,7 @@ struct PlayerControl: View {
                 .font(.title2.weight(.semibold))
                 .frame(width: 72, height: 72)
                 .foregroundStyle(Theme.primary)
-                .ios26CircleControl(prominent: true, tint: Theme.accent)
+                .circleControl(prominent: true, tint: Theme.accent)
         }
         .buttonStyle(.plain)
         .hCenter()
@@ -226,7 +226,7 @@ struct PlayerControl: View {
                 .font(.headline.weight(.semibold))
                 .frame(width: 46, height: 46)
                 .foregroundStyle(Theme.primary)
-                .ios26CircleControl()
+                .circleControl()
             }
             .buttonStyle(.plain)
         }

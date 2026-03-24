@@ -43,7 +43,7 @@ struct RecordVideoView: View {
                             .font(.headline.weight(.semibold))
                             .frame(width: 44, height: 44)
                             .foregroundStyle(Theme.primary)
-                            .ios26CircleControl()
+                            .circleControl()
                     }
                     .buttonStyle(.plain)
                 }

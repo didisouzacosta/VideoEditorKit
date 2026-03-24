@@ -39,22 +39,13 @@ struct RootView: View {
                     .padding(.horizontal, 20)
                     .padding(.vertical, 24)
                 }
+                .navigationTitle("Example Mode")
                 .scrollIndicators(.hidden)
-                .navigationDestination(item: $editorDestination) { destination in
+                .fullScreenCover(item: $editorDestination) { destination in
                     MainEditorView(sourceVideoURL: destination.url) { exportedURL in
                         replaceEditedVideo(with: exportedURL)
                     }
                 }
-                .toolbar {
-                    ToolbarItem(placement: .principal) {
-                        Text("Example Mode")
-                            .font(.subheadline.weight(.semibold))
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 8)
-                            .ios26CapsuleControl(tint: Theme.accent)
-                    }
-                }
-                .toolbarBackground(.hidden, for: .navigationBar)
                 .onChange(of: item) { _, newItem in
                     loadPhotosItem(newItem)
                 }
@@ -73,7 +64,6 @@ struct RootView: View {
                         }
                         .padding(.horizontal, 24)
                         .padding(.vertical, 22)
-                        .ios26Card(prominent: true, tint: Theme.accent)
                     }
                 }
             }
@@ -88,7 +78,6 @@ extension RootView {
                 .font(.subheadline.weight(.semibold))
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
-                .ios26CapsuleControl(tint: Theme.accent)
 
             Text("Edit a clip with the iOS 26 visual language.")
                 .font(.largeTitle.bold())
@@ -105,7 +94,7 @@ extension RootView {
         }
         .padding(24)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .ios26Card(prominent: true, tint: Theme.accent)
+        .card()
     }
 
     private var selectVideoCard: some View {
@@ -115,7 +104,7 @@ extension RootView {
                     .font(.system(size: 22, weight: .semibold))
                     .frame(width: 52, height: 52)
                     .foregroundStyle(Theme.primary)
-                    .ios26CircleControl(prominent: true, tint: Theme.accent)
+                    .circleControl(prominent: true, tint: Theme.accent)
 
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Choose a Video")
@@ -133,7 +122,7 @@ extension RootView {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(20)
-            .ios26Card(prominent: true, tint: Theme.accent)
+            .card(prominent: true, tint: Theme.accent)
         }
         .buttonStyle(.plain)
     }
@@ -155,7 +144,7 @@ extension RootView {
                         .foregroundStyle(Theme.secondary)
                 }
                 .padding(18)
-                .ios26Card(tint: Theme.accent)
+                .card(tint: Theme.accent)
             } else {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("No edited video yet.")
@@ -166,7 +155,7 @@ extension RootView {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(20)
-                .ios26Card(tint: Theme.accent)
+                .card(tint: Theme.accent)
             }
         }
     }

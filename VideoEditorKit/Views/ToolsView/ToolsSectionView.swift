@@ -29,7 +29,7 @@ struct ToolsSectionView: View {
                 }
             }
             .padding(14)
-            .ios26Card(cornerRadius: 30, tint: Theme.secondary)
+            .card(cornerRadius: 30, tint: Theme.secondary)
             .opacity(editorVM.selectedTools != nil ? 0 : 1)
 
             if let toolState = editorVM.selectedTools, let video = editorVM.currentVideo {
@@ -128,7 +128,7 @@ extension ToolsSectionView {
             Spacer()
         }
         .padding(16)
-        .ios26Card(cornerRadius: 30, prominent: true, tint: Theme.secondary)
+        .card(cornerRadius: 30, prominent: true, tint: Theme.secondary)
     }
 }
 
@@ -142,7 +142,7 @@ extension ToolsSectionView {
                 Image(systemName: "chevron.down")
                     .font(.headline.weight(.semibold))
                     .frame(width: 40, height: 40)
-                    .ios26CircleControl()
+                    .circleControl()
             }
             .buttonStyle(.plain)
 
@@ -155,7 +155,7 @@ extension ToolsSectionView {
                         .font(.subheadline.weight(.semibold))
                         .padding(.horizontal, 16)
                         .padding(.vertical, 10)
-                        .ios26CapsuleControl()
+                        .capsuleControl()
                 }
                 .buttonStyle(.plain)
             } else if !editorVM.isSelectVideo {
@@ -166,7 +166,7 @@ extension ToolsSectionView {
                     Image(systemName: "trash.fill")
                         .font(.headline.weight(.semibold))
                         .frame(width: 40, height: 40)
-                        .ios26CircleControl()
+                        .circleControl()
                 }
                 .buttonStyle(.plain)
             }

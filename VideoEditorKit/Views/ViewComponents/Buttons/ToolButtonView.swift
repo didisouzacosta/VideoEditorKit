@@ -33,7 +33,7 @@ struct ToolButtonView: View {
                         .padding(8)
                 }
             }
-            .ios26Card(
+            .card(
                 cornerRadius: 20, prominent: isChange,
                 tint: isChange ? Theme.accent : Theme.secondary)
         }

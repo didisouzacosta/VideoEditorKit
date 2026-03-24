@@ -115,7 +115,7 @@ extension VideoExporterBottomSheetView {
                         }
                     }
                     .padding(14)
-                    .ios26Card(
+                    .card(
                         cornerRadius: 22,
                         prominent: viewModel.selectedQuality == type,
                         tint: viewModel.selectedQuality == type ? Theme.accent : Theme.secondary
@@ -144,7 +144,7 @@ extension VideoExporterBottomSheetView {
         }
         .padding(.horizontal, 18)
         .padding(.vertical, 14)
-        .ios26CapsuleControl(prominent: true, tint: Theme.accent)
+        .capsuleControl(prominent: true, tint: Theme.accent)
     }
 
     private func mainAction() {

@@ -49,7 +49,7 @@ enum Theme {
 
 extension View {
     @ViewBuilder
-    nonisolated func ios26Card(
+    nonisolated func card(
         cornerRadius: CGFloat = 28,
         prominent: Bool = false,
         tint: Color? = nil
@@ -64,7 +64,7 @@ extension View {
     }
 
     @ViewBuilder
-    nonisolated func ios26CircleControl(
+    nonisolated func circleControl(
         prominent: Bool = false,
         tint: Color? = nil
     ) -> some View {
@@ -77,7 +77,7 @@ extension View {
     }
 
     @ViewBuilder
-    nonisolated func ios26CapsuleControl(
+    nonisolated func capsuleControl(
         prominent: Bool = false,
         tint: Color? = nil
     ) -> some View {

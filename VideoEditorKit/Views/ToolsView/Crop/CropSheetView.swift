@@ -63,7 +63,7 @@ extension CropSheetView {
                 Image(systemName: "arrow.triangle.2.circlepath")
                     .font(.headline.weight(.semibold))
                     .frame(width: 44, height: 44)
-                    .ios26CircleControl(tint: Theme.secondary)
+                    .circleControl(tint: Theme.secondary)
             }
             .buttonStyle(.plain)
 
@@ -73,7 +73,7 @@ extension CropSheetView {
                 Image(systemName: "arrow.left.and.right.righttriangle.left.righttriangle.right.fill")
                     .font(.headline.weight(.semibold))
                     .frame(width: 44, height: 44)
-                    .ios26CircleControl(
+                    .circleControl(
                         prominent: editorVM.currentVideo?.isMirror ?? false,
                         tint: (editorVM.currentVideo?.isMirror ?? false)
                             ? Theme.accent : Theme.secondary
@@ -93,7 +93,7 @@ extension CropSheetView {
                         .font(.subheadline.weight(.semibold))
                         .padding(.horizontal, 16)
                         .padding(.vertical, 10)
-                        .ios26CapsuleControl(
+                        .capsuleControl(
                             prominent: currentTab == tab,
                             tint: currentTab == tab ? Theme.accent : Theme.secondary
                         )

@@ -44,7 +44,7 @@ struct TextEditorView: View {
                         .frame(maxHeight: textHeight)
                         .padding(.horizontal, 20)
                         .padding(.vertical, 18)
-                        .ios26Card(cornerRadius: 30, prominent: true, tint: Theme.accent)
+                        .card(cornerRadius: 30, prominent: true, tint: Theme.accent)
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 24)
@@ -63,7 +63,7 @@ struct TextEditorView: View {
                             .font(.headline.weight(.semibold))
                             .frame(width: 44, height: 44)
                             .foregroundStyle(Theme.primary)
-                            .ios26CircleControl()
+                            .circleControl()
                     }
                     .buttonStyle(.plain)
                 }
@@ -84,7 +84,7 @@ struct TextEditorView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.horizontal, 24)
                         .padding(.vertical, 14)
-                        .ios26CapsuleControl(prominent: true, tint: Theme.accent)
+                        .capsuleControl(prominent: true, tint: Theme.accent)
                 }
                 .buttonStyle(.plain)
                 .opacity(viewModel.currentTextBox.text.isEmpty ? 0.5 : 1)
@@ -230,7 +230,7 @@ struct SystemColorSwatchPicker: View {
                                         )
                                 }
                                 .padding(5)
-                                .ios26CircleControl(
+                                .circleControl(
                                     prominent: isSelected(option),
                                     tint: isSelected(option) ? Theme.accent : nil
                                 )

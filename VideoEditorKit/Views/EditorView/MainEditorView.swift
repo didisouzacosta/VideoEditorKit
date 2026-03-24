@@ -28,7 +28,7 @@ struct MainEditorView: View {
     }
 
     var body: some View {
-        ZStack {
+        NavigationStack {
             GeometryReader { proxy in
                 VStack(spacing: 14) {
                     PlayerHolderView(
@@ -65,26 +65,10 @@ struct MainEditorView: View {
         .navigationBarBackButtonHidden(true)
         .toolbarBackground(.hidden, for: .navigationBar)
         .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Button {
-                    videoPlayer.pause()
+            ToolbarItem(placement: .cancellationAction) {
+                Button(role: .cancel) {
                     dismiss()
-                } label: {
-                    Image(systemName: "chevron.left")
-                        .font(.headline.weight(.semibold))
-                        .frame(width: 46, height: 46)
-                        .foregroundStyle(Theme.primary)
-                        .ios26CircleControl()
                 }
-                .buttonStyle(.plain)
-            }
-
-            ToolbarItem(placement: .principal) {
-                Text("Editor")
-                    .font(.subheadline.weight(.semibold))
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .ios26CapsuleControl(tint: Theme.secondary)
             }
 
             ToolbarItem(placement: .topBarTrailing) {
@@ -92,12 +76,7 @@ struct MainEditorView: View {
                     presentExporter()
                 } label: {
                     Label("Export", systemImage: "square.and.arrow.up.fill")
-                        .font(.subheadline.weight(.semibold))
-                        .padding(.horizontal, 18)
-                        .padding(.vertical, 12)
-                        .ios26CapsuleControl(prominent: true, tint: Theme.accent)
                 }
-                .buttonStyle(.plain)
             }
         }
         .fullScreenCover(isPresented: $showRecordView) {
@@ -156,6 +135,7 @@ extension MainEditorView {
 }
 
 #Preview {
-    MainEditorView()
-        .preferredColorScheme(.dark)
+    NavigationStack {
+        MainEditorView()
+    }
 }

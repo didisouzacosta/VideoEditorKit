@@ -51,7 +51,7 @@ extension FiltersView {
                     )
             }
             .padding(4)
-            .ios26Card(
+            .card(
                 cornerRadius: 22, prominent: isSelected,
                 tint: isSelected ? Theme.accent : Theme.secondary)
     }
