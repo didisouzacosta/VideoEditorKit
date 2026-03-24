@@ -11,7 +11,6 @@ import UIKit
 
 enum VideoEditor {
 
-    ///The renderer is made up of half-sequential operations:
     static func startRender(video: Video, videoQuality: VideoQuality) async throws -> URL {
         do {
             let url = try await resizeAndLayerOperation(video: video, videoQuality: videoQuality)
@@ -22,36 +21,28 @@ enum VideoEditor {
         }
     }
 
-    ///Cut, resizing, rotate and set quality
     private static func resizeAndLayerOperation(
         video: Video,
         videoQuality: VideoQuality
     ) async throws -> URL {
-
         let composition = AVMutableComposition()
-
         let timeRange = getTimeRange(for: video.originalDuration, with: video.rangeDuration)
         let asset = video.asset
 
-        ///Set new timeScale
         try await setTimeScaleAndAddTracks(
             to: composition, from: asset, audio: video.audio, timeScale: Float64(video.rate),
             videoVolume: video.volume)
 
-        ///Get new timeScale video track
         guard let videoTrack = try await composition.loadTracks(withMediaType: .video).first else {
             throw ExporterError.unknow
         }
 
-        ///Prepair new video size
         let naturalSize = videoTrack.naturalSize
         let videoTrackPreferredTransform = try await videoTrack.load(.preferredTransform)
         let outputSize = getSizeFromOrientation(
             newSize: videoQuality.size, videoTrackPreferredTransform: videoTrackPreferredTransform)
 
-        ///Create layerInstructions and set new size, scale, mirror
         let layerInstruction = videoCompositionInstructionForTrackWithSizeAndTime(
-
             preferredTransform: videoTrackPreferredTransform,
             naturalSize: naturalSize,
             newSize: outputSize,
@@ -60,10 +51,8 @@ enum VideoEditor {
             isMirror: video.isMirror
         )
 
-        ///Create background layer color and scale video
         let animationTool = createAnimationTool(video.videoFrames, video: video, size: outputSize)
 
-        ///Set Video Composition Instruction
         let instruction = AVVideoCompositionInstruction(
             configuration: .init(
                 layerInstructions: [layerInstruction],
@@ -81,34 +70,30 @@ enum VideoEditor {
 
         let videoComposition = AVVideoComposition(configuration: configuration)
 
-        ///Create file path in temp directory
         let outputURL = createTempPath()
 
-        ///Create exportSession
         let session = try exportSession(
             composition: composition, videoComposition: videoComposition, outputURL: outputURL,
             timeRange: timeRange)
 
         try await session.export(to: outputURL, as: .mp4)
+        
         return outputURL
     }
 
-    ///Adding filters
     private static func applyFiltersOperations(_ video: Video, fromUrl: URL) async throws -> URL {
-
         let filters = Helpers.createFilters(
             mainFilter: CIFilter(name: video.filterName ?? ""), video.colorCorrection)
 
         if filters.isEmpty {
             return fromUrl
         }
+        
         let asset = AVURLAsset(url: fromUrl)
         let composition = try await asset.setFilters(filters)
 
         let outputURL = createTempPath()
-        //export the video to as per your requirement conversion
-
-        ///Create exportSession
+        
         guard
             let session = AVAssetExportSession(
                 asset: asset,
@@ -118,13 +103,15 @@ enum VideoEditor {
             assertionFailure("Unable to create filter export session.")
             throw ExporterError.cannotCreateExportSession
         }
+        
         session.videoComposition = composition
+        
         try await session.export(to: outputURL, as: .mp4)
+        
         return outputURL
     }
 }
 
-//MARK: - Helpers
 extension VideoEditor {
 
     private static func exportSession(
@@ -151,7 +138,6 @@ extension VideoEditor {
         video: Video,
         size: CGSize
     ) -> AVVideoCompositionCoreAnimationTool? {
-
         guard let videoFrame else { return nil }
 
         let color = videoFrame.frameColor
@@ -190,7 +176,6 @@ extension VideoEditor {
         )
     }
 
-    ///Set new time scale for audio and video tracks
     private static func setTimeScaleAndAddTracks(
         to composition: AVMutableComposition,
         from asset: AVAsset,
@@ -198,15 +183,13 @@ extension VideoEditor {
         timeScale: Float64,
         videoVolume: Float
     ) async throws {
-
         let videoTracks = try await asset.loadTracks(withMediaType: .video)
         let audioTracks = try await asset.loadTracks(withMediaType: .audio)
 
         let duration = try await asset.load(.duration)
-        //TotalTimeRange
         let oldTimeRange = CMTimeRangeMake(start: CMTime.zero, duration: duration)
         let destinationTimeRange = CMTimeMultiplyByFloat64(duration, multiplier: (1 / timeScale))
-        // set new time range in audio track
+        
         if let audioTrack = audioTracks.first {
             let compositionAudioTrack = composition.addMutableTrack(
                 withMediaType: AVMediaType.audio, preferredTrackID: kCMPersistentTrackID_Invalid)
@@ -218,7 +201,6 @@ extension VideoEditor {
             compositionAudioTrack?.preferredTransform = audioPreferredTransform
         }
 
-        // set new time range in video track
         if let videoTrack = videoTracks.first {
             let compositionVideoTrack = composition.addMutableTrack(
                 withMediaType: AVMediaType.video, preferredTrackID: kCMPersistentTrackID_Invalid)
@@ -230,7 +212,6 @@ extension VideoEditor {
             compositionVideoTrack?.preferredTransform = videoPreferredTransform
         }
 
-        // Adding audio
         if let audio {
             let asset = AVURLAsset(url: audio.url)
             guard let secondAudioTrack = try await asset.loadTracks(withMediaType: .audio).first else {
@@ -245,7 +226,6 @@ extension VideoEditor {
         }
     }
 
-    ///create CMTimeRange
     private static func getTimeRange(for duration: Double, with timeRange: ClosedRange<Double>)
         -> CMTimeRange
     {
@@ -259,12 +239,10 @@ extension VideoEditor {
         return timeRange
     }
 
-    ///set video size for AVVideoCompositionLayerInstruction
     private static func videoCompositionInstructionForTrackWithSizeAndTime(
         preferredTransform: CGAffineTransform, naturalSize: CGSize, newSize: CGSize,
         track: AVAssetTrack, scale: Double, isMirror: Bool
     ) -> AVVideoCompositionLayerInstruction {
-
         var configuration = AVVideoCompositionLayerInstruction.Configuration(assetTrack: track)
         let assetInfo = orientationFromTransform(preferredTransform)
 
@@ -348,7 +326,6 @@ extension VideoEditor {
         return tempURL
     }
 
-    ///needed for simulator fix AVVideoCompositionCoreAnimationTool crash only in simulator
     private static var isSimulator: Bool {
         #if targetEnvironment(simulator)
             true
@@ -409,7 +386,6 @@ extension VideoEditor {
     private static func addAnimation(
         to textLayer: CATextLayer, with timeRange: ClosedRange<Double>, duration: Double
     ) {
-
         if timeRange.lowerBound > 0 {
             let appearance = CABasicAnimation(keyPath: "opacity")
             appearance.fromValue = 0
@@ -433,6 +409,7 @@ extension VideoEditor {
             textLayer.add(disappearance, forKey: "Disappearance")
         }
     }
+    
 }
 
 enum ExporterError: Error, LocalizedError {
@@ -452,34 +429,3 @@ extension Double {
         return self * .pi / 180
     }
 }
-
-//
-//class ObservableExporter {
-//
-//    var progressTimer: Timer?
-//    let session: AVAssetExportSession
-//    public let progress: Binding<Double>
-//    public var duration: TimeInterval?
-//
-//    init(session: AVAssetExportSession, progress: Binding<Double>) {
-//        self.session = session
-//        self.progress = progress
-//    }
-//
-//    func export() async throws -> AVAssetExportSession.Status {
-//        progressTimer = Timer(timeInterval: 0.1, repeats: true, block: { timer in
-//            self.progress.wrappedValue = Double(self.session.progress)
-//        })
-//        RunLoop.main.add(progressTimer!, forMode: .common)
-//        let startDate = Date()
-//        await session.export()
-//        progressTimer?.invalidate()
-//        let endDate = Date()
-//        duration = endDate.timeIntervalSince(startDate)
-//        if let error = session.error {
-//            throw error
-//        } else {
-//            return session.status
-//        }
-//    }
-//}

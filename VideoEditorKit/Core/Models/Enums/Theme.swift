@@ -1,12 +1,11 @@
 //
-//  View+Style.swift
+//  Theme.swift
 //  VideoEditorKit
 //
-//  Created by Adriano Souza Costa on 23.03.2026.
+//  Created by Didi on 24/03/26.
 //
 
 import SwiftUI
-import UIKit
 
 enum Theme {
     static let accent = Color.accentColor
@@ -45,47 +44,4 @@ enum Theme {
         endRadius: 520
     )
     static let scrim = Color(uiColor: .label).opacity(0.18)
-}
-
-extension View {
-    @ViewBuilder
-    nonisolated func card(
-        cornerRadius: CGFloat = 28,
-        prominent: Bool = false,
-        tint: Color? = nil
-    ) -> some View {
-        if let tint {
-            self.glassEffect(
-                .regular.tint(tint.opacity(prominent ? 0.30 : 0.18)),
-                in: .rect(cornerRadius: cornerRadius))
-        } else {
-            self.glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
-        }
-    }
-
-    @ViewBuilder
-    nonisolated func circleControl(
-        prominent: Bool = false,
-        tint: Color? = nil
-    ) -> some View {
-        if let tint {
-            self.glassEffect(
-                .regular.tint(tint.opacity(prominent ? 0.30 : 0.18)).interactive(), in: .circle)
-        } else {
-            self.glassEffect(.regular.interactive(), in: .circle)
-        }
-    }
-
-    @ViewBuilder
-    nonisolated func capsuleControl(
-        prominent: Bool = false,
-        tint: Color? = nil
-    ) -> some View {
-        if let tint {
-            self.glassEffect(
-                .regular.tint(tint.opacity(prominent ? 0.30 : 0.18)).interactive(), in: .capsule)
-        } else {
-            self.glassEffect(.regular.interactive(), in: .capsule)
-        }
-    }
 }

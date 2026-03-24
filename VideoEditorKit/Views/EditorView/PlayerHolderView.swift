@@ -165,8 +165,9 @@ struct PlayerControl: View {
     @Bindable var videoPlayer: VideoPlayerManager
     let textEditor: TextEditorViewModel
     var body: some View {
-        VStack(spacing: 14) {
+        VStack(spacing: 8) {
             playSection
+            
             if editorVM.currentVideo != nil {
                 timeLineControlSection
             }
@@ -203,8 +204,7 @@ struct PlayerControl: View {
             Image(systemName: videoPlayer.isPlaying ? "pause.fill" : "play.fill")
                 .font(.title2.weight(.semibold))
                 .frame(width: 72, height: 72)
-                .foregroundStyle(Theme.primary)
-                .circleControl(prominent: true, tint: Theme.accent)
+                .circleControl()
         }
         .hCenter()
         .overlay(alignment: .trailing) {
@@ -220,7 +220,6 @@ struct PlayerControl: View {
                 )
                 .font(.headline.weight(.semibold))
                 .frame(width: 46, height: 46)
-                .foregroundStyle(Theme.primary)
                 .circleControl()
             }
             .buttonStyle(.plain)

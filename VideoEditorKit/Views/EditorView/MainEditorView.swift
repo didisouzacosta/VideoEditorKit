@@ -55,6 +55,21 @@ struct MainEditorView: View {
                     }
                 }
                 .safeAreaPadding()
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button(role: .cancel) {
+                            dismiss()
+                        }
+                    }
+
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            presentExporter()
+                        } label: {
+                            Label("Export", systemImage: "square.and.arrow.up.fill")
+                        }
+                    }
+                }
                 .onAppear {
                     setVideoIfNeeded(proxy.size)
                 }
@@ -69,19 +84,10 @@ struct MainEditorView: View {
                 }
             }
         }
-        .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-                Button(role: .cancel) {
-                    dismiss()
-                }
-            }
-
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    presentExporter()
-                } label: {
-                    Label("Export", systemImage: "square.and.arrow.up.fill")
-                }
+        .blur(radius: textEditor.showEditor ? 10 : 0)
+        .overlay {
+            if textEditor.showEditor {
+                TextEditorView(viewModel: textEditor, onSave: editorVM.setText)
             }
         }
         .fullScreenCover(isPresented: $showRecordView) {
@@ -92,13 +98,8 @@ struct MainEditorView: View {
         .onDisappear {
             cancelDeferredTasks()
         }
-        .blur(radius: textEditor.showEditor ? 10 : 0)
-        .overlay {
-            if textEditor.showEditor {
-                TextEditorView(viewModel: textEditor, onSave: editorVM.setText)
-            }
-        }
     }
+    
 }
 
 extension MainEditorView {

@@ -41,7 +41,7 @@ struct RootView: View {
                 }
                 .navigationTitle("Example Mode")
                 .scrollIndicators(.hidden)
-                .fullScreenCover(item: $editorDestination) { destination in
+                .sheet(item: $editorDestination) { destination in
                     MainEditorView(sourceVideoURL: destination.url) { exportedURL in
                         replaceEditedVideo(with: exportedURL)
                     }
