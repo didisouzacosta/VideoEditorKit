@@ -45,7 +45,6 @@ struct MainEditorView: View {
                         videoPlayer: videoPlayer,
                         textEditor: textEditor
                     )
-                    .padding(.horizontal, 32)
                     
                     if !isFullScreen {
                         ToolsSectionView(

@@ -9,18 +9,12 @@ import AVKit
 import SwiftUI
 
 struct ThumbnailsSliderView: View {
-    private enum InteractionMode {
-        case scrub
-        case trim
-    }
-
     @State var rangeDuration: ClosedRange<Double> = 0...1
     @Binding var currentTime: Double
     @Binding var video: Video?
     var isChangeState: Bool?
     let onChangeTimeValue: () -> Void
     let onRequestThumbnails: (CGSize) -> Void
-    @State private var interactionMode: InteractionMode?
 
     private var totalDuration: Double {
         rangeDuration.upperBound - rangeDuration.lowerBound
@@ -44,43 +38,13 @@ struct ThumbnailsSliderView: View {
                         ) {
                             Rectangle().blendMode(.destinationOut)
                         }
-                        .onChange(of: self.video?.rangeDuration.upperBound) { _, upperBound in
-                            if let upperBound {
-                                currentTime = Double(upperBound)
-                                onChangeTimeValue()
-                            }
-                        }
-                        .onChange(of: self.video?.rangeDuration.lowerBound) { _, lowerBound in
-                            if let lowerBound {
-                                currentTime = Double(lowerBound)
-                                onChangeTimeValue()
-                            }
-                        }
                         .onChange(of: rangeDuration) { _, newValue in
                             self.video?.rangeDuration = newValue
-                            currentTime = currentTime.clamped(to: newValue)
+                            onChangeTimeValue()
                         }
                     }
                 }
                 .frame(width: proxy.size.width, height: proxy.size.height)
-                .contentShape(Rectangle())
-                .simultaneousGesture(
-                    DragGesture(minimumDistance: 0)
-                        .onChanged { value in
-                            if interactionMode == nil {
-                                interactionMode = resolveInteractionMode(
-                                    startLocationX: value.startLocation.x,
-                                    width: proxy.size.width
-                                )
-                            }
-
-                            guard interactionMode == .scrub else { return }
-                            updatePlaybackPosition(for: value.location.x, width: proxy.size.width)
-                        }
-                        .onEnded { _ in
-                            interactionMode = nil
-                        }
-                )
                 .onAppear {
                     setVideoRange()
                 }
@@ -168,32 +132,6 @@ extension ThumbnailsSliderView {
         let clampedTime = currentTime.clamped(to: video.rangeDuration)
         let progress = clampedTime / video.originalDuration
         return min(max(width * progress, 2), width - 2)
-    }
-
-    private func updatePlaybackPosition(for locationX: CGFloat, width: CGFloat) {
-        guard let video, width > 0 else { return }
-        let progress = min(max(locationX / width, 0), 1)
-        let rawTime = progress * video.originalDuration
-        currentTime = rawTime.clamped(to: video.rangeDuration)
-        onChangeTimeValue()
-    }
-
-    private func resolveInteractionMode(startLocationX: CGFloat, width: CGFloat) -> InteractionMode {
-        guard let video, width > 0, video.originalDuration > 0 else { return .scrub }
-
-        let lowerProgress = video.rangeDuration.lowerBound / video.originalDuration
-        let upperProgress = video.rangeDuration.upperBound / video.originalDuration
-        let lowerHandleX = width * lowerProgress
-        let upperHandleX = width * upperProgress
-        let trimHandleHitArea: CGFloat = 28
-
-        if abs(startLocationX - lowerHandleX) <= trimHandleHitArea
-            || abs(startLocationX - upperHandleX) <= trimHandleHitArea
-        {
-            return .trim
-        }
-
-        return .scrub
     }
 
     private func thumbnailRequestID(for size: CGSize) -> String {

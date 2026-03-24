@@ -181,35 +181,17 @@ struct PlayerControl: View {
     }
 
     private func trimSection(_ video: Video) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                if video.isAppliedTool(for: .cut) {
-                    Button {
-                        videoPlayer.pause()
-                        editorVM.resetCut()
-                        videoPlayer.currentTime = editorVM.currentVideo?.rangeDuration.lowerBound ?? 0
-                        videoPlayer.scrubState = .scrubEnded(videoPlayer.currentTime)
-                    } label: {
-                        Text("Reset")
-                            .font(.subheadline.weight(.semibold))
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 10)
-                            .capsuleControl()
-                    }
-                }
-            }
-
-            ThumbnailsSliderView(
-                currentTime: $videoPlayer.currentTime,
-                video: $editorVM.currentVideo,
-                isChangeState: video.isAppliedTool(for: .cut)
-            ) {
-                videoPlayer.scrubState = .scrubEnded(videoPlayer.currentTime)
-                editorVM.setCut()
-            } onRequestThumbnails: { size in
-                editorVM.refreshThumbnailsIfNeeded(containerSize: size)
-            }
+        ThumbnailsSliderView(
+            currentTime: $videoPlayer.currentTime,
+            video: $editorVM.currentVideo,
+            isChangeState: video.isAppliedTool(for: .cut)
+        ) {
+            videoPlayer.pause()
+            editorVM.setCut()
+        } onRequestThumbnails: { size in
+            editorVM.refreshThumbnailsIfNeeded(containerSize: size)
         }
+        .padding(.horizontal)
     }
 
     private var playSection: some View {

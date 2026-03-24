@@ -120,13 +120,21 @@ final class VideoPlayerManager {
         AVAudioSession.sharedInstance().configurePlaybackSession()
 
         if let currentDurationRange {
-            if currentTime >= currentDurationRange.upperBound {
+            let currentPlaybackTime = videoPlayer.currentTime().seconds
+            let shouldSeekToRangeStart =
+                !currentDurationRange.contains(currentTime)
+                || !currentPlaybackTime.isFinite
+                || currentPlaybackTime < currentDurationRange.lowerBound
+                || currentPlaybackTime >= currentDurationRange.upperBound
+
+            if shouldSeekToRangeStart {
                 seek(currentDurationRange.lowerBound, player: videoPlayer)
                 if isSetAudio {
                     seek(currentDurationRange.lowerBound, player: audioPlayer)
                 }
+                currentTime = currentDurationRange.lowerBound
             } else {
-                seek(videoPlayer.currentTime().seconds, player: videoPlayer)
+                seek(currentPlaybackTime, player: videoPlayer)
                 if isSetAudio {
                     seek(audioPlayer.currentTime().seconds, player: audioPlayer)
                 }
