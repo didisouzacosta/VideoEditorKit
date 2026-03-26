@@ -21,7 +21,6 @@ struct PlayerHolderView: View {
                 switch videoPlayer.loadState {
                 case .loading:
                     ProgressView()
-                        .tint(Theme.accent)
                 case .unknown:
                     statusView("Add a video to start editing")
                 case .failed:
@@ -39,10 +38,9 @@ extension PlayerHolderView {
     private func statusView(_ text: String) -> some View {
         Text(text)
             .font(.headline)
-            .foregroundStyle(Theme.accent)
             .padding(.horizontal, 18)
             .padding(.vertical, 12)
-            .capsuleControl(tint: Theme.secondary)
+            .capsuleControl()
     }
 
     private var playerCropView: some View {
@@ -87,6 +85,7 @@ extension PlayerHolderView {
                     }
                 }
             }
+
             timelineLabel
         }
     }
@@ -168,10 +167,9 @@ extension PlayerHolderView {
                 )
             }
             .font(.caption2)
-            .foregroundStyle(Theme.accent)
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .capsuleControl(tint: Theme.secondary)
+            .capsuleControl()
             .padding()
         }
     }
@@ -185,7 +183,7 @@ struct PlayerControl: View {
     @Bindable var videoPlayer: VideoPlayerManager
     let textEditor: TextEditorViewModel
     var body: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 32) {
             playSection
 
             if editorVM.currentVideo != nil {
@@ -255,7 +253,6 @@ struct PlayerControl: View {
                 .frame(width: 46, height: 46)
                 .circleControl()
             }
-            .buttonStyle(.plain)
         }
     }
 }
