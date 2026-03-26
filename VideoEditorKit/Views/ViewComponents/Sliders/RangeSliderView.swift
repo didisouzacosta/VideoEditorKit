@@ -7,22 +7,22 @@
 
 import SwiftUI
 
-struct RangedSliderView<T: View>: View {
+struct RangedSliderView: View {
     let currentValue: Binding<ClosedRange<Double>>?
     let sliderBounds: ClosedRange<Double>
     let step: Double
-    let onEndChange: () -> Void
-    var thumbView: T
+    let onEndChange: (() -> Void)?
 
     init(
-        value: Binding<ClosedRange<Double>>?, bounds: ClosedRange<Double>, step: Double = 1,
-        onEndChange: @escaping () -> Void, @ViewBuilder thumbView: () -> T
+        value: Binding<ClosedRange<Double>>?,
+        bounds: ClosedRange<Double>,
+        step: Double = 1,
+        onEndChange: (() -> Void)?
     ) {
         self.onEndChange = onEndChange
         self.step = step
         self.currentValue = value
         self.sliderBounds = bounds
-        self.thumbView = thumbView()
     }
 
     var body: some View {
@@ -31,102 +31,161 @@ struct RangedSliderView<T: View>: View {
         }
     }
 
-    @ViewBuilder private func sliderView(sliderSize: CGSize) -> some View {
-        let sliderViewYCenter = sliderSize.height / 2
+    @ViewBuilder
+    private func sliderView(sliderSize: CGSize) -> some View {
+        let trackHeight = max(sliderSize.height, 1)
+        let valueRange = currentValue?.wrappedValue ?? sliderBounds
+        let leftThumbLocation = position(for: valueRange.lowerBound, width: sliderSize.width)
+        let rightThumbLocation = position(for: valueRange.upperBound, width: sliderSize.width)
+        let selectedWidth = max(rightThumbLocation - leftThumbLocation, 0)
+
         ZStack {
-            Rectangle()
-                .fill(Color(uiColor: .systemGray5).opacity(0.75))
-                .frame(height: sliderSize.height)
-            ZStack {
-                let sliderBoundDifference = sliderBounds.upperBound / step
-                let stepWidthInPixel = CGFloat(sliderSize.width) / CGFloat(sliderBoundDifference)
+            HStack(spacing: 0) {
+                maskedRegion(width: leftThumbLocation, height: trackHeight)
 
-                // Calculate Left Thumb initial position
-                let leftThumbLocation: CGFloat =
-                    currentValue?.wrappedValue.lowerBound == sliderBounds.lowerBound
-                    ? 0
-                    : CGFloat((currentValue?.wrappedValue.lowerBound ?? 0) - sliderBounds.lowerBound)
-                        * stepWidthInPixel
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(.black.opacity(0.36))
+                    .overlay {
+                        Rectangle()
+                            .strokeBorder(.yellow, lineWidth: 4)
+                    }
+                    .frame(width: selectedWidth, height: trackHeight)
 
-                // Calculate right thumb initial position
-                let rightThumbLocation =
-                    CGFloat(currentValue?.wrappedValue.upperBound ?? 1) * stepWidthInPixel
-                let height = rightThumbLocation - leftThumbLocation
-                // Path between both handles
-
-                thumbView
-                    .frame(width: height, height: sliderSize.height)
-                    .position(
-                        x: sliderSize.width - (sliderSize.width - leftThumbLocation - height / 2),
-                        y: sliderViewYCenter)
-
-                // Left Thumb Handle
-                let leftThumbPoint = CGPoint(x: leftThumbLocation, y: sliderViewYCenter)
-                thumbView(height: sliderSize.height, position: leftThumbPoint, isLeftThumb: true)
-                    .highPriorityGesture(
-                        DragGesture().onChanged { dragValue in
-
-                            let dragLocation = dragValue.location
-                            let xThumbOffset = min(max(0, dragLocation.x), sliderSize.width)
-
-                            let newValue = (sliderBounds.lowerBound) + (xThumbOffset / stepWidthInPixel)
-
-                            // Stop the range thumbs from colliding each other
-                            if newValue < currentValue?.wrappedValue.upperBound ?? 1 {
-                                currentValue?.wrappedValue = newValue...(currentValue?.wrappedValue.upperBound ?? 1)
-                            }
-                        }.onEnded({ _ in
-                            onEndChange()
-                        }))
-
-                // Right Thumb Handle
-                thumbView(
-                    height: sliderSize.height, position: CGPoint(x: rightThumbLocation, y: sliderViewYCenter),
-                    isLeftThumb: false
-                )
-                .highPriorityGesture(
-                    DragGesture().onChanged { dragValue in
-                        let dragLocation = dragValue.location
-                        let xThumbOffset = min(
-                            max(CGFloat(leftThumbLocation), dragLocation.x), sliderSize.width)
-
-                        var newValue = xThumbOffset / stepWidthInPixel  // convert back the value bound
-                        newValue = min(newValue, sliderBounds.upperBound)
-
-                        // Stop the range thumbs from colliding each other
-                        if newValue > currentValue?.wrappedValue.lowerBound ?? 0 {
-                            currentValue?.wrappedValue = (currentValue?.wrappedValue.lowerBound ?? 0)...newValue
-                        }
-                    }.onEnded({ _ in
-                        onEndChange()
-                    }))
+                maskedRegion(width: max(sliderSize.width - rightThumbLocation, 0), height: trackHeight)
             }
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+            let leftThumbPoint = CGPoint(x: leftThumbLocation - 4, y: trackHeight / 2)
+            let rightThumbPoint = CGPoint(x: rightThumbLocation + 4, y: trackHeight / 2)
+
+            handleView(
+                height: trackHeight,
+                position: leftThumbPoint,
+                isLeftThumb: true
+            )
+            .highPriorityGesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { dragValue in
+                        let xThumbOffset = min(
+                            max(0, dragValue.location.x),
+                            rightThumbLocation - minimumGap(in: sliderSize.width)
+                        )
+
+                        let newLowerBound = value(at: xThumbOffset, width: sliderSize.width)
+
+                        if newLowerBound < currentValue?.wrappedValue.upperBound ?? sliderBounds.upperBound {
+                            currentValue?.wrappedValue =
+                                newLowerBound...(currentValue?.wrappedValue.upperBound ?? sliderBounds.upperBound)
+                        }
+                    }
+                    .onEnded { _ in
+                        onEndChange?()
+                    }
+            )
+
+            handleView(
+                height: trackHeight,
+                position: rightThumbPoint,
+                isLeftThumb: false
+            )
+            .highPriorityGesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { dragValue in
+                        let xThumbOffset = max(
+                            leftThumbLocation + minimumGap(in: sliderSize.width),
+                            min(dragValue.location.x, sliderSize.width)
+                        )
+
+                        let newUpperBound = value(at: xThumbOffset, width: sliderSize.width)
+
+                        if newUpperBound > currentValue?.wrappedValue.lowerBound ?? sliderBounds.lowerBound {
+                            currentValue?.wrappedValue =
+                                (currentValue?.wrappedValue.lowerBound ?? sliderBounds.lowerBound)...newUpperBound
+                        }
+                    }
+                    .onEnded { _ in
+                        onEndChange?()
+                    }
+            )
         }
-        .compositingGroup()
     }
 
-    @ViewBuilder func thumbView(height: CGFloat, position: CGPoint, isLeftThumb: Bool) -> some View {
-        let handleWidth: CGFloat = 14
+    private func position(for value: Double, width: CGFloat) -> CGFloat {
+        guard width > 0 else { return 0 }
+
+        let totalRange = max(sliderBounds.upperBound - sliderBounds.lowerBound, step)
+        let relativeValue = value - sliderBounds.lowerBound
+        let progress = relativeValue / totalRange
+
+        return min(max(CGFloat(progress) * width, 0), width)
+    }
+
+    private func value(at position: CGFloat, width: CGFloat) -> Double {
+        guard width > 0 else { return sliderBounds.lowerBound }
+
+        let totalRange = max(sliderBounds.upperBound - sliderBounds.lowerBound, step)
+        let rawValue = sliderBounds.lowerBound + (Double(position / width) * totalRange)
+        let steppedValue = (round(rawValue / step) * step)
+
+        return min(sliderBounds.upperBound, max(sliderBounds.lowerBound, steppedValue))
+    }
+
+    private func minimumGap(in width: CGFloat) -> CGFloat {
+        let totalRange = max(sliderBounds.upperBound - sliderBounds.lowerBound, step)
+        let stepWidth = width / CGFloat(totalRange / step)
+        return max(stepWidth, 8)
+    }
+
+    private func maskedRegion(width: CGFloat, height: CGFloat) -> some View {
         Rectangle()
-            .frame(width: handleWidth, height: height)
-            .foregroundStyle(Theme.destructive)
-            .contentShape(Rectangle())
-            .overlay(alignment: .center) {
-                Image(systemName: isLeftThumb ? "chevron.left" : "chevron.right")
-                    .imageScale(.small)
-                    .foregroundStyle(Theme.primary)
-            }
-            .position(x: position.x + (isLeftThumb ? -(handleWidth / 2) : handleWidth / 2), y: position.y)
+            .fill(.black.opacity(0.8))
+            .frame(width: max(width, 0), height: height)
+    }
+
+    private func handleView(height: CGFloat, position: CGPoint, isLeftThumb: Bool) -> some View {
+        let hitSize = CGSize(width: 44, height: max(height + 8, 44))
+
+        return ZStack {
+            Rectangle()
+                .fill(.yellow)
+                .frame(width: 16, height: height)
+                .overlay {
+                    VStack(spacing: 4) {
+                        ForEach(0..<4, id: \.self) { _ in
+                            Capsule(style: .continuous)
+                                .fill(.black)
+                                .frame(width: 4, height: 4)
+                        }
+                    }
+                }
+                .clipShape(
+                    UnevenRoundedRectangle(
+                        cornerRadii: .init(
+                            topLeading: isLeftThumb ? 8 : 0,
+                            bottomLeading: isLeftThumb ? 8 : 0,
+                            bottomTrailing: isLeftThumb ? 0 : 8,
+                            topTrailing: isLeftThumb ? 0 : 8
+                        )
+                    )
+                )
+        }
+        .frame(
+            width: hitSize.width,
+            height: hitSize.height
+        )
+        .position(
+            x: position.x,
+            y: position.y
+        )
+        .accessibilityLabel(isLeftThumb ? "Trim start" : "Trim end")
     }
 }
 
-struct RangeSliderView_Previews: PreviewProvider {
-    static var previews: some View {
-        RangedSliderView(
-            value: .constant(16...60), bounds: 1...100, onEndChange: {},
-            thumbView: { Rectangle().blendMode(.destinationOut) }
-        )
-        .frame(height: 60)
-        .padding()
-    }
+#Preview {
+    RangedSliderView(
+        value: .constant(20...60),
+        bounds: 1...100,
+        onEndChange: {}
+    )
+    .frame(height: 72)
 }
