@@ -20,6 +20,7 @@ struct RootView: View {
 
     var body: some View {
         @Bindable var bindableViewModel = viewModel
+        
         NavigationStack {
             ZStack {
                 Theme.rootBackground
@@ -44,7 +45,7 @@ struct RootView: View {
             .onDisappear(perform: viewModel.handleViewDisappear)
             .sheet(item: $bindableViewModel.editorDestination, onDismiss: viewModel.handleEditorDismiss) {
                 destination in
-                MainEditorView(destination.url) { exportedURL in
+                VideoEditorView(destination.url) { exportedURL in
                     viewModel.handleExportedVideo(exportedURL)
                 }
             }

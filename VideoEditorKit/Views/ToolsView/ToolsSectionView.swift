@@ -174,6 +174,6 @@ extension ToolsSectionView {
 }
 
 #Preview {
-    MainEditorView()
+    VideoEditorView()
         .preferredColorScheme(.dark)
 }

@@ -266,19 +266,11 @@ extension CameraManager: AVCaptureFileOutputRecordingDelegate {
 }
 
 enum CameraError: Error {
-    // MARK: - Public Properties
-
     case deniedAuthorization
-
     case restrictedAuthorization
-
     case unknowAuthorization
-
     case cameraUnavalible
-
     case cannotAddInput
-
     case createCaptureInput(Error)
-
     case outputError(Error)
 }
