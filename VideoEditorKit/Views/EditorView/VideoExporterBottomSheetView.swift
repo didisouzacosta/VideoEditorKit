@@ -11,12 +11,13 @@ import SwiftUI
 @MainActor
 struct VideoExporterBottomSheetView: View {
 
-    // MARK: - Bindings
+    // MARK: - Environments
 
-    @Binding private var isPresented: Bool
+    @Environment(\.dismiss) private var dismiss
 
     // MARK: - States
 
+    @State private var selectedDetent: PresentationDetent = .height(420)
     @State private var viewModel: ExporterViewModel
 
     // MARK: - Private Properties
@@ -27,27 +28,32 @@ struct VideoExporterBottomSheetView: View {
 
     var body: some View {
         @Bindable var bindableViewModel = viewModel
-        GeometryReader { _ in
-            SheetView($isPresented, bgOpacity: 0.1) {
-                VStack(alignment: .leading) {
-                    if viewModel.shouldShowLoadingView {
-                        loadingView
-                    } else {
-                        list
-                    }
-                }
+        VStack(alignment: .leading) {
+            if viewModel.shouldShowLoadingView {
+                loadingView
+            } else {
+                list
             }
-            .safeAreaPadding()
-            .disabled(viewModel.isInteractionDisabled)
-            .animation(.easeInOut, value: viewModel.renderState)
-            .alert("Unable to export video", isPresented: $bindableViewModel.showAlert) {}
         }
+        .padding(.horizontal, 20)
+        .padding(.top, 20)
+        .padding(.bottom, 28)
+        .disabled(viewModel.isInteractionDisabled)
+        .animation(.easeInOut, value: viewModel.renderState)
+        .presentationDetents(detents, selection: $selectedDetent)
+        .presentationDragIndicator(.visible)
+        .presentationContentInteraction(.scrolls)
+        .presentationCornerRadius(32)
+        .onChange(of: viewModel.renderState) { _, newValue in
+            updateSelectedDetent(for: newValue)
+        }
+        .alert("Unable to export video", isPresented: $bindableViewModel.showAlert) {}
     }
 
     // MARK: - Initializer
 
-    init(_ isPresented: Binding<Bool>, video: Video, onExported: @escaping (URL) -> Void) {
-        _isPresented = isPresented
+    init(video: Video, onExported: @escaping (URL) -> Void) {
+        _selectedDetent = State(initialValue: .height(420))
         _viewModel = State(initialValue: ExporterViewModel(video))
 
         self.onExported = onExported
@@ -58,6 +64,14 @@ struct VideoExporterBottomSheetView: View {
 extension VideoExporterBottomSheetView {
 
     // MARK: - Private Properties
+
+    private var detents: Set<PresentationDetent> {
+        if viewModel.shouldShowLoadingView {
+            [.medium, .large]
+        } else {
+            [.height(420), .medium]
+        }
+    }
 
     private var list: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -165,16 +179,23 @@ extension VideoExporterBottomSheetView {
     }
 
     private func handleExportedVideo(_ url: URL) {
-        isPresented = false
+        dismiss()
         onExported(url)
+    }
+
+    private func updateSelectedDetent(for state: ExporterViewModel.ExportState) {
+        switch state {
+        case .loading, .loaded:
+            selectedDetent = .medium
+        case .unknown, .failed:
+            selectedDetent = .height(420)
+        }
     }
 
 }
 
 #Preview {
-    ZStack(alignment: .bottom) {
-        Color.secondary.opacity(0.5)
-            .ignoresSafeArea()
-        VideoExporterBottomSheetView(.constant(true), video: Video.mock) { _ in }
+    NavigationStack {
+        VideoExporterBottomSheetView(video: Video.mock) { _ in }
     }
 }

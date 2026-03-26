@@ -213,9 +213,9 @@ extension ToolsSectionView {
                 editorVM.handleRateChange(rate, videoPlayer: videoPlayer)
             }
         case .crop:
-            CropSheetView(editorVM)
+            CropToolView(editorVM)
         case .audio:
-            AudioSheetView(videoPlayer, editorVM: editorVM)
+            AudioToolView(videoPlayer, editorVM: editorVM)
         case .text:
             TextToolsView(video, editor: textEditor)
         case .filters:

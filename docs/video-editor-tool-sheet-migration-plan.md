@@ -65,6 +65,26 @@ Scope:
 - Remove obsolete inline modal code.
 - Reassess whether any shared sheet styling helpers remain necessary.
 
+### Phase 4
+
+Cleanup legacy tool-modal naming and align the codebase with the native-sheet model.
+
+Scope:
+
+- Rename tool content views that still carry `Sheet` naming even though they are no longer responsible for presenting a sheet.
+- Update references and previews to match the new naming.
+- Refresh this migration document so the current repository state matches the implemented rollout.
+
+### Phase 5
+
+Migrate the export flow to the native sheet stack and retire the remaining custom sheet container.
+
+Scope:
+
+- Present the export flow with SwiftUI `.sheet` from `VideoEditorView`.
+- Convert `VideoExporterBottomSheetView` into native sheet content instead of a wrapper around `SheetView`.
+- Delete `SheetView` once it no longer has active usages.
+
 ## Implementation Notes
 
 ### `VideoEditorView` configuration

@@ -83,20 +83,25 @@ struct VideoEditorView: View {
                     )
                 }
             }
-
-            if let video = editorViewModel.exportVideo {
-                VideoExporterBottomSheetView($bindableEditorViewModel.showVideoQualitySheet, video: video) {
-                    exportedURL in
+        }
+        .blur(radius: textEditor.editorBlurRadius)
+        .overlay {
+            if textEditor.isPresentingEditor {
+                TextEditorView(textEditor, onSave: editorViewModel.setText)
+            }
+        }
+        .sheet(isPresented: $bindableEditorViewModel.showVideoQualitySheet) {
+            if let video = editorViewModel.currentVideo {
+                VideoExporterBottomSheetView(video: video) { exportedURL in
                     videoPlayer.pause()
                     onExported(exportedURL)
                     dismiss()
                 }
             }
         }
-        .blur(radius: textEditor.editorBlurRadius)
-        .overlay {
-            if textEditor.isPresentingEditor {
-                TextEditorView(textEditor, onSave: editorViewModel.setText)
+        .fullScreenCover(isPresented: $bindableEditorViewModel.showRecordView) {
+            RecordVideoView { url in
+                editorViewModel.handleRecordedVideo(url, videoPlayer: videoPlayer)
             }
         }
         .onChange(of: isFullScreen) { _, newValue in
@@ -105,11 +110,6 @@ struct VideoEditorView: View {
             }
         }
         .onDisappear(perform: editorViewModel.cancelDeferredTasks)
-        .fullScreenCover(isPresented: $bindableEditorViewModel.showRecordView) {
-            RecordVideoView { url in
-                editorViewModel.handleRecordedVideo(url, videoPlayer: videoPlayer)
-            }
-        }
     }
 
     // MARK: - Initializer

@@ -1,5 +1,5 @@
 //
-//  AudioSheetView.swift
+//  AudioToolView.swift
 //  VideoEditorKit
 //
 //  Created by Adriano Souza Costa on 23.03.2026.
@@ -8,7 +8,7 @@
 import SwiftUI
 
 @MainActor
-struct AudioSheetView: View {
+struct AudioToolView: View {
 
     // MARK: - Private Properties
 
@@ -39,6 +39,6 @@ struct AudioSheetView: View {
 }
 
 #Preview {
-    AudioSheetView(VideoPlayerManager(), editorVM: EditorViewModel())
+    AudioToolView(VideoPlayerManager(), editorVM: EditorViewModel())
         .padding()
 }

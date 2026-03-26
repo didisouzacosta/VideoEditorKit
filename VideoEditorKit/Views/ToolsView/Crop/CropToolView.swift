@@ -1,5 +1,5 @@
 //
-//  CropSheetView.swift
+//  CropToolView.swift
 //  VideoEditorKit
 //
 //  Created by Adriano Souza Costa on 23.03.2026.
@@ -8,7 +8,7 @@
 import SwiftUI
 
 @MainActor
-struct CropSheetView: View {
+struct CropToolView: View {
 
     // MARK: - Private Properties
 
@@ -38,13 +38,13 @@ struct CropSheetView: View {
 
 }
 
-extension CropSheetView {
+extension CropToolView {
 
     // MARK: - Private Properties
 
     private var rotateSection: some View {
         @Bindable var bindableEditorVM = editorVM
-        
+
         return HStack(spacing: 20) {
             CustomSlider(
                 $bindableEditorVM.cropRotation,
@@ -107,7 +107,7 @@ extension CropSheetView {
 }
 
 #Preview {
-    CropSheetView(EditorViewModel())
+    CropToolView(EditorViewModel())
         .padding()
         .preferredColorScheme(.dark)
 }
