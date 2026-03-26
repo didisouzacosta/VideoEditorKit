@@ -51,19 +51,25 @@ struct RangedSliderView: View {
 
         return ZStack {
             HStack(spacing: 0) {
-                maskedRegion(width: leftThumbLocation, height: trackHeight)
+                maskedRegion(
+                    width: leftThumbLocation,
+                    height: trackHeight
+                )
 
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                Rectangle()
                     .fill(.black.opacity(0.36))
                     .overlay {
                         Rectangle()
-                            .strokeBorder(.yellow, lineWidth: 4)
+                            .strokeBorder(.yellow, lineWidth: 2)
                     }
                     .frame(width: selectedWidth, height: trackHeight)
 
-                maskedRegion(width: max(sliderSize.width - rightThumbLocation, 0), height: trackHeight)
+                maskedRegion(
+                    width: max(sliderSize.width - rightThumbLocation, 0),
+                    height: trackHeight
+                )
             }
-            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .allowsHitTesting(false)
 
             let leftThumbPoint = CGPoint(x: leftThumbLocation - 4, y: trackHeight / 2)
             let rightThumbPoint = CGPoint(x: rightThumbLocation + 4, y: trackHeight / 2)
@@ -161,10 +167,10 @@ struct RangedSliderView: View {
                 .frame(width: 16, height: height)
                 .overlay {
                     VStack(spacing: 4) {
-                        ForEach(0..<4, id: \.self) { _ in
+                        ForEach(0..<3, id: \.self) { _ in
                             Capsule(style: .continuous)
-                                .fill(.black)
-                                .frame(width: 4, height: 4)
+                                .fill(.primary)
+                                .frame(width: 2, height: 2)
                         }
                     }
                 }
