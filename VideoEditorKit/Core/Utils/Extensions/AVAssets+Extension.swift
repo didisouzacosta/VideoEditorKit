@@ -60,24 +60,25 @@ extension AVAsset {
                 )
             )
         }
-        
+
         let requestedTimeIndexes = Dictionary(
             uniqueKeysWithValues: requestedTimes.enumerated().map { index, value in
                 (value.timeValue.cacheKey, index)
             }
         )
-        
+
         let state = ThumbnailGenerationState(
             requestedCount: requestedTimes.count,
             requestedTimeIndexes: requestedTimeIndexes
         )
 
         return await withCheckedContinuation { continuation in
-            imageGenerator.generateCGImagesAsynchronously(forTimes: requestedTimes) { requestedTime, image, _, result, _ in
+            imageGenerator.generateCGImagesAsynchronously(forTimes: requestedTimes) {
+                requestedTime, image, _, result, _ in
                 let resolvedImage: UIImage?
-                
+
                 if result == .succeeded, let image {
-                    resolvedImage = UIImage(cgImage: image)
+                    resolvedImage = UIImage(cgImage: image).normalizedForDisplay()
                 } else {
                     resolvedImage = nil
                 }
