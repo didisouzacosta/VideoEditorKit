@@ -27,27 +27,67 @@ extension AVAsset {
 
     // MARK: - Public Methods
 
-    @MainActor
-    func generateImage(at second: Double, compressionQuality: Double = 0.05) async -> UIImage? {
-        let imgGenerator = AVAssetImageGenerator(asset: self)
-        imgGenerator.appliesPreferredTrackTransform = true
-        let requestedTime = CMTime(seconds: second, preferredTimescale: 600)
+    func generateImage(
+        at second: Double,
+        maximumSize: CGSize = .zero
+    ) async -> UIImage? {
+        let images = await generateImages(
+            at: [second],
+            maximumSize: maximumSize
+        )
+
+        return images.first ?? nil
+    }
+
+    func generateImages(
+        at seconds: [Double],
+        maximumSize: CGSize = .zero
+    ) async -> [UIImage?] {
+        guard !seconds.isEmpty else { return [] }
+
+        let imageGenerator = AVAssetImageGenerator(asset: self)
+        imageGenerator.appliesPreferredTrackTransform = true
+
+        if maximumSize != .zero {
+            imageGenerator.maximumSize = maximumSize
+        }
+
+        let requestedTimes = seconds.map {
+            NSValue(
+                time: CMTime(
+                    seconds: max($0, .zero),
+                    preferredTimescale: 600
+                )
+            )
+        }
+        
+        let requestedTimeIndexes = Dictionary(
+            uniqueKeysWithValues: requestedTimes.enumerated().map { index, value in
+                (value.timeValue.cacheKey, index)
+            }
+        )
+        
+        let state = ThumbnailGenerationState(
+            requestedCount: requestedTimes.count,
+            requestedTimeIndexes: requestedTimeIndexes
+        )
 
         return await withCheckedContinuation { continuation in
-            imgGenerator.generateCGImagesAsynchronously(forTimes: [NSValue(time: requestedTime)]) {
-                _, image, _, result, _ in
-                guard result == .succeeded, let image else {
-                    continuation.resume(returning: nil)
-                    return
+            imageGenerator.generateCGImagesAsynchronously(forTimes: requestedTimes) { requestedTime, image, _, result, _ in
+                let resolvedImage: UIImage?
+                
+                if result == .succeeded, let image {
+                    resolvedImage = UIImage(cgImage: image)
+                } else {
+                    resolvedImage = nil
                 }
 
-                let uiImage = UIImage(cgImage: image)
-                guard let imageData = uiImage.jpegData(compressionQuality: compressionQuality) else {
-                    continuation.resume(returning: uiImage)
-                    return
+                if let images = state.store(
+                    resolvedImage,
+                    for: requestedTime.cacheKey
+                ) {
+                    continuation.resume(returning: images)
                 }
-
-                continuation.resume(returning: UIImage(data: imageData) ?? uiImage)
             }
         }
     }
@@ -98,6 +138,53 @@ extension AVAsset {
             width: fittedAssetSize.width * scale,
             height: fittedAssetSize.height * scale
         )
+    }
+
+}
+
+private final class ThumbnailGenerationState: @unchecked Sendable {
+
+    private let requestedCount: Int
+    private let requestedTimeIndexes: [String: Int]
+    private let lock = NSLock()
+    private var images: [UIImage?]
+    private var completedCount = 0
+
+    init(
+        requestedCount: Int,
+        requestedTimeIndexes: [String: Int]
+    ) {
+        self.requestedCount = requestedCount
+        self.requestedTimeIndexes = requestedTimeIndexes
+        self.images = [UIImage?](repeating: nil, count: requestedCount)
+    }
+
+    func store(
+        _ image: UIImage?,
+        for requestedTimeKey: String
+    ) -> [UIImage?]? {
+        lock.lock()
+        defer { lock.unlock() }
+
+        if let index = requestedTimeIndexes[requestedTimeKey] {
+            images[index] = image
+        }
+
+        completedCount += 1
+
+        guard completedCount == requestedCount else {
+            return nil
+        }
+
+        return images
+    }
+
+}
+
+extension CMTime {
+
+    fileprivate var cacheKey: String {
+        "\(value):\(timescale):\(epoch)"
     }
 
 }

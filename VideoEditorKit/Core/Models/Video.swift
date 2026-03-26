@@ -54,6 +54,8 @@ struct Video: Identifiable, @unchecked Sendable {
             presentationSize: presentationSize)
     }
 
+    // MARK: - Initializers
+
     init(
         url: URL,
         asset: AVAsset,
@@ -73,35 +75,53 @@ struct Video: Identifiable, @unchecked Sendable {
     }
 
     init(url: URL) {
-        let asset = AVURLAsset(url: url)
-        self.init(url: url, asset: asset, originalDuration: .zero, rangeDuration: .zero ... .zero)
+        self.init(
+            url: url,
+            asset: AVURLAsset(url: url),
+            originalDuration: .zero,
+            rangeDuration: .zero ... .zero
+        )
     }
 
     init(url: URL, rangeDuration: ClosedRange<Double>, rate: Float = 1.0, rotation: Double = 0) {
         let asset = AVURLAsset(url: url)
         let originalDuration = max(rangeDuration.upperBound, .zero)
+        
         self.init(
-            url: url, asset: asset, originalDuration: originalDuration, rangeDuration: rangeDuration,
-            rate: rate, rotation: rotation)
+            url: url,
+            asset: asset,
+            originalDuration: originalDuration,
+            rangeDuration: rangeDuration,
+            rate: rate,
+            rotation: rotation
+        )
     }
 
-    func makeThumbnails(containerSize: CGSize) async -> [ThumbnailImage] {
+    // MARK: - Public Methods
+
+    func makeThumbnails(
+        containerSize: CGSize,
+        displayScale: CGFloat = 1
+    ) async -> [ThumbnailImage] {
         let imagesCount = thumbnailCount(for: containerSize)
+
         guard imagesCount > 0 else { return [] }
 
-        var thumbnails = [ThumbnailImage]()
-        thumbnails.reserveCapacity(imagesCount)
+        let timestamps = thumbnailTimestamps(imagesCount: imagesCount)
+        let resolvedDisplayScale = max(displayScale, 1)
 
-        for index in 0..<imagesCount {
-            let offset = Double(index) * (originalDuration / Double(imagesCount))
-            let thumbnailImage = ThumbnailImage(image: await asset.generateImage(at: offset))
-            thumbnails.append(thumbnailImage)
-        }
+        let maximumSize = CGSize(
+            width: max((containerSize.width / CGFloat(imagesCount)) * resolvedDisplayScale, 1),
+            height: max(containerSize.height * resolvedDisplayScale, 1)
+        )
 
-        return thumbnails
+        let images = await asset.generateImages(
+            at: timestamps,
+            maximumSize: maximumSize
+        )
+
+        return images.map { ThumbnailImage(image: $0) }
     }
-
-    ///reset and update
 
     func isAppliedTool(for tool: ToolEnum) -> Bool {
         toolsApplied.contains(tool.rawValue)
@@ -114,19 +134,17 @@ struct Video: Identifiable, @unchecked Sendable {
         return max(count, 1)
     }
 
-    // MARK: - Public Methods
-
     mutating func updateRate(_ rate: Float) {
-
         let lowerBound = (rangeDuration.lowerBound * Double(self.rate)) / Double(rate)
         let upperBound = (rangeDuration.upperBound * Double(self.rate)) / Double(rate)
+
         rangeDuration = lowerBound...upperBound
 
         self.rate = rate
     }
 
     mutating func resetRangeDuration() {
-        self.rangeDuration = 0...originalDuration
+        rangeDuration = 0...originalDuration
     }
 
     mutating func resetRate() {
@@ -155,6 +173,20 @@ struct Video: Identifiable, @unchecked Sendable {
 
     mutating func setFilter(_ filter: String?) {
         filterName = filter
+    }
+
+    // MARK: - Private Methods
+
+    private func thumbnailTimestamps(imagesCount: Int) -> [Double] {
+        guard imagesCount > 0 else { return [] }
+        guard originalDuration > 0 else { return Array(repeating: .zero, count: imagesCount) }
+
+        let step = originalDuration / Double(imagesCount)
+
+        return (0..<imagesCount).map { index in
+            let midpoint = (Double(index) + 0.5) * step
+            return min(midpoint, max(originalDuration - 0.001, .zero))
+        }
     }
 
 }
@@ -195,7 +227,7 @@ struct ThumbnailImage: Identifiable {
     // MARK: - Initializer
 
     init(image: UIImage? = nil) {
-        self.image = image?.resize(to: .init(width: 250, height: 350))
+        self.image = image
     }
 
 }

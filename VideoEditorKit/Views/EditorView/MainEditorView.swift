@@ -17,7 +17,7 @@ struct MainEditorView: View {
     // MARK: - States
 
     @State private var isFullScreen = false
-    @State private var editorVM = EditorViewModel()
+    @State private var editorViewModel = EditorViewModel()
     @State private var audioRecorder = AudioRecorderManager()
     @State private var videoPlayer = VideoPlayerManager()
     @State private var textEditor = TextEditorViewModel()
@@ -30,20 +30,21 @@ struct MainEditorView: View {
     // MARK: - Body
 
     var body: some View {
-        @Bindable var bindableEditorVM = editorVM
+        @Bindable var bindableEditorViewModel = editorViewModel
+        
         NavigationStack {
             GeometryReader { proxy in
                 VStack(spacing: 32) {
                     PlayerHolderView(
                         $isFullScreen,
-                        editorVM: editorVM,
+                        editorVM: editorViewModel,
                         videoPlayer: videoPlayer,
                         textEditor: textEditor
                     )
 
                     PlayerControl(
                         $isFullScreen,
-                        editorVM: editorVM,
+                        editorViewModel: editorViewModel,
                         videoPlayer: videoPlayer,
                         recorderManager: audioRecorder,
                         textEditor: textEditor
@@ -52,7 +53,7 @@ struct MainEditorView: View {
                     if !isFullScreen {
                         ToolsSectionView(
                             videoPlayer,
-                            editorVM: editorVM,
+                            editorVM: editorViewModel,
                             textEditor: textEditor
                         )
                     }
@@ -67,14 +68,14 @@ struct MainEditorView: View {
 
                     ToolbarItem(placement: .topBarTrailing) {
                         Button {
-                            editorVM.presentExporter()
+                            editorViewModel.presentExporter()
                         } label: {
                             Label("Export", systemImage: "square.and.arrow.up.fill")
                         }
                     }
                 }
                 .onAppear {
-                    editorVM.setSourceVideoIfNeeded(
+                    editorViewModel.setSourceVideoIfNeeded(
                         sourceVideoURL,
                         availableSize: proxy.size,
                         isFullScreen: isFullScreen,
@@ -83,8 +84,8 @@ struct MainEditorView: View {
                 }
             }
 
-            if let video = editorVM.exportVideo {
-                VideoExporterBottomSheetView($bindableEditorVM.showVideoQualitySheet, video: video) {
+            if let video = editorViewModel.exportVideo {
+                VideoExporterBottomSheetView($bindableEditorViewModel.showVideoQualitySheet, video: video) {
                     exportedURL in
                     videoPlayer.pause()
                     onExported(exportedURL)
@@ -95,13 +96,13 @@ struct MainEditorView: View {
         .blur(radius: textEditor.editorBlurRadius)
         .overlay {
             if textEditor.isPresentingEditor {
-                TextEditorView(textEditor, onSave: editorVM.setText)
+                TextEditorView(textEditor, onSave: editorViewModel.setText)
             }
         }
-        .onDisappear(perform: editorVM.cancelDeferredTasks)
-        .fullScreenCover(isPresented: $bindableEditorVM.showRecordView) {
+        .onDisappear(perform: editorViewModel.cancelDeferredTasks)
+        .fullScreenCover(isPresented: $bindableEditorViewModel.showRecordView) {
             RecordVideoView { url in
-                editorVM.handleRecordedVideo(url, videoPlayer: videoPlayer)
+                editorViewModel.handleRecordedVideo(url, videoPlayer: videoPlayer)
             }
         }
     }

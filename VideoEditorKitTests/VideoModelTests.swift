@@ -1,3 +1,4 @@
+import UIKit
 import XCTest
 
 @testable import VideoEditorKit
@@ -47,6 +48,25 @@ final class VideoModelTests: XCTestCase {
 
         XCTAssertFalse(video.isAppliedTool(for: .filters))
         XCTAssertTrue(video.toolsApplied.isEmpty)
+    }
+
+    func testThumbnailImagePreservesOriginalImageSize() {
+        let sourceImage = UIGraphicsImageRenderer(
+            size: CGSize(width: 400, height: 200)
+        ).image { context in
+            UIColor.red.setFill()
+            context.fill(
+                CGRect(
+                    origin: .zero,
+                    size: CGSize(width: 400, height: 200)
+                )
+            )
+        }
+
+        let thumbnailImage = ThumbnailImage(image: sourceImage)
+
+        XCTAssertEqual(thumbnailImage.image?.size.width ?? 0, 400, accuracy: 0.0001)
+        XCTAssertEqual(thumbnailImage.image?.size.height ?? 0, 200, accuracy: 0.0001)
     }
 
 }

@@ -11,6 +11,10 @@ import SwiftUI
 @MainActor
 struct PlayerHolderView: View {
 
+    // MARK: - Environments
+
+    @Environment(\.displayScale) private var displayScale
+
     // MARK: - Bindings
 
     @Binding private var isFullScreen: Bool
@@ -212,13 +216,17 @@ extension PlayerHolderView {
 @MainActor
 struct PlayerControl: View {
 
+    // MARK: - Environments
+
+    @Environment(\.displayScale) private var displayScale
+
     // MARK: - Bindings
 
     @Binding private var isFullScreen: Bool
 
     // MARK: - Private Properties
 
-    private let editorVM: EditorViewModel
+    private let editorViewModel: EditorViewModel
     private let videoPlayer: VideoPlayerManager
     private let recorderManager: AudioRecorderManager
     private let textEditor: TextEditorViewModel
@@ -230,7 +238,7 @@ struct PlayerControl: View {
         VStack(spacing: 32) {
             playSection
 
-            if editorVM.hasCurrentVideo {
+            if editorViewModel.hasCurrentVideo {
                 timeLineControlSection
             }
         }
@@ -240,14 +248,14 @@ struct PlayerControl: View {
 
     init(
         _ isFullScreen: Binding<Bool>,
-        editorVM: EditorViewModel,
+        editorViewModel: EditorViewModel,
         videoPlayer: VideoPlayerManager,
         recorderManager: AudioRecorderManager,
         textEditor: TextEditorViewModel
     ) {
         _isFullScreen = isFullScreen
 
-        self.editorVM = editorVM
+        self.editorViewModel = editorViewModel
         self.videoPlayer = videoPlayer
         self.recorderManager = recorderManager
         self.textEditor = textEditor
@@ -257,14 +265,14 @@ struct PlayerControl: View {
 
     @ViewBuilder
     private var timeLineControlSection: some View {
-        if let video = editorVM.currentVideo {
+        if let video = editorViewModel.currentVideo {
             trimSection(video)
         }
     }
 
     private var playSection: some View {
         Button {
-            if let video = editorVM.currentVideo {
+            if let video = editorViewModel.currentVideo {
                 videoPlayer.action(video)
             }
         } label: {
@@ -297,28 +305,31 @@ struct PlayerControl: View {
     private func trimSection(_ video: Video) -> some View {
         ThumbnailsSliderView(
             videoPlayer.currentTimeBinding(),
-            video: Binding(
-                get: { editorVM.currentVideo },
-                set: { editorVM.currentVideo = $0 }
+            video: .init(
+                get: { editorViewModel.currentVideo },
+                set: { editorViewModel.currentVideo = $0 }
             ),
             isChangeState: video.isAppliedTool(for: .cut)
         ) { newRange in
             videoPlayer.pause()
             videoPlayer.updatePlaybackRange(newRange)
-            editorVM.setCut()
+            editorViewModel.setCut()
         } onRequestThumbnails: { size in
-            editorVM.refreshThumbnailsIfNeeded(containerSize: size)
+            editorViewModel.refreshThumbnailsIfNeeded(
+                containerSize: size,
+                displayScale: displayScale
+            )
         } onPlaybackScrubStarted: { range in
             videoPlayer.beginScrubbing(in: range)
         } onPlaybackScrubChanged: { time, range in
             videoPlayer.scrub(
                 to: time,
-                in: editorVM.currentVideo?.rangeDuration ?? range
+                in: editorViewModel.currentVideo?.rangeDuration ?? range
             )
         } onPlaybackScrubEnded: { time, range in
             videoPlayer.endScrubbing(
                 at: time,
-                in: editorVM.currentVideo?.rangeDuration ?? range
+                in: editorViewModel.currentVideo?.rangeDuration ?? range
             )
         }
         .padding(.horizontal)

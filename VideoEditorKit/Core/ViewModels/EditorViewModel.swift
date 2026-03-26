@@ -56,6 +56,7 @@ final class EditorViewModel {
 
     private var hasLoadedSourceVideo = false
     private var lastPlayerContainerSize = CGSize(width: 1, height: 220)
+    private var lastThumbnailDisplayScale: CGFloat = 1
 
     // MARK: - Public Methods
 
@@ -70,7 +71,11 @@ final class EditorViewModel {
             guard !Task.isCancelled else { return }
 
             self?.currentVideo = video
-            self?.loadThumbnails(for: video, containerSize: containerSize)
+            self?.loadThumbnails(
+                for: video,
+                containerSize: containerSize,
+                displayScale: self?.lastThumbnailDisplayScale ?? 1
+            )
         }
     }
 
@@ -88,27 +93,47 @@ extension EditorViewModel {
 
     // MARK: - Public Methods
 
-    func refreshThumbnailsIfNeeded(containerSize: CGSize) {
+    func refreshThumbnailsIfNeeded(
+        containerSize: CGSize,
+        displayScale: CGFloat = 1
+    ) {
         lastPlayerContainerSize = containerSize
+        lastThumbnailDisplayScale = displayScale
         guard let video = currentVideo else { return }
         guard containerSize.width > 0, containerSize.height > 0 else { return }
 
         let expectedCount = video.thumbnailCount(for: containerSize)
         guard expectedCount > 0 else { return }
+        let expectedThumbnailWidth = max(
+            (containerSize.width / CGFloat(expectedCount)) * max(displayScale, 1),
+            1
+        )
 
         let isMissingThumbnails = video.thumbnailsImages.isEmpty
         let needsResize = video.thumbnailsImages.count != expectedCount
+        let hasLowResolutionThumbnails = (video.thumbnailsImages.first?.image?.size.width ?? 0) < expectedThumbnailWidth
 
-        guard isMissingThumbnails || needsResize else { return }
-        loadThumbnails(for: video, containerSize: containerSize)
+        guard isMissingThumbnails || needsResize || hasLowResolutionThumbnails else { return }
+        loadThumbnails(
+            for: video,
+            containerSize: containerSize,
+            displayScale: displayScale
+        )
     }
 
     // MARK: - Private Methods
 
-    private func loadThumbnails(for video: Video, containerSize: CGSize) {
+    private func loadThumbnails(
+        for video: Video,
+        containerSize: CGSize,
+        displayScale: CGFloat
+    ) {
         let videoID = video.id
         thumbnailsTask = Task.detached(priority: .userInitiated) {
-            let thumbnails = await video.makeThumbnails(containerSize: containerSize)
+            let thumbnails = await video.makeThumbnails(
+                containerSize: containerSize,
+                displayScale: displayScale
+            )
             guard !Task.isCancelled else { return }
 
             await MainActor.run { [weak self] in
