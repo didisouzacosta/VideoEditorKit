@@ -96,13 +96,13 @@ struct MainEditorView: View {
                 TextEditorView(textEditor, onSave: editorVM.setText)
             }
         }
+        .onDisappear {
+            cancelDeferredTasks()
+        }
         .fullScreenCover(isPresented: $showRecordView) {
             RecordVideoView { url in
                 videoPlayer.loadState = .loaded(url)
             }
-        }
-        .onDisappear {
-            cancelDeferredTasks()
         }
     }
 

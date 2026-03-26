@@ -65,13 +65,13 @@ struct RecordVideoView: View {
                 }
             }
         }
+        .preferredColorScheme(.dark)
         .onChange(of: cameraManager.finalURL) { _, newValue in
             if let url = newValue {
                 onFinishRecord(url)
                 dismiss()
             }
         }
-        .preferredColorScheme(.dark)
     }
 
     // MARK: - Initializer

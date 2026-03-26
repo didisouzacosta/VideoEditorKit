@@ -39,9 +39,9 @@ struct VideoExporterBottomSheetView: View {
                 }
             }
             .safeAreaPadding()
-            .alert("Unable to export video", isPresented: $bindableViewModel.showAlert) {}
             .disabled(viewModel.renderState == .loading)
             .animation(.easeInOut, value: viewModel.renderState)
+            .alert("Unable to export video", isPresented: $bindableViewModel.showAlert) {}
         }
     }
 

@@ -30,42 +30,33 @@ struct RootView: View {
                 Theme.rootBackground
                     .ignoresSafeArea()
 
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 24) {
-                        heroSection
-                        selectVideoCard
-                        resultSection
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 24)
-                }
-                .navigationTitle("Example Mode")
-                .scrollIndicators(.hidden)
-                .sheet(item: $editorDestination) { destination in
-                    MainEditorView(destination.url) { exportedURL in
-                        replaceEditedVideo(with: exportedURL)
-                    }
-                }
-                .onChange(of: item) { _, newItem in
-                    loadPhotosItem(newItem)
-                }
-                .onDisappear {
-                    itemLoadTask?.cancel()
-                    resultPlayer.pause()
-                }
-                .overlay {
-                    if showLoader {
-                        Theme.scrim.ignoresSafeArea()
-                        VStack(spacing: 12) {
-                            Text("Loading video")
-                                .font(.headline)
-                            ProgressView()
-                                .tint(Theme.accent)
+                if showLoader {
+                    loadingView
+                } else {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 24) {
+                            heroSection
+                            selectVideoCard
+                            resultSection
                         }
-                        .padding(.horizontal, 24)
-                        .padding(.vertical, 22)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 24)
                     }
+                    .scrollIndicators(.hidden)
                 }
+            }
+            .navigationTitle("Example Mode")
+            .onDisappear {
+                itemLoadTask?.cancel()
+                resultPlayer.pause()
+            }
+            .sheet(item: $editorDestination, onDismiss: resetPickerSelection) { destination in
+                MainEditorView(destination.url) { exportedURL in
+                    replaceEditedVideo(with: exportedURL)
+                }
+            }
+            .onChange(of: item) { _, newItem in
+                loadPhotosItem(newItem)
             }
         }
     }
@@ -84,6 +75,23 @@ struct RootView: View {
 extension RootView {
 
     // MARK: - Private Properties
+
+    private var loadingView: some View {
+        ZStack {
+            Theme.scrim.ignoresSafeArea()
+
+            VStack(spacing: 12) {
+                Text("Loading video")
+                    .font(.headline)
+                ProgressView()
+                    .tint(Theme.accent)
+            }
+            .padding(.horizontal, 24)
+            .padding(.vertical, 22)
+            .card(prominent: true, tint: Theme.secondary)
+            .padding(.horizontal, 20)
+        }
+    }
 
     @ViewBuilder
     private var heroSection: some View {
@@ -185,7 +193,10 @@ extension RootView {
 
         itemLoadTask = Task {
             showLoader = true
-            defer { showLoader = false }
+            defer {
+                showLoader = false
+                itemLoadTask = nil
+            }
 
             do {
                 if let video = try await newItem.loadTransferable(type: VideoItem.self), !Task.isCancelled {
@@ -193,6 +204,7 @@ extension RootView {
                 }
             } catch {
                 assertionFailure("Failed to load selected video: \(error.localizedDescription)")
+                resetPickerSelection()
             }
         }
     }
@@ -204,6 +216,7 @@ extension RootView {
         cleanupFileIfNeeded(editedVideoURL)
         editedVideoURL = nil
         sessionSourceURL = url
+        resetPickerSelection()
         editorDestination = .init(url: url)
     }
 
@@ -212,6 +225,10 @@ extension RootView {
         editedVideoURL = url
         resultPlayer.replaceCurrentItem(with: AVPlayerItem(url: url))
         resultPlayer.seek(to: .zero)
+    }
+
+    private func resetPickerSelection() {
+        item = nil
     }
 
     private func cleanupFileIfNeeded(_ url: URL?) {

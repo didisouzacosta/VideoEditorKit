@@ -37,10 +37,10 @@ struct FiltersView: View {
             .padding(.horizontal)
         }
         .scrollIndicators(.hidden)
+        .padding(.horizontal, -16)
         .onChange(of: selectedFilterName) { _, newValue in
             onChangeFilter(newValue)
         }
-        .padding(.horizontal, -16)
     }
 
     // MARK: - Initializer
