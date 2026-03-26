@@ -1,5 +1,5 @@
 //
-//  MainEditorView.swift
+//  VideoEditorView.swift
 //  VideoEditorKit
 //
 //  Created by Adriano Souza Costa on 23.03.2026.
@@ -8,7 +8,7 @@ import AVKit
 import SwiftUI
 
 @MainActor
-struct MainEditorView: View {
+struct VideoEditorView: View {
 
     // MARK: - Environments
 
@@ -31,7 +31,7 @@ struct MainEditorView: View {
 
     var body: some View {
         @Bindable var bindableEditorViewModel = editorViewModel
-        
+
         NavigationStack {
             GeometryReader { proxy in
                 VStack(spacing: 32) {
@@ -109,15 +109,39 @@ struct MainEditorView: View {
 
     // MARK: - Initializer
 
-    init(_ sourceVideoURL: URL? = nil, onExported: @escaping (URL) -> Void = { _ in }) {
+    init(
+        _ sourceVideoURL: URL? = nil,
+        configuration: Configuration = .init(),
+        onExported: @escaping (URL) -> Void = { _ in }
+    ) {
+        _isFullScreen = State(initialValue: configuration.isFullScreen)
+
         self.sourceVideoURL = sourceVideoURL
         self.onExported = onExported
     }
 
 }
 
+extension VideoEditorView {
+
+    struct Configuration {
+
+        // MARK: - Public Properties
+
+        let isFullScreen: Bool
+
+        // MARK: - Initializer
+
+        init(isFullScreen: Bool = false) {
+            self.isFullScreen = isFullScreen
+        }
+
+    }
+
+}
+
 #Preview {
     NavigationStack {
-        MainEditorView()
+        VideoEditorView()
     }
 }
