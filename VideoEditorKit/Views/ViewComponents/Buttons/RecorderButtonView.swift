@@ -17,10 +17,10 @@ struct RecorderButtonView: View {
 
     // MARK: - Public Properties
 
-    var video: Video
-    var recorderManager: AudioRecorderManager
-    let onRecorded: (Audio) -> Void
-    let onRecordTime: (Double) -> Void
+    private let video: Video
+    private let recorderManager: AudioRecorderManager
+    private let onRecorded: (Audio) -> Void
+    private let onRecordTime: (Double) -> Void
 
     // MARK: - Body
 
@@ -48,6 +48,20 @@ struct RecorderButtonView: View {
                 onRecordTime(newValue)
             }
         }
+    }
+
+    // MARK: - Initializer
+
+    init(
+        video: Video,
+        recorderManager: AudioRecorderManager,
+        onRecorded: @escaping (Audio) -> Void,
+        onRecordTime: @escaping (Double) -> Void
+    ) {
+        self.video = video
+        self.recorderManager = recorderManager
+        self.onRecorded = onRecorded
+        self.onRecordTime = onRecordTime
     }
 
     // MARK: - Private Properties

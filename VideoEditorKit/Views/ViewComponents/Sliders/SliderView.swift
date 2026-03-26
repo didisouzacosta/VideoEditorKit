@@ -20,8 +20,8 @@ struct SliderView<V>: View where V: BinaryFloatingPoint, V.Stride: BinaryFloatin
 
     // MARK: - Public Properties
 
-    let height: CGFloat
-    let onChange: () -> Void
+    private let height: CGFloat
+    private let onChange: () -> Void
 
     // MARK: - Body
 

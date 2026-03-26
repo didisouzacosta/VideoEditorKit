@@ -14,8 +14,8 @@ struct ToolsSectionView: View {
 
     // MARK: - Bindables
 
-    @Bindable var videoPlayer: VideoPlayerManager
-    @Bindable var editorVM: EditorViewModel
+    @Bindable private var videoPlayer: VideoPlayerManager
+    @Bindable private var editorVM: EditorViewModel
 
     // MARK: - States
 
@@ -23,7 +23,7 @@ struct ToolsSectionView: View {
 
     // MARK: - Public Properties
 
-    let textEditor: TextEditorViewModel
+    private let textEditor: TextEditorViewModel
 
     // MARK: - Body
 
@@ -80,6 +80,14 @@ struct ToolsSectionView: View {
                 editorVM.setText(textEditor.textBoxes)
             }
         }
+    }
+
+    // MARK: - Initializer
+
+    init(videoPlayer: VideoPlayerManager, editorVM: EditorViewModel, textEditor: TextEditorViewModel) {
+        self.videoPlayer = videoPlayer
+        self.editorVM = editorVM
+        self.textEditor = textEditor
     }
 
     // MARK: - Private Properties

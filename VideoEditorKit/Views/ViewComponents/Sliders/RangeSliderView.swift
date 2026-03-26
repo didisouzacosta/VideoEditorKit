@@ -11,10 +11,10 @@ struct RangedSliderView: View {
 
     // MARK: - Public Properties
 
-    let currentValue: Binding<ClosedRange<Double>>?
-    let sliderBounds: ClosedRange<Double>
-    let step: Double
-    let onEndChange: (() -> Void)?
+    private let currentValue: Binding<ClosedRange<Double>>?
+    private let sliderBounds: ClosedRange<Double>
+    private let step: Double
+    private let onEndChange: (() -> Void)?
 
     // MARK: - Body
 

@@ -13,13 +13,13 @@ struct PlayerHolderView: View {
 
     // MARK: - Bindings
 
-    @Binding var isFullScreen: Bool
+    @Binding private var isFullScreen: Bool
 
     // MARK: - Public Properties
 
-    let editorVM: EditorViewModel
-    let videoPlayer: VideoPlayerManager
-    let textEditor: TextEditorViewModel
+    private let editorVM: EditorViewModel
+    private let videoPlayer: VideoPlayerManager
+    private let textEditor: TextEditorViewModel
 
     // MARK: - Body
 
@@ -39,6 +39,20 @@ struct PlayerHolderView: View {
             }
             .allFrame()
         }
+    }
+
+    // MARK: - Initializer
+
+    init(
+        isFullScreen: Binding<Bool>,
+        editorVM: EditorViewModel,
+        videoPlayer: VideoPlayerManager,
+        textEditor: TextEditorViewModel
+    ) {
+        self._isFullScreen = isFullScreen
+        self.editorVM = editorVM
+        self.videoPlayer = videoPlayer
+        self.textEditor = textEditor
     }
 
 }
@@ -198,17 +212,17 @@ struct PlayerControl: View {
 
     // MARK: - Bindables
 
-    @Bindable var editorVM: EditorViewModel
-    @Bindable var videoPlayer: VideoPlayerManager
+    @Bindable private var editorVM: EditorViewModel
+    @Bindable private var videoPlayer: VideoPlayerManager
 
     // MARK: - Bindings
 
-    @Binding var isFullScreen: Bool
+    @Binding private var isFullScreen: Bool
 
     // MARK: - Public Properties
 
-    let recorderManager: AudioRecorderManager
-    let textEditor: TextEditorViewModel
+    private let recorderManager: AudioRecorderManager
+    private let textEditor: TextEditorViewModel
 
     // MARK: - Body
 
@@ -221,6 +235,22 @@ struct PlayerControl: View {
                 timeLineControlSection
             }
         }
+    }
+
+    // MARK: - Initializer
+
+    init(
+        editorVM: EditorViewModel,
+        videoPlayer: VideoPlayerManager,
+        isFullScreen: Binding<Bool>,
+        recorderManager: AudioRecorderManager,
+        textEditor: TextEditorViewModel
+    ) {
+        self.editorVM = editorVM
+        self.videoPlayer = videoPlayer
+        self._isFullScreen = isFullScreen
+        self.recorderManager = recorderManager
+        self.textEditor = textEditor
     }
 
     // MARK: - Private Properties

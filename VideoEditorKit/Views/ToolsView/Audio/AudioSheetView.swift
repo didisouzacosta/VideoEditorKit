@@ -17,9 +17,9 @@ struct AudioSheetView: View {
 
     // MARK: - Public Properties
 
-    let videoPlayer: VideoPlayerManager
-    let editorVM: EditorViewModel
-    var value: Binding<Float> {
+    private let videoPlayer: VideoPlayerManager
+    private let editorVM: EditorViewModel
+    private var value: Binding<Float> {
         editorVM.isSelectVideo ? $videoVolume : $audioVolume
     }
 
@@ -38,6 +38,13 @@ struct AudioSheetView: View {
         .onAppear {
             setValue()
         }
+    }
+
+    // MARK: - Initializer
+
+    init(videoPlayer: VideoPlayerManager, editorVM: EditorViewModel) {
+        self.videoPlayer = videoPlayer
+        self.editorVM = editorVM
     }
 
 }

@@ -28,8 +28,8 @@ struct MainEditorView: View {
 
     // MARK: - Public Properties
 
-    let sourceVideoURL: URL?
-    let onExported: (URL) -> Void
+    private let sourceVideoURL: URL?
+    private let onExported: (URL) -> Void
 
     // MARK: - Body
 

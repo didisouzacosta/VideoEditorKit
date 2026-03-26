@@ -12,19 +12,19 @@ struct CropView<T: View>: View {
     // MARK: - States
 
     @State private var position: CGPoint = .zero
-    @State var size: CGSize = .zero
-    @State var clipped: Bool = false
+    @State private var size: CGSize = .zero
+    @State private var clipped: Bool = false
 
     // MARK: - Public Properties
 
-    let originalSize: CGSize
-    var rotation: Double?
-    var isMirror: Bool
-    var isActiveCrop: Bool
-    var setFrameScale: Bool = false
-    var frameScale: CGFloat = 1
+    private let originalSize: CGSize
+    private let rotation: Double?
+    private let isMirror: Bool
+    private let isActiveCrop: Bool
+    private let setFrameScale: Bool
+    private let frameScale: CGFloat
     @ViewBuilder
-    var frameView: () -> T
+    private var frameView: () -> T
 
     // MARK: - Body
 
@@ -82,6 +82,26 @@ struct CropView<T: View>: View {
 
     private let lineWidth: CGFloat = 2
 
+    // MARK: - Initializer
+
+    init(
+        originalSize: CGSize,
+        rotation: Double?,
+        isMirror: Bool,
+        isActiveCrop: Bool,
+        setFrameScale: Bool = false,
+        frameScale: CGFloat = 1,
+        @ViewBuilder frameView: @escaping () -> T
+    ) {
+        self.originalSize = originalSize
+        self.rotation = rotation
+        self.isMirror = isMirror
+        self.isActiveCrop = isActiveCrop
+        self.setFrameScale = setFrameScale
+        self.frameScale = frameScale
+        self.frameView = frameView
+    }
+
     // MARK: - Private Methods
 
     private func updateCropState(for size: CGSize) {
@@ -129,7 +149,7 @@ struct CropImage<T: View>: View {
 
     // MARK: - Bindings
 
-    @Binding var frameSize: CGSize
+    @Binding private var frameSize: CGSize
 
     // MARK: - States
 
@@ -139,9 +159,9 @@ struct CropImage<T: View>: View {
 
     // MARK: - Public Properties
 
-    let originalSize: CGSize
+    private let originalSize: CGSize
     @ViewBuilder
-    var frameView: () -> T
+    private var frameView: () -> T
 
     // MARK: - Body
 
@@ -170,6 +190,14 @@ struct CropImage<T: View>: View {
                     .padding(.top, 50)
             }
         }
+    }
+
+    // MARK: - Initializer
+
+    init(frameSize: Binding<CGSize>, originalSize: CGSize, @ViewBuilder frameView: @escaping () -> T) {
+        self._frameSize = frameSize
+        self.originalSize = originalSize
+        self.frameView = frameView
     }
 
 }

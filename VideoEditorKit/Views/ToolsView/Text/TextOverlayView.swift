@@ -11,9 +11,9 @@ struct TextOverlayView: View {
 
     // MARK: - Public Properties
 
-    var currentTime: Double
-    var viewModel: TextEditorViewModel
-    var disabledMagnification: Bool = false
+    private let currentTime: Double
+    private let viewModel: TextEditorViewModel
+    private let disabledMagnification: Bool
 
     // MARK: - Body
 
@@ -109,6 +109,14 @@ struct TextOverlayView: View {
         result.foregroundColor = UIColor(textBox.fontColor)
         result.backgroundColor = UIColor(textBox.bgColor)
         return result
+    }
+
+    // MARK: - Initializer
+
+    init(currentTime: Double, viewModel: TextEditorViewModel, disabledMagnification: Bool = false) {
+        self.currentTime = currentTime
+        self.viewModel = viewModel
+        self.disabledMagnification = disabledMagnification
     }
 
 }

@@ -11,10 +11,10 @@ struct ToolButtonView: View {
 
     // MARK: - Public Properties
 
-    let label: String
-    let image: String
-    let isChange: Bool
-    let action: () -> Void
+    private let label: String
+    private let image: String
+    private let isChange: Bool
+    private let action: () -> Void
 
     // MARK: - Body
 
@@ -43,6 +43,15 @@ struct ToolButtonView: View {
                 tint: isChange ? Theme.accent : Theme.secondary)
         }
         .buttonStyle(.plain)
+    }
+
+    // MARK: - Initializer
+
+    init(label: String, image: String, isChange: Bool, action: @escaping () -> Void) {
+        self.label = label
+        self.image = image
+        self.isChange = isChange
+        self.action = action
     }
 
 }

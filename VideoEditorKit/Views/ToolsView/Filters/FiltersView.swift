@@ -11,12 +11,12 @@ struct FiltersView: View {
 
     // MARK: - States
 
-    @State var selectedFilterName: String? = nil
+    @State private var selectedFilterName: String? = nil
 
     // MARK: - Public Properties
 
-    var viewModel: FiltersViewModel
-    let onChangeFilter: (String?) -> Void
+    private let viewModel: FiltersViewModel
+    private let onChangeFilter: (String?) -> Void
 
     // MARK: - Body
 
@@ -41,6 +41,18 @@ struct FiltersView: View {
             onChangeFilter(newValue)
         }
         .padding(.horizontal, -16)
+    }
+
+    // MARK: - Initializer
+
+    init(
+        selectedFilterName: String? = nil,
+        viewModel: FiltersViewModel,
+        onChangeFilter: @escaping (String?) -> Void
+    ) {
+        self._selectedFilterName = State(initialValue: selectedFilterName)
+        self.viewModel = viewModel
+        self.onChangeFilter = onChangeFilter
     }
 
 }

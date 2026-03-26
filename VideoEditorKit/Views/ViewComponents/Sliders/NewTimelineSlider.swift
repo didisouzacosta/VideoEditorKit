@@ -11,26 +11,26 @@ struct TimelineSlider<T: View, A: View>: View {
 
     // MARK: - Bindings
 
-    @Binding var value: Double
+    @Binding private var value: Double
 
     // MARK: - States
 
     @State private var lastOffset: CGFloat = 0
-    @State var isChange: Bool = false
-    @State var offset: CGFloat = 0
-    @State var gestureW: CGFloat = 0
+    @State private var isChange: Bool = false
+    @State private var offset: CGFloat = 0
+    @State private var gestureW: CGFloat = 0
 
     // MARK: - Public Properties
 
-    var bounds: ClosedRange<Double>
-    var disableOffset: Bool
-    var frameWidth: CGFloat = 65
-    let actionWidth: CGFloat = 30
+    private let bounds: ClosedRange<Double>
+    private let disableOffset: Bool
+    private let frameWidth: CGFloat
+    private let actionWidth: CGFloat
     @ViewBuilder
-    var frameView: () -> T
+    private var frameView: () -> T
     @ViewBuilder
-    var actionView: () -> A
-    let onChange: () -> Void
+    private var actionView: () -> A
+    private let onChange: () -> Void
 
     // MARK: - Body
 
@@ -82,6 +82,28 @@ struct TimelineSlider<T: View, A: View>: View {
                 }
             }
         }
+    }
+
+    // MARK: - Initializer
+
+    init(
+        value: Binding<Double>,
+        bounds: ClosedRange<Double>,
+        disableOffset: Bool,
+        frameWidth: CGFloat = 65,
+        actionWidth: CGFloat = 30,
+        @ViewBuilder frameView: @escaping () -> T,
+        @ViewBuilder actionView: @escaping () -> A,
+        onChange: @escaping () -> Void
+    ) {
+        self._value = value
+        self.bounds = bounds
+        self.disableOffset = disableOffset
+        self.frameWidth = frameWidth
+        self.actionWidth = actionWidth
+        self.frameView = frameView
+        self.actionView = actionView
+        self.onChange = onChange
     }
 
 }

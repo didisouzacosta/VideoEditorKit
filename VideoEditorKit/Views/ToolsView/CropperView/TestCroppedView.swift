@@ -15,8 +15,8 @@ struct TestCroppedView: View {
 
     // MARK: - Public Properties
 
-    let size: CGSize = .init(width: 200, height: 400)
-    let frameSize: CGSize = .init(width: 350, height: 700)
+    private let size: CGSize = .init(width: 200, height: 400)
+    private let frameSize: CGSize = .init(width: 350, height: 700)
 
     // MARK: - Body
 

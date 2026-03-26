@@ -11,12 +11,12 @@ struct FramesToolView: View {
 
     // MARK: - Bindings
 
-    @Binding var selectedColor: Color
-    @Binding var scaleValue: Double
+    @Binding private var selectedColor: Color
+    @Binding private var scaleValue: Double
 
     // MARK: - Public Properties
 
-    let onChange: () -> Void
+    private let onChange: () -> Void
 
     // MARK: - Body
 
@@ -38,6 +38,14 @@ struct FramesToolView: View {
                 .tint(Theme.accent)
             }
         }
+    }
+
+    // MARK: - Initializer
+
+    init(selectedColor: Binding<Color>, scaleValue: Binding<Double>, onChange: @escaping () -> Void) {
+        self._selectedColor = selectedColor
+        self._scaleValue = scaleValue
+        self.onChange = onChange
     }
 
 }

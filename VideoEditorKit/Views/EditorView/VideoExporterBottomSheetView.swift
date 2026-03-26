@@ -13,7 +13,7 @@ struct VideoExporterBottomSheetView: View {
 
     // MARK: - Bindings
 
-    @Binding var isPresented: Bool
+    @Binding private var isPresented: Bool
 
     // MARK: - States
 
@@ -21,7 +21,7 @@ struct VideoExporterBottomSheetView: View {
 
     // MARK: - Public Properties
 
-    let onExported: (URL) -> Void
+    private let onExported: (URL) -> Void
 
     // MARK: - Body
 

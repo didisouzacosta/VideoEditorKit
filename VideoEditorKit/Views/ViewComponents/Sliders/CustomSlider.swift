@@ -12,7 +12,7 @@ where Value: BinaryFloatingPoint, Value.Stride: BinaryFloatingPoint, Track: View
     // MARK: - Bindings
 
     // the value of the slider, inside `bounds`
-    @Binding var value: Value
+    @Binding private var value: Value
     // range to which the thumb offset is mapped
 
     // MARK: - States
@@ -30,31 +30,31 @@ where Value: BinaryFloatingPoint, Value.Stride: BinaryFloatingPoint, Track: View
 
     // MARK: - Public Properties
 
-    let bounds: ClosedRange<Value>
+    private let bounds: ClosedRange<Value>
     // tells how discretely does the value change
 
-    let step: Value
+    private let step: Value
     // left-hand label
 
-    let minimumValueLabel: Text?
+    private let minimumValueLabel: Text?
     // right-hand label
 
-    let maximumValueLabel: Text?
+    private let maximumValueLabel: Text?
     // called with `true` when sliding starts and with `false` when it stops
 
-    let onEditingChanged: ((Bool) -> Void)?
-    let onChanged: (() -> Void)?
+    private let onEditingChanged: ((Bool) -> Void)?
+    private let onChanged: (() -> Void)?
     // the track view
 
-    let track: () -> Track
+    private let track: () -> Track
     // the thumb view
 
-    let thumb: () -> Thumb
+    private let thumb: () -> Thumb
     // tells how big the thumb is. This is here because there's no good
     // way in SwiftUI to get the thumb size at runtime, and its an important
     // to know it in order to compute its insets in the track overlay.
 
-    let thumbSize: CGSize
+    private let thumbSize: CGSize
 
     // x offset of the thumb from the track left-hand side
 

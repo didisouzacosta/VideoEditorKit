@@ -13,7 +13,7 @@ struct TextEditorView: View {
 
     // MARK: - Bindables
 
-    @Bindable var viewModel: TextEditorViewModel
+    @Bindable private var viewModel: TextEditorViewModel
 
     // MARK: - States
 
@@ -22,7 +22,7 @@ struct TextEditorView: View {
 
     // MARK: - Public Properties
 
-    let onSave: ([TextBox]) -> Void
+    private let onSave: ([TextBox]) -> Void
 
     // MARK: - Body
 
@@ -112,6 +112,13 @@ struct TextEditorView: View {
         isFocused = false
     }
 
+    // MARK: - Initializer
+
+    init(viewModel: TextEditorViewModel, onSave: @escaping ([TextBox]) -> Void) {
+        self.viewModel = viewModel
+        self.onSave = onSave
+    }
+
 }
 
 @MainActor
@@ -119,14 +126,14 @@ struct TextView: UIViewRepresentable {
 
     // MARK: - Public Properties
 
-    @Binding var isFirstResponder: Bool
-    @Binding var textBox: TextBox
-    var minHeight: CGFloat
-    @Binding var calculatedHeight: CGFloat
+    @Binding private var isFirstResponder: Bool
+    @Binding private var textBox: TextBox
+    private let minHeight: CGFloat
+    @Binding private var calculatedHeight: CGFloat
 
     final class Coordinator: NSObject, UITextViewDelegate {
 
-        var parent: TextView
+        private var parent: TextView
 
         init(_ uiTextView: TextView) {
             self.parent = uiTextView
@@ -230,12 +237,12 @@ struct SystemColorSwatchPicker: View {
 
     // MARK: - Bindings
 
-    @Binding var selection: Color
+    @Binding private var selection: Color
 
     // MARK: - Public Properties
 
-    let title: String
-    let options: [SystemColorOption]
+    private let title: String
+    private let options: [SystemColorOption]
 
     // MARK: - Body
 
@@ -274,6 +281,14 @@ struct SystemColorSwatchPicker: View {
             }
             .scrollIndicators(.hidden)
         }
+    }
+
+    // MARK: - Initializer
+
+    init(selection: Binding<Color>, title: String, options: [SystemColorOption]) {
+        self._selection = selection
+        self.title = title
+        self.options = options
     }
 
     // MARK: - Private Methods

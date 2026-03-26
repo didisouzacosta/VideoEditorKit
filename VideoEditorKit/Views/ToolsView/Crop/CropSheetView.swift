@@ -12,12 +12,12 @@ struct CropSheetView: View {
 
     // MARK: - States
 
-    @State var rotateValue: Double = 0
+    @State private var rotateValue: Double = 0
     @State private var currentTab: Tab = .rotate
 
     // MARK: - Public Properties
 
-    var editorVM: EditorViewModel
+    private let editorVM: EditorViewModel
 
     // MARK: - Body
 
@@ -39,6 +39,12 @@ struct CropSheetView: View {
         .onChange(of: editorVM.currentVideo?.rotation) { _, newValue in
             rotateValue = newValue ?? 0
         }
+    }
+
+    // MARK: - Initializer
+
+    init(editorVM: EditorViewModel) {
+        self.editorVM = editorVM
     }
 
 }

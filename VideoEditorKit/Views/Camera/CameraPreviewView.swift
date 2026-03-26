@@ -49,7 +49,13 @@ struct CameraPreviewHolder: UIViewRepresentable {
 
     typealias UIViewType = CameraPreviewView
 
-    var captureSession: AVCaptureSession
+    private var captureSession: AVCaptureSession
+
+    // MARK: - Initializer
+
+    init(captureSession: AVCaptureSession) {
+        self.captureSession = captureSession
+    }
 
     // MARK: - Public Methods
 

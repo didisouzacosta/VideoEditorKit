@@ -11,12 +11,12 @@ struct LineSlider: View {
 
     // MARK: - Bindings
 
-    @Binding var value: Double
+    @Binding private var value: Double
 
     // MARK: - Public Properties
 
-    var range: ClosedRange<Double>
-    let onEditingChanged: () -> Void
+    private let range: ClosedRange<Double>
+    private let onEditingChanged: () -> Void
 
     // MARK: - Body
 
@@ -41,6 +41,14 @@ struct LineSlider: View {
                         .foregroundStyle(Theme.accent)
                 }, thumbSize: CGSize(width: 10, height: proxy.size.height))
         }
+    }
+
+    // MARK: - Initializer
+
+    init(value: Binding<Double>, range: ClosedRange<Double>, onEditingChanged: @escaping () -> Void) {
+        self._value = value
+        self.range = range
+        self.onEditingChanged = onEditingChanged
     }
 
 }

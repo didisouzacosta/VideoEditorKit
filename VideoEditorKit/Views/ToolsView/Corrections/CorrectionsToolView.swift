@@ -11,15 +11,15 @@ struct CorrectionsToolView: View {
 
     // MARK: - Bindings
 
-    @Binding var correction: ColorCorrection
+    @Binding private var correction: ColorCorrection
 
     // MARK: - States
 
-    @State var currentTab: CorrectionType = .brightness
+    @State private var currentTab: CorrectionType = .brightness
 
     // MARK: - Public Properties
 
-    let onChange: (ColorCorrection) -> Void
+    private let onChange: (ColorCorrection) -> Void
 
     // MARK: - Body
 
@@ -44,6 +44,13 @@ struct CorrectionsToolView: View {
             }
             slider
         }
+    }
+
+    // MARK: - Initializer
+
+    init(correction: Binding<ColorCorrection>, onChange: @escaping (ColorCorrection) -> Void) {
+        self._correction = correction
+        self.onChange = onChange
     }
 
 }
@@ -71,9 +78,9 @@ extension CorrectionsToolView {
         }
     }
 
-    // MARK: - Public Methods
+    // MARK: - Private Methods
 
-    func getValue(_ type: CorrectionType) -> Binding<Double> {
+    private func getValue(_ type: CorrectionType) -> Binding<Double> {
         switch type {
         case .brightness: $correction.brightness
         case .contrast: $correction.contrast

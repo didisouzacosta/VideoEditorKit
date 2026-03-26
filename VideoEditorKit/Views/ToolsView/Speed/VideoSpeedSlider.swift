@@ -11,12 +11,12 @@ struct VideoSpeedSlider: View {
 
     // MARK: - States
 
-    @State var value: Double = 1
+    @State private var value: Double = 1
 
     // MARK: - Public Properties
 
-    var isChangeState: Bool?
-    let onEditingChanged: (Float) -> Void
+    private let isChangeState: Bool?
+    private let onEditingChanged: (Float) -> Void
 
     // MARK: - Body
 
@@ -53,6 +53,14 @@ struct VideoSpeedSlider: View {
     // MARK: - Private Properties
 
     private let rateRange = 0.1...8
+
+    // MARK: - Initializer
+
+    init(value: Double = 1, isChangeState: Bool?, onEditingChanged: @escaping (Float) -> Void) {
+        self._value = State(initialValue: value)
+        self.isChangeState = isChangeState
+        self.onEditingChanged = onEditingChanged
+    }
 
 }
 

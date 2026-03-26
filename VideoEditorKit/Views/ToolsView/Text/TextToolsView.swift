@@ -11,8 +11,8 @@ struct TextToolsView: View {
 
     // MARK: - Public Properties
 
-    var video: Video
-    var editor: TextEditorViewModel
+    private let video: Video
+    private let editor: TextEditorViewModel
 
     // MARK: - Body
 
@@ -33,6 +33,13 @@ struct TextToolsView: View {
         .onDisappear {
             editor.selectedTextBox = nil
         }
+    }
+
+    // MARK: - Initializer
+
+    init(video: Video, editor: TextEditorViewModel) {
+        self.video = video
+        self.editor = editor
     }
 
 }

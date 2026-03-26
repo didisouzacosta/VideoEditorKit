@@ -12,8 +12,8 @@ struct ThumbnailsSliderView: View {
 
     // MARK: - Bindings
 
-    @Binding var currentTime: Double
-    @Binding var video: Video?
+    @Binding private var currentTime: Double
+    @Binding private var video: Video?
 
     // MARK: - States
 
@@ -22,12 +22,12 @@ struct ThumbnailsSliderView: View {
 
     // MARK: - Public Properties
 
-    var isChangeState: Bool?
-    let onChangeTimeValue: (ClosedRange<Double>) -> Void
-    let onRequestThumbnails: (CGSize) -> Void
-    let onPlaybackScrubStarted: (ClosedRange<Double>) -> Void
-    let onPlaybackScrubChanged: (Double, ClosedRange<Double>) -> Void
-    let onPlaybackScrubEnded: (Double, ClosedRange<Double>) -> Void
+    private let isChangeState: Bool?
+    private let onChangeTimeValue: (ClosedRange<Double>) -> Void
+    private let onRequestThumbnails: (CGSize) -> Void
+    private let onPlaybackScrubStarted: (ClosedRange<Double>) -> Void
+    private let onPlaybackScrubChanged: (Double, ClosedRange<Double>) -> Void
+    private let onPlaybackScrubEnded: (Double, ClosedRange<Double>) -> Void
 
     // MARK: - Body
 
@@ -51,6 +51,28 @@ struct ThumbnailsSliderView: View {
     private let handleInnerInset: CGFloat = 4
     private var totalDuration: Double {
         rangeDuration.upperBound - rangeDuration.lowerBound
+    }
+
+    // MARK: - Initializer
+
+    init(
+        currentTime: Binding<Double>,
+        video: Binding<Video?>,
+        isChangeState: Bool? = nil,
+        onChangeTimeValue: @escaping (ClosedRange<Double>) -> Void,
+        onRequestThumbnails: @escaping (CGSize) -> Void,
+        onPlaybackScrubStarted: @escaping (ClosedRange<Double>) -> Void,
+        onPlaybackScrubChanged: @escaping (Double, ClosedRange<Double>) -> Void,
+        onPlaybackScrubEnded: @escaping (Double, ClosedRange<Double>) -> Void
+    ) {
+        self._currentTime = currentTime
+        self._video = video
+        self.isChangeState = isChangeState
+        self.onChangeTimeValue = onChangeTimeValue
+        self.onRequestThumbnails = onRequestThumbnails
+        self.onPlaybackScrubStarted = onPlaybackScrubStarted
+        self.onPlaybackScrubChanged = onPlaybackScrubChanged
+        self.onPlaybackScrubEnded = onPlaybackScrubEnded
     }
 
 }

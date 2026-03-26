@@ -11,7 +11,7 @@ struct SheetView<Content: View>: View {
 
     // MARK: - Bindings
 
-    @Binding var isPresented: Bool
+    @Binding private var isPresented: Bool
 
     // MARK: - States
 
@@ -20,8 +20,8 @@ struct SheetView<Content: View>: View {
 
     // MARK: - Public Properties
 
-    var bgOpacity: CGFloat
-    let content: Content
+    private let bgOpacity: CGFloat
+    private let content: Content
 
     // MARK: - Body
 

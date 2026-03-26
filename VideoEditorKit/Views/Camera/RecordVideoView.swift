@@ -19,7 +19,7 @@ struct RecordVideoView: View {
 
     // MARK: - Public Properties
 
-    let onFinishRecord: (URL) -> Void
+    private let onFinishRecord: (URL) -> Void
 
     // MARK: - Body
 
@@ -72,6 +72,12 @@ struct RecordVideoView: View {
             }
         }
         .preferredColorScheme(.dark)
+    }
+
+    // MARK: - Initializer
+
+    init(onFinishRecord: @escaping (URL) -> Void) {
+        self.onFinishRecord = onFinishRecord
     }
 
 }

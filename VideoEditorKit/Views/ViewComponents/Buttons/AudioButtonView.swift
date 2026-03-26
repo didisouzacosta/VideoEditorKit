@@ -12,7 +12,7 @@ struct AudioButtonView: View {
 
     // MARK: - Bindings
 
-    @Binding var isSelectedTrack: Bool
+    @Binding private var isSelectedTrack: Bool
 
     // MARK: - States
 
@@ -20,8 +20,8 @@ struct AudioButtonView: View {
 
     // MARK: - Public Properties
 
-    var video: Video
-    var recorderManager: AudioRecorderManager
+    private let video: Video
+    private let recorderManager: AudioRecorderManager
 
     // MARK: - Body
 
@@ -44,6 +44,18 @@ struct AudioButtonView: View {
             .clipShape(.rect(cornerRadius: 14))
         }
         .frame(height: 44)
+    }
+
+    // MARK: - Initializer
+
+    init(
+        isSelectedTrack: Binding<Bool>,
+        video: Video,
+        recorderManager: AudioRecorderManager
+    ) {
+        self._isSelectedTrack = isSelectedTrack
+        self.video = video
+        self.recorderManager = recorderManager
     }
 
 }
