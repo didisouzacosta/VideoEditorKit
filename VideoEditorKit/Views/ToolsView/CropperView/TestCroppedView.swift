@@ -45,8 +45,6 @@ struct TestCroppedView: View {
     }
 }
 
-struct TestCroppedView_Previews: PreviewProvider {
-    static var previews: some View {
-        TestCroppedView()
-    }
+#Preview {
+    TestCroppedView()
 }

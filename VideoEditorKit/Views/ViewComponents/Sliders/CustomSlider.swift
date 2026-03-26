@@ -151,25 +151,23 @@ where Value: BinaryFloatingPoint, Value.Stride: BinaryFloatingPoint, Track: View
     }
 }
 
-struct CustomSlider_Previews: PreviewProvider {
-    static var previews: some View {
-        CustomSlider(
-            value: .constant(10),
-            in: 10...255,
-            step: 90,
-            minimumValueLabel: Text("Min"),
-            maximumValueLabel: Text("Max"),
-            onEditingChanged: { _ in },
-            track: {
-                Capsule()
-                    .foregroundStyle(Theme.sliderTrack)
-                    .frame(width: 200, height: 5)
-            },
-            thumb: {
-                Circle()
-                    .foregroundStyle(Theme.sliderThumb)
-            }, thumbSize: CGSize(width: 20, height: 20))
-    }
+#Preview {
+    CustomSlider(
+        value: .constant(10),
+        in: 10...255,
+        step: 90,
+        minimumValueLabel: Text("Min"),
+        maximumValueLabel: Text("Max"),
+        onEditingChanged: { _ in },
+        track: {
+            Capsule()
+                .foregroundStyle(Theme.sliderTrack)
+                .frame(width: 200, height: 5)
+        },
+        thumb: {
+            Circle()
+                .foregroundStyle(Theme.sliderThumb)
+        }, thumbSize: CGSize(width: 20, height: 20))
 }
 
 struct SizePreferenceKey: PreferenceKey {

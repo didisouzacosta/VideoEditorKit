@@ -114,13 +114,11 @@ extension RecorderButtonView {
     }
 }
 
-struct RecorderButtonView_Previews: PreviewProvider {
-    static var previews: some View {
-        RecorderButtonView(
-            video: Video.mock, recorderManager: AudioRecorderManager(), onRecorded: { _ in },
-            onRecordTime: { _ in }
-        )
-        .padding()
-        .preferredColorScheme(.dark)
-    }
+#Preview {
+    RecorderButtonView(
+        video: Video.mock, recorderManager: AudioRecorderManager(), onRecorded: { _ in },
+        onRecordTime: { _ in }
+    )
+    .padding()
+    .preferredColorScheme(.dark)
 }

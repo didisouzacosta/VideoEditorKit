@@ -35,10 +35,8 @@ struct CorrectionsToolView: View {
     }
 }
 
-struct CorrectionsToolView_Previews: PreviewProvider {
-    static var previews: some View {
-        CorrectionsToolView(correction: .constant(Video.mock.colorCorrection), onChange: { _ in })
-    }
+#Preview {
+    CorrectionsToolView(correction: .constant(Video.mock.colorCorrection), onChange: { _ in })
 }
 
 extension CorrectionsToolView {

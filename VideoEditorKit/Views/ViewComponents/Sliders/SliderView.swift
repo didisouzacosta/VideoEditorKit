@@ -113,13 +113,11 @@ struct SliderView<V>: View where V: BinaryFloatingPoint, V.Stride: BinaryFloatin
         self.value = V(bounds.upperBound - bounds.lowerBound) * V(ratio)
     }
 }
-struct StickerSliderView_Previews: PreviewProvider {
-    static var previews: some View {
-        VStack {
-            SliderView(value: .constant(40), in: 10...100) {}
-                .frame(height: 60)
-                .background(Color(uiColor: .secondarySystemBackground))
-                .padding()
-        }
+#Preview {
+    VStack {
+        SliderView(value: .constant(40), in: 10...100) {}
+            .frame(height: 60)
+            .background(Color(uiColor: .secondarySystemBackground))
+            .padding()
     }
 }

@@ -33,12 +33,10 @@ struct FramesToolView: View {
     }
 }
 
-struct FramesToolView_Previews: PreviewProvider {
-    static var previews: some View {
-        FramesToolView(
-            selectedColor: .constant(Color(uiColor: .systemBackground)),
-            scaleValue: .constant(0.3)
-        ) {}
-        .frame(height: 300)
-    }
+#Preview {
+    FramesToolView(
+        selectedColor: .constant(Color(uiColor: .systemBackground)),
+        scaleValue: .constant(0.3)
+    ) {}
+    .frame(height: 300)
 }

@@ -97,14 +97,12 @@ extension AudioButtonView {
     }
 }
 
-struct AudioButtonView_Previews: PreviewProvider {
-    static var previews: some View {
-        AudioButtonView(
-            video: Video.mock,
-            isSelectedTrack: .constant(false),
-            recorderManager: AudioRecorderManager()
-        )
-        .frame(height: 40)
-        .padding()
-    }
+#Preview {
+    AudioButtonView(
+        video: Video.mock,
+        isSelectedTrack: .constant(false),
+        recorderManager: AudioRecorderManager()
+    )
+    .frame(height: 40)
+    .padding()
 }

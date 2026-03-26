@@ -71,14 +71,16 @@ extension FiltersView {
     }
 }
 
-struct FiltersView_Previews: PreviewProvider {
-    static var previews: some View {
-        let viewModel = FiltersViewModel()
-        if let image = UIImage(named: "simpleImage") {
-            viewModel.loadFilters(for: image)
-        }
+#Preview {
+    FiltersView(selectedFilterName: nil, viewModel: makeFiltersPreviewViewModel(), onChangeFilter: { _ in })
+        .padding()
+}
 
-        return FiltersView(selectedFilterName: nil, viewModel: viewModel, onChangeFilter: { _ in })
-            .padding()
+@MainActor
+private func makeFiltersPreviewViewModel() -> FiltersViewModel {
+    let viewModel = FiltersViewModel()
+    if let image = UIImage(named: "simpleImage") {
+        viewModel.loadFilters(for: image)
     }
+    return viewModel
 }

@@ -141,15 +141,17 @@ extension TextOverlayView {
     }
 }
 
-struct TextOverlayView_Previews: PreviewProvider {
-    static var previews: some View {
-        let viewModel = TextEditorViewModel()
-        viewModel.textBoxes = TextBox.texts
-        viewModel.selectTextBox(TextBox.texts[0])
-
-        return ZStack {
-            Color(uiColor: .systemBackground)
-            TextOverlayView(currentTime: 1.5, viewModel: viewModel)
-        }
+#Preview {
+    ZStack {
+        Color(uiColor: .systemBackground)
+        TextOverlayView(currentTime: 1.5, viewModel: makeTextOverlayPreviewViewModel())
     }
+}
+
+@MainActor
+private func makeTextOverlayPreviewViewModel() -> TextEditorViewModel {
+    let viewModel = TextEditorViewModel()
+    viewModel.textBoxes = TextBox.texts
+    viewModel.selectTextBox(TextBox.texts[0])
+    return viewModel
 }

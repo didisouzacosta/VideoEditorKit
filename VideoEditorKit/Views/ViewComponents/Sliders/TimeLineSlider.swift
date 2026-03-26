@@ -35,10 +35,8 @@ struct LineSlider: View {
     }
 }
 
-struct TimeLineSlider_Previews: PreviewProvider {
-    static var previews: some View {
-        LineSlider(value: .constant(100), range: 14...100) {}
-            .frame(width: 250, height: 60)
-            .background(Color(uiColor: .secondarySystemBackground))
-    }
+#Preview {
+    LineSlider(value: .constant(100), range: 14...100) {}
+        .frame(width: 250, height: 60)
+        .background(Color(uiColor: .secondarySystemBackground))
 }

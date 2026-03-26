@@ -84,12 +84,14 @@ extension TextToolsView {
     }
 }
 
-struct TextToolsView_Previews: PreviewProvider {
-    static var previews: some View {
-        let editor = TextEditorViewModel()
-        editor.textBoxes = TextBox.texts
+#Preview {
+    TextToolsView(video: Video.mock, editor: makeTextToolsPreviewViewModel())
+        .padding()
+}
 
-        return TextToolsView(video: Video.mock, editor: editor)
-            .padding()
-    }
+@MainActor
+private func makeTextToolsPreviewViewModel() -> TextEditorViewModel {
+    let editor = TextEditorViewModel()
+    editor.textBoxes = TextBox.texts
+    return editor
 }

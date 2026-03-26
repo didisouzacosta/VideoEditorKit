@@ -74,18 +74,15 @@ struct TimelineSlider<T: View, A: View>: View {
     }
 }
 
-struct NewTimelineSlider_Previews: PreviewProvider {
-    @State static var currentTime = 0.0
-    static var previews: some View {
-        TimelineSlider(
-            bounds: 5...34, disableOffset: false, value: $currentTime,
-            frameView: {
-                Rectangle()
-                    .fill(Color.secondary)
-            }, actionView: { EmptyView() }, onChange: {}
-        )
-        .frame(height: 80)
-    }
+#Preview {
+    TimelineSlider(
+        bounds: 5...34, disableOffset: false, value: .constant(0),
+        frameView: {
+            Rectangle()
+                .fill(Color.secondary)
+        }, actionView: { EmptyView() }, onChange: {}
+    )
+    .frame(height: 80)
 }
 
 extension TimelineSlider {

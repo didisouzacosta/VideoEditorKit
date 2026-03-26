@@ -81,22 +81,14 @@ struct CropView<T: View>: View {
     }
 }
 
-struct CropView_Previews: PreviewProvider {
-    @State static var size: CGSize = .init(width: 250, height: 450)
-    static let originalSize: CGSize = .init(width: 300, height: 600)
-    static var previews: some View {
-        GeometryReader { proxy in
-            CropView(originalSize: originalSize, rotation: 0, isMirror: false, isActiveCrop: true) {
-                //CropImage(originalSize: originalSize, frameSize: $size){
-
-                Rectangle()
-                    .fill(Color.secondary)
-                //}
-
-            }
-            .allFrame()
-            .frame(height: proxy.size.height / 1.45, alignment: .center)
+#Preview {
+    GeometryReader { proxy in
+        CropView(originalSize: .init(width: 300, height: 600), rotation: 0, isMirror: false, isActiveCrop: true) {
+            Rectangle()
+                .fill(Color.secondary)
         }
+        .allFrame()
+        .frame(height: proxy.size.height / 1.45, alignment: .center)
     }
 }
 

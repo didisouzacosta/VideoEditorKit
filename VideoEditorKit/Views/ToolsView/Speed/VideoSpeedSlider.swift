@@ -43,8 +43,6 @@ struct VideoSpeedSlider: View {
     }
 }
 
-struct VideoSpeedSlider_Previews: PreviewProvider {
-    static var previews: some View {
-        VideoSpeedSlider(isChangeState: false) { _ in }
-    }
+#Preview {
+    VideoSpeedSlider(isChangeState: false) { _ in }
 }
