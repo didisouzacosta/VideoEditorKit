@@ -17,10 +17,22 @@ final class TimeIntervalFormattingTests: XCTestCase {
         XCTAssertEqual(TimeInterval.infinity.minuteSeconds, "unknown")
     }
 
-    func testFormatterTimeStringUsesTenthsPrecision() {
-        let interval: TimeInterval = 65.37
+    func testFormatterTimeStringFormatsHoursMinutesAndSecondsWhenNeeded() {
+        let interval: TimeInterval = 5_422
 
-        XCTAssertEqual(interval.formatterTimeString(), "1:05.3")
+        XCTAssertEqual(interval.formatterTimeString(), "01:30:22")
+    }
+
+    func testFormatterTimeStringFormatsLargeMinuteValuesWithoutHours() {
+        let interval: TimeInterval = 1_992
+
+        XCTAssertEqual(interval.formatterTimeString(), "33:12")
+    }
+
+    func testFormatterTimeStringFormatsTwoDigitMinutesAndSeconds() {
+        let interval: TimeInterval = 71
+
+        XCTAssertEqual(interval.formatterTimeString(), "01:11")
     }
 
     func testSecondsToTimeClampsNegativeValues() {

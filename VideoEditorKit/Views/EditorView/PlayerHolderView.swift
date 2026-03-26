@@ -21,7 +21,7 @@ struct PlayerHolderView: View {
 
     // MARK: - Private Properties
 
-    private let editorVM: EditorViewModel
+    private let editorViewModel: EditorViewModel
     private let videoPlayer: VideoPlayerManager
     private let textEditor: TextEditorViewModel
 
@@ -55,7 +55,7 @@ struct PlayerHolderView: View {
     ) {
         _isFullScreen = isFullScreen
 
-        self.editorVM = editorVM
+        self.editorViewModel = editorVM
         self.videoPlayer = videoPlayer
         self.textEditor = textEditor
     }
@@ -68,19 +68,19 @@ extension PlayerHolderView {
 
     private var playerCropView: some View {
         Group {
-            if let video = editorVM.currentVideo {
+            if let video = editorViewModel.currentVideo {
                 GeometryReader { proxy in
                     let displaySize = resolvedDisplaySize(for: video, in: proxy.size)
 
                     ZStack {
                         CropView(
                             displaySize,
-                            rotation: editorVM.currentVideo?.rotation,
-                            isMirror: editorVM.currentVideo?.isMirror ?? false,
-                            isActiveCrop: editorVM.selectedTools == .crop
+                            rotation: editorViewModel.currentVideo?.rotation,
+                            isMirror: editorViewModel.currentVideo?.isMirror ?? false,
+                            isActiveCrop: editorViewModel.selectedTools == .crop
                         ) {
                             ZStack {
-                                editorVM.frames.frameColor
+                                editorViewModel.frames.frameColor
                                 ZStack {
                                     PlayerView(videoPlayer.videoPlayer)
                                     TextOverlayView(
@@ -90,7 +90,7 @@ extension PlayerHolderView {
                                     )
                                     .disabled(isFullScreen)
                                 }
-                                .scaleEffect(editorVM.frames.scale)
+                                .scaleEffect(editorViewModel.frames.scale)
                             }
                         }
                         .frame(width: displaySize.width, height: displaySize.height)
@@ -109,8 +109,6 @@ extension PlayerHolderView {
                     }
                 }
             }
-
-            timelineLabel
         }
     }
 
@@ -173,41 +171,18 @@ extension PlayerHolderView {
     }
 
     private func syncVideoLayout(for containerSize: CGSize) {
-        guard let video = editorVM.currentVideo else { return }
+        guard let video = editorViewModel.currentVideo else { return }
         let size = resolvedDisplaySize(for: video, in: containerSize)
         guard size.width > 0, size.height > 0 else { return }
 
-        guard editorVM.currentVideo?.id == video.id else { return }
+        guard editorViewModel.currentVideo?.id == video.id else { return }
 
-        if editorVM.currentVideo?.frameSize != size {
-            editorVM.currentVideo?.frameSize = size
+        if editorViewModel.currentVideo?.frameSize != size {
+            editorViewModel.currentVideo?.frameSize = size
         }
 
-        if editorVM.currentVideo?.geometrySize != size {
-            editorVM.currentVideo?.geometrySize = size
-        }
-    }
-
-}
-
-extension PlayerHolderView {
-
-    // MARK: - Private Properties
-
-    @ViewBuilder
-    private var timelineLabel: some View {
-        if let video = editorVM.currentVideo {
-            let displayTime = videoPlayer.currentTime.clamped(to: video.rangeDuration)
-            HStack {
-                Text(
-                    "\((displayTime - video.rangeDuration.lowerBound).formatterTimeString()) / \(Int(video.totalDuration).secondsToTime())"
-                )
-            }
-            .font(.caption2)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .capsuleControl()
-            .padding()
+        if editorViewModel.currentVideo?.geometrySize != size {
+            editorViewModel.currentVideo?.geometrySize = size
         }
     }
 

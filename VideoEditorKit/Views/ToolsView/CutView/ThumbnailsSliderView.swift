@@ -49,9 +49,8 @@ struct ThumbnailsSliderView: View {
     // MARK: - Private Properties
 
     private let handleInnerInset: CGFloat = 4
-    private var totalDuration: Double {
-        rangeDuration.upperBound - rangeDuration.lowerBound
-    }
+    private let playheadLabelHeight: CGFloat = 28
+    private let timelineHeight: CGFloat = 60
 
     // MARK: - Initializer
 
@@ -84,84 +83,77 @@ extension ThumbnailsSliderView {
 
     @ViewBuilder
     private var timelineSection: some View {
-        GeometryReader { proxy in
-            ZStack {
-                timelineBackground
-                thumbnailsImagesSection(proxy)
+        VStack(spacing: 4) {
+            if let video {
+                GeometryReader { proxy in
+                    playheadBadge(proxy, video: video)
+                }
+                .frame(height: playheadLabelHeight)
+            }
 
-                if let video {
-                    playbackIndicator(proxy, video: video)
-                        .zIndex(9)
+            GeometryReader { proxy in
+                ZStack {
+                    timelineBackground
+                    thumbnailsImagesSection(proxy)
 
-                    RangedSliderView(
-                        $rangeDuration,
-                        bounds: 0...video.originalDuration,
-                        step: 0.001,
-                        onEndChange: {}
-                    )
-                    .onChange(of: rangeDuration) { _, newValue in
-                        self.video?.rangeDuration = newValue
-                        onChangeTimeValue(newValue)
+                    if let video {
+                        playbackIndicator(proxy, video: video)
+                            .zIndex(9)
+
+                        RangedSliderView(
+                            $rangeDuration,
+                            bounds: 0...video.originalDuration,
+                            step: 0.001,
+                            onEndChange: {}
+                        )
+                        .onChange(of: rangeDuration) { _, newValue in
+                            self.video?.rangeDuration = newValue
+                            onChangeTimeValue(newValue)
+                        }
                     }
                 }
+                .onAppear {
+                    setVideoRange()
+                }
+                .task(id: thumbnailRequestID(for: proxy.size)) {
+                    onRequestThumbnails(proxy.size)
+                }
             }
-            .onAppear {
-                setVideoRange()
-            }
-            .task(id: thumbnailRequestID(for: proxy.size)) {
-                onRequestThumbnails(proxy.size)
-            }
+            .frame(height: timelineHeight)
         }
-        .frame(height: 80)
     }
 
     private var footerSection: some View {
         HStack(spacing: 8) {
             if let video {
-                footerTime(title: "Start", value: video.rangeDuration.lowerBound, alignment: .leading)
+                footerTime(
+                    video.rangeDuration.lowerBound,
+                    alignment: .leading
+                )
                 Spacer()
-                footerTime(title: "End", value: video.rangeDuration.upperBound, alignment: .trailing)
+                footerTime(
+                    video.rangeDuration.upperBound,
+                    alignment: .trailing
+                )
             }
         }
-        .padding(.horizontal)
+        .padding(.horizontal, 4)
     }
 
     private var timelineBackground: some View {
-        RoundedRectangle(cornerRadius: 8, style: .continuous)
+        Rectangle()
             .fill(Color(uiColor: .secondarySystemBackground).opacity(0.5))
     }
 
     // MARK: - Private Methods
 
-    private func timeChip(title: String, value: String) -> some View {
-        VStack(alignment: .trailing, spacing: 2) {
-            Text(title)
-                .font(.caption2.weight(.medium))
-                .foregroundStyle(Theme.secondary)
-
-            Text(value)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(Theme.primary)
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 7)
-        .background(Color(uiColor: .systemBackground).opacity(0.75), in: Capsule(style: .continuous))
-        .overlay {
-            Capsule(style: .continuous)
-                .strokeBorder(Theme.primary.opacity(0.08), lineWidth: 1)
-        }
-    }
-
-    private func footerTime(title: String, value: Double, alignment: HorizontalAlignment) -> some View {
-        VStack(alignment: alignment, spacing: 2) {
-            Text(title)
-                .font(.caption2.weight(.medium))
-                .foregroundStyle(Theme.secondary)
-
-            Text(value.formatterTimeString())
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Theme.primary)
-        }
+    private func footerTime(
+        _ value: Double,
+        alignment: HorizontalAlignment
+    ) -> some View {
+        Text(value.formatterTimeString())
+            .foregroundStyle(Theme.primary)
+            .font(.caption2.weight(.medium))
     }
 
     private func setVideoRange() {
@@ -174,8 +166,8 @@ extension ThumbnailsSliderView {
     private func thumbnailsImagesSection(_ proxy: GeometryProxy) -> some View {
         if let video {
             if video.thumbnailsImages.isEmpty {
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(Color(uiColor: .tertiarySystemFill))
+                Rectangle()
+                    .fill(.tertiary)
                     .overlay {
                         ProgressView()
                     }
@@ -183,49 +175,43 @@ extension ThumbnailsSliderView {
                 HStack(spacing: 0) {
                     ForEach(video.thumbnailsImages) { trimData in
                         if let image = trimData.image {
+                            let width = proxy.size.width / CGFloat(video.thumbnailsImages.count)
+                            let height = proxy.size.height
+                            
                             Image(uiImage: image)
                                 .resizable()
                                 .aspectRatio(contentMode: .fill)
                                 .frame(
-                                    width: proxy.size.width / CGFloat(video.thumbnailsImages.count),
-                                    height: proxy.size.height
+                                    width: width,
+                                    height: height
                                 )
                                 .clipped()
                         }
                     }
                 }
-                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
         }
     }
 
     private func playbackIndicator(_ proxy: GeometryProxy, video: Video) -> some View {
-        ZStack {
-            Rectangle()
-                .fill(.clear)
-                .frame(width: 36, height: proxy.size.height + 20)
-
-            Capsule(style: .continuous)
-                .fill(.red)
-                .frame(width: 4, height: proxy.size.height + 10)
-        }
-        .contentShape(Rectangle())
-        .position(
-            x: playbackPositionX(for: video, width: proxy.size.width),
-            y: proxy.size.height / 2
-        )
-        .gesture(playbackIndicatorGesture(video: video, width: proxy.size.width))
+        Capsule(style: .continuous)
+            .fill(.red)
+            .frame(width: 4, height: proxy.size.height + 10)
+            .position(
+                x: playbackPositionX(for: video, width: proxy.size.width),
+                y: proxy.size.height / 2
+            )
+            .gesture(playbackIndicatorGesture(video: video, width: proxy.size.width))
     }
 
     private func playheadBadge(_ proxy: GeometryProxy, video: Video) -> some View {
         let clampedX = min(max(playbackPositionX(for: video, width: proxy.size.width), 42), proxy.size.width - 42)
 
-        return Text(currentClipTime(for: video).formatterTimeString())
-            .font(.caption2.weight(.semibold))
-            .foregroundStyle(.white)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 5)
-            .background(.black.opacity(0.72), in: Capsule(style: .continuous))
+        return Text("\(currentClipTime(for: video).formatterTimeString()) / \(video.totalDuration.formatterTimeString())")
+            .font(.caption2)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .capsuleControl()
             .position(x: clampedX, y: 12)
             .allowsHitTesting(false)
     }
