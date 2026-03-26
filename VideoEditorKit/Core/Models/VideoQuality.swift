@@ -9,6 +9,7 @@ import AVKit
 import Foundation
 
 enum VideoQuality: Int, CaseIterable {
+    // MARK: - Public Properties
 
     case low, medium, high
 
@@ -68,8 +69,9 @@ enum VideoQuality: Int, CaseIterable {
         return bytesPerSecond / (1024 * 1024)
     }
 
+    // MARK: - Public Methods
+
     func calculateVideoSize(duration: Double) -> Double? {
         duration * megaBytesPerSecond
     }
-
 }

@@ -3,6 +3,9 @@ import XCTest
 @testable import VideoEditorKit
 
 final class TimeIntervalFormattingTests: XCTestCase {
+
+    // MARK: - Public Methods
+
     func testMinuteSecondsFormatsFinitePositiveValues() {
         let interval: TimeInterval = 65
 
@@ -23,4 +26,5 @@ final class TimeIntervalFormattingTests: XCTestCase {
     func testSecondsToTimeClampsNegativeValues() {
         XCTAssertEqual((-3).secondsToTime(), "00:00")
     }
+
 }

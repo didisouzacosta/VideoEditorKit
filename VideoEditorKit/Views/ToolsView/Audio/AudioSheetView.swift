@@ -9,14 +9,21 @@ import SwiftUI
 
 @MainActor
 struct AudioSheetView: View {
+
+    // MARK: - States
+
     @State private var videoVolume: Float = 1.0
     @State private var audioVolume: Float = 1.0
+
+    // MARK: - Public Properties
+
     let videoPlayer: VideoPlayerManager
     let editorVM: EditorViewModel
-
     var value: Binding<Float> {
         editorVM.isSelectVideo ? $videoVolume : $audioVolume
     }
+
+    // MARK: - Body
 
     var body: some View {
         HStack {
@@ -32,9 +39,12 @@ struct AudioSheetView: View {
             setValue()
         }
     }
+
 }
 
 extension AudioSheetView {
+
+    // MARK: - Private Methods
 
     private func setValue() {
         guard let video = editorVM.currentVideo else { return }
@@ -53,6 +63,7 @@ extension AudioSheetView {
         }
         videoPlayer.setVolume(editorVM.isSelectVideo, value: value.wrappedValue)
     }
+
 }
 
 #Preview {

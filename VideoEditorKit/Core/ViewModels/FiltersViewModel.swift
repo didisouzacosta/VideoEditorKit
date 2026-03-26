@@ -13,10 +13,15 @@ import SwiftUI
 @MainActor
 @Observable
 final class FiltersViewModel {
+
+    // MARK: - Public Properties
+
     var images = [FilteredImage]()
     var colorCorrection = ColorCorrection()
     var value = 1.0
     var image: UIImage?
+
+    // MARK: - Public Methods
 
     func loadFilters(for image: UIImage) {
         self.image = image
@@ -41,6 +46,7 @@ final class FiltersViewModel {
         }
         .sorted { $0.filter.name < $1.filter.name }
     }
+
 }
 
 private enum FilterDefinition: CaseIterable {

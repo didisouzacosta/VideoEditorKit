@@ -8,10 +8,18 @@
 import SwiftUI
 
 struct TestCroppedView: View {
+
+    // MARK: - States
+
     @State private var position = CGPoint(x: 100, y: 100)
-    private var rectSize: CGFloat = 350
+
+    // MARK: - Public Properties
+
     let size: CGSize = .init(width: 200, height: 400)
     let frameSize: CGSize = .init(width: 350, height: 700)
+
+    // MARK: - Body
+
     var body: some View {
         VStack {
             Text("Current postion = (x: \(Int(position.x)), y: \(Int(position.y))")
@@ -43,6 +51,9 @@ struct TestCroppedView: View {
                 )
         }
     }
+
+    private var rectSize: CGFloat = 350
+
 }
 
 #Preview {

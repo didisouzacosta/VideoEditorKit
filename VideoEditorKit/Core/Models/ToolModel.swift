@@ -8,6 +8,8 @@
 import Foundation
 
 enum ToolEnum: Int, CaseIterable {
+    // MARK: - Public Properties
+
     case cut, speed, crop, audio, text, filters, corrections, frames
 
     static var menuCases: [ToolEnum] {
@@ -39,5 +41,4 @@ enum ToolEnum: Int, CaseIterable {
         case .frames: return "person.crop.artframe"
         }
     }
-
 }

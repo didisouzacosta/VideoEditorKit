@@ -8,9 +8,18 @@
 import SwiftUI
 
 struct LineSlider: View {
+
+    // MARK: - Bindings
+
     @Binding var value: Double
+
+    // MARK: - Public Properties
+
     var range: ClosedRange<Double>
     let onEditingChanged: () -> Void
+
+    // MARK: - Body
+
     var body: some View {
 
         GeometryReader { proxy in
@@ -33,6 +42,7 @@ struct LineSlider: View {
                 }, thumbSize: CGSize(width: 10, height: proxy.size.height))
         }
     }
+
 }
 
 #Preview {

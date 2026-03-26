@@ -9,10 +9,21 @@ import AVKit
 import SwiftUI
 
 struct AudioButtonView: View {
-    var video: Video
+
+    // MARK: - Bindings
+
     @Binding var isSelectedTrack: Bool
-    var recorderManager: AudioRecorderManager
+
+    // MARK: - States
+
     @State private var audioSamples = [Audio.AudioSample]()
+
+    // MARK: - Public Properties
+
+    var video: Video
+    var recorderManager: AudioRecorderManager
+
+    // MARK: - Body
 
     var body: some View {
         GeometryReader { proxy in
@@ -34,9 +45,13 @@ struct AudioButtonView: View {
         }
         .frame(height: 44)
     }
+
 }
 
 extension AudioButtonView {
+
+    // MARK: - Private Methods
+
     private func recordRectangle(_ proxy: GeometryProxy) -> some View {
         let width = getWidthFromDuration(
             totalWidth: proxy.size.width,
@@ -95,12 +110,13 @@ extension AudioButtonView {
     ) -> CGFloat {
         (totalWidth / totalDuration) * currentDuration
     }
+
 }
 
 #Preview {
     AudioButtonView(
-        video: Video.mock,
         isSelectedTrack: .constant(false),
+        video: Video.mock,
         recorderManager: AudioRecorderManager()
     )
     .frame(height: 40)

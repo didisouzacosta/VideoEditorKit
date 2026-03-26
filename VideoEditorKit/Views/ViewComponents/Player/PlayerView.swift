@@ -10,9 +10,13 @@ import SwiftUI
 
 struct PlayerView: UIViewControllerRepresentable {
 
+    // MARK: - Public Properties
+
     var player: AVPlayer
 
     typealias UIViewControllerType = AVPlayerViewController
+
+    // MARK: - Public Methods
 
     func makeUIViewController(context: Context) -> AVPlayerViewController {
         let view = AVPlayerViewController()

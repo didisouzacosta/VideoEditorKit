@@ -10,6 +10,7 @@ import Foundation
 import UIKit
 
 enum VideoEditor {
+    // MARK: - Public Methods
 
     static func startRender(video: Video, videoQuality: VideoQuality) async throws -> URL {
         do {
@@ -52,7 +53,6 @@ enum VideoEditor {
         )
 
         let animationTool = createAnimationTool(video.videoFrames, video: video, size: outputSize)
-
         let instruction = AVVideoCompositionInstruction(
             configuration: .init(
                 layerInstructions: [layerInstruction],
@@ -69,15 +69,13 @@ enum VideoEditor {
         configuration.renderScale = 1
 
         let videoComposition = AVVideoComposition(configuration: configuration)
-
         let outputURL = createTempPath()
-
         let session = try exportSession(
             composition: composition, videoComposition: videoComposition, outputURL: outputURL,
             timeRange: timeRange)
 
         try await session.export(to: outputURL, as: .mp4)
-        
+
         return outputURL
     }
 
@@ -88,12 +86,11 @@ enum VideoEditor {
         if filters.isEmpty {
             return fromUrl
         }
-        
+
         let asset = AVURLAsset(url: fromUrl)
         let composition = try await asset.setFilters(filters)
-
         let outputURL = createTempPath()
-        
+
         guard
             let session = AVAssetExportSession(
                 asset: asset,
@@ -103,16 +100,43 @@ enum VideoEditor {
             assertionFailure("Unable to create filter export session.")
             throw ExporterError.cannotCreateExportSession
         }
-        
+
         session.videoComposition = composition
-        
+
         try await session.export(to: outputURL, as: .mp4)
-        
+
         return outputURL
     }
 }
 
 extension VideoEditor {
+
+    // MARK: - Public Properties
+
+    private static var isSimulator: Bool {
+        #if targetEnvironment(simulator)
+            true
+        #else
+            false
+        #endif
+    }
+
+    // MARK: - Public Methods
+
+    static func convertSize(_ size: CGSize, fromFrame frameSize1: CGSize, toFrame frameSize2: CGSize)
+        -> (size: CGSize, ratio: Double)
+    {
+        let widthRatio = frameSize2.width / frameSize1.width
+        let heightRatio = frameSize2.height / frameSize1.height
+        let ratio = max(widthRatio, heightRatio)
+        let newSizeWidth = size.width * ratio
+        let newSizeHeight = size.height * ratio
+        let newSize = CGSize(
+            width: (frameSize2.width / 2) + newSizeWidth, height: (frameSize2.height / 2) + -newSizeHeight
+        )
+
+        return (CGSize(width: newSize.width, height: newSize.height), ratio)
+    }
 
     private static func exportSession(
         composition: AVMutableComposition, videoComposition: AVVideoComposition, outputURL: URL,
@@ -185,11 +209,10 @@ extension VideoEditor {
     ) async throws {
         let videoTracks = try await asset.loadTracks(withMediaType: .video)
         let audioTracks = try await asset.loadTracks(withMediaType: .audio)
-
         let duration = try await asset.load(.duration)
         let oldTimeRange = CMTimeRangeMake(start: CMTime.zero, duration: duration)
         let destinationTimeRange = CMTimeMultiplyByFloat64(duration, multiplier: (1 / timeScale))
-        
+
         if let audioTrack = audioTracks.first {
             let compositionAudioTrack = composition.addMutableTrack(
                 withMediaType: AVMediaType.audio, preferredTrackID: kCMPersistentTrackID_Invalid)
@@ -231,10 +254,8 @@ extension VideoEditor {
     {
         let start = timeRange.lowerBound.clamped(to: 0...duration)
         let end = timeRange.upperBound.clamped(to: start...duration)
-
         let startTime = CMTimeMakeWithSeconds(start, preferredTimescale: 1000)
         let endTime = CMTimeMakeWithSeconds(end, preferredTimescale: 1000)
-
         let timeRange = CMTimeRangeFromTimeToTime(start: startTime, end: endTime)
         return timeRange
     }
@@ -245,7 +266,6 @@ extension VideoEditor {
     ) -> AVVideoCompositionLayerInstruction {
         var configuration = AVVideoCompositionLayerInstruction.Configuration(assetTrack: track)
         let assetInfo = orientationFromTransform(preferredTransform)
-
         var aspectFillRatio: CGFloat = 1
         if naturalSize.height < naturalSize.width {
             aspectFillRatio = newSize.height / naturalSize.height
@@ -267,7 +287,6 @@ extension VideoEditor {
             let posX = newSize.width / 2 - (naturalSize.width * aspectFillRatio) / 2
             let posY = newSize.height / 2 - (naturalSize.height * aspectFillRatio) / 2
             let moveFactor = CGAffineTransform(translationX: posX, y: posY)
-
             var concat = preferredTransform.concatenating(scaleFactor).concatenating(moveFactor)
 
             if assetInfo.orientation == .down {
@@ -291,7 +310,6 @@ extension VideoEditor {
         newSize: CGSize, videoTrackPreferredTransform: CGAffineTransform
     ) -> CGSize {
         let orientation = self.orientationFromTransform(videoTrackPreferredTransform)
-
         var outputSize = newSize
         if !orientation.isPortrait {
             outputSize.width = newSize.height
@@ -324,14 +342,6 @@ extension VideoEditor {
         let tempURL = URL.temporaryDirectory.appending(path: fileName)
         FileManager.default.removeIfExists(for: tempURL)
         return tempURL
-    }
-
-    private static var isSimulator: Bool {
-        #if targetEnvironment(simulator)
-            true
-        #else
-            false
-        #endif
     }
 
     private static func addImage(to layer: CALayer, watermark: UIImage, videoSize: CGSize) {
@@ -367,22 +377,6 @@ extension VideoEditor {
         return textLayer
     }
 
-    static func convertSize(_ size: CGSize, fromFrame frameSize1: CGSize, toFrame frameSize2: CGSize)
-        -> (size: CGSize, ratio: Double)
-    {
-        let widthRatio = frameSize2.width / frameSize1.width
-        let heightRatio = frameSize2.height / frameSize1.height
-        let ratio = max(widthRatio, heightRatio)
-        let newSizeWidth = size.width * ratio
-        let newSizeHeight = size.height * ratio
-
-        let newSize = CGSize(
-            width: (frameSize2.width / 2) + newSizeWidth, height: (frameSize2.height / 2) + -newSizeHeight
-        )
-
-        return (CGSize(width: newSize.width, height: newSize.height), ratio)
-    }
-
     private static func addAnimation(
         to textLayer: CATextLayer, with timeRange: ClosedRange<Double>, duration: Double
     ) {
@@ -409,23 +403,33 @@ extension VideoEditor {
             textLayer.add(disappearance, forKey: "Disappearance")
         }
     }
-    
+
 }
 
 enum ExporterError: Error, LocalizedError {
-    case unknow
-    case cancelled
-    case cannotCreateExportSession
-    case failed
+    // MARK: - Public Properties
 
+    case unknow
+
+    case cancelled
+
+    case cannotCreateExportSession
+
+    case failed
 }
 
 extension Double {
-    func clamped(to range: ClosedRange<Double>) -> Double {
-        return min(max(self, range.lowerBound), range.upperBound)
-    }
+
+    // MARK: - Public Properties
 
     var degTorad: Double {
         return self * .pi / 180
     }
+
+    // MARK: - Public Methods
+
+    func clamped(to range: ClosedRange<Double>) -> Double {
+        return min(max(self, range.lowerBound), range.upperBound)
+    }
+
 }

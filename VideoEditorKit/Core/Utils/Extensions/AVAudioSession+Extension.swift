@@ -8,6 +8,9 @@
 import AVFoundation
 
 extension AVAudioSession {
+
+    // MARK: - Public Methods
+
     func playAndRecord() {
         do {
             try setCategory(.playAndRecord, mode: .default)
@@ -35,4 +38,5 @@ extension AVAudioSession {
             assertionFailure("Failed to configure playback audio session: \(error.localizedDescription)")
         }
     }
+
 }

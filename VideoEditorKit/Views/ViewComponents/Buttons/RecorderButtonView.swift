@@ -8,17 +8,21 @@
 import SwiftUI
 
 struct RecorderButtonView: View {
-    var video: Video
-    var recorderManager: AudioRecorderManager
+
+    // MARK: - States
+
     @State private var timeRemaining = 3
     @State private var timer: Timer? = nil
     @State private var state: StateEnum = .empty
+
+    // MARK: - Public Properties
+
+    var video: Video
+    var recorderManager: AudioRecorderManager
     let onRecorded: (Audio) -> Void
     let onRecordTime: (Double) -> Void
 
-    private var isSetAudio: Bool {
-        video.audio != nil
-    }
+    // MARK: - Body
 
     var body: some View {
         ZStack {
@@ -45,13 +49,24 @@ struct RecorderButtonView: View {
             }
         }
     }
+
+    // MARK: - Private Properties
+
+    private var isSetAudio: Bool {
+        video.audio != nil
+    }
+
 }
 
 extension RecorderButtonView {
 
+    // MARK: - Public Properties
+
     enum StateEnum: Int {
         case empty, timer, record
     }
+
+    // MARK: - Private Properties
 
     private var recordButton: some View {
         Button {
@@ -94,6 +109,8 @@ extension RecorderButtonView {
         .buttonStyle(.plain)
     }
 
+    // MARK: - Private Methods
+
     private func startTimer() {
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
             Task { @MainActor in
@@ -112,6 +129,7 @@ extension RecorderButtonView {
         timer?.invalidate()
         timer = nil
     }
+
 }
 
 #Preview {

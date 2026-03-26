@@ -8,6 +8,9 @@
 import Foundation
 
 extension TimeInterval {
+
+    // MARK: - Public Properties
+
     var minutesSecondsMilliseconds: String {
         guard isFinite, self >= 0 else {
             return "00:00:00"
@@ -33,6 +36,8 @@ extension TimeInterval {
         return "\(minutes.twoDigitString):\(seconds.twoDigitString)"
     }
 
+    // MARK: - Public Methods
+
     func formatterTimeString() -> String {
         guard isFinite, self >= 0 else {
             return "0:00.0"
@@ -45,9 +50,13 @@ extension TimeInterval {
 
         return "\(minutes):\(seconds.twoDigitString).\(tenths)"
     }
+
 }
 
 extension Int {
+
+    // MARK: - Public Methods
+
     func secondsToTime() -> String {
         let totalSeconds = Swift.max(0, self)
         let minutes = (totalSeconds % 3600) / 60
@@ -55,11 +64,16 @@ extension Int {
 
         return "\(minutes.twoDigitString):\(seconds.twoDigitString)"
     }
+
 }
 
 extension BinaryInteger {
+
+    // MARK: - Private Properties
+
     fileprivate var twoDigitString: String {
         let digits = String(self)
         return digits.count == 1 ? "0\(digits)" : digits
     }
+
 }

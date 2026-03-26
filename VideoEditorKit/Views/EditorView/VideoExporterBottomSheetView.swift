@@ -10,15 +10,20 @@ import SwiftUI
 
 @MainActor
 struct VideoExporterBottomSheetView: View {
+
+    // MARK: - Bindings
+
     @Binding var isPresented: Bool
+
+    // MARK: - States
+
     @State private var viewModel: ExporterViewModel
+
+    // MARK: - Public Properties
+
     let onExported: (URL) -> Void
 
-    init(isPresented: Binding<Bool>, video: Video, onExported: @escaping (URL) -> Void) {
-        self._isPresented = isPresented
-        self._viewModel = State(initialValue: ExporterViewModel(video: video))
-        self.onExported = onExported
-    }
+    // MARK: - Body
 
     var body: some View {
         @Bindable var bindableViewModel = viewModel
@@ -39,9 +44,21 @@ struct VideoExporterBottomSheetView: View {
             .animation(.easeInOut, value: viewModel.renderState)
         }
     }
+
+    // MARK: - Initializer
+
+    init(isPresented: Binding<Bool>, video: Video, onExported: @escaping (URL) -> Void) {
+        self._isPresented = isPresented
+        self._viewModel = State(initialValue: ExporterViewModel(video: video))
+        self.onExported = onExported
+    }
+
 }
 
 extension VideoExporterBottomSheetView {
+
+    // MARK: - Private Properties
+
     private var list: some View {
         VStack(alignment: .leading, spacing: 18) {
             Text("Export Video")
@@ -108,7 +125,7 @@ extension VideoExporterBottomSheetView {
                             .font(.headline)
                             .foregroundStyle(
                                 viewModel.selectedQuality == type
-                                ? Theme.primary : Theme.secondary
+                                    ? Theme.primary : Theme.secondary
                             )
                         }
                     }
@@ -133,6 +150,8 @@ extension VideoExporterBottomSheetView {
         .hCenter()
     }
 
+    // MARK: - Private Methods
+
     private func buttonLabel(_ label: String, icon: String) -> some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
@@ -152,6 +171,7 @@ extension VideoExporterBottomSheetView {
             onExported(url)
         }
     }
+
 }
 
 #Preview {

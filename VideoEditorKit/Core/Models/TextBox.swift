@@ -10,6 +10,8 @@ import SwiftUI
 
 struct TextBox: Identifiable {
 
+    // MARK: - Public Properties
+
     var id: UUID = UUID()
     var text: String = ""
     var fontSize: CGFloat = 20
@@ -25,6 +27,9 @@ struct TextBox: Identifiable {
 extension TextBox: Equatable {}
 
 extension TextBox {
+
+    // MARK: - Public Properties
+
     static let texts: [TextBox] =
 
         [
@@ -73,4 +78,5 @@ extension TextBox {
         fontColor: Color(uiColor: .label),
         timeRange: 1...3
     )
+
 }

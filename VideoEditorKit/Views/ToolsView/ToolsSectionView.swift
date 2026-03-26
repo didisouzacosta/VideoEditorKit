@@ -11,11 +11,22 @@ import SwiftUI
 
 @MainActor
 struct ToolsSectionView: View {
-    @State private var filtersVM = FiltersViewModel()
+
+    // MARK: - Bindables
+
     @Bindable var videoPlayer: VideoPlayerManager
     @Bindable var editorVM: EditorViewModel
+
+    // MARK: - States
+
+    @State private var filtersVM = FiltersViewModel()
+
+    // MARK: - Public Properties
+
     let textEditor: TextEditorViewModel
-    private let columns = Array(repeating: GridItem(.flexible()), count: 4)
+
+    // MARK: - Body
+
     var body: some View {
         ZStack {
             LazyVGrid(columns: columns, alignment: .center, spacing: 10) {
@@ -70,9 +81,16 @@ struct ToolsSectionView: View {
             }
         }
     }
+
+    // MARK: - Private Properties
+
+    private let columns = Array(repeating: GridItem(.flexible()), count: 4)
+
 }
 
 extension ToolsSectionView {
+
+    // MARK: - Private Methods
 
     @ViewBuilder
     private func bottomSheet(_ tool: ToolEnum, _ video: Video) -> some View {
@@ -121,9 +139,12 @@ extension ToolsSectionView {
         .padding(16)
         .card(cornerRadius: 30, prominent: true, tint: Theme.secondary)
     }
+
 }
 
 extension ToolsSectionView {
+
+    // MARK: - Private Methods
 
     private func sheetHeader(_ tool: ToolEnum) -> some View {
         HStack {

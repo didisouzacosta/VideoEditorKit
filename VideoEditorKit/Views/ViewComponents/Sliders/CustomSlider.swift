@@ -9,70 +9,56 @@ import SwiftUI
 
 struct CustomSlider<Value, Track, Thumb>: View
 where Value: BinaryFloatingPoint, Value.Stride: BinaryFloatingPoint, Track: View, Thumb: View {
+    // MARK: - Bindings
+
     // the value of the slider, inside `bounds`
     @Binding var value: Value
     // range to which the thumb offset is mapped
-    let bounds: ClosedRange<Value>
-    // tells how discretely does the value change
-    let step: Value
-    // left-hand label
-    let minimumValueLabel: Text?
-    // right-hand label
-    let maximumValueLabel: Text?
-    // called with `true` when sliding starts and with `false` when it stops
-    let onEditingChanged: ((Bool) -> Void)?
-    let onChanged: (() -> Void)?
-    // the track view
-    let track: () -> Track
-    // the thumb view
-    let thumb: () -> Thumb
-    // tells how big the thumb is. This is here because there's no good
-    // way in SwiftUI to get the thumb size at runtime, and its an important
-    // to know it in order to compute its insets in the track overlay.
-    let thumbSize: CGSize
 
-    // x offset of the thumb from the track left-hand side
+    // MARK: - States
+
     @State private var xOffset: CGFloat = 0
     // last moved offset, used to decide if sliding has started
+
     @State private var lastOffset: CGFloat = 0
     // the size of the track view. This can be obtained at runtime.
+
     @State private var trackSize: CGSize = .zero
     @State private var isOnChange: Bool = false
 
     // initializer allows us to set default values for some view params
-    init(
-        value: Binding<Value>,
-        in bounds: ClosedRange<Value> = 0...1,
-        step: Value = 0.001,
-        minimumValueLabel: Text? = nil,
-        maximumValueLabel: Text? = nil,
-        onEditingChanged: ((Bool) -> Void)? = nil,
-        onChanged: (() -> Void)? = nil,
-        track: @escaping () -> Track,
-        thumb: @escaping () -> Thumb,
-        thumbSize: CGSize
-    ) {
-        _value = value
-        self.bounds = bounds
-        self.step = step
-        self.minimumValueLabel = minimumValueLabel
-        self.maximumValueLabel = maximumValueLabel
-        self.onEditingChanged = onEditingChanged
-        self.onChanged = onChanged
-        self.track = track
-        self.thumb = thumb
-        self.thumbSize = thumbSize
-    }
 
-    // where does the current value sit, percentage-wise, in the provided bounds
-    private var percentage: Value {
-        1 - (bounds.upperBound - value) / (bounds.upperBound - bounds.lowerBound)
-    }
+    // MARK: - Public Properties
 
-    // how wide the should the fill view be
-    private var fillWidth: CGFloat {
-        trackSize.width * CGFloat(percentage)
-    }
+    let bounds: ClosedRange<Value>
+    // tells how discretely does the value change
+
+    let step: Value
+    // left-hand label
+
+    let minimumValueLabel: Text?
+    // right-hand label
+
+    let maximumValueLabel: Text?
+    // called with `true` when sliding starts and with `false` when it stops
+
+    let onEditingChanged: ((Bool) -> Void)?
+    let onChanged: (() -> Void)?
+    // the track view
+
+    let track: () -> Track
+    // the thumb view
+
+    let thumb: () -> Thumb
+    // tells how big the thumb is. This is here because there's no good
+    // way in SwiftUI to get the thumb size at runtime, and its an important
+    // to know it in order to compute its insets in the track overlay.
+
+    let thumbSize: CGSize
+
+    // x offset of the thumb from the track left-hand side
+
+    // MARK: - Body
 
     var body: some View {
         // the HStack orders minimumValueLabel, the slider and maximumValueLabel horizontally
@@ -149,6 +135,46 @@ where Value: BinaryFloatingPoint, Value.Stride: BinaryFloatingPoint, Track: View
         // manually set the height of the entire view to account for thumb height
         .frame(height: max(trackSize.height, thumbSize.height))
     }
+
+    // MARK: - Private Properties
+
+    private var percentage: Value {
+        1 - (bounds.upperBound - value) / (bounds.upperBound - bounds.lowerBound)
+    }
+
+    // how wide the should the fill view be
+
+    private var fillWidth: CGFloat {
+        trackSize.width * CGFloat(percentage)
+    }
+
+    // MARK: - Initializer
+
+    init(
+        value: Binding<Value>,
+        in bounds: ClosedRange<Value> = 0...1,
+        step: Value = 0.001,
+        minimumValueLabel: Text? = nil,
+        maximumValueLabel: Text? = nil,
+        onEditingChanged: ((Bool) -> Void)? = nil,
+        onChanged: (() -> Void)? = nil,
+        track: @escaping () -> Track,
+        thumb: @escaping () -> Thumb,
+        thumbSize: CGSize
+    ) {
+        _value = value
+        self.bounds = bounds
+        self.step = step
+        self.minimumValueLabel = minimumValueLabel
+        self.maximumValueLabel = maximumValueLabel
+        self.onEditingChanged = onEditingChanged
+        self.onChanged = onChanged
+        self.track = track
+        self.thumb = thumb
+        self.thumbSize = thumbSize
+    }
+
+    // where does the current value sit, percentage-wise, in the provided bounds
 }
 
 #Preview {
@@ -171,14 +197,23 @@ where Value: BinaryFloatingPoint, Value.Stride: BinaryFloatingPoint, Track: View
 }
 
 struct SizePreferenceKey: PreferenceKey {
+
+    // MARK: - Public Properties
+
     static let defaultValue: CGSize = .zero
+
+    // MARK: - Public Methods
 
     static func reduce(value: inout CGSize, nextValue: () -> CGSize) {
         value = nextValue()
     }
+
 }
 
 struct MeasureSizeModifier: ViewModifier {
+
+    // MARK: - Public Methods
+
     func body(content: Content) -> some View {
         content.background(
             GeometryReader { geometry in
@@ -187,11 +222,16 @@ struct MeasureSizeModifier: ViewModifier {
                     value: geometry.size)
             })
     }
+
 }
 
 extension View {
+
+    // MARK: - Public Methods
+
     func measureSize(perform action: @escaping (CGSize) -> Void) -> some View {
         self.modifier(MeasureSizeModifier())
             .onPreferenceChange(SizePreferenceKey.self, perform: action)
     }
+
 }

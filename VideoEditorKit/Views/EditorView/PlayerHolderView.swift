@@ -10,10 +10,18 @@ import SwiftUI
 
 @MainActor
 struct PlayerHolderView: View {
+
+    // MARK: - Bindings
+
     @Binding var isFullScreen: Bool
+
+    // MARK: - Public Properties
+
     let editorVM: EditorViewModel
     let videoPlayer: VideoPlayerManager
     let textEditor: TextEditorViewModel
+
+    // MARK: - Body
 
     var body: some View {
         VStack(spacing: 6) {
@@ -32,16 +40,12 @@ struct PlayerHolderView: View {
             .allFrame()
         }
     }
+
 }
 
 extension PlayerHolderView {
-    private func statusView(_ text: String) -> some View {
-        Text(text)
-            .font(.headline)
-            .padding(.horizontal, 18)
-            .padding(.vertical, 12)
-            .capsuleControl()
-    }
+
+    // MARK: - Private Properties
 
     private var playerCropView: some View {
         Group {
@@ -88,6 +92,16 @@ extension PlayerHolderView {
 
             timelineLabel
         }
+    }
+
+    // MARK: - Private Methods
+
+    private func statusView(_ text: String) -> some View {
+        Text(text)
+            .font(.headline)
+            .padding(.horizontal, 18)
+            .padding(.vertical, 12)
+            .capsuleControl()
     }
 
     private func resolvedDisplaySize(for video: Video, in containerSize: CGSize) -> CGSize {
@@ -153,9 +167,12 @@ extension PlayerHolderView {
             editorVM.currentVideo?.geometrySize = size
         }
     }
+
 }
 
 extension PlayerHolderView {
+
+    // MARK: - Private Properties
 
     @ViewBuilder
     private var timelineLabel: some View {
@@ -173,15 +190,29 @@ extension PlayerHolderView {
             .padding()
         }
     }
+
 }
 
 @MainActor
 struct PlayerControl: View {
-    @Binding var isFullScreen: Bool
-    let recorderManager: AudioRecorderManager
+
+    // MARK: - Bindables
+
     @Bindable var editorVM: EditorViewModel
     @Bindable var videoPlayer: VideoPlayerManager
+
+    // MARK: - Bindings
+
+    @Binding var isFullScreen: Bool
+
+    // MARK: - Public Properties
+
+    let recorderManager: AudioRecorderManager
     let textEditor: TextEditorViewModel
+
+    // MARK: - Body
+
+    @ViewBuilder
     var body: some View {
         VStack(spacing: 32) {
             playSection
@@ -192,38 +223,13 @@ struct PlayerControl: View {
         }
     }
 
+    // MARK: - Private Properties
+
     @ViewBuilder
     private var timeLineControlSection: some View {
         if let video = editorVM.currentVideo {
             trimSection(video)
         }
-    }
-
-    private func trimSection(_ video: Video) -> some View {
-        ThumbnailsSliderView(
-            currentTime: $videoPlayer.currentTime,
-            video: $editorVM.currentVideo,
-            isChangeState: video.isAppliedTool(for: .cut)
-        ) { newRange in
-            videoPlayer.pause()
-            videoPlayer.updatePlaybackRange(newRange)
-            editorVM.setCut()
-        } onRequestThumbnails: { size in
-            editorVM.refreshThumbnailsIfNeeded(containerSize: size)
-        } onPlaybackScrubStarted: { range in
-            videoPlayer.beginScrubbing(in: range)
-        } onPlaybackScrubChanged: { time, range in
-            videoPlayer.scrub(
-                to: time,
-                in: editorVM.currentVideo?.rangeDuration ?? range
-            )
-        } onPlaybackScrubEnded: { time, range in
-            videoPlayer.endScrubbing(
-                at: time,
-                in: editorVM.currentVideo?.rangeDuration ?? range
-            )
-        }
-        .padding(.horizontal)
     }
 
     private var playSection: some View {
@@ -255,6 +261,36 @@ struct PlayerControl: View {
             }
         }
     }
+
+    // MARK: - Private Methods
+
+    private func trimSection(_ video: Video) -> some View {
+        ThumbnailsSliderView(
+            currentTime: $videoPlayer.currentTime,
+            video: $editorVM.currentVideo,
+            isChangeState: video.isAppliedTool(for: .cut)
+        ) { newRange in
+            videoPlayer.pause()
+            videoPlayer.updatePlaybackRange(newRange)
+            editorVM.setCut()
+        } onRequestThumbnails: { size in
+            editorVM.refreshThumbnailsIfNeeded(containerSize: size)
+        } onPlaybackScrubStarted: { range in
+            videoPlayer.beginScrubbing(in: range)
+        } onPlaybackScrubChanged: { time, range in
+            videoPlayer.scrub(
+                to: time,
+                in: editorVM.currentVideo?.rangeDuration ?? range
+            )
+        } onPlaybackScrubEnded: { time, range in
+            videoPlayer.endScrubbing(
+                at: time,
+                in: editorVM.currentVideo?.rangeDuration ?? range
+            )
+        }
+        .padding(.horizontal)
+    }
+
 }
 
 #Preview {

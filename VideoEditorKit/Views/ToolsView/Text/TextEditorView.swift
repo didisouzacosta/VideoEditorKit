@@ -10,10 +10,21 @@ import SwiftUI
 
 @MainActor
 struct TextEditorView: View {
+
+    // MARK: - Bindables
+
     @Bindable var viewModel: TextEditorViewModel
+
+    // MARK: - States
+
     @State private var textHeight: CGFloat = 100
     @State private var isFocused: Bool = true
+
+    // MARK: - Public Properties
+
     let onSave: ([TextBox]) -> Void
+
+    // MARK: - Body
 
     var body: some View {
         NavigationStack {
@@ -24,14 +35,14 @@ struct TextEditorView: View {
                 ScrollView {
                     VStack(spacing: 24) {
                         SystemColorSwatchPicker(
-                            title: "Text color",
                             selection: $viewModel.currentTextBox.fontColor,
+                            title: "Text color",
                             options: SystemColorPalette.textForegrounds
                         )
 
                         SystemColorSwatchPicker(
-                            title: "Background color",
                             selection: $viewModel.currentTextBox.bgColor,
+                            title: "Background color",
                             options: SystemColorPalette.textBackgrounds
                         )
 
@@ -95,19 +106,42 @@ struct TextEditorView: View {
         }
     }
 
+    // MARK: - Private Methods
+
     private func closeKeyboard() {
         isFocused = false
     }
+
 }
 
 @MainActor
 struct TextView: UIViewRepresentable {
 
+    // MARK: - Public Properties
+
     @Binding var isFirstResponder: Bool
     @Binding var textBox: TextBox
-
     var minHeight: CGFloat
     @Binding var calculatedHeight: CGFloat
+
+    final class Coordinator: NSObject, UITextViewDelegate {
+
+        var parent: TextView
+
+        init(_ uiTextView: TextView) {
+            self.parent = uiTextView
+        }
+
+        func textViewDidChange(_ textView: UITextView) {
+            if textView.markedTextRange == nil {
+                parent.textBox.text = textView.text ?? String()
+                parent.recalculateHeight(view: textView)
+            }
+        }
+
+    }
+
+    // MARK: - Initializer
 
     init(
         textBox: Binding<TextBox>, isFirstResponder: Binding<Bool>, minHeight: CGFloat,
@@ -118,6 +152,8 @@ struct TextView: UIViewRepresentable {
         self.minHeight = minHeight
         self._calculatedHeight = calculatedHeight
     }
+
+    // MARK: - Public Methods
 
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
@@ -145,6 +181,8 @@ struct TextView: UIViewRepresentable {
         setTextAttrs(textView)
 
     }
+
+    // MARK: - Private Methods
 
     private func setTextAttrs(_ textView: UITextView) {
 
@@ -186,27 +224,20 @@ struct TextView: UIViewRepresentable {
         }
     }
 
-    final class Coordinator: NSObject, UITextViewDelegate {
-
-        var parent: TextView
-
-        init(_ uiTextView: TextView) {
-            self.parent = uiTextView
-        }
-
-        func textViewDidChange(_ textView: UITextView) {
-            if textView.markedTextRange == nil {
-                parent.textBox.text = textView.text ?? String()
-                parent.recalculateHeight(view: textView)
-            }
-        }
-    }
 }
 
 struct SystemColorSwatchPicker: View {
-    let title: String
+
+    // MARK: - Bindings
+
     @Binding var selection: Color
+
+    // MARK: - Public Properties
+
+    let title: String
     let options: [SystemColorOption]
+
+    // MARK: - Body
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -245,13 +276,18 @@ struct SystemColorSwatchPicker: View {
         }
     }
 
+    // MARK: - Private Methods
+
     private func isSelected(_ option: SystemColorOption) -> Bool {
         SystemColorPalette.matches(selection, option.color)
     }
+
 }
 
 @MainActor
 private func makeTextEditorPreviewModel() -> TextEditorViewModel {
+    // MARK: - Public Properties
+
     let viewModel = TextEditorViewModel()
     viewModel.openTextEditor(isEdit: false, timeRange: 0...5)
     return viewModel

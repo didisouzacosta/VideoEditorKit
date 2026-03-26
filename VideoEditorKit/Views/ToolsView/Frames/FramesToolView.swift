@@ -8,17 +8,25 @@
 import SwiftUI
 
 struct FramesToolView: View {
+
+    // MARK: - Bindings
+
     @Binding var selectedColor: Color
     @Binding var scaleValue: Double
+
+    // MARK: - Public Properties
+
     let onChange: () -> Void
+
+    // MARK: - Body
 
     var body: some View {
         VStack(spacing: 20) {
             SystemColorSwatchPicker(
-                title: "Frame color",
-                selection: $selectedColor,
+                selection: $selectedColor, title: "Frame color",
                 options: SystemColorPalette.frameColors
             )
+
             VStack(spacing: 12) {
                 Text("Frame Scale")
                     .font(.subheadline.weight(.semibold))
@@ -31,6 +39,7 @@ struct FramesToolView: View {
             }
         }
     }
+
 }
 
 #Preview {

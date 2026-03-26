@@ -9,11 +9,19 @@ import AVKit
 import SwiftUI
 
 struct ThumbnailsSliderView: View {
-    private let handleInnerInset: CGFloat = 4
-    @State private var rangeDuration: ClosedRange<Double> = 0...1
-    @State private var isScrubbingPlaybackIndicator = false
+
+    // MARK: - Bindings
+
     @Binding var currentTime: Double
     @Binding var video: Video?
+
+    // MARK: - States
+
+    @State private var rangeDuration: ClosedRange<Double> = 0...1
+    @State private var isScrubbingPlaybackIndicator = false
+
+    // MARK: - Public Properties
+
     var isChangeState: Bool?
     let onChangeTimeValue: (ClosedRange<Double>) -> Void
     let onRequestThumbnails: (CGSize) -> Void
@@ -21,9 +29,7 @@ struct ThumbnailsSliderView: View {
     let onPlaybackScrubChanged: (Double, ClosedRange<Double>) -> Void
     let onPlaybackScrubEnded: (Double, ClosedRange<Double>) -> Void
 
-    private var totalDuration: Double {
-        rangeDuration.upperBound - rangeDuration.lowerBound
-    }
+    // MARK: - Body
 
     var body: some View {
         VStack(spacing: 8) {
@@ -39,10 +45,21 @@ struct ThumbnailsSliderView: View {
             setVideoRange()
         }
     }
+
+    // MARK: - Private Properties
+
+    private let handleInnerInset: CGFloat = 4
+    private var totalDuration: Double {
+        rangeDuration.upperBound - rangeDuration.lowerBound
+    }
+
 }
 
 extension ThumbnailsSliderView {
 
+    // MARK: - Private Properties
+
+    @ViewBuilder
     private var timelineSection: some View {
         GeometryReader { proxy in
             ZStack {
@@ -91,6 +108,8 @@ extension ThumbnailsSliderView {
             .fill(Color(uiColor: .secondarySystemBackground).opacity(0.5))
     }
 
+    // MARK: - Private Methods
+
     private func timeChip(title: String, value: String) -> some View {
         VStack(alignment: .trailing, spacing: 2) {
             Text(title)
@@ -136,7 +155,6 @@ extension ThumbnailsSliderView {
                     .fill(Color(uiColor: .tertiarySystemFill))
                     .overlay {
                         ProgressView()
-                            .tint(Theme.accent)
                     }
             } else {
                 HStack(spacing: 0) {
@@ -248,6 +266,7 @@ extension ThumbnailsSliderView {
         let videoID = video?.id.uuidString ?? "none"
         return "\(videoID)-\(width)-\(height)"
     }
+
 }
 
 #Preview {

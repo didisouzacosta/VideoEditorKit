@@ -8,10 +8,15 @@
 import SwiftUI
 
 struct ToolButtonView: View {
+
+    // MARK: - Public Properties
+
     let label: String
     let image: String
     let isChange: Bool
     let action: () -> Void
+
+    // MARK: - Body
 
     var body: some View {
         Button {
@@ -39,6 +44,7 @@ struct ToolButtonView: View {
         }
         .buttonStyle(.plain)
     }
+
 }
 
 #Preview {

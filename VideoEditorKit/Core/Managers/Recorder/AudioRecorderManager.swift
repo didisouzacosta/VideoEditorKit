@@ -12,12 +12,23 @@ import Observation
 @MainActor
 @Observable
 final class AudioRecorderManager {
+
+    // MARK: - Public Properties
+
     private(set) var recordState: AudioRecordEnum = .empty
     private(set) var finishedAudio: Audio?
     private(set) var currentRecordTime: TimeInterval = 0
 
+    enum AudioRecordEnum: Int {
+        case recording, empty, error
+    }
+
+    // MARK: - Private Properties
+
     private var audioRecorder: AVAudioRecorder?
     private var timer: Timer?
+
+    // MARK: - Public Methods
 
     func startRecording(recordMaxTime: Double = 10) {
         AVAudioSession.sharedInstance().configureRecordAudioSessionCategory()
@@ -71,13 +82,12 @@ final class AudioRecorderManager {
         FileManager.default.removeIfExists(for: audioRecorder.url)
     }
 
+    // MARK: - Private Methods
+
     private func resetTimer() {
         timer?.invalidate()
         timer = nil
         currentRecordTime = 0
     }
 
-    enum AudioRecordEnum: Int {
-        case recording, empty, error
-    }
 }

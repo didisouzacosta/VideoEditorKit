@@ -11,10 +11,8 @@ import SwiftUI
 
 @MainActor
 struct RootView: View {
-    private struct EditorDestination: Hashable, Identifiable {
-        let id = UUID()
-        let url: URL
-    }
+
+    // MARK: - States
 
     @State private var item: PhotosPickerItem?
     @State private var showLoader = false
@@ -23,6 +21,8 @@ struct RootView: View {
     @State private var resultPlayer = AVPlayer()
     @State private var sessionSourceURL: URL?
     @State private var itemLoadTask: Task<Void, Never>?
+
+    // MARK: - Body
 
     var body: some View {
         NavigationStack {
@@ -69,9 +69,23 @@ struct RootView: View {
             }
         }
     }
+
+    // MARK: - Private Properties
+
+    private struct EditorDestination: Hashable, Identifiable {
+
+        let id = UUID()
+        let url: URL
+
+    }
+
 }
 
 extension RootView {
+
+    // MARK: - Private Properties
+
+    @ViewBuilder
     private var heroSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Label("Temporary Editing Session", systemImage: "sparkles.rectangle.stack.fill")
@@ -127,7 +141,6 @@ extension RootView {
         .buttonStyle(.plain)
     }
 
-    @ViewBuilder
     private var resultSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Edited Result")
@@ -159,6 +172,8 @@ extension RootView {
             }
         }
     }
+
+    // MARK: - Private Methods
 
     private func loadPhotosItem(_ newItem: PhotosPickerItem?) {
         itemLoadTask?.cancel()
@@ -203,6 +218,7 @@ extension RootView {
         guard let url else { return }
         FileManager.default.removeIfExists(for: url)
     }
+
 }
 
 #Preview {

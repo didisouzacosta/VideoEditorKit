@@ -9,9 +9,14 @@ import Foundation
 import UIKit
 
 extension FileManager {
+
+    // MARK: - Private Properties
+
     private var documentsDirectory: URL? {
         urls(for: .documentDirectory, in: .userDomainMask).first
     }
+
+    // MARK: - Public Methods
 
     func createImagePath(with id: String) -> URL? {
         documentsDirectory?.appendingPathComponent("\(id).jpg")
@@ -63,4 +68,5 @@ extension FileManager {
             assertionFailure("Failed to remove item at \(url.lastPathComponent): \(error.localizedDescription)")
         }
     }
+
 }

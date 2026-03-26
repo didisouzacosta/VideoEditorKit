@@ -9,6 +9,7 @@ import CoreImage
 import Foundation
 
 enum Helpers {
+    // MARK: - Public Methods
 
     static func createColorFilter(_ colorCorrection: ColorCorrection?) -> CIFilter? {
         guard let colorCorrection else { return nil }

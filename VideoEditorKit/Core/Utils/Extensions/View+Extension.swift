@@ -9,23 +9,9 @@ import SwiftUI
 import UIKit
 
 extension View {
-    
-    func vBottom() -> some View {
-        frame(maxHeight: .infinity, alignment: .bottom)
-    }
 
-    func hCenter() -> some View {
-        frame(maxWidth: .infinity, alignment: .center)
-    }
+    // MARK: - Public Methods
 
-    func hLeading() -> some View {
-        frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    func allFrame() -> some View {
-        frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-    
     @ViewBuilder
     nonisolated func card(
         cornerRadius: CGFloat = 28,
@@ -66,5 +52,21 @@ extension View {
             self.glassEffect(.regular.interactive(), in: .capsule)
         }
     }
-    
+
+    func vBottom() -> some View {
+        frame(maxHeight: .infinity, alignment: .bottom)
+    }
+
+    func hCenter() -> some View {
+        frame(maxWidth: .infinity, alignment: .center)
+    }
+
+    func hLeading() -> some View {
+        frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    func allFrame() -> some View {
+        frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
 }

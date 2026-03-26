@@ -8,9 +8,20 @@
 import SwiftUI
 
 struct RecordVideoView: View {
-    @State private var cameraManager = CameraManager()
+
+    // MARK: - Environments
+
     @Environment(\.dismiss) private var dismiss
+
+    // MARK: - States
+
+    @State private var cameraManager = CameraManager()
+
+    // MARK: - Public Properties
+
     let onFinishRecord: (URL) -> Void
+
+    // MARK: - Body
 
     var body: some View {
         NavigationStack {
@@ -62,6 +73,7 @@ struct RecordVideoView: View {
         }
         .preferredColorScheme(.dark)
     }
+
 }
 
 #Preview {

@@ -11,7 +11,10 @@ import SwiftUI
 
 extension AVAsset {
 
+    // MARK: - Public Properties
+
     struct TrimError: Error {
+
         let description: String
         let underlyingError: Error?
 
@@ -19,8 +22,12 @@ extension AVAsset {
             self.description = "TrimVideo: " + description
             self.underlyingError = underlyingError
         }
+
     }
 
+    // MARK: - Public Methods
+
+    @MainActor
     func generateImage(at second: Double, compressionQuality: Double = 0.05) async -> UIImage? {
         let imgGenerator = AVAssetImageGenerator(asset: self)
         imgGenerator.appliesPreferredTrackTransform = true
@@ -45,7 +52,6 @@ extension AVAsset {
         }
     }
 
-    @MainActor
     func naturalSize() async -> CGSize? {
         guard let tracks = try? await loadTracks(withMediaType: .video) else { return nil }
         guard let track = tracks.first else { return nil }
@@ -53,7 +59,6 @@ extension AVAsset {
         return size
     }
 
-    @MainActor
     func presentationSize() async -> CGSize? {
         guard let tracks = try? await loadTracks(withMediaType: .video) else { return nil }
         guard let track = tracks.first else { return nil }
@@ -73,7 +78,6 @@ extension AVAsset {
         return resolvedSize
     }
 
-    @MainActor
     func adjustVideoSize(to viewSize: CGSize, rotationAngle: Double = 0) async -> CGSize? {
         guard viewSize.width > 0, viewSize.height > 0 else { return nil }
         guard let assetSize = await self.presentationSize() else { return nil }
@@ -95,4 +99,5 @@ extension AVAsset {
             height: fittedAssetSize.height * scale
         )
     }
+
 }

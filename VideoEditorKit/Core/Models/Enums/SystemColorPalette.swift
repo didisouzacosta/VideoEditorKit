@@ -9,11 +9,17 @@ import SwiftUI
 import UIKit
 
 struct SystemColorOption: Identifiable, Hashable {
+
+    // MARK: - Public Properties
+
     let id: String
     let color: Color
+
 }
 
 enum SystemColorPalette {
+    // MARK: - Public Properties
+
     static let textBackgrounds: [SystemColorOption] = [
         .init(id: "background", color: Color(uiColor: .systemBackground)),
         .init(id: "secondaryBackground", color: Color(uiColor: .secondarySystemBackground)),
@@ -45,6 +51,8 @@ enum SystemColorPalette {
         .init(id: "orange", color: Color(uiColor: .systemOrange)),
         .init(id: "red", color: Color(uiColor: .systemRed)),
     ]
+
+    // MARK: - Public Methods
 
     static func matches(_ lhs: Color, _ rhs: Color) -> Bool {
         UIColor(lhs).resolvedColor(with: .current).cgColor == UIColor(rhs).resolvedColor(with: .current).cgColor

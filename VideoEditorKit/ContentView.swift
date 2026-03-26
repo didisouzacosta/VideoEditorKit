@@ -9,9 +9,13 @@ import SwiftUI
 
 @MainActor
 struct ContentView: View {
+
+    // MARK: - Body
+
     var body: some View {
         RootView()
     }
+
 }
 
 #Preview {

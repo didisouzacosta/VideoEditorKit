@@ -8,10 +8,18 @@
 import SwiftUI
 
 struct VideoSpeedSlider: View {
+
+    // MARK: - States
+
     @State var value: Double = 1
+
+    // MARK: - Public Properties
+
     var isChangeState: Bool?
     let onEditingChanged: (Float) -> Void
-    private let rateRange = 0.1...8
+
+    // MARK: - Body
+
     var body: some View {
         VStack(spacing: 16) {
             Text("\(value, format: .number.precision(.fractionLength(1)))x")
@@ -41,6 +49,11 @@ struct VideoSpeedSlider: View {
             }
         }
     }
+
+    // MARK: - Private Properties
+
+    private let rateRange = 0.1...8
+
 }
 
 #Preview {

@@ -9,9 +9,13 @@ import SwiftUI
 
 @MainActor
 struct MainEditorView: View {
+
+    // MARK: - Environments
+
     @Environment(\.dismiss) private var dismiss
-    let sourceVideoURL: URL?
-    let onExported: (URL) -> Void
+
+    // MARK: - States
+
     @State private var isFullScreen = false
     @State private var showVideoQualitySheet = false
     @State private var showRecordView = false
@@ -22,10 +26,12 @@ struct MainEditorView: View {
     @State private var videoPlayer = VideoPlayerManager()
     @State private var textEditor = TextEditorViewModel()
 
-    init(sourceVideoURL: URL? = nil, onExported: @escaping (URL) -> Void = { _ in }) {
-        self.sourceVideoURL = sourceVideoURL
-        self.onExported = onExported
-    }
+    // MARK: - Public Properties
+
+    let sourceVideoURL: URL?
+    let onExported: (URL) -> Void
+
+    // MARK: - Body
 
     var body: some View {
         NavigationStack {
@@ -37,15 +43,15 @@ struct MainEditorView: View {
                         videoPlayer: videoPlayer,
                         textEditor: textEditor
                     )
-                    
+
                     PlayerControl(
-                        isFullScreen: $isFullScreen,
-                        recorderManager: audioRecorder,
                         editorVM: editorVM,
                         videoPlayer: videoPlayer,
+                        isFullScreen: $isFullScreen,
+                        recorderManager: audioRecorder,
                         textEditor: textEditor
                     )
-                    
+
                     if !isFullScreen {
                         ToolsSectionView(
                             videoPlayer: videoPlayer,
@@ -99,10 +105,20 @@ struct MainEditorView: View {
             cancelDeferredTasks()
         }
     }
-    
+
+    // MARK: - Initializer
+
+    init(sourceVideoURL: URL? = nil, onExported: @escaping (URL) -> Void = { _ in }) {
+        self.sourceVideoURL = sourceVideoURL
+        self.onExported = onExported
+    }
+
 }
 
 extension MainEditorView {
+
+    // MARK: - Private Methods
+
     private func setVideoIfNeeded(_ availableSize: CGSize) {
         guard !hasLoadedSourceVideo, let sourceVideoURL else { return }
         hasLoadedSourceVideo = true
@@ -137,6 +153,7 @@ extension MainEditorView {
         exportSheetTask?.cancel()
         exportSheetTask = nil
     }
+
 }
 
 #Preview {

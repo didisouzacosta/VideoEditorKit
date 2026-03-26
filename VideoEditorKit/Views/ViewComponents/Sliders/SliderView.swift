@@ -9,35 +9,22 @@ import SwiftUI
 
 struct SliderView<V>: View where V: BinaryFloatingPoint, V.Stride: BinaryFloatingPoint {
 
-    // MARK: - Value
-    // MARK: Private
-    @Binding private var value: V
-    private let bounds: ClosedRange<V>
-    private let step: V.Stride
+    // MARK: - Bindings
 
-    private let length: CGFloat = 8
-    private let lineWidth: CGFloat = 2
-    let height: CGFloat
+    @Binding private var value: V
+
+    // MARK: - States
 
     @State private var ratio: CGFloat = 0
     @State private var startX: CGFloat? = nil
 
+    // MARK: - Public Properties
+
+    let height: CGFloat
     let onChange: () -> Void
 
-    // MARK: - Initializer
-    init(
-        value: Binding<V>, in bounds: ClosedRange<V>, height: CGFloat = 60, step: V.Stride = 1,
-        onChange: @escaping () -> Void
-    ) {
-        _value = value
-        self.onChange = onChange
-        self.bounds = bounds
-        self.height = height
-        self.step = step
-    }
+    // MARK: - Body
 
-    // MARK: - View
-    // MARK: Public
     var body: some View {
         GeometryReader { proxy in
             ZStack(alignment: .center) {
@@ -70,8 +57,28 @@ struct SliderView<V>: View where V: BinaryFloatingPoint, V.Stride: BinaryFloatin
         }
     }
 
-    // MARK: - Function
-    // MARK: Private
+    // MARK: - Private Properties
+
+    private let bounds: ClosedRange<V>
+    private let step: V.Stride
+    private let length: CGFloat = 8
+    private let lineWidth: CGFloat = 2
+
+    // MARK: - Initializer
+
+    init(
+        value: Binding<V>, in bounds: ClosedRange<V>, height: CGFloat = 60, step: V.Stride = 1,
+        onChange: @escaping () -> Void
+    ) {
+        _value = value
+        self.onChange = onChange
+        self.bounds = bounds
+        self.height = height
+        self.step = step
+    }
+
+    // MARK: - Private Methods
+
     private func updateStatus(value: DragGesture.Value, proxy: GeometryProxy) {
         guard startX == nil else { return }
 
@@ -102,7 +109,6 @@ struct SliderView<V>: View where V: BinaryFloatingPoint, V.Stride: BinaryFloatin
         // Step
         if step != 1 {
             let unit = CGFloat(step) / CGFloat(bounds.upperBound - bounds.lowerBound)
-
             let remainder = ratio.remainder(dividingBy: unit)
             if remainder != 0 {
                 ratio = ratio - CGFloat(remainder)
@@ -112,6 +118,7 @@ struct SliderView<V>: View where V: BinaryFloatingPoint, V.Stride: BinaryFloatin
         self.ratio = ratio
         self.value = V(bounds.upperBound - bounds.lowerBound) * V(ratio)
     }
+
 }
 #Preview {
     VStack {

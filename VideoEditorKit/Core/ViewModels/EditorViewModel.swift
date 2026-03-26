@@ -12,12 +12,20 @@ import Observation
 @MainActor
 @Observable
 final class EditorViewModel {
+
+    // MARK: - Public Properties
+
     var currentVideo: Video?
     var selectedTools: ToolEnum?
     var frames = VideoFrames()
     var isSelectVideo = true
+
+    // MARK: - Private Properties
+
     @ObservationIgnored private var loadVideoTask: Task<Void, Never>?
     @ObservationIgnored private var thumbnailsTask: Task<Void, Never>?
+
+    // MARK: - Public Methods
 
     func setNewVideo(_ url: URL, containerSize: CGSize) {
         loadVideoTask?.cancel()
@@ -33,25 +41,18 @@ final class EditorViewModel {
         }
     }
 
+    // MARK: - Private Methods
+
     deinit {
         loadVideoTask?.cancel()
         thumbnailsTask?.cancel()
     }
+
 }
 
 extension EditorViewModel {
-    private func loadThumbnails(for video: Video, containerSize: CGSize) {
-        let videoID = video.id
-        thumbnailsTask = Task.detached(priority: .userInitiated) {
-            let thumbnails = await video.makeThumbnails(containerSize: containerSize)
-            guard !Task.isCancelled else { return }
 
-            await MainActor.run { [weak self] in
-                guard let self, self.currentVideo?.id == videoID else { return }
-                self.currentVideo?.thumbnailsImages = thumbnails
-            }
-        }
-    }
+    // MARK: - Public Methods
 
     func refreshThumbnailsIfNeeded(containerSize: CGSize) {
         guard let video = currentVideo else { return }
@@ -66,10 +67,28 @@ extension EditorViewModel {
         guard isMissingThumbnails || needsResize else { return }
         loadThumbnails(for: video, containerSize: containerSize)
     }
+
+    // MARK: - Private Methods
+
+    private func loadThumbnails(for video: Video, containerSize: CGSize) {
+        let videoID = video.id
+        thumbnailsTask = Task.detached(priority: .userInitiated) {
+            let thumbnails = await video.makeThumbnails(containerSize: containerSize)
+            guard !Task.isCancelled else { return }
+
+            await MainActor.run { [weak self] in
+                guard let self, self.currentVideo?.id == videoID else { return }
+                self.currentVideo?.thumbnailsImages = thumbnails
+            }
+        }
+    }
+
 }
 
 //MARK: - Tools logic
 extension EditorViewModel {
+
+    // MARK: - Public Methods
 
     func setFilter(_ filter: String?) {
         currentVideo?.setFilter(filter)
@@ -183,4 +202,5 @@ extension EditorViewModel {
             self?.removeTool()
         }
     }
+
 }

@@ -11,12 +11,19 @@ import Observation
 @MainActor
 @Observable
 final class TextEditorViewModel {
+
+    // MARK: - Public Properties
+
     var textBoxes: [TextBox] = []
     var showEditor = false
     var currentTextBox = TextBox()
     var selectedTextBox: TextBox?
 
+    // MARK: - Private Properties
+
     private var isEditMode = false
+
+    // MARK: - Public Methods
 
     func cancelTextEditor() {
         showEditor = false
@@ -81,4 +88,5 @@ final class TextEditorViewModel {
         selectedTextBox = currentTextBox
         cancelTextEditor()
     }
+
 }

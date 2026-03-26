@@ -9,8 +9,10 @@ import AVKit
 import SwiftUI
 
 struct VideoItem: Transferable {
-    let url: URL
 
+    // MARK: - Public Properties
+
+    let url: URL
     static var transferRepresentation: some TransferRepresentation {
         FileRepresentation(contentType: .movie) { movie in
             SentTransferredFile(movie.url)
@@ -27,4 +29,5 @@ struct VideoItem: Transferable {
             return Self.init(url: copy)
         }
     }
+
 }

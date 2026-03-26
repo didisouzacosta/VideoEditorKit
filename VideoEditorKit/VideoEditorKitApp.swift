@@ -9,9 +9,13 @@ import SwiftUI
 
 @main
 struct VideoEditorKitApp: App {
+
+    // MARK: - Body
+
     var body: some Scene {
         WindowGroup {
             RootView()
         }
     }
+
 }

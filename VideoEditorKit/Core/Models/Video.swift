@@ -10,6 +10,8 @@ import SwiftUI
 
 struct Video: Identifiable, @unchecked Sendable {
 
+    // MARK: - Public Properties
+
     var id: UUID = UUID()
     var url: URL
     var asset: AVAsset
@@ -29,9 +31,23 @@ struct Video: Identifiable, @unchecked Sendable {
     var textBoxes: [TextBox] = []
     var audio: Audio?
     var volume: Float = 1.0
-
     var totalDuration: Double {
         rangeDuration.upperBound - rangeDuration.lowerBound
+    }
+
+    @MainActor
+    static let mock: Video = .init(
+        url: URL(string: "https://www.google.com/")!, rangeDuration: 0...250)
+
+    static func load(from url: URL) async -> Video {
+        let asset = AVURLAsset(url: url)
+        let duration = (try? await asset.load(.duration).seconds) ?? .zero
+        let resolvedDuration = duration.isFinite ? duration : .zero
+        let presentationSize = await asset.presentationSize() ?? .zero
+        return Video(
+            url: url, asset: asset, originalDuration: resolvedDuration,
+            rangeDuration: .zero...resolvedDuration,
+            presentationSize: presentationSize)
     }
 
     init(
@@ -82,6 +98,20 @@ struct Video: Identifiable, @unchecked Sendable {
     }
 
     ///reset and update
+
+    func isAppliedTool(for tool: ToolEnum) -> Bool {
+        toolsApplied.contains(tool.rawValue)
+    }
+
+    func thumbnailCount(for containerSize: CGSize) -> Int {
+        let usableWidth = max(containerSize.width - 32, 1)
+        let count = Int(ceil(usableWidth / Double(70 / 1.5)))
+
+        return max(count, 1)
+    }
+
+    // MARK: - Public Methods
+
     mutating func updateRate(_ rate: Float) {
 
         let lowerBound = (rangeDuration.lowerBound * Double(self.rate)) / Double(rate)
@@ -123,41 +153,22 @@ struct Video: Identifiable, @unchecked Sendable {
         filterName = filter
     }
 
-    func isAppliedTool(for tool: ToolEnum) -> Bool {
-        toolsApplied.contains(tool.rawValue)
-    }
-
-    func thumbnailCount(for containerSize: CGSize) -> Int {
-        let usableWidth = max(containerSize.width - 32, 1)
-        let count = Int(ceil(usableWidth / Double(70 / 1.5)))
-
-        return max(count, 1)
-    }
-
-    @MainActor
-    static let mock: Video = .init(
-        url: URL(string: "https://www.google.com/")!, rangeDuration: 0...250)
-
-    static func load(from url: URL) async -> Video {
-        let asset = AVURLAsset(url: url)
-        let duration = (try? await asset.load(.duration).seconds) ?? .zero
-        let resolvedDuration = duration.isFinite ? duration : .zero
-        let presentationSize = await asset.presentationSize() ?? .zero
-        return Video(
-            url: url, asset: asset, originalDuration: resolvedDuration,
-            rangeDuration: .zero...resolvedDuration,
-            presentationSize: presentationSize)
-    }
 }
 
 extension Video: Equatable {
 
+    // MARK: - Public Methods
+
     static func == (lhs: Video, rhs: Video) -> Bool {
         lhs.id == rhs.id
     }
+
 }
 
 extension Double {
+
+    // MARK: - Public Methods
+
     func nextAngle() -> Double {
         var next = Int(self) + 90
         if next >= 360 {
@@ -167,21 +178,30 @@ extension Double {
         }
         return Double(next)
     }
+
 }
 
 struct ThumbnailImage: Identifiable {
+
+    // MARK: - Public Properties
+
     var id: UUID = UUID()
     var image: UIImage?
+
+    // MARK: - Initializer
 
     init(image: UIImage? = nil) {
         self.image = image?.resize(to: .init(width: 250, height: 350))
     }
+
 }
 
 struct VideoFrames {
+
+    // MARK: - Public Properties
+
     var scaleValue: Double = 0
     var frameColor: Color = Color(uiColor: .systemBackground)
-
     var scale: Double {
         1 - scaleValue
     }
@@ -190,8 +210,11 @@ struct VideoFrames {
         scaleValue > 0
     }
 
+    // MARK: - Public Methods
+
     mutating func reset() {
         scaleValue = 0
         frameColor = Color(uiColor: .systemBackground)
     }
+
 }

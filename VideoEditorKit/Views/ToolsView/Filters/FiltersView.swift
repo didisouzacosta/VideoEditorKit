@@ -8,9 +8,18 @@
 import SwiftUI
 
 struct FiltersView: View {
+
+    // MARK: - States
+
     @State var selectedFilterName: String? = nil
+
+    // MARK: - Public Properties
+
     var viewModel: FiltersViewModel
     let onChangeFilter: (String?) -> Void
+
+    // MARK: - Body
+
     var body: some View {
         ScrollView(.horizontal) {
             LazyHStack(alignment: .center, spacing: 10) {
@@ -33,9 +42,29 @@ struct FiltersView: View {
         }
         .padding(.horizontal, -16)
     }
+
 }
 
 extension FiltersView {
+
+    // MARK: - Private Properties
+
+    private var resetButton: some View {
+        Group {
+            if let image = viewModel.image {
+                Button {
+                    selectedFilterName = nil
+                } label: {
+                    imageView(image, isSelected: selectedFilterName == nil)
+                }
+                .buttonStyle(.plain)
+                .padding(.trailing, 14)
+            }
+        }
+    }
+
+    // MARK: - Private Methods
+
     private func imageView(_ uiImage: UIImage, isSelected: Bool) -> some View {
         Image(uiImage: uiImage)
             .resizable()
@@ -56,19 +85,6 @@ extension FiltersView {
                 tint: isSelected ? Theme.accent : Theme.secondary)
     }
 
-    private var resetButton: some View {
-        Group {
-            if let image = viewModel.image {
-                Button {
-                    selectedFilterName = nil
-                } label: {
-                    imageView(image, isSelected: selectedFilterName == nil)
-                }
-                .buttonStyle(.plain)
-                .padding(.trailing, 14)
-            }
-        }
-    }
 }
 
 #Preview {
@@ -78,6 +94,8 @@ extension FiltersView {
 
 @MainActor
 private func makeFiltersPreviewViewModel() -> FiltersViewModel {
+    // MARK: - Public Properties
+
     let viewModel = FiltersViewModel()
     if let image = UIImage(named: "simpleImage") {
         viewModel.loadFilters(for: image)

@@ -10,14 +10,22 @@ import Foundation
 import SwiftUI
 
 struct FilteredImage: Identifiable {
+
+    // MARK: - Public Properties
+
     var id: UUID = UUID()
     var image: UIImage
     var filter: CIFilter
+
 }
 
 enum CorrectionType: String, CaseIterable {
+    // MARK: - Public Properties
+
     case brightness = "Brightness"
+
     case contrast = "Contrast"
+
     case saturation = "Saturation"
 
     var key: String {
@@ -30,7 +38,11 @@ enum CorrectionType: String, CaseIterable {
 }
 
 struct ColorCorrection {
+
+    // MARK: - Public Properties
+
     var brightness: Double = 0
     var contrast: Double = 0
     var saturation: Double = 0
+
 }

@@ -11,23 +11,52 @@ import Observation
 @MainActor
 @Observable
 final class ExporterViewModel {
-    let video: Video
 
+    // MARK: - Public Properties
+
+    let video: Video
     var renderState: ExportState = .unknown {
         didSet {
             guard renderState != oldValue else { return }
             handleRenderStateChange(renderState)
         }
     }
+
     var showAlert = false
     var progressTimer: TimeInterval = .zero
     var selectedQuality: VideoQuality = .medium
 
+    enum ExportState: Identifiable, Equatable {
+
+        case unknown, loading
+        case loaded(URL)
+        case failed(Error)
+
+        var id: Int {
+            switch self {
+            case .unknown: return 0
+            case .loading: return 1
+            case .loaded: return 2
+            case .failed: return 3
+            }
+        }
+
+        static func == (lhs: ExporterViewModel.ExportState, rhs: ExporterViewModel.ExportState) -> Bool {
+            lhs.id == rhs.id
+        }
+    }
+
+    // MARK: - Private Properties
+
     private var timer: Timer?
+
+    // MARK: - Initializer
 
     init(video: Video) {
         self.video = video
     }
+
+    // MARK: - Public Methods
 
     func export() async -> URL? {
         renderState = .loading
@@ -40,6 +69,8 @@ final class ExporterViewModel {
             return nil
         }
     }
+
+    // MARK: - Private Methods
 
     private func handleRenderStateChange(_ state: ExportState) {
         switch state {
@@ -70,26 +101,6 @@ final class ExporterViewModel {
         timer?.invalidate()
         timer = nil
         progressTimer = .zero
-    }
-
-    enum ExportState: Identifiable, Equatable {
-
-        case unknown, loading
-        case loaded(URL)
-        case failed(Error)
-
-        var id: Int {
-            switch self {
-            case .unknown: return 0
-            case .loading: return 1
-            case .loaded: return 2
-            case .failed: return 3
-            }
-        }
-
-        static func == (lhs: ExporterViewModel.ExportState, rhs: ExporterViewModel.ExportState) -> Bool {
-            lhs.id == rhs.id
-        }
     }
 
 }

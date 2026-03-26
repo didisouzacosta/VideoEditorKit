@@ -8,19 +8,25 @@
 import SwiftUI
 
 struct CropView<T: View>: View {
+
+    // MARK: - States
+
     @State private var position: CGPoint = .zero
     @State var size: CGSize = .zero
     @State var clipped: Bool = false
+
+    // MARK: - Public Properties
+
     let originalSize: CGSize
     var rotation: Double?
     var isMirror: Bool
     var isActiveCrop: Bool
     var setFrameScale: Bool = false
     var frameScale: CGFloat = 1
-
     @ViewBuilder
     var frameView: () -> T
-    private let lineWidth: CGFloat = 2
+
+    // MARK: - Body
 
     var body: some View {
         ZStack {
@@ -72,6 +78,12 @@ struct CropView<T: View>: View {
         .rotation3DEffect(.degrees(isMirror ? 180 : 0), axis: (x: 0, y: 1, z: 0))
     }
 
+    // MARK: - Private Properties
+
+    private let lineWidth: CGFloat = 2
+
+    // MARK: - Private Methods
+
     private func updateCropState(for size: CGSize) {
         position = .init(x: size.width / 2, y: size.height / 2)
         self.size = .init(
@@ -79,6 +91,7 @@ struct CropView<T: View>: View {
             height: max(size.height - 100, size.height * 0.55)
         )
     }
+
 }
 
 #Preview {
@@ -93,9 +106,15 @@ struct CropView<T: View>: View {
 }
 
 struct CropFrame: Shape {
+
+    // MARK: - Public Properties
+
     let isActive: Bool
     let currentPosition: CGSize
     let size: CGSize
+
+    // MARK: - Public Methods
+
     func path(in rect: CGRect) -> Path {
         guard isActive else { return Path(rect) }
 
@@ -103,17 +122,28 @@ struct CropFrame: Shape {
         let origin = CGPoint(x: rect.midX - size.width / 2, y: rect.midY - size.height / 2)
         return Path(CGRect(origin: origin, size: size).integral)
     }
+
 }
 
 struct CropImage<T: View>: View {
-    let originalSize: CGSize
+
+    // MARK: - Bindings
+
     @Binding var frameSize: CGSize
+
+    // MARK: - States
+
     @State private var currentPosition: CGSize = .zero
     @State private var newPosition: CGSize = .zero
     @State private var clipped = false
 
+    // MARK: - Public Properties
+
+    let originalSize: CGSize
     @ViewBuilder
     var frameView: () -> T
+
+    // MARK: - Body
 
     var body: some View {
         VStack {
@@ -141,10 +171,15 @@ struct CropImage<T: View>: View {
             }
         }
     }
+
 }
 
 extension Comparable {
+
+    // MARK: - Public Methods
+
     func bounded(lowerBound: Self, uppderBound: Self) -> Self {
         max(lowerBound, min(self, uppderBound))
     }
+
 }

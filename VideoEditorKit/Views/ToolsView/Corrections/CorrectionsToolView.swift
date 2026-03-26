@@ -8,9 +8,21 @@
 import SwiftUI
 
 struct CorrectionsToolView: View {
-    @State var currentTab: CorrectionType = .brightness
+
+    // MARK: - Bindings
+
     @Binding var correction: ColorCorrection
+
+    // MARK: - States
+
+    @State var currentTab: CorrectionType = .brightness
+
+    // MARK: - Public Properties
+
     let onChange: (ColorCorrection) -> Void
+
+    // MARK: - Body
+
     var body: some View {
         VStack(spacing: 24) {
             HStack(spacing: 12) {
@@ -33,6 +45,7 @@ struct CorrectionsToolView: View {
             slider
         }
     }
+
 }
 
 #Preview {
@@ -40,6 +53,9 @@ struct CorrectionsToolView: View {
 }
 
 extension CorrectionsToolView {
+
+    // MARK: - Private Properties
+
     private var slider: some View {
         let value = getValue(currentTab)
 
@@ -55,6 +71,8 @@ extension CorrectionsToolView {
         }
     }
 
+    // MARK: - Public Methods
+
     func getValue(_ type: CorrectionType) -> Binding<Double> {
         switch type {
         case .brightness: $correction.brightness
@@ -62,4 +80,5 @@ extension CorrectionsToolView {
         case .saturation: $correction.saturation
         }
     }
+
 }

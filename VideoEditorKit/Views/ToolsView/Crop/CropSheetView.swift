@@ -9,10 +9,17 @@ import SwiftUI
 
 @MainActor
 struct CropSheetView: View {
+
+    // MARK: - States
+
     @State var rotateValue: Double = 0
     @State private var currentTab: Tab = .rotate
 
+    // MARK: - Public Properties
+
     var editorVM: EditorViewModel
+
+    // MARK: - Body
 
     var body: some View {
         VStack(spacing: 28) {
@@ -33,9 +40,18 @@ struct CropSheetView: View {
             rotateValue = newValue ?? 0
         }
     }
+
 }
 
 extension CropSheetView {
+
+    // MARK: - Public Properties
+
+    enum Tab: String, CaseIterable {
+        case format, rotate
+    }
+
+    // MARK: - Private Properties
 
     private var rotateSection: some View {
         HStack(spacing: 20) {
@@ -98,10 +114,6 @@ extension CropSheetView {
                 }
             }
         }
-    }
-
-    enum Tab: String, CaseIterable {
-        case format, rotate
     }
 
 }

@@ -9,9 +9,11 @@ import CoreGraphics
 import Foundation
 
 struct CropperRatio {
+
+    // MARK: - Public Properties
+
     let width: CGFloat
     let height: CGFloat
-
     static var square: Self {
         .init(width: 1, height: 1)
     }
@@ -31,4 +33,5 @@ struct CropperRatio {
     static var cinematic18x6: Self {
         .init(width: 18, height: 6)
     }
+
 }

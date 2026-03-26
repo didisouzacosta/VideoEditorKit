@@ -8,13 +8,22 @@
 import SwiftUI
 
 struct TimelineSlider<T: View, A: View>: View {
-    @State private var lastOffset: CGFloat = 0
-    var bounds: ClosedRange<Double>
-    var disableOffset: Bool
+
+    // MARK: - Bindings
+
     @Binding var value: Double
+
+    // MARK: - States
+
+    @State private var lastOffset: CGFloat = 0
     @State var isChange: Bool = false
     @State var offset: CGFloat = 0
     @State var gestureW: CGFloat = 0
+
+    // MARK: - Public Properties
+
+    var bounds: ClosedRange<Double>
+    var disableOffset: Bool
     var frameWidth: CGFloat = 65
     let actionWidth: CGFloat = 30
     @ViewBuilder
@@ -22,6 +31,8 @@ struct TimelineSlider<T: View, A: View>: View {
     @ViewBuilder
     var actionView: () -> A
     let onChange: () -> Void
+
+    // MARK: - Body
 
     var body: some View {
         GeometryReader { proxy in
@@ -72,11 +83,12 @@ struct TimelineSlider<T: View, A: View>: View {
             }
         }
     }
+
 }
 
 #Preview {
     TimelineSlider(
-        bounds: 5...34, disableOffset: false, value: .constant(0),
+        value: .constant(0), bounds: 5...34, disableOffset: false,
         frameView: {
             Rectangle()
                 .fill(Color.secondary)
@@ -87,9 +99,12 @@ struct TimelineSlider<T: View, A: View>: View {
 
 extension TimelineSlider {
 
+    // MARK: - Private Methods
+
     private func setOffset() {
         if !isChange {
             offset = ((-value + bounds.lowerBound) / (bounds.upperBound - bounds.lowerBound)) * frameWidth
         }
     }
+
 }

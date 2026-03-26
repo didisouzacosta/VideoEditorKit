@@ -12,6 +12,8 @@ import SwiftUI
 @Observable
 final class CameraManager: NSObject, @unchecked Sendable {
 
+    // MARK: - Public Properties
+
     enum Status {
         case unconfigurate
         case configurate
@@ -24,32 +26,28 @@ final class CameraManager: NSObject, @unchecked Sendable {
     var finalURL: URL?
     var recordedDuration: Double = .zero
     var cameraPosition: AVCaptureDevice.Position = .front
-
     let maxDuration: Double = 100  // sec
-    private var timer: Timer?
-    private let sessionQueue = DispatchQueue(
-        label: "com.VideoEditorKit.camera.session", qos: .userInitiated)
-    private let videoOutput = AVCaptureMovieFileOutput()
-    private var status: Status = .unconfigurate
-
     var isRecording: Bool {
         videoOutput.isRecording
     }
+
+    // MARK: - Private Properties
+
+    private var timer: Timer?
+    private let sessionQueue = DispatchQueue(
+        label: "com.VideoEditorKit.camera.session", qos: .userInitiated)
+
+    private let videoOutput = AVCaptureMovieFileOutput()
+    private var status: Status = .unconfigurate
+
+    // MARK: - Initializer
 
     override init() {
         super.init()
         config()
     }
 
-    private func config() {
-        checkPermissions()
-        sessionQueue.async { [weak self] in
-            guard let self else { return }
-            self.configCaptureSession()
-            guard self.status == .configurate else { return }
-            self.session.startRunning()
-        }
-    }
+    // MARK: - Public Methods
 
     func controllSession(start: Bool) {
         guard status == .configurate else {
@@ -68,6 +66,39 @@ final class CameraManager: NSObject, @unchecked Sendable {
         }
     }
 
+    func stopRecord() {
+        timer?.invalidate()
+        videoOutput.stopRecording()
+    }
+
+    func startRecording() {
+        ///Temporary URL for recording Video
+        recordedDuration = .zero
+        let tempURL = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("\(UUID().uuidString).mov")
+        videoOutput.startRecording(to: tempURL, recordingDelegate: self)
+        startTimer()
+    }
+
+    //    func set(_ delegate: AVCaptureVideoDataOutputSampleBufferDelegate,
+    //             queue: DispatchQueue){
+    //        sessionQueue.async {
+    //            self.videoOutput.setSampleBufferDelegate(delegate, queue: queue)
+    //        }
+    //    }
+
+    // MARK: - Private Methods
+
+    private func config() {
+        checkPermissions()
+        sessionQueue.async { [weak self] in
+            guard let self else { return }
+            self.configCaptureSession()
+            guard self.status == .configurate else { return }
+            self.session.startRunning()
+        }
+    }
+
     private func setError(_ error: CameraError?) {
         Task { @MainActor [weak self] in
             self?.error = error
@@ -81,6 +112,7 @@ final class CameraManager: NSObject, @unchecked Sendable {
     }
 
     ///Check user permissions
+
     private func checkPermissions() {
         switch AVCaptureDevice.authorizationStatus(for: .video) {
 
@@ -108,6 +140,7 @@ final class CameraManager: NSObject, @unchecked Sendable {
     }
 
     ///Configuring a session and adding video, audio input and adding video output
+
     private func configCaptureSession() {
         guard status == .unconfigurate else {
             return
@@ -169,30 +202,11 @@ final class CameraManager: NSObject, @unchecked Sendable {
         return nil
     }
 
-    func stopRecord() {
-        timer?.invalidate()
-        videoOutput.stopRecording()
-    }
-
-    func startRecording() {
-        ///Temporary URL for recording Video
-        recordedDuration = .zero
-        let tempURL = URL(fileURLWithPath: NSTemporaryDirectory())
-            .appendingPathComponent("\(UUID().uuidString).mov")
-        videoOutput.startRecording(to: tempURL, recordingDelegate: self)
-        startTimer()
-    }
-
-    //    func set(_ delegate: AVCaptureVideoDataOutputSampleBufferDelegate,
-    //             queue: DispatchQueue){
-    //        sessionQueue.async {
-    //            self.videoOutput.setSampleBufferDelegate(delegate, queue: queue)
-    //        }
-    //    }
-
 }
 
 extension CameraManager {
+
+    // MARK: - Private Methods
 
     private func onTimerFires() {
 
@@ -211,9 +225,13 @@ extension CameraManager {
             }
         }
     }
+
 }
 
 extension CameraManager: AVCaptureFileOutputRecordingDelegate {
+
+    // MARK: - Public Methods
+
     func fileOutput(
         _ output: AVCaptureFileOutput, didFinishRecordingTo outputFileURL: URL,
         from connections: [AVCaptureConnection], error: Error?
@@ -228,11 +246,19 @@ extension CameraManager: AVCaptureFileOutputRecordingDelegate {
 }
 
 enum CameraError: Error {
+    // MARK: - Public Properties
+
     case deniedAuthorization
+
     case restrictedAuthorization
+
     case unknowAuthorization
+
     case cameraUnavalible
+
     case cannotAddInput
+
     case createCaptureInput(Error)
+
     case outputError(Error)
 }

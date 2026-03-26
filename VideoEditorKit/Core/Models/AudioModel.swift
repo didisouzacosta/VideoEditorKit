@@ -9,13 +9,28 @@ import AVKit
 import SwiftUI
 
 struct Audio: Identifiable, Equatable {
+
+    // MARK: - Public Properties
+
     var id: UUID = UUID()
     var url: URL
     var duration: Double
     var volume: Float = 1.0
-
     var asset: AVAsset {
         AVURLAsset(url: url)
+    }
+
+    struct AudioSample: Identifiable {
+
+        var id: Int
+        var size: CGFloat = CGFloat((5...25).randomElement() ?? 5)
+
+    }
+
+    // MARK: - Public Methods
+
+    mutating func setVolume(_ value: Float) {
+        volume = value
     }
 
     func createSamples(_ size: CGFloat) -> [AudioSample] {
@@ -23,12 +38,4 @@ struct Audio: Identifiable, Equatable {
         return (1...sampleCount).map { .init(id: $0) }
     }
 
-    mutating func setVolume(_ value: Float) {
-        volume = value
-    }
-
-    struct AudioSample: Identifiable {
-        var id: Int
-        var size: CGFloat = CGFloat((5...25).randomElement() ?? 5)
-    }
 }

@@ -8,9 +8,15 @@
 import SwiftUI
 
 struct TextOverlayView: View {
+
+    // MARK: - Public Properties
+
     var currentTime: Double
     var viewModel: TextEditorViewModel
     var disabledMagnification: Bool = false
+
+    // MARK: - Body
+
     var body: some View {
         ZStack {
             if !disabledMagnification {
@@ -95,6 +101,8 @@ struct TextOverlayView: View {
         .allFrame()
     }
 
+    // MARK: - Private Methods
+
     private func createAttr(_ textBox: TextBox) -> AttributedString {
         var result = AttributedString(textBox.text)
         result.font = .systemFont(ofSize: textBox.fontSize, weight: .medium)
@@ -102,9 +110,12 @@ struct TextOverlayView: View {
         result.backgroundColor = UIColor(textBox.bgColor)
         return result
     }
+
 }
 
 extension TextOverlayView {
+
+    // MARK: - Private Methods
 
     private func textBoxButtons(_ textBox: TextBox) -> some View {
         HStack(spacing: 10) {
@@ -139,6 +150,7 @@ extension TextOverlayView {
         guard let index = viewModel.textBoxes.firstIndex(where: { $0.id == id }) else { return }
         update(&viewModel.textBoxes[index])
     }
+
 }
 
 #Preview {
@@ -150,6 +162,8 @@ extension TextOverlayView {
 
 @MainActor
 private func makeTextOverlayPreviewViewModel() -> TextEditorViewModel {
+    // MARK: - Public Properties
+
     let viewModel = TextEditorViewModel()
     viewModel.textBoxes = TextBox.texts
     viewModel.selectTextBox(TextBox.texts[0])

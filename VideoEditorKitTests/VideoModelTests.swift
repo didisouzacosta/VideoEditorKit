@@ -4,6 +4,9 @@ import XCTest
 
 @MainActor
 final class VideoModelTests: XCTestCase {
+
+    // MARK: - Public Methods
+
     func testUpdateRateRescalesSelectedRange() {
         var video = Video.mock
         video.rangeDuration = 2...8
@@ -45,4 +48,5 @@ final class VideoModelTests: XCTestCase {
         XCTAssertFalse(video.isAppliedTool(for: .filters))
         XCTAssertTrue(video.toolsApplied.isEmpty)
     }
+
 }

@@ -16,6 +16,9 @@ import SwiftUI
 @MainActor
 @Observable
 final class VideoPlayerManager {
+
+    // MARK: - Public Properties
+
     var currentTime: Double = .zero
     var selectedItem: PhotosPickerItem?
     var loadState: LoadState = .unknown {
@@ -27,13 +30,6 @@ final class VideoPlayerManager {
     private(set) var videoPlayer = AVPlayer()
     private(set) var audioPlayer = AVPlayer()
     private(set) var isPlaying = false
-
-    private var isSetAudio = false
-    private var statusCancellable: AnyCancellable?
-    private var timeObserver: Any?
-    private var currentDurationRange: ClosedRange<Double>?
-    private var endPlaybackObserver: NSObjectProtocol?
-    private var filterCompositionTask: Task<Void, Never>?
 
     var scrubState: PlayerScrubState = .reset {
         didSet {
@@ -48,6 +44,17 @@ final class VideoPlayerManager {
             }
         }
     }
+
+    // MARK: - Private Properties
+
+    private var isSetAudio = false
+    private var statusCancellable: AnyCancellable?
+    private var timeObserver: Any?
+    private var currentDurationRange: ClosedRange<Double>?
+    private var endPlaybackObserver: NSObjectProtocol?
+    private var filterCompositionTask: Task<Void, Never>?
+
+    // MARK: - Public Methods
 
     func action(_ video: Video) {
         self.currentDurationRange = video.rangeDuration
@@ -68,40 +75,6 @@ final class VideoPlayerManager {
         isSetAudio = true
     }
 
-    private func handleLoadStateChange(_ loadState: LoadState) {
-        switch loadState {
-        case .loaded(let url):
-            pause()
-            cleanupObservers()
-            currentDurationRange = nil
-            currentTime = .zero
-            videoPlayer = AVPlayer(url: url)
-            startStatusSubscriptions()
-        case .failed, .loading, .unknown:
-            break
-        }
-    }
-
-    private func startStatusSubscriptions() {
-        statusCancellable?.cancel()
-        statusCancellable = videoPlayer.publisher(for: \.timeControlStatus)
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] status in
-                guard let self = self else { return }
-                switch status {
-                case .playing:
-                    self.isPlaying = true
-                    self.startTimer()
-                case .paused:
-                    self.isPlaying = false
-                case .waitingToPlayAtSpecifiedRate:
-                    break
-                @unknown default:
-                    break
-                }
-            }
-    }
-
     func pause() {
         videoPlayer.pause()
         if isSetAudio {
@@ -118,42 +91,6 @@ final class VideoPlayerManager {
         } else {
             audioPlayer.volume = value
         }
-    }
-
-    private func play(_ rate: Float?) {
-        AVAudioSession.sharedInstance().configurePlaybackSession()
-
-        if let currentDurationRange {
-            let currentPlaybackTime = videoPlayer.currentTime().seconds
-            let shouldSeekToRangeStart =
-                !currentDurationRange.contains(currentTime)
-                || !currentPlaybackTime.isFinite
-                || currentPlaybackTime < currentDurationRange.lowerBound
-                || currentPlaybackTime >= currentDurationRange.upperBound
-
-            if shouldSeekToRangeStart {
-                seek(currentDurationRange.lowerBound, player: videoPlayer)
-                if isSetAudio {
-                    seek(currentDurationRange.lowerBound, player: audioPlayer)
-                }
-                currentTime = currentDurationRange.lowerBound
-            } else {
-                seek(currentPlaybackTime, player: videoPlayer)
-                if isSetAudio {
-                    seek(audioPlayer.currentTime().seconds, player: audioPlayer)
-                }
-            }
-        }
-        videoPlayer.play()
-        if isSetAudio {
-            audioPlayer.play()
-        }
-
-        if let rate {
-            videoPlayer.rate = rate
-        }
-
-        registerPlaybackObserverIfNeeded()
     }
 
     func updatePlaybackRange(_ range: ClosedRange<Double>) {
@@ -197,6 +134,78 @@ final class VideoPlayerManager {
 
         currentTime = clampedTime
         scrubState = .scrubEnded(clampedTime)
+    }
+
+    // MARK: - Private Methods
+
+    private func handleLoadStateChange(_ loadState: LoadState) {
+        switch loadState {
+        case .loaded(let url):
+            pause()
+            cleanupObservers()
+            currentDurationRange = nil
+            currentTime = .zero
+            videoPlayer = AVPlayer(url: url)
+            startStatusSubscriptions()
+        case .failed, .loading, .unknown:
+            break
+        }
+    }
+
+    private func startStatusSubscriptions() {
+        statusCancellable?.cancel()
+        statusCancellable = videoPlayer.publisher(for: \.timeControlStatus)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] status in
+                guard let self = self else { return }
+                switch status {
+                case .playing:
+                    self.isPlaying = true
+                    self.startTimer()
+                case .paused:
+                    self.isPlaying = false
+                case .waitingToPlayAtSpecifiedRate:
+                    break
+                @unknown default:
+                    break
+                }
+            }
+    }
+
+    private func play(_ rate: Float?) {
+        AVAudioSession.sharedInstance().configurePlaybackSession()
+
+        if let currentDurationRange {
+            let currentPlaybackTime = videoPlayer.currentTime().seconds
+            let shouldSeekToRangeStart =
+                !currentDurationRange.contains(currentTime)
+                || !currentPlaybackTime.isFinite
+                || currentPlaybackTime < currentDurationRange.lowerBound
+                || currentPlaybackTime >= currentDurationRange.upperBound
+
+            if shouldSeekToRangeStart {
+                seek(currentDurationRange.lowerBound, player: videoPlayer)
+                if isSetAudio {
+                    seek(currentDurationRange.lowerBound, player: audioPlayer)
+                }
+                currentTime = currentDurationRange.lowerBound
+            } else {
+                seek(currentPlaybackTime, player: videoPlayer)
+                if isSetAudio {
+                    seek(audioPlayer.currentTime().seconds, player: audioPlayer)
+                }
+            }
+        }
+        videoPlayer.play()
+        if isSetAudio {
+            audioPlayer.play()
+        }
+
+        if let rate {
+            videoPlayer.rate = rate
+        }
+
+        registerPlaybackObserverIfNeeded()
     }
 
     private func seek(_ seconds: Double, player: AVPlayer) {
@@ -306,6 +315,9 @@ final class VideoPlayerManager {
 }
 
 extension VideoPlayerManager {
+
+    // MARK: - Public Methods
+
     @MainActor
     func loadVideoItem(_ selectedItem: PhotosPickerItem?) async {
         do {
@@ -320,9 +332,13 @@ extension VideoPlayerManager {
             loadState = .failed
         }
     }
+
 }
 
 extension VideoPlayerManager {
+
+    // MARK: - Public Methods
+
     func setFilters(mainFilter: CIFilter?, colorCorrection: ColorCorrection?) {
         let filters = Helpers.createFilters(mainFilter: mainFilter, colorCorrection)
 
@@ -349,11 +365,16 @@ extension VideoPlayerManager {
         pause()
         videoPlayer.currentItem?.videoComposition = nil
     }
+
 }
 
 enum LoadState: Identifiable, Equatable {
+    // MARK: - Public Properties
+
     case unknown, loading
+
     case loaded(URL)
+
     case failed
 
     var id: Int {
@@ -367,12 +388,18 @@ enum LoadState: Identifiable, Equatable {
 }
 
 enum PlayerScrubState {
+    // MARK: - Public Properties
+
     case reset
+
     case scrubStarted
+
     case scrubEnded(Double)
 }
 
 extension AVAsset {
+
+    // MARK: - Public Methods
 
     func setFilter(_ filter: CIFilter) async throws -> AVVideoComposition {
         try await withCheckedThrowingContinuation { continuation in

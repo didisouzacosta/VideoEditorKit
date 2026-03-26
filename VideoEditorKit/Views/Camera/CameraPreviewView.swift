@@ -40,17 +40,23 @@ final class CameraPreviewView: UIView {
             videoPreviewLayer.removeFromSuperlayer()
         }
     }
+
 }
 
 struct CameraPreviewHolder: UIViewRepresentable {
 
+    // MARK: - Public Properties
+
     typealias UIViewType = CameraPreviewView
 
     var captureSession: AVCaptureSession
+
+    // MARK: - Public Methods
 
     func makeUIView(context: Context) -> CameraPreviewView {
         CameraPreviewView(captureSession: captureSession)
     }
 
     func updateUIView(_ uiView: CameraPreviewView, context: Context) {}
+
 }

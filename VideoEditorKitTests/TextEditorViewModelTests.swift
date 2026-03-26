@@ -4,6 +4,9 @@ import XCTest
 
 @MainActor
 final class TextEditorViewModelTests: XCTestCase {
+
+    // MARK: - Public Methods
+
     func testSaveTappedTrimsWhitespaceBeforePersisting() {
         let viewModel = TextEditorViewModel()
 
@@ -55,4 +58,5 @@ final class TextEditorViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.textBoxes[0].offset, CGSize(width: 15, height: 17))
         XCTAssertNotEqual(viewModel.textBoxes[0].id, textBox.id)
     }
+
 }

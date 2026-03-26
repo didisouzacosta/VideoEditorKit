@@ -394,3 +394,103 @@ Para mudanças futuras neste repositório, usar o padrão abaixo como baseline:
 - não espalhar `print` operacional pela base; preferir tratamento explícito e `assertionFailure` apenas para estados inesperados
 - manter extensões utilitárias enxutas e alinhadas com uso real do projeto
 - ao editar Swift, rodar formatação do projeto antes de finalizar
+
+### Organização de arquivos Swift com `// MARK: -`
+
+Todo código Swift do repositório deve seguir organização explícita por grupos com `// MARK: -`, usando nomes fixos e ordem previsível.
+
+#### Regra geral
+
+- aplicar esse padrão a `View`, `ViewModel`, `Manager`, `Model`, `Shape`, `ViewModifier` e `extension`
+- omitir grupos que não se aplicam ao tipo, mas nunca trocar a ordem dos grupos usados
+- preferir `fileprivate` para subviews auxiliares declaradas no mesmo arquivo
+- callbacks devem começar como `private` e só serem expostos quando houver necessidade real de API
+- actions inline em `Button`, `sheet`, `task`, `onChange` e similares são permitidas quando isso mantiver a leitura melhor do que extrair método
+
+#### Ordem obrigatória para `View`
+
+Quando aplicável, a ordem dos grupos em uma `View` deve ser:
+
+1. `// MARK: - Environments`
+2. `// MARK: - Bindables`
+3. `// MARK: - Bindings`
+4. `// MARK: - App Storage`
+5. `// MARK: - Scene Storage`
+6. `// MARK: - Focus State`
+7. `// MARK: - Gesture State`
+8. `// MARK: - Namespaces`
+9. `// MARK: - States`
+10. `// MARK: - Public Properties`
+11. `// MARK: - Body`
+12. `// MARK: - Private Properties`
+13. `// MARK: - Initializer`
+14. `// MARK: - Public Methods`
+15. `// MARK: - Private Methods`
+
+#### Regras de visibilidade
+
+- propriedades expostas devem ficar em `Public Properties`
+- propriedades internas de suporte e dependências não públicas devem ficar em `Private Properties`
+- `@Environment`, `@Bindable`, `@Binding`, `@AppStorage`, `@SceneStorage`, `@FocusState`, `@GestureState`, `@Namespace` e `@State` devem ficar em grupos separados, sem misturar wrappers diferentes no mesmo bloco
+- quando um grupo tiver apenas propriedades privadas, mantê-las com `private`
+- quando uma propriedade ou método precisar ser público para composição externa, mover para o grupo público correspondente
+
+#### Tipos sem `body`
+
+Para tipos que não são `View`, usar o subconjunto compatível da mesma convenção, preservando nomes e ordem:
+
+1. `// MARK: - Public Properties`
+2. `// MARK: - Private Properties`
+3. `// MARK: - Initializer`
+4. `// MARK: - Public Methods`
+5. `// MARK: - Private Methods`
+
+#### Exemplo base para `View`
+
+```swift
+struct ExampleView: View {
+
+    // MARK: - Environments
+
+    @Environment(\.dismiss) private var dismiss
+
+    // MARK: - Bindings
+
+    @Binding private var value: String
+
+    // MARK: - States
+
+    @State private var isLoading = false
+
+    // MARK: - Public Properties
+
+    let title: String
+
+    // MARK: - Body
+
+    var body: some View {
+        content
+    }
+
+    // MARK: - Private Properties
+
+    private var content: some View {
+        Text(title)
+    }
+
+    // MARK: - Initializer
+
+    init(title: String, value: Binding<String>) {
+        self.title = title
+        _value = value
+    }
+
+    // MARK: - Public Methods
+
+    func trackDisplay() {}
+
+    // MARK: - Private Methods
+
+    private func submit() {}
+}
+```

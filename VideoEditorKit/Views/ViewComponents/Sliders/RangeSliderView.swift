@@ -8,10 +8,24 @@
 import SwiftUI
 
 struct RangedSliderView: View {
+
+    // MARK: - Public Properties
+
     let currentValue: Binding<ClosedRange<Double>>?
     let sliderBounds: ClosedRange<Double>
     let step: Double
     let onEndChange: (() -> Void)?
+
+    // MARK: - Body
+
+    @ViewBuilder
+    var body: some View {
+        GeometryReader { geometry in
+            sliderView(sliderSize: geometry.size)
+        }
+    }
+
+    // MARK: - Initializer
 
     init(
         value: Binding<ClosedRange<Double>>?,
@@ -25,13 +39,8 @@ struct RangedSliderView: View {
         self.sliderBounds = bounds
     }
 
-    var body: some View {
-        GeometryReader { geometry in
-            sliderView(sliderSize: geometry.size)
-        }
-    }
+    // MARK: - Private Methods
 
-    @ViewBuilder
     private func sliderView(sliderSize: CGSize) -> some View {
         let trackHeight = max(sliderSize.height, 1)
         let valueRange = currentValue?.wrappedValue ?? sliderBounds
@@ -39,7 +48,7 @@ struct RangedSliderView: View {
         let rightThumbLocation = position(for: valueRange.upperBound, width: sliderSize.width)
         let selectedWidth = max(rightThumbLocation - leftThumbLocation, 0)
 
-        ZStack {
+        return ZStack {
             HStack(spacing: 0) {
                 maskedRegion(width: leftThumbLocation, height: trackHeight)
 
@@ -179,6 +188,7 @@ struct RangedSliderView: View {
         )
         .accessibilityLabel(isLeftThumb ? "Trim start" : "Trim end")
     }
+
 }
 
 #Preview {

@@ -8,18 +8,23 @@
 import SwiftUI
 
 struct SheetView<Content: View>: View {
+
+    // MARK: - Bindings
+
     @Binding var isPresented: Bool
+
+    // MARK: - States
+
     @State private var showSheet: Bool = false
     @State private var slideGesture: CGSize
+
+    // MARK: - Public Properties
+
     var bgOpacity: CGFloat
     let content: Content
-    init(isPresented: Binding<Bool>, bgOpacity: CGFloat = 0.01, @ViewBuilder content: () -> Content) {
-        self._isPresented = isPresented
-        self.bgOpacity = bgOpacity
-        self._slideGesture = State(initialValue: CGSize.zero)
-        self.content = content()
 
-    }
+    // MARK: - Body
+
     var body: some View {
         ZStack(alignment: .bottom) {
             Theme.scrim
@@ -43,9 +48,23 @@ struct SheetView<Content: View>: View {
             }
         }
     }
+
+    // MARK: - Initializer
+
+    init(isPresented: Binding<Bool>, bgOpacity: CGFloat = 0.01, @ViewBuilder content: () -> Content) {
+        self._isPresented = isPresented
+        self.bgOpacity = bgOpacity
+        self._slideGesture = State(initialValue: CGSize.zero)
+        self.content = content()
+
+    }
+
 }
 
 extension SheetView {
+
+    // MARK: - Private Properties
+
     private var sheetLayer: some View {
         VStack(spacing: 0) {
             HStack {
@@ -87,17 +106,24 @@ extension SheetView {
             })
     }
 
+    // MARK: - Private Methods
+
     private func closeSheet() {
         withAnimation(.easeIn(duration: 0.2)) {
             showSheet = false
         }
     }
+
 }
 
 struct CustomCorners: Shape {
 
+    // MARK: - Public Properties
+
     var corners: UIRectCorner
     var radius: CGFloat
+
+    // MARK: - Public Methods
 
     func path(in rect: CGRect) -> Path {
         let path = UIBezierPath(
@@ -105,4 +131,5 @@ struct CustomCorners: Shape {
             cornerRadii: CGSize(width: radius, height: radius))
         return Path(path.cgPath)
     }
+
 }

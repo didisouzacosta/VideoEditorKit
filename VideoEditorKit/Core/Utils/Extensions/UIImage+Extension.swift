@@ -10,6 +10,8 @@ import SwiftUI
 
 extension UIImage {
 
+    // MARK: - Public Methods
+
     func resize(to size: CGSize, scale: CGFloat = 1.0) -> UIImage {
         let format = UIGraphicsImageRendererFormat.default()
         format.scale = scale

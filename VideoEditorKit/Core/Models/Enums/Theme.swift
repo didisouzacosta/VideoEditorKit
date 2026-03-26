@@ -8,6 +8,8 @@
 import SwiftUI
 
 enum Theme {
+    // MARK: - Public Properties
+
     static let accent = Color.accentColor
     static let primary = Color.primary
     static let secondary = Color.secondary
@@ -25,6 +27,7 @@ enum Theme {
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
+
     static let editorBackground = LinearGradient(
         colors: [
             Color(uiColor: .systemBackground),
@@ -34,6 +37,7 @@ enum Theme {
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
+
     static let editorGlow = RadialGradient(
         colors: [
             accent.opacity(0.24),
@@ -43,5 +47,6 @@ enum Theme {
         startRadius: 40,
         endRadius: 520
     )
+
     static let scrim = Color(uiColor: .label).opacity(0.18)
 }

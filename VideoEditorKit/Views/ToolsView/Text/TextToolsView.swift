@@ -8,8 +8,14 @@
 import SwiftUI
 
 struct TextToolsView: View {
+
+    // MARK: - Public Properties
+
     var video: Video
     var editor: TextEditorViewModel
+
+    // MARK: - Body
+
     var body: some View {
         ScrollView(.horizontal) {
             HStack(spacing: 15) {
@@ -28,9 +34,28 @@ struct TextToolsView: View {
             editor.selectedTextBox = nil
         }
     }
+
 }
 
 extension TextToolsView {
+
+    // MARK: - Private Properties
+
+    private var addTextButton: some View {
+        Button {
+            editor.openTextEditor(isEdit: false, timeRange: video.rangeDuration)
+        } label: {
+            ZStack {
+                Text("+T")
+                    .font(.title2.weight(.light))
+            }
+            .frame(width: 80, height: 80)
+            .card(cornerRadius: 20, tint: Theme.accent)
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - Private Methods
 
     private func cellView(_ textBox: TextBox) -> some View {
         let isSelected = editor.isSelected(textBox.id)
@@ -69,19 +94,6 @@ extension TextToolsView {
         .buttonStyle(.plain)
     }
 
-    private var addTextButton: some View {
-        Button {
-            editor.openTextEditor(isEdit: false, timeRange: video.rangeDuration)
-        } label: {
-            ZStack {
-                Text("+T")
-                    .font(.title2.weight(.light))
-            }
-            .frame(width: 80, height: 80)
-            .card(cornerRadius: 20, tint: Theme.accent)
-        }
-        .buttonStyle(.plain)
-    }
 }
 
 #Preview {
@@ -91,6 +103,8 @@ extension TextToolsView {
 
 @MainActor
 private func makeTextToolsPreviewViewModel() -> TextEditorViewModel {
+    // MARK: - Public Properties
+
     let editor = TextEditorViewModel()
     editor.textBoxes = TextBox.texts
     return editor
