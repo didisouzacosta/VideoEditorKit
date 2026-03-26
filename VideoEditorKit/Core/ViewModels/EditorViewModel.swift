@@ -28,10 +28,6 @@ final class EditorViewModel {
         currentVideo != nil
     }
 
-    var toolGridOpacity: Double {
-        selectedTools == nil ? 1 : 0
-    }
-
     var exportVideo: Video? {
         showVideoQualitySheet ? currentVideo : nil
     }

@@ -24,25 +24,19 @@ struct ToolsSectionView: View {
     // MARK: - Body
 
     var body: some View {
-        ZStack {
-            LazyVGrid(columns: columns, alignment: .center, spacing: 10) {
-                ForEach(ToolEnum.menuCases, id: \.self) { tool in
-                    ToolButtonView(
-                        tool.title, image: tool.image,
-                        isChange: editorVM.currentVideo?.isAppliedTool(for: tool) ?? false
-                    ) {
-                        editorVM.selectTool(tool)
-                    }
+        LazyVGrid(columns: columns, alignment: .center, spacing: 10) {
+            ForEach(ToolEnum.menuCases, id: \.self) { tool in
+                ToolButtonView(
+                    tool.title, image: tool.image,
+                    isChange: editorVM.currentVideo?.isAppliedTool(for: tool) ?? false
+                ) {
+                    editorVM.selectTool(tool)
                 }
             }
-            .opacity(editorVM.toolGridOpacity)
-
-            if let toolState = editorVM.selectedTools, let video = editorVM.currentVideo {
-                bottomSheet(toolState, video)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-            }
         }
-        .animation(.easeIn(duration: 0.15), value: editorVM.selectedTools)
+        .sheet(item: selectedToolBinding) { tool in
+            toolSheet(tool)
+        }
         .onChange(of: editorVM.currentVideo) { _, newValue in
             editorVM.handleCurrentVideoChange(
                 newValue,
@@ -79,48 +73,18 @@ extension ToolsSectionView {
 
     // MARK: - Private Methods
 
-    @ViewBuilder
-    private func bottomSheet(_ tool: ToolEnum, _ video: Video) -> some View {
-
-        let isAppliedTool = video.isAppliedTool(for: tool)
-
+    private func toolSheet(_ tool: ToolEnum) -> some View {
         VStack(spacing: 16) {
             sheetHeader(tool)
-            switch tool {
-            case .speed:
-                VideoSpeedSlider(Double(video.rate), isChangeState: isAppliedTool) { rate in
-                    editorVM.handleRateChange(rate, videoPlayer: videoPlayer)
-                }
-            case .crop:
-                CropSheetView(editorVM)
-            case .audio:
-                AudioSheetView(videoPlayer, editorVM: editorVM)
-            case .text:
-                TextToolsView(video, editor: textEditor)
-            case .filters:
-                FiltersView(video.filterName, viewModel: filtersVM) { filterName in
-                    editorVM.handleFilterChange(
-                        filterName,
-                        filtersViewModel: filtersVM,
-                        videoPlayer: videoPlayer
-                    )
-                }
-            case .corrections:
-                CorrectionsToolView($filtersVM.colorCorrection) { corrections in
-                    editorVM.handleCorrectionsChange(corrections, videoPlayer: videoPlayer)
-                }
-            case .frames:
-                FramesToolView(
-                    editorVM.frameColorBinding(),
-                    scaleValue: editorVM.frameScaleBinding(),
-                    onChange: editorVM.setFrames)
-            case .cut:
-                EmptyView()
+            if let video = editorVM.currentVideo {
+                toolContent(tool, video)
             }
-            Spacer()
         }
-        .padding(16)
-        .card(cornerRadius: 30, prominent: true, tint: Theme.secondary)
+        .padding(.horizontal, 20)
+        .padding(.top, 20)
+        .padding(.bottom, 28)
+        .presentationDetents(detents(for: tool))
+        .presentationDragIndicator(.visible)
     }
 
 }
@@ -168,6 +132,72 @@ extension ToolsSectionView {
         .overlay {
             Text(tool.title)
                 .font(.headline)
+        }
+    }
+
+    private func detents(for tool: ToolEnum) -> Set<PresentationDetent> {
+        switch tool {
+        case .audio, .filters, .text:
+            [.height(220)]
+        case .speed:
+            [.height(260)]
+        case .crop, .corrections:
+            [.height(300)]
+        case .frames:
+            [.height(340)]
+        case .cut:
+            [.medium]
+        }
+    }
+
+    private var selectedToolBinding: Binding<ToolEnum?> {
+        Binding(
+            get: { editorVM.selectedTools },
+            set: { newValue in
+                if let newValue {
+                    editorVM.selectTool(newValue)
+                } else {
+                    editorVM.closeSelectedTool(textEditor: textEditor)
+                }
+            }
+        )
+    }
+
+    @ViewBuilder
+    private func toolContent(_ tool: ToolEnum, _ video: Video) -> some View {
+        let isAppliedTool = video.isAppliedTool(for: tool)
+
+        switch tool {
+        case .speed:
+            VideoSpeedSlider(Double(video.rate), isChangeState: isAppliedTool) { rate in
+                editorVM.handleRateChange(rate, videoPlayer: videoPlayer)
+            }
+        case .crop:
+            CropSheetView(editorVM)
+        case .audio:
+            AudioSheetView(videoPlayer, editorVM: editorVM)
+        case .text:
+            TextToolsView(video, editor: textEditor)
+        case .filters:
+            FiltersView(video.filterName, viewModel: filtersVM) { filterName in
+                editorVM.handleFilterChange(
+                    filterName,
+                    filtersViewModel: filtersVM,
+                    videoPlayer: videoPlayer
+                )
+            }
+        case .corrections:
+            CorrectionsToolView($filtersVM.colorCorrection) { corrections in
+                editorVM.handleCorrectionsChange(corrections, videoPlayer: videoPlayer)
+            }
+        case .frames:
+            FramesToolView(
+                editorVM.frameColorBinding(),
+                scaleValue: editorVM.frameScaleBinding(),
+                onChange: editorVM.setFrames
+            )
+        case .cut:
+            EmptyView()
         }
     }
 

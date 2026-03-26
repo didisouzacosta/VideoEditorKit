@@ -7,10 +7,14 @@
 
 import Foundation
 
-enum ToolEnum: Int, CaseIterable {
+enum ToolEnum: Int, CaseIterable, Identifiable {
     // MARK: - Public Properties
 
     case cut, speed, crop, audio, text, filters, corrections, frames
+
+    var id: Int {
+        rawValue
+    }
 
     static var menuCases: [ToolEnum] {
         allCases.filter { $0 != .cut }
