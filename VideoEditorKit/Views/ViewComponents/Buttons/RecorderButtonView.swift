@@ -9,12 +9,6 @@ import SwiftUI
 
 struct RecorderButtonView: View {
 
-    // MARK: - States
-
-    @State private var timeRemaining = 3
-    @State private var timer: Timer? = nil
-    @State private var state: StateEnum = .empty
-
     // MARK: - Private Properties
 
     private let video: Video
@@ -26,22 +20,20 @@ struct RecorderButtonView: View {
 
     var body: some View {
         ZStack {
-            switch state {
+            switch recorderManager.controlState {
             case .empty:
-                if isSetAudio {}
                 recordButton
-            case .timer:
+            case .countdown:
                 timerButton
             case .record:
                 stopButton
             }
         }
-        .opacity(isSetAudio ? 0 : 1)
-        .disabled(isSetAudio)
+        .opacity(video.hasRecordedAudio ? 0 : 1)
+        .disabled(video.hasRecordedAudio)
         .onChange(of: recorderManager.finishedAudio) { _, newValue in
             guard let newValue else { return }
             onRecorded(newValue)
-            state = .empty
         }
         .onChange(of: recorderManager.currentRecordTime) { _, newValue in
             if newValue > 0 {
@@ -64,28 +56,15 @@ struct RecorderButtonView: View {
         self.onRecordTime = onRecordTime
     }
 
-    // MARK: - Private Properties
-
-    private var isSetAudio: Bool {
-        video.audio != nil
-    }
-
 }
 
 extension RecorderButtonView {
-
-    // MARK: - Public Properties
-
-    enum StateEnum: Int {
-        case empty, timer, record
-    }
 
     // MARK: - Private Properties
 
     private var recordButton: some View {
         Button {
-            state = .timer
-            startTimer()
+            recorderManager.startRecordingFlow(recordMaxTime: video.totalDuration)
         } label: {
             Image(systemName: "mic.fill")
                 .font(.headline.weight(.semibold))
@@ -98,10 +77,9 @@ extension RecorderButtonView {
 
     private var timerButton: some View {
         Button {
-            state = .empty
-            stopTimer()
+            recorderManager.cancelRecordingFlow()
         } label: {
-            Text("\(timeRemaining)")
+            Text("\(recorderManager.countdownRemaining)")
                 .font(.subheadline.bold())
                 .frame(width: 44, height: 44)
                 .circleControl(prominent: true, tint: Theme.secondary)
@@ -111,8 +89,7 @@ extension RecorderButtonView {
 
     private var stopButton: some View {
         Button {
-            state = .empty
-            recorderManager.stopRecording()
+            recorderManager.cancelRecordingFlow()
         } label: {
             Image(systemName: "stop.fill")
                 .font(.headline.weight(.semibold))
@@ -121,27 +98,6 @@ extension RecorderButtonView {
                 .circleControl(prominent: true, tint: Theme.destructive)
         }
         .buttonStyle(.plain)
-    }
-
-    // MARK: - Private Methods
-
-    private func startTimer() {
-        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
-            Task { @MainActor in
-                timeRemaining -= 1
-                if timeRemaining == 0 {
-                    state = .record
-                    stopTimer()
-                    recorderManager.startRecording(recordMaxTime: video.totalDuration)
-                }
-            }
-        }
-    }
-
-    private func stopTimer() {
-        timeRemaining = 3
-        timer?.invalidate()
-        timer = nil
     }
 
 }

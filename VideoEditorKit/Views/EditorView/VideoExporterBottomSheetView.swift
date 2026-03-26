@@ -27,19 +27,18 @@ struct VideoExporterBottomSheetView: View {
 
     var body: some View {
         @Bindable var bindableViewModel = viewModel
-        GeometryReader { proxy in
+        GeometryReader { _ in
             SheetView($isPresented, bgOpacity: 0.1) {
                 VStack(alignment: .leading) {
-                    switch viewModel.renderState {
-                    case .unknown, .failed:
-                        list
-                    case .loading, .loaded:
+                    if viewModel.shouldShowLoadingView {
                         loadingView
+                    } else {
+                        list
                     }
                 }
             }
             .safeAreaPadding()
-            .disabled(viewModel.renderState == .loading)
+            .disabled(viewModel.isInteractionDisabled)
             .animation(.easeInOut, value: viewModel.renderState)
             .alert("Unable to export video", isPresented: $bindableViewModel.showAlert) {}
         }
@@ -71,7 +70,7 @@ extension VideoExporterBottomSheetView {
 
             qualityListSection
 
-            if case .failed = viewModel.renderState {
+            if viewModel.shouldShowFailureMessage {
                 Text("The video could not be exported. Check the current edit state and try again.")
                     .font(.footnote)
                     .foregroundStyle(Theme.secondary)
@@ -101,7 +100,7 @@ extension VideoExporterBottomSheetView {
         VStack(spacing: 12) {
             ForEach(VideoQuality.allCases.reversed(), id: \.self) { type in
                 Button {
-                    viewModel.selectedQuality = type
+                    viewModel.selectQuality(type)
                 } label: {
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
@@ -115,17 +114,17 @@ extension VideoExporterBottomSheetView {
                         Spacer()
 
                         VStack(alignment: .trailing, spacing: 4) {
-                            if let value = type.calculateVideoSize(duration: viewModel.video.totalDuration) {
-                                Text("\(value.formatted(.number.precision(.fractionLength(1))))Mb")
+                            if let value = viewModel.estimatedVideoSizeText(for: type) {
+                                Text(value)
                                     .font(.subheadline.weight(.semibold))
                             }
 
                             Image(
-                                systemName: viewModel.selectedQuality == type ? "checkmark.circle.fill" : "circle"
+                                systemName: viewModel.isSelectedQuality(type) ? "checkmark.circle.fill" : "circle"
                             )
                             .font(.headline)
                             .foregroundStyle(
-                                viewModel.selectedQuality == type
+                                viewModel.isSelectedQuality(type)
                                     ? Theme.primary : Theme.secondary
                             )
                         }
@@ -133,8 +132,8 @@ extension VideoExporterBottomSheetView {
                     .padding(14)
                     .card(
                         cornerRadius: 22,
-                        prominent: viewModel.selectedQuality == type,
-                        tint: viewModel.selectedQuality == type ? Theme.accent : Theme.secondary
+                        prominent: viewModel.isSelectedQuality(type),
+                        tint: viewModel.isSelectedQuality(type) ? Theme.accent : Theme.secondary
                     )
                 }
                 .buttonStyle(.plain)
@@ -144,7 +143,7 @@ extension VideoExporterBottomSheetView {
 
     private var exportButton: some View {
         Button {
-            mainAction()
+            viewModel.exportVideo(handleExportedVideo)
         } label: {
             buttonLabel("Export Video", icon: "wand.and.stars")
         }
@@ -165,12 +164,9 @@ extension VideoExporterBottomSheetView {
         .capsuleControl(prominent: true, tint: Theme.accent)
     }
 
-    private func mainAction() {
-        Task {
-            guard let url = await viewModel.export() else { return }
-            isPresented = false
-            onExported(url)
-        }
+    private func handleExportedVideo(_ url: URL) {
+        isPresented = false
+        onExported(url)
     }
 
 }

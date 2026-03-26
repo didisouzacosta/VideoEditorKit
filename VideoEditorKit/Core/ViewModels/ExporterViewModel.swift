@@ -7,6 +7,7 @@
 
 import Foundation
 import Observation
+import SwiftUI
 
 @MainActor
 @Observable
@@ -25,6 +26,26 @@ final class ExporterViewModel {
     var showAlert = false
     var progressTimer: TimeInterval = .zero
     var selectedQuality: VideoQuality = .medium
+    var isInteractionDisabled: Bool {
+        renderState == .loading
+    }
+
+    var shouldShowLoadingView: Bool {
+        switch renderState {
+        case .loading, .loaded:
+            true
+        case .unknown, .failed:
+            false
+        }
+    }
+
+    var shouldShowFailureMessage: Bool {
+        if case .failed = renderState {
+            return true
+        }
+
+        return false
+    }
 
     enum ExportState: Identifiable, Equatable {
 
@@ -68,6 +89,26 @@ final class ExporterViewModel {
             renderState = .failed(error)
             return nil
         }
+    }
+
+    func exportVideo(_ onExported: @escaping (URL) -> Void) {
+        Task { [weak self] in
+            guard let self, let url = await self.export() else { return }
+            onExported(url)
+        }
+    }
+
+    func selectQuality(_ quality: VideoQuality) {
+        selectedQuality = quality
+    }
+
+    func isSelectedQuality(_ quality: VideoQuality) -> Bool {
+        selectedQuality == quality
+    }
+
+    func estimatedVideoSizeText(for quality: VideoQuality) -> String? {
+        guard let value = quality.calculateVideoSize(duration: video.totalDuration) else { return nil }
+        return "\(value.formatted(.number.precision(.fractionLength(1))))Mb"
     }
 
     // MARK: - Private Methods

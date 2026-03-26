@@ -9,10 +9,6 @@ import SwiftUI
 
 struct FiltersView: View {
 
-    // MARK: - States
-
-    @State private var selectedFilterName: String? = nil
-
     // MARK: - Private Properties
 
     private let viewModel: FiltersViewModel
@@ -26,9 +22,9 @@ struct FiltersView: View {
                 resetButton
                 ForEach(viewModel.images) { filterImage in
                     Button {
-                        selectedFilterName = filterImage.filter.name
+                        viewModel.selectFilter(filterImage.filter.name)
                     } label: {
-                        imageView(filterImage.image, isSelected: selectedFilterName == filterImage.filter.name)
+                        imageView(filterImage.image, isSelected: viewModel.isSelected(filterImage.filter.name))
                     }
                     .buttonStyle(.plain)
                 }
@@ -38,7 +34,7 @@ struct FiltersView: View {
         }
         .scrollIndicators(.hidden)
         .padding(.horizontal, -16)
-        .onChange(of: selectedFilterName) { _, newValue in
+        .onChange(of: viewModel.selectedFilterName) { _, newValue in
             onChangeFilter(newValue)
         }
     }
@@ -50,7 +46,7 @@ struct FiltersView: View {
         viewModel: FiltersViewModel,
         onChangeFilter: @escaping (String?) -> Void
     ) {
-        _selectedFilterName = State(initialValue: selectedFilterName)
+        viewModel.selectFilter(selectedFilterName)
 
         self.viewModel = viewModel
         self.onChangeFilter = onChangeFilter
@@ -64,11 +60,11 @@ extension FiltersView {
 
     private var resetButton: some View {
         Group {
-            if let image = viewModel.image {
+            if viewModel.hasPreviewImage, let image = viewModel.image {
                 Button {
-                    selectedFilterName = nil
+                    viewModel.selectFilter(nil)
                 } label: {
-                    imageView(image, isSelected: selectedFilterName == nil)
+                    imageView(image, isSelected: viewModel.isSelected(nil))
                 }
                 .buttonStyle(.plain)
                 .padding(.trailing, 14)

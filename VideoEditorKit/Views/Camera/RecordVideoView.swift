@@ -31,11 +31,7 @@ struct RecordVideoView: View {
             }
             .safeAreaInset(edge: .bottom) {
                 Button {
-                    if cameraManager.isRecording {
-                        cameraManager.stopRecord()
-                    } else {
-                        cameraManager.startRecording()
-                    }
+                    cameraManager.toggleRecording()
                 } label: {
                     Circle()
                         .fill(cameraManager.isRecording ? Theme.primary : Theme.destructive)
@@ -67,7 +63,7 @@ struct RecordVideoView: View {
         }
         .preferredColorScheme(.dark)
         .onChange(of: cameraManager.finalURL) { _, newValue in
-            if let url = newValue {
+            if newValue != nil, let url = cameraManager.consumeFinalURL() {
                 onFinishRecord(url)
                 dismiss()
             }

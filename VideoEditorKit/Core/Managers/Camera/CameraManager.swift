@@ -71,6 +71,14 @@ final class CameraManager: NSObject, @unchecked Sendable {
         videoOutput.stopRecording()
     }
 
+    func toggleRecording() {
+        if isRecording {
+            stopRecord()
+        } else {
+            startRecording()
+        }
+    }
+
     func startRecording() {
         ///Temporary URL for recording Video
         recordedDuration = .zero
@@ -224,6 +232,18 @@ extension CameraManager {
                 self?.onTimerFires()
             }
         }
+    }
+
+}
+
+extension CameraManager {
+
+    // MARK: - Public Methods
+
+    func consumeFinalURL() -> URL? {
+        let url = finalURL
+        finalURL = nil
+        return url
     }
 
 }

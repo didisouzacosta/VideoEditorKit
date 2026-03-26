@@ -20,6 +20,10 @@ final class FiltersViewModel {
     var colorCorrection = ColorCorrection()
     var value = 1.0
     var image: UIImage?
+    var selectedFilterName: String?
+    var hasPreviewImage: Bool {
+        image != nil
+    }
 
     // MARK: - Public Methods
 
@@ -45,6 +49,24 @@ final class FiltersViewModel {
             return FilteredImage(image: UIImage(cgImage: cgImage), filter: filter)
         }
         .sorted { $0.filter.name < $1.filter.name }
+    }
+
+    func loadFiltersIfNeeded(from image: UIImage?) {
+        guard let image else { return }
+        loadFilters(for: image)
+    }
+
+    func selectFilter(_ filterName: String?) {
+        selectedFilterName = filterName
+    }
+
+    func isSelected(_ filterName: String?) -> Bool {
+        selectedFilterName == filterName
+    }
+
+    func sync(with video: Video) {
+        colorCorrection = video.colorCorrection
+        selectedFilterName = video.filterName
     }
 
 }

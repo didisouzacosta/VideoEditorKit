@@ -212,17 +212,14 @@ extension PlayerHolderView {
 @MainActor
 struct PlayerControl: View {
 
-    // MARK: - Bindables
-
-    @Bindable private var editorVM: EditorViewModel
-    @Bindable private var videoPlayer: VideoPlayerManager
-
     // MARK: - Bindings
 
     @Binding private var isFullScreen: Bool
 
     // MARK: - Private Properties
 
+    private let editorVM: EditorViewModel
+    private let videoPlayer: VideoPlayerManager
     private let recorderManager: AudioRecorderManager
     private let textEditor: TextEditorViewModel
 
@@ -233,7 +230,7 @@ struct PlayerControl: View {
         VStack(spacing: 32) {
             playSection
 
-            if editorVM.currentVideo != nil {
+            if editorVM.hasCurrentVideo {
                 timeLineControlSection
             }
         }
@@ -299,8 +296,11 @@ struct PlayerControl: View {
 
     private func trimSection(_ video: Video) -> some View {
         ThumbnailsSliderView(
-            $videoPlayer.currentTime,
-            video: $editorVM.currentVideo,
+            videoPlayer.currentTimeBinding(),
+            video: Binding(
+                get: { editorVM.currentVideo },
+                set: { editorVM.currentVideo = $0 }
+            ),
             isChangeState: video.isAppliedTool(for: .cut)
         ) { newRange in
             videoPlayer.pause()

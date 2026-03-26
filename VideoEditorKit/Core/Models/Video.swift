@@ -31,6 +31,10 @@ struct Video: Identifiable, @unchecked Sendable {
     var textBoxes: [TextBox] = []
     var audio: Audio?
     var volume: Float = 1.0
+    var hasRecordedAudio: Bool {
+        audio != nil
+    }
+
     var totalDuration: Double {
         rangeDuration.upperBound - rangeDuration.lowerBound
     }

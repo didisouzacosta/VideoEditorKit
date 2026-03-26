@@ -14,29 +14,24 @@ struct RootView: View {
 
     // MARK: - States
 
-    @State private var item: PhotosPickerItem?
-    @State private var showLoader = false
-    @State private var editorDestination: EditorDestination?
-    @State private var editedVideoURL: URL?
-    @State private var resultPlayer = AVPlayer()
-    @State private var sessionSourceURL: URL?
-    @State private var itemLoadTask: Task<Void, Never>?
+    @State private var viewModel = RootViewModel()
 
     // MARK: - Body
 
     var body: some View {
+        @Bindable var bindableViewModel = viewModel
         NavigationStack {
             ZStack {
                 Theme.rootBackground
                     .ignoresSafeArea()
 
-                if showLoader {
+                if viewModel.showLoader {
                     loadingView
                 } else {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 24) {
                             heroSection
-                            selectVideoCard
+                            selectVideoCard($bindableViewModel.selectedItem)
                             resultSection
                         }
                         .padding(.horizontal, 20)
@@ -46,28 +41,17 @@ struct RootView: View {
                 }
             }
             .navigationTitle("Example Mode")
-            .onDisappear {
-                itemLoadTask?.cancel()
-                resultPlayer.pause()
-            }
-            .sheet(item: $editorDestination, onDismiss: resetPickerSelection) { destination in
+            .onDisappear(perform: viewModel.handleViewDisappear)
+            .sheet(item: $bindableViewModel.editorDestination, onDismiss: viewModel.handleEditorDismiss) {
+                destination in
                 MainEditorView(destination.url) { exportedURL in
-                    replaceEditedVideo(with: exportedURL)
+                    viewModel.handleExportedVideo(exportedURL)
                 }
             }
-            .onChange(of: item) { _, newItem in
-                loadPhotosItem(newItem)
+            .onChange(of: viewModel.selectedItem) { _, newItem in
+                viewModel.loadSelectedItem(newItem)
             }
         }
-    }
-
-    // MARK: - Private Properties
-
-    private struct EditorDestination: Hashable, Identifiable {
-
-        let id = UUID()
-        let url: URL
-
     }
 
 }
@@ -119,8 +103,8 @@ extension RootView {
         .card()
     }
 
-    private var selectVideoCard: some View {
-        PhotosPicker(selection: $item, matching: .videos) {
+    private func selectVideoCard(_ selectedItem: Binding<PhotosPickerItem?>) -> some View {
+        PhotosPicker(selection: selectedItem, matching: .videos) {
             HStack(alignment: .center, spacing: 16) {
                 Image(systemName: "video.badge.plus")
                     .font(.system(size: 22, weight: .semibold))
@@ -154,9 +138,9 @@ extension RootView {
             Text("Edited Result")
                 .font(.headline)
 
-            if let editedVideoURL {
+            if let editedVideoURL = viewModel.editedVideoURL {
                 VStack(alignment: .leading, spacing: 12) {
-                    PlayerView(resultPlayer)
+                    PlayerView(viewModel.resultPlayer)
                         .frame(height: 260)
                         .clipShape(.rect(cornerRadius: 24))
 
@@ -182,59 +166,6 @@ extension RootView {
     }
 
     // MARK: - Private Methods
-
-    private func loadPhotosItem(_ newItem: PhotosPickerItem?) {
-        itemLoadTask?.cancel()
-
-        guard let newItem else {
-            showLoader = false
-            return
-        }
-
-        itemLoadTask = Task {
-            showLoader = true
-            defer {
-                showLoader = false
-                itemLoadTask = nil
-            }
-
-            do {
-                if let video = try await newItem.loadTransferable(type: VideoItem.self), !Task.isCancelled {
-                    prepareEditorSession(with: video.url)
-                }
-            } catch {
-                assertionFailure("Failed to load selected video: \(error.localizedDescription)")
-                resetPickerSelection()
-            }
-        }
-    }
-
-    private func prepareEditorSession(with url: URL) {
-        resultPlayer.pause()
-        resultPlayer.replaceCurrentItem(with: nil)
-        cleanupFileIfNeeded(sessionSourceURL)
-        cleanupFileIfNeeded(editedVideoURL)
-        editedVideoURL = nil
-        sessionSourceURL = url
-        resetPickerSelection()
-        editorDestination = .init(url: url)
-    }
-
-    private func replaceEditedVideo(with url: URL) {
-        cleanupFileIfNeeded(editedVideoURL)
-        editedVideoURL = url
-        resultPlayer.replaceCurrentItem(with: AVPlayerItem(url: url))
-        resultPlayer.seek(to: .zero)
-    }
-
-    private func resetPickerSelection() {
-        item = nil
-    }
-
-    private func cleanupFileIfNeeded(_ url: URL?) {
-        guard let url else { return }
-        FileManager.default.removeIfExists(for: url)
-    }
 
 }
 

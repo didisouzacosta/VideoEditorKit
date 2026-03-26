@@ -136,6 +136,13 @@ final class VideoPlayerManager {
         scrubState = .scrubEnded(clampedTime)
     }
 
+    func currentTimeBinding() -> Binding<Double> {
+        Binding(
+            get: { self.currentTime },
+            set: { self.currentTime = $0 }
+        )
+    }
+
     // MARK: - Private Methods
 
     private func handleLoadStateChange(_ loadState: LoadState) {

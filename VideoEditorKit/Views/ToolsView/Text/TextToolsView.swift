@@ -27,12 +27,8 @@ struct TextToolsView: View {
         }
         .scrollIndicators(.hidden)
         .animation(.easeIn(duration: 0.2), value: editor.textBoxes)
-        .onAppear {
-            editor.selectedTextBox = editor.textBoxes.first
-        }
-        .onDisappear {
-            editor.selectedTextBox = nil
-        }
+        .onAppear(perform: editor.handleTextToolAppear)
+        .onDisappear(perform: editor.handleTextToolDisappear)
     }
 
     // MARK: - Initializer
@@ -50,7 +46,7 @@ extension TextToolsView {
 
     private var addTextButton: some View {
         Button {
-            editor.openTextEditor(isEdit: false, timeRange: video.rangeDuration)
+            editor.addText(timeRange: video.rangeDuration)
         } label: {
             ZStack {
                 Text("+T")
@@ -67,11 +63,7 @@ extension TextToolsView {
     private func cellView(_ textBox: TextBox) -> some View {
         let isSelected = editor.isSelected(textBox.id)
         return Button {
-            if isSelected {
-                editor.openTextEditor(isEdit: true, textBox)
-            } else {
-                editor.selectTextBox(textBox)
-            }
+            editor.handleTextBoxTap(textBox)
         } label: {
             ZStack {
                 Text(textBox.text)

@@ -11,10 +11,6 @@ import SwiftUI
 @MainActor
 struct TextEditorView: View {
 
-    // MARK: - Bindables
-
-    @Bindable private var viewModel: TextEditorViewModel
-
     // MARK: - States
 
     @State private var textHeight: CGFloat = 100
@@ -22,11 +18,13 @@ struct TextEditorView: View {
 
     // MARK: - Private Properties
 
+    private let viewModel: TextEditorViewModel
     private let onSave: ([TextBox]) -> Void
 
     // MARK: - Body
 
     var body: some View {
+        @Bindable var bindableViewModel = viewModel
         NavigationStack {
             ZStack {
                 Theme.scrim
@@ -35,19 +33,19 @@ struct TextEditorView: View {
                 ScrollView {
                     VStack(spacing: 24) {
                         SystemColorSwatchPicker(
-                            $viewModel.currentTextBox.fontColor,
+                            $bindableViewModel.currentTextBox.fontColor,
                             title: "Text color",
                             options: SystemColorPalette.textForegrounds
                         )
 
                         SystemColorSwatchPicker(
-                            $viewModel.currentTextBox.bgColor,
+                            $bindableViewModel.currentTextBox.bgColor,
                             title: "Background color",
                             options: SystemColorPalette.textBackgrounds
                         )
 
                         TextView(
-                            $viewModel.currentTextBox,
+                            $bindableViewModel.currentTextBox,
                             isFirstResponder: $isFocused,
                             calculatedHeight: $textHeight,
                             minHeight: textHeight
@@ -98,8 +96,8 @@ struct TextEditorView: View {
                         .capsuleControl(prominent: true, tint: Theme.accent)
                 }
                 .buttonStyle(.plain)
-                .opacity(viewModel.currentTextBox.text.isEmpty ? 0.5 : 1)
-                .disabled(viewModel.currentTextBox.text.isEmpty)
+                .opacity(viewModel.saveButtonOpacity)
+                .disabled(viewModel.isSaveDisabled)
                 .padding(.horizontal, 20)
                 .padding(.bottom, 12)
             }

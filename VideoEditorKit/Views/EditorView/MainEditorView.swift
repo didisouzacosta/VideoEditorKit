@@ -17,10 +17,6 @@ struct MainEditorView: View {
     // MARK: - States
 
     @State private var isFullScreen = false
-    @State private var showVideoQualitySheet = false
-    @State private var showRecordView = false
-    @State private var exportSheetTask: Task<Void, Never>?
-    @State private var hasLoadedSourceVideo = false
     @State private var editorVM = EditorViewModel()
     @State private var audioRecorder = AudioRecorderManager()
     @State private var videoPlayer = VideoPlayerManager()
@@ -34,6 +30,7 @@ struct MainEditorView: View {
     // MARK: - Body
 
     var body: some View {
+        @Bindable var bindableEditorVM = editorVM
         NavigationStack {
             GeometryReader { proxy in
                 VStack(spacing: 32) {
@@ -70,19 +67,24 @@ struct MainEditorView: View {
 
                     ToolbarItem(placement: .topBarTrailing) {
                         Button {
-                            presentExporter()
+                            editorVM.presentExporter()
                         } label: {
                             Label("Export", systemImage: "square.and.arrow.up.fill")
                         }
                     }
                 }
                 .onAppear {
-                    setVideoIfNeeded(proxy.size)
+                    editorVM.setSourceVideoIfNeeded(
+                        sourceVideoURL,
+                        availableSize: proxy.size,
+                        isFullScreen: isFullScreen,
+                        videoPlayer: videoPlayer
+                    )
                 }
             }
 
-            if showVideoQualitySheet, let video = editorVM.currentVideo {
-                VideoExporterBottomSheetView($showVideoQualitySheet, video: video) {
+            if let video = editorVM.exportVideo {
+                VideoExporterBottomSheetView($bindableEditorVM.showVideoQualitySheet, video: video) {
                     exportedURL in
                     videoPlayer.pause()
                     onExported(exportedURL)
@@ -90,18 +92,16 @@ struct MainEditorView: View {
                 }
             }
         }
-        .blur(radius: textEditor.showEditor ? 10 : 0)
+        .blur(radius: textEditor.editorBlurRadius)
         .overlay {
-            if textEditor.showEditor {
+            if textEditor.isPresentingEditor {
                 TextEditorView(textEditor, onSave: editorVM.setText)
             }
         }
-        .onDisappear {
-            cancelDeferredTasks()
-        }
-        .fullScreenCover(isPresented: $showRecordView) {
+        .onDisappear(perform: editorVM.cancelDeferredTasks)
+        .fullScreenCover(isPresented: $bindableEditorVM.showRecordView) {
             RecordVideoView { url in
-                videoPlayer.loadState = .loaded(url)
+                editorVM.handleRecordedVideo(url, videoPlayer: videoPlayer)
             }
         }
     }
@@ -111,47 +111,6 @@ struct MainEditorView: View {
     init(_ sourceVideoURL: URL? = nil, onExported: @escaping (URL) -> Void = { _ in }) {
         self.sourceVideoURL = sourceVideoURL
         self.onExported = onExported
-    }
-
-}
-
-extension MainEditorView {
-
-    // MARK: - Private Methods
-
-    private func setVideoIfNeeded(_ availableSize: CGSize) {
-        guard !hasLoadedSourceVideo, let sourceVideoURL else { return }
-        hasLoadedSourceVideo = true
-        videoPlayer.loadState = .loaded(sourceVideoURL)
-        editorVM.setNewVideo(sourceVideoURL, containerSize: playerContainerSize(in: availableSize))
-    }
-
-    private func playerHeight(in availableSize: CGSize) -> CGFloat {
-        let heightRatio = isFullScreen ? 0.62 : 0.40
-        let proposedHeight = availableSize.height * heightRatio
-        return max(220, proposedHeight)
-    }
-
-    private func playerContainerSize(in availableSize: CGSize) -> CGSize {
-        CGSize(
-            width: max(availableSize.width - 32, 1),
-            height: playerHeight(in: availableSize)
-        )
-    }
-
-    private func presentExporter() {
-        exportSheetTask?.cancel()
-        editorVM.selectedTools = nil
-        exportSheetTask = Task {
-            try? await Task.sleep(for: .milliseconds(200))
-            guard !Task.isCancelled else { return }
-            showVideoQualitySheet.toggle()
-        }
-    }
-
-    private func cancelDeferredTasks() {
-        exportSheetTask?.cancel()
-        exportSheetTask = nil
     }
 
 }

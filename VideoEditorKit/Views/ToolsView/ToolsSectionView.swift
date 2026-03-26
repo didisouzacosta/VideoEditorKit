@@ -6,16 +6,10 @@
 //
 
 import AVKit
-import Observation
 import SwiftUI
 
 @MainActor
 struct ToolsSectionView: View {
-
-    // MARK: - Bindables
-
-    @Bindable private var videoPlayer: VideoPlayerManager
-    @Bindable private var editorVM: EditorViewModel
 
     // MARK: - States
 
@@ -23,6 +17,8 @@ struct ToolsSectionView: View {
 
     // MARK: - Private Properties
 
+    private let videoPlayer: VideoPlayerManager
+    private let editorVM: EditorViewModel
     private let textEditor: TextEditorViewModel
 
     // MARK: - Body
@@ -35,11 +31,11 @@ struct ToolsSectionView: View {
                         tool.title, image: tool.image,
                         isChange: editorVM.currentVideo?.isAppliedTool(for: tool) ?? false
                     ) {
-                        editorVM.selectedTools = tool
+                        editorVM.selectTool(tool)
                     }
                 }
             }
-            .opacity(editorVM.selectedTools != nil ? 0 : 1)
+            .opacity(editorVM.toolGridOpacity)
 
             if let toolState = editorVM.selectedTools, let video = editorVM.currentVideo {
                 bottomSheet(toolState, video)
@@ -48,37 +44,20 @@ struct ToolsSectionView: View {
         }
         .animation(.easeIn(duration: 0.15), value: editorVM.selectedTools)
         .onChange(of: editorVM.currentVideo) { _, newValue in
-            if let video = newValue {
-                filtersVM.colorCorrection = video.colorCorrection
-                textEditor.textBoxes = video.textBoxes
-            }
+            editorVM.handleCurrentVideoChange(
+                newValue,
+                filtersViewModel: filtersVM,
+                textEditor: textEditor
+            )
         }
-        .onChange(of: editorVM.currentVideo?.thumbnailsImages.count ?? 0) { _, newValue in
-            guard newValue > 0,
-                let image = editorVM.currentVideo?.thumbnailsImages.first?.image
-            else {
-                return
-            }
-
-            filtersVM.loadFilters(for: image)
+        .onChange(of: editorVM.currentVideo?.thumbnailsImages.count ?? 0) { _, _ in
+            editorVM.handleThumbnailImagesChange(filtersViewModel: filtersVM)
         }
         .onChange(of: textEditor.selectedTextBox) { _, box in
-            if box != nil {
-                if editorVM.selectedTools != .text {
-                    editorVM.selectedTools = .text
-                }
-            } else {
-                editorVM.selectedTools = nil
-            }
+            editorVM.handleSelectedTextBoxChange(box)
         }
         .onChange(of: editorVM.selectedTools) { _, newValue in
-            if newValue == .text, textEditor.textBoxes.isEmpty {
-                textEditor.openTextEditor(isEdit: false, timeRange: editorVM.currentVideo?.rangeDuration)
-            }
-
-            if newValue == nil {
-                editorVM.setText(textEditor.textBoxes)
-            }
+            editorVM.handleSelectedToolChange(newValue, textEditor: textEditor)
         }
     }
 
@@ -110,8 +89,7 @@ extension ToolsSectionView {
             switch tool {
             case .speed:
                 VideoSpeedSlider(Double(video.rate), isChangeState: isAppliedTool) { rate in
-                    videoPlayer.pause()
-                    editorVM.updateRate(rate: rate)
+                    editorVM.handleRateChange(rate, videoPlayer: videoPlayer)
                 }
             case .crop:
                 CropSheetView(editorVM)
@@ -121,24 +99,20 @@ extension ToolsSectionView {
                 TextToolsView(video, editor: textEditor)
             case .filters:
                 FiltersView(video.filterName, viewModel: filtersVM) { filterName in
-                    if let filterName {
-                        videoPlayer.setFilters(
-                            mainFilter: CIFilter(name: filterName), colorCorrection: filtersVM.colorCorrection)
-                    } else {
-                        videoPlayer.removeFilter()
-                    }
-                    editorVM.setFilter(filterName)
+                    editorVM.handleFilterChange(
+                        filterName,
+                        filtersViewModel: filtersVM,
+                        videoPlayer: videoPlayer
+                    )
                 }
             case .corrections:
                 CorrectionsToolView($filtersVM.colorCorrection) { corrections in
-                    videoPlayer.setFilters(
-                        mainFilter: CIFilter(name: video.filterName ?? ""), colorCorrection: corrections)
-                    editorVM.setCorrections(corrections)
+                    editorVM.handleCorrectionsChange(corrections, videoPlayer: videoPlayer)
                 }
             case .frames:
                 FramesToolView(
-                    $editorVM.frames.frameColor,
-                    scaleValue: $editorVM.frames.scaleValue,
+                    editorVM.frameColorBinding(),
+                    scaleValue: editorVM.frameScaleBinding(),
                     onChange: editorVM.setFrames)
             case .cut:
                 EmptyView()
@@ -158,7 +132,7 @@ extension ToolsSectionView {
     private func sheetHeader(_ tool: ToolEnum) -> some View {
         HStack {
             Button {
-                editorVM.selectedTools = nil
+                editorVM.closeSelectedTool(textEditor: textEditor)
             } label: {
                 Image(systemName: "chevron.down")
                     .font(.headline.weight(.semibold))
@@ -168,7 +142,7 @@ extension ToolsSectionView {
             .buttonStyle(.plain)
 
             Spacer()
-            if tool != .filters, tool != .audio, tool != .text {
+            if editorVM.canReset(tool) {
                 Button {
                     editorVM.reset()
                 } label: {
@@ -179,10 +153,9 @@ extension ToolsSectionView {
                         .capsuleControl()
                 }
                 .buttonStyle(.plain)
-            } else if !editorVM.isSelectVideo {
+            } else if editorVM.canRemoveAudio(for: tool) {
                 Button {
-                    videoPlayer.pause()
-                    editorVM.removeAudio()
+                    editorVM.removeAudio(using: videoPlayer)
                 } label: {
                     Image(systemName: "trash.fill")
                         .font(.headline.weight(.semibold))

@@ -18,17 +18,54 @@ final class AudioRecorderManager {
     private(set) var recordState: AudioRecordEnum = .empty
     private(set) var finishedAudio: Audio?
     private(set) var currentRecordTime: TimeInterval = 0
+    private(set) var controlState: ControlState = .empty
+    private(set) var countdownRemaining = 3
 
     enum AudioRecordEnum: Int {
         case recording, empty, error
+    }
+
+    enum ControlState: Int {
+        case empty, countdown, record
     }
 
     // MARK: - Private Properties
 
     private var audioRecorder: AVAudioRecorder?
     private var timer: Timer?
+    private var countdownTimer: Timer?
 
     // MARK: - Public Methods
+
+    func startRecordingFlow(recordMaxTime: Double) {
+        stopCountdown()
+        countdownRemaining = 3
+        controlState = .countdown
+
+        countdownTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                self.countdownRemaining -= 1
+
+                if self.countdownRemaining == 0 {
+                    self.stopCountdown()
+                    self.startRecording(recordMaxTime: recordMaxTime)
+                }
+            }
+        }
+    }
+
+    func cancelRecordingFlow() {
+        if controlState == .countdown {
+            stopCountdown()
+            controlState = .empty
+            return
+        }
+
+        if controlState == .record {
+            stopRecording()
+        }
+    }
 
     func startRecording(recordMaxTime: Double = 10) {
         AVAudioSession.sharedInstance().configureRecordAudioSessionCategory()
@@ -51,6 +88,7 @@ final class AudioRecorderManager {
             recorder.prepareToRecord()
             recorder.record()
             recordState = .recording
+            controlState = .record
             timer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { [weak self] _ in
                 Task { @MainActor [weak self] in
                     guard let self = self else { return }
@@ -62,6 +100,7 @@ final class AudioRecorderManager {
             }
         } catch {
             recordState = .error
+            controlState = .empty
             assertionFailure("Failed to set up audio recording: \(error.localizedDescription)")
         }
     }
@@ -70,6 +109,7 @@ final class AudioRecorderManager {
         guard let audioRecorder else { return }
         audioRecorder.stop()
         recordState = .empty
+        controlState = .empty
         finishedAudio = .init(url: audioRecorder.url, duration: currentRecordTime)
         resetTimer()
     }
@@ -78,6 +118,7 @@ final class AudioRecorderManager {
         guard let audioRecorder else { return }
         audioRecorder.stop()
         recordState = .empty
+        controlState = .empty
         resetTimer()
         FileManager.default.removeIfExists(for: audioRecorder.url)
     }
@@ -88,6 +129,12 @@ final class AudioRecorderManager {
         timer?.invalidate()
         timer = nil
         currentRecordTime = 0
+    }
+
+    private func stopCountdown() {
+        countdownTimer?.invalidate()
+        countdownTimer = nil
+        countdownRemaining = 3
     }
 
 }

@@ -7,6 +7,7 @@
 
 import Foundation
 import Observation
+import SwiftUI
 
 @MainActor
 @Observable
@@ -18,6 +19,25 @@ final class TextEditorViewModel {
     var showEditor = false
     var currentTextBox = TextBox()
     var selectedTextBox: TextBox?
+    var isSaveEnabled: Bool {
+        !currentTextBox.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    var saveButtonOpacity: Double {
+        isSaveEnabled ? 1 : 0.5
+    }
+
+    var isSaveDisabled: Bool {
+        !isSaveEnabled
+    }
+
+    var isPresentingEditor: Bool {
+        showEditor
+    }
+
+    var editorBlurRadius: CGFloat {
+        showEditor ? 10 : 0
+    }
 
     // MARK: - Private Properties
 
@@ -87,6 +107,103 @@ final class TextEditorViewModel {
         }
         selectedTextBox = currentTextBox
         cancelTextEditor()
+    }
+
+    func load(textBoxes: [TextBox]) {
+        self.textBoxes = textBoxes
+    }
+
+    func prepareForToolPresentation(timeRange: ClosedRange<Double>?) {
+        if textBoxes.isEmpty {
+            openTextEditor(isEdit: false, timeRange: timeRange)
+        } else if selectedTextBox == nil {
+            selectedTextBox = textBoxes.first
+        }
+    }
+
+    func handleTextToolAppear() {
+        if selectedTextBox == nil {
+            selectedTextBox = textBoxes.first
+        }
+    }
+
+    func handleTextToolDisappear() {
+        selectedTextBox = nil
+    }
+
+    func addText(timeRange: ClosedRange<Double>) {
+        openTextEditor(isEdit: false, timeRange: timeRange)
+    }
+
+    func handleTextBoxTap(_ textBox: TextBox) {
+        if isSelected(textBox.id) {
+            openTextEditor(isEdit: true, textBox)
+        } else {
+            selectTextBox(textBox)
+        }
+    }
+
+    func attributedText(for textBox: TextBox) -> AttributedString {
+        var result = AttributedString(textBox.text)
+        result.font = .systemFont(ofSize: textBox.fontSize, weight: .medium)
+        result.foregroundColor = UIColor(textBox.fontColor)
+        result.backgroundColor = UIColor(textBox.bgColor)
+        return result
+    }
+
+    func handleMagnificationChanged(_ value: CGFloat) {
+        guard let box = selectedTextBox else { return }
+
+        let lastFontSize = textBoxes.first(where: { $0.id == box.id })?.lastFontSize ?? box.lastFontSize
+        let updatedFontSize = (value * 10) + lastFontSize
+        updateTextBox(box.id) { textBox in
+            textBox.fontSize = updatedFontSize
+        }
+    }
+
+    func handleMagnificationEnded(_ value: CGFloat) {
+        guard let box = selectedTextBox else { return }
+
+        let lastFontSize = textBoxes.first(where: { $0.id == box.id })?.lastFontSize ?? box.lastFontSize
+        let updatedFontSize = (value * 10) + lastFontSize
+        updateTextBox(box.id) { textBox in
+            textBox.fontSize = updatedFontSize
+            textBox.lastFontSize = updatedFontSize
+        }
+    }
+
+    func handleDragChanged(for id: UUID, translation: CGSize) {
+        guard isSelected(id) else { return }
+        guard let textBox = textBoxes.first(where: { $0.id == id }) else { return }
+
+        let newTranslation = CGSize(
+            width: translation.width + textBox.lastOffset.width,
+            height: translation.height + textBox.lastOffset.height
+        )
+        updateTextBox(id) { box in
+            box.offset = newTranslation
+        }
+    }
+
+    func handleDragEnded(for id: UUID, translation: CGSize) {
+        guard isSelected(id) else { return }
+        guard let textBox = textBoxes.first(where: { $0.id == id }) else { return }
+
+        let settledOffset = CGSize(
+            width: translation.width + textBox.lastOffset.width,
+            height: translation.height + textBox.lastOffset.height
+        )
+        updateTextBox(id) { box in
+            box.offset = settledOffset
+            box.lastOffset = settledOffset
+        }
+    }
+
+    // MARK: - Private Methods
+
+    private func updateTextBox(_ id: UUID, update: (inout TextBox) -> Void) {
+        guard let index = textBoxes.firstIndex(where: { $0.id == id }) else { return }
+        update(&textBoxes[index])
     }
 
 }

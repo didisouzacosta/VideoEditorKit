@@ -23,28 +23,8 @@ struct TextOverlayView: View {
                 Color.secondary.opacity(0.001)
                     .simultaneousGesture(
                         MagnificationGesture()
-                            .onChanged({ value in
-                                if let box = viewModel.selectedTextBox {
-                                    let lastFontSize =
-                                        viewModel.textBoxes.first(where: { $0.id == box.id })?.lastFontSize
-                                        ?? box.lastFontSize
-                                    let updatedFontSize = (value * 10) + lastFontSize
-                                    updateTextBox(box.id) { textBox in
-                                        textBox.fontSize = updatedFontSize
-                                    }
-                                }
-                            }).onEnded({ value in
-                                if let box = viewModel.selectedTextBox {
-                                    let lastFontSize =
-                                        viewModel.textBoxes.first(where: { $0.id == box.id })?.lastFontSize
-                                        ?? box.lastFontSize
-                                    let updatedFontSize = (value * 10) + lastFontSize
-                                    updateTextBox(box.id) { textBox in
-                                        textBox.fontSize = updatedFontSize
-                                        textBox.lastFontSize = updatedFontSize
-                                    }
-                                }
-                            }))
+                            .onChanged(viewModel.handleMagnificationChanged)
+                            .onEnded(viewModel.handleMagnificationEnded))
             }
 
             ForEach(viewModel.textBoxes) { textBox in
@@ -57,7 +37,7 @@ struct TextOverlayView: View {
                             textBoxButtons(textBox)
                         }
 
-                        Text(createAttr(textBox))
+                        Text(viewModel.attributedText(for: textBox))
                             .padding(.horizontal, 14)
                             .padding(.vertical, 8)
                             .overlay {
@@ -67,48 +47,20 @@ struct TextOverlayView: View {
                                         .foregroundStyle(Theme.selection)
                                 }
                             }
-                            .onTapGesture {
-                                editOrSelectTextBox(textBox, isSelected)
-                            }
+                            .onTapGesture { viewModel.handleTextBoxTap(textBox) }
 
                     }
                     .offset(textBox.offset)
                     .simultaneousGesture(
                         DragGesture(minimumDistance: 1).onChanged({ value in
-                            guard isSelected else { return }
-                            let current = value.translation
-                            let lastOffset = textBox.lastOffset
-                            let newTranslation: CGSize = .init(
-                                width: current.width + lastOffset.width, height: current.height + lastOffset.height)
-                            updateTextBox(textBox.id) { box in
-                                box.offset = newTranslation
-                            }
-
+                            viewModel.handleDragChanged(for: textBox.id, translation: value.translation)
                         }).onEnded({ value in
-                            guard isSelected else { return }
-                            let current = value.translation
-                            let lastOffset = textBox.lastOffset
-                            let settledOffset = CGSize(
-                                width: current.width + lastOffset.width, height: current.height + lastOffset.height)
-                            updateTextBox(textBox.id) { box in
-                                box.offset = settledOffset
-                                box.lastOffset = settledOffset
-                            }
+                            viewModel.handleDragEnded(for: textBox.id, translation: value.translation)
                         }))
                 }
             }
         }
         .allFrame()
-    }
-
-    // MARK: - Private Methods
-
-    private func createAttr(_ textBox: TextBox) -> AttributedString {
-        var result = AttributedString(textBox.text)
-        result.font = .systemFont(ofSize: textBox.fontSize, weight: .medium)
-        result.foregroundColor = UIColor(textBox.fontColor)
-        result.backgroundColor = UIColor(textBox.bgColor)
-        return result
     }
 
     // MARK: - Initializer
@@ -144,19 +96,6 @@ extension TextOverlayView {
             }
         }
         .foregroundStyle(Theme.primary)
-    }
-
-    private func editOrSelectTextBox(_ textBox: TextBox, _ isSelected: Bool) {
-        if isSelected {
-            viewModel.openTextEditor(isEdit: true, textBox)
-        } else {
-            viewModel.selectTextBox(textBox)
-        }
-    }
-
-    private func updateTextBox(_ id: UUID, update: (inout TextBox) -> Void) {
-        guard let index = viewModel.textBoxes.firstIndex(where: { $0.id == id }) else { return }
-        update(&viewModel.textBoxes[index])
     }
 
 }

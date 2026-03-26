@@ -10,11 +10,6 @@ import SwiftUI
 @MainActor
 struct CropSheetView: View {
 
-    // MARK: - States
-
-    @State private var rotateValue: Double = 0
-    @State private var currentTab: Tab = .rotate
-
     // MARK: - Private Properties
 
     private let editorVM: EditorViewModel
@@ -25,19 +20,13 @@ struct CropSheetView: View {
         VStack(spacing: 28) {
             tabButtons
             Group {
-                switch currentTab {
+                switch editorVM.cropTab {
                 case .format:
                     EmptyView()
                 case .rotate:
                     rotateSection
                 }
             }
-        }
-        .onAppear {
-            rotateValue = editorVM.currentVideo?.rotation ?? 0
-        }
-        .onChange(of: editorVM.currentVideo?.rotation) { _, newValue in
-            rotateValue = newValue ?? 0
         }
     }
 
@@ -51,24 +40,17 @@ struct CropSheetView: View {
 
 extension CropSheetView {
 
-    // MARK: - Public Properties
-
-    enum Tab: String, CaseIterable {
-        case format, rotate
-    }
-
     // MARK: - Private Properties
 
     private var rotateSection: some View {
+        @Bindable var bindableEditorVM = editorVM
         HStack(spacing: 20) {
             CustomSlider(
-                $rotateValue,
+                $bindableEditorVM.cropRotation,
                 in: 0...360,
                 step: 90,
                 onEditingChanged: { _ in },
-                onChanged: {
-                    editorVM.setRotation(rotateValue)
-                },
+                onChanged: {},
                 track: {
                     Capsule()
                         .fill(Theme.sliderTrack)
@@ -95,9 +77,8 @@ extension CropSheetView {
                     .font(.headline.weight(.semibold))
                     .frame(width: 44, height: 44)
                     .circleControl(
-                        prominent: editorVM.currentVideo?.isMirror ?? false,
-                        tint: (editorVM.currentVideo?.isMirror ?? false)
-                            ? Theme.accent : Theme.secondary
+                        prominent: editorVM.isMirrorEnabled,
+                        tint: editorVM.isMirrorEnabled ? Theme.accent : Theme.secondary
                     )
             }
         }
@@ -105,17 +86,17 @@ extension CropSheetView {
 
     private var tabButtons: some View {
         HStack(spacing: 12) {
-            ForEach(Tab.allCases, id: \.self) { tab in
+            ForEach(EditorViewModel.CropToolTab.allCases, id: \.self) { tab in
                 Button {
-                    currentTab = tab
+                    editorVM.cropTab = tab
                 } label: {
                     Text(tab.rawValue.capitalized)
                         .font(.subheadline.weight(.semibold))
                         .padding(.horizontal, 16)
                         .padding(.vertical, 10)
                         .capsuleControl(
-                            prominent: currentTab == tab,
-                            tint: currentTab == tab ? Theme.accent : Theme.secondary
+                            prominent: editorVM.isCropTabSelected(tab),
+                            tint: editorVM.isCropTabSelected(tab) ? Theme.accent : Theme.secondary
                         )
                 }
             }
