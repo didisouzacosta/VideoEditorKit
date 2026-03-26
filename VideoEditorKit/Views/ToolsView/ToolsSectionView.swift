@@ -78,15 +78,35 @@ extension ToolsSectionView {
     // MARK: - Private Methods
 
     private func toolSheet(_ tool: ToolEnum) -> some View {
-        VStack(spacing: 16) {
-            sheetHeader(tool)
-            if let video = editorVM.currentVideo {
-                toolContent(tool, video)
+        NavigationStack {
+            VStack(spacing: 16) {
+                if let video = editorVM.currentVideo {
+                    toolContent(tool, video)
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 20)
+            .padding(.bottom, 28)
+            .navigationTitle(tool.title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        editorVM.closeSelectedTool(textEditor: textEditor)
+                    }
+                }
+
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Reset") {
+                        editorVM.reset(
+                            tool,
+                            textEditor: textEditor,
+                            videoPlayer: videoPlayer
+                        )
+                    }
+                }
             }
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 20)
-        .padding(.bottom, 28)
         .presentationDetents(detents(for: tool), selection: $selectedDetent)
         .presentationDragIndicator(.visible)
         .presentationContentInteraction(contentInteraction(for: tool))
@@ -98,48 +118,6 @@ extension ToolsSectionView {
 extension ToolsSectionView {
 
     // MARK: - Private Methods
-
-    private func sheetHeader(_ tool: ToolEnum) -> some View {
-        HStack {
-            Button {
-                editorVM.closeSelectedTool(textEditor: textEditor)
-            } label: {
-                Image(systemName: "chevron.down")
-                    .font(.headline.weight(.semibold))
-                    .frame(width: 40, height: 40)
-                    .circleControl()
-            }
-            .buttonStyle(.plain)
-
-            Spacer()
-            if editorVM.canReset(tool) {
-                Button {
-                    editorVM.reset()
-                } label: {
-                    Text("Reset")
-                        .font(.subheadline.weight(.semibold))
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
-                        .capsuleControl()
-                }
-                .buttonStyle(.plain)
-            } else if editorVM.canRemoveAudio(for: tool) {
-                Button {
-                    editorVM.removeAudio(using: videoPlayer)
-                } label: {
-                    Image(systemName: "trash.fill")
-                        .font(.headline.weight(.semibold))
-                        .frame(width: 40, height: 40)
-                        .circleControl()
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .overlay {
-            Text(tool.title)
-                .font(.headline)
-        }
-    }
 
     private func detents(for tool: ToolEnum) -> Set<PresentationDetent> {
         switch tool {

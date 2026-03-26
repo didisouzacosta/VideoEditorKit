@@ -28,18 +28,37 @@ struct VideoExporterBottomSheetView: View {
 
     var body: some View {
         @Bindable var bindableViewModel = viewModel
-        VStack(alignment: .leading) {
-            if viewModel.shouldShowLoadingView {
-                loadingView
-            } else {
-                list
+        NavigationStack {
+            VStack(alignment: .leading) {
+                if viewModel.shouldShowLoadingView {
+                    loadingView
+                } else {
+                    list
+                }
             }
+            .navigationTitle("Export Video")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel", role: .cancel) {
+                        dismiss()
+                    }
+                    .disabled(viewModel.isInteractionDisabled)
+                }
+
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Export") {
+                        viewModel.exportVideo(handleExportedVideo)
+                    }
+                    .disabled(!viewModel.canExportVideo)
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 20)
+            .padding(.bottom, 28)
+            .disabled(viewModel.isInteractionDisabled)
+            .animation(.easeInOut, value: viewModel.renderState)
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 20)
-        .padding(.bottom, 28)
-        .disabled(viewModel.isInteractionDisabled)
-        .animation(.easeInOut, value: viewModel.renderState)
         .presentationDetents(detents, selection: $selectedDetent)
         .presentationDragIndicator(.visible)
         .presentationContentInteraction(.scrolls)
@@ -75,9 +94,6 @@ extension VideoExporterBottomSheetView {
 
     private var list: some View {
         VStack(alignment: .leading, spacing: 18) {
-            Text("Export Video")
-                .font(.title3.bold())
-
             Text("Choose the output quality for the rendered file.")
                 .font(.subheadline)
                 .foregroundStyle(Theme.secondary)
@@ -89,8 +105,6 @@ extension VideoExporterBottomSheetView {
                     .font(.footnote)
                     .foregroundStyle(Theme.secondary)
             }
-
-            exportButton.padding(.top, 4)
         }
     }
 
@@ -155,28 +169,7 @@ extension VideoExporterBottomSheetView {
         }
     }
 
-    private var exportButton: some View {
-        Button {
-            viewModel.exportVideo(handleExportedVideo)
-        } label: {
-            buttonLabel("Export Video", icon: "wand.and.stars")
-        }
-        .hCenter()
-    }
-
     // MARK: - Private Methods
-
-    private func buttonLabel(_ label: String, icon: String) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.headline.weight(.semibold))
-            Text(label)
-                .font(.headline.weight(.semibold))
-        }
-        .padding(.horizontal, 18)
-        .padding(.vertical, 14)
-        .capsuleControl(prominent: true, tint: Theme.accent)
-    }
 
     private func handleExportedVideo(_ url: URL) {
         dismiss()

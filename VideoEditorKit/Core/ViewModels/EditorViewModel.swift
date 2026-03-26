@@ -233,21 +233,40 @@ extension EditorViewModel {
         removeTool()
     }
 
-    func reset() {
-        guard let selectedTools else { return }
-
-        switch selectedTools {
-
+    func reset(
+        _ tool: ToolEnum,
+        textEditor: TextEditorViewModel,
+        videoPlayer: VideoPlayerManager
+    ) {
+        switch tool {
         case .cut:
             currentVideo?.resetRangeDuration()
         case .speed:
             currentVideo?.resetRate()
-        case .text, .audio, .crop:
-            break
+        case .crop:
+            currentVideo?.rotation = 0
+            currentVideo?.isMirror = false
+            cropTab = .rotate
+        case .audio:
+            if currentVideo?.audio != nil {
+                removeAudio(using: videoPlayer)
+                return
+            }
+
+            currentVideo?.setVolume(1.0)
+            videoPlayer.setVolume(true, value: 1.0)
+        case .text:
+            textEditor.cancelTextEditor()
+            textEditor.selectedTextBox = nil
+            textEditor.load(textBoxes: [])
+            currentVideo?.textBoxes = []
         case .filters:
             currentVideo?.setFilter(nil)
+            videoPlayer.removeFilter()
         case .corrections:
             currentVideo?.colorCorrection = ColorCorrection()
+            let mainFilter = currentVideo?.filterName.flatMap(CIFilter.init(name:))
+            videoPlayer.setFilters(mainFilter: mainFilter, colorCorrection: ColorCorrection())
         case .frames:
             frames.reset()
             currentVideo?.videoFrames = nil
@@ -255,7 +274,7 @@ extension EditorViewModel {
 
         Task { @MainActor [weak self] in
             try? await Task.sleep(for: .milliseconds(100))
-            self?.removeTool()
+            self?.currentVideo?.removeTool(for: tool)
         }
     }
 
@@ -328,14 +347,6 @@ extension EditorViewModel {
         let mainFilter = currentVideo?.filterName.flatMap(CIFilter.init(name:))
         videoPlayer.setFilters(mainFilter: mainFilter, colorCorrection: corrections)
         setCorrections(corrections)
-    }
-
-    func canReset(_ tool: ToolEnum) -> Bool {
-        tool != .filters && tool != .audio && tool != .text
-    }
-
-    func canRemoveAudio(for tool: ToolEnum) -> Bool {
-        tool == .audio && !isSelectVideo && currentVideo?.audio != nil
     }
 
     func isCropTabSelected(_ tab: CropToolTab) -> Bool {

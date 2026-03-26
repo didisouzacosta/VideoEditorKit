@@ -40,5 +40,4 @@ struct AudioToolView: View {
 
 #Preview {
     AudioToolView(VideoPlayerManager(), editorVM: EditorViewModel())
-        .padding()
 }

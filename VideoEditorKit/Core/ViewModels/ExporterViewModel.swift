@@ -29,6 +29,9 @@ final class ExporterViewModel {
     var isInteractionDisabled: Bool {
         renderState == .loading
     }
+    var canExportVideo: Bool {
+        !isInteractionDisabled
+    }
 
     var shouldShowLoadingView: Bool {
         switch renderState {

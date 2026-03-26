@@ -67,10 +67,8 @@ struct VideoEditorView: View {
                     }
 
                     ToolbarItem(placement: .topBarTrailing) {
-                        Button {
+                        Button("Export") {
                             editorViewModel.presentExporter()
-                        } label: {
-                            Label("Export", systemImage: "square.and.arrow.up.fill")
                         }
                     }
                 }
@@ -137,7 +135,7 @@ extension VideoEditorView {
 
         // MARK: - Initializer
 
-        init(isFullScreen: Bool = false) {
+        init(isFullScreen: Bool = true) {
             self.isFullScreen = isFullScreen
         }
 
