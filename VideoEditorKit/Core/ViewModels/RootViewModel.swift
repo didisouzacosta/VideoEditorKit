@@ -9,6 +9,7 @@ import AVKit
 import Foundation
 import Observation
 import PhotosUI
+import SwiftUI
 
 @MainActor
 @Observable

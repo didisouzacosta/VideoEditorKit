@@ -44,7 +44,8 @@ extension CropSheetView {
 
     private var rotateSection: some View {
         @Bindable var bindableEditorVM = editorVM
-        HStack(spacing: 20) {
+        
+        return HStack(spacing: 20) {
             CustomSlider(
                 $bindableEditorVM.cropRotation,
                 in: 0...360,

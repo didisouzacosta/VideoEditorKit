@@ -165,8 +165,6 @@ extension RootView {
         }
     }
 
-    // MARK: - Private Methods
-
 }
 
 #Preview {
