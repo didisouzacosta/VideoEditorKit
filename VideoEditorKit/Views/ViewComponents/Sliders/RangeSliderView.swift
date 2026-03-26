@@ -9,6 +9,11 @@ import SwiftUI
 
 struct RangedSliderView: View {
 
+    // MARK: - States
+
+    @State private var leftThumbDragStartX: CGFloat?
+    @State private var rightThumbDragStartX: CGFloat?
+
     // MARK: - Private Properties
 
     private let currentValue: Binding<ClosedRange<Double>>?
@@ -18,11 +23,25 @@ struct RangedSliderView: View {
 
     // MARK: - Body
 
-    @ViewBuilder
     var body: some View {
         GeometryReader { geometry in
             sliderView(sliderSize: geometry.size)
         }
+    }
+
+    // MARK: - Private Properties
+
+    private let handleWidth: CGFloat = 16
+    private let minimumHandleHitSize = CGSize(width: 44, height: 44)
+    private let minimumVisualGap: CGFloat = 8
+
+    private var resolvedStep: Double {
+        guard step.isFinite, step > 0 else { return 1 }
+        return step
+    }
+
+    private var sliderRange: Double {
+        max(sliderBounds.upperBound - sliderBounds.lowerBound, 0)
     }
 
     // MARK: - Initializer
@@ -44,7 +63,7 @@ struct RangedSliderView: View {
 
     private func sliderView(sliderSize: CGSize) -> some View {
         let trackHeight = max(sliderSize.height, 1)
-        let valueRange = currentValue?.wrappedValue ?? sliderBounds
+        let valueRange = clampedRange(currentValue?.wrappedValue ?? sliderBounds)
         let leftThumbLocation = position(for: valueRange.lowerBound, width: sliderSize.width)
         let rightThumbLocation = position(for: valueRange.upperBound, width: sliderSize.width)
         let selectedWidth = max(rightThumbLocation - leftThumbLocation, 0)
@@ -71,8 +90,14 @@ struct RangedSliderView: View {
             }
             .allowsHitTesting(false)
 
-            let leftThumbPoint = CGPoint(x: leftThumbLocation - 4, y: trackHeight / 2)
-            let rightThumbPoint = CGPoint(x: rightThumbLocation + 4, y: trackHeight / 2)
+            let leftThumbPoint = CGPoint(
+                x: leftThumbLocation - (handleWidth / 4),
+                y: trackHeight / 2
+            )
+            let rightThumbPoint = CGPoint(
+                x: rightThumbLocation + (handleWidth / 4),
+                y: trackHeight / 2
+            )
 
             handleView(
                 height: trackHeight,
@@ -82,19 +107,19 @@ struct RangedSliderView: View {
             .highPriorityGesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { dragValue in
+                        if leftThumbDragStartX == nil {
+                            leftThumbDragStartX = leftThumbLocation
+                        }
+
                         let xThumbOffset = min(
-                            max(0, dragValue.location.x),
+                            max((leftThumbDragStartX ?? leftThumbLocation) + dragValue.translation.width, 0),
                             rightThumbLocation - minimumGap(in: sliderSize.width)
                         )
 
-                        let newLowerBound = value(at: xThumbOffset, width: sliderSize.width)
-
-                        if newLowerBound < currentValue?.wrappedValue.upperBound ?? sliderBounds.upperBound {
-                            currentValue?.wrappedValue =
-                                newLowerBound...(currentValue?.wrappedValue.upperBound ?? sliderBounds.upperBound)
-                        }
+                        updateLowerBound(xThumbOffset, width: sliderSize.width)
                     }
                     .onEnded { _ in
+                        leftThumbDragStartX = nil
                         onEndChange?()
                     }
             )
@@ -107,19 +132,22 @@ struct RangedSliderView: View {
             .highPriorityGesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { dragValue in
+                        if rightThumbDragStartX == nil {
+                            rightThumbDragStartX = rightThumbLocation
+                        }
+
                         let xThumbOffset = max(
                             leftThumbLocation + minimumGap(in: sliderSize.width),
-                            min(dragValue.location.x, sliderSize.width)
+                            min(
+                                (rightThumbDragStartX ?? rightThumbLocation) + dragValue.translation.width,
+                                sliderSize.width
+                            )
                         )
 
-                        let newUpperBound = value(at: xThumbOffset, width: sliderSize.width)
-
-                        if newUpperBound > currentValue?.wrappedValue.lowerBound ?? sliderBounds.lowerBound {
-                            currentValue?.wrappedValue =
-                                (currentValue?.wrappedValue.lowerBound ?? sliderBounds.lowerBound)...newUpperBound
-                        }
+                        updateUpperBound(xThumbOffset, width: sliderSize.width)
                     }
                     .onEnded { _ in
+                        rightThumbDragStartX = nil
                         onEndChange?()
                     }
             )
@@ -129,8 +157,8 @@ struct RangedSliderView: View {
     private func position(for value: Double, width: CGFloat) -> CGFloat {
         guard width > 0 else { return 0 }
 
-        let totalRange = max(sliderBounds.upperBound - sliderBounds.lowerBound, step)
-        let relativeValue = value - sliderBounds.lowerBound
+        let totalRange = max(sliderRange, resolvedStep)
+        let relativeValue = clampedValue(value) - sliderBounds.lowerBound
         let progress = relativeValue / totalRange
 
         return min(max(CGFloat(progress) * width, 0), width)
@@ -139,17 +167,22 @@ struct RangedSliderView: View {
     private func value(at position: CGFloat, width: CGFloat) -> Double {
         guard width > 0 else { return sliderBounds.lowerBound }
 
-        let totalRange = max(sliderBounds.upperBound - sliderBounds.lowerBound, step)
+        let totalRange = max(sliderRange, resolvedStep)
         let rawValue = sliderBounds.lowerBound + (Double(position / width) * totalRange)
-        let steppedValue = (round(rawValue / step) * step)
+        let relativeValue = rawValue - sliderBounds.lowerBound
+        let steppedValue = (round(relativeValue / resolvedStep) * resolvedStep) + sliderBounds.lowerBound
 
-        return min(sliderBounds.upperBound, max(sliderBounds.lowerBound, steppedValue))
+        return clampedValue(steppedValue)
     }
 
     private func minimumGap(in width: CGFloat) -> CGFloat {
-        let totalRange = max(sliderBounds.upperBound - sliderBounds.lowerBound, step)
-        let stepWidth = width / CGFloat(totalRange / step)
-        return max(stepWidth, 8)
+        guard width > 0 else { return 0 }
+
+        let totalRange = max(sliderRange, resolvedStep)
+        let stepsAcrossRange = max(totalRange / resolvedStep, 1)
+        let stepWidth = width / CGFloat(stepsAcrossRange)
+
+        return max(stepWidth, minimumVisualGap)
     }
 
     private func maskedRegion(width: CGFloat, height: CGFloat) -> some View {
@@ -159,17 +192,20 @@ struct RangedSliderView: View {
     }
 
     private func handleView(height: CGFloat, position: CGPoint, isLeftThumb: Bool) -> some View {
-        let hitSize = CGSize(width: 44, height: max(height + 8, 44))
+        let hitSize = CGSize(
+            width: minimumHandleHitSize.width,
+            height: max(height + 8, minimumHandleHitSize.height)
+        )
 
         return ZStack {
             Rectangle()
                 .fill(.yellow)
-                .frame(width: 16, height: height)
+                .frame(width: handleWidth, height: height)
                 .overlay {
                     VStack(spacing: 4) {
                         ForEach(0..<3, id: \.self) { _ in
                             Capsule(style: .continuous)
-                                .fill(.primary)
+                                .fill(.background)
                                 .frame(width: 2, height: 2)
                         }
                     }
@@ -194,6 +230,47 @@ struct RangedSliderView: View {
             y: position.y
         )
         .accessibilityLabel(isLeftThumb ? "Trim start" : "Trim end")
+    }
+
+    private func clampedRange(_ range: ClosedRange<Double>) -> ClosedRange<Double> {
+        let lowerBound = clampedValue(range.lowerBound)
+        let upperBound = clampedValue(range.upperBound)
+
+        if upperBound < lowerBound {
+            return lowerBound...lowerBound
+        }
+
+        return lowerBound...upperBound
+    }
+
+    private func clampedValue(_ value: Double) -> Double {
+        min(sliderBounds.upperBound, max(sliderBounds.lowerBound, value))
+    }
+
+    private func updateLowerBound(_ xThumbOffset: CGFloat, width: CGFloat) {
+        guard let currentValue else { return }
+
+        let currentRange = clampedRange(currentValue.wrappedValue)
+        let newLowerBound = value(at: xThumbOffset, width: width)
+        let newRange = newLowerBound...currentRange.upperBound
+
+        guard newRange != currentRange else { return }
+        guard newLowerBound < currentRange.upperBound else { return }
+
+        currentValue.wrappedValue = newRange
+    }
+
+    private func updateUpperBound(_ xThumbOffset: CGFloat, width: CGFloat) {
+        guard let currentValue else { return }
+
+        let currentRange = clampedRange(currentValue.wrappedValue)
+        let newUpperBound = value(at: xThumbOffset, width: width)
+        let newRange = currentRange.lowerBound...newUpperBound
+
+        guard newRange != currentRange else { return }
+        guard newUpperBound > currentRange.lowerBound else { return }
+
+        currentValue.wrappedValue = newRange
     }
 
 }

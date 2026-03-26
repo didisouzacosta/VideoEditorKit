@@ -88,7 +88,7 @@ extension ThumbnailsSliderView {
         VStack(spacing: 4) {
             if let video {
                 GeometryReader { proxy in
-                    playheadBadge(proxy, video: video)
+                    playheadBadge(proxy, video: video, range: rangeDuration)
                 }
                 .frame(height: playheadLabelHeight)
             }
@@ -99,19 +99,15 @@ extension ThumbnailsSliderView {
                     thumbnailsImagesSection(proxy)
 
                     if let video {
-                        playbackIndicator(proxy, video: video)
+                        playbackIndicator(proxy, video: video, range: rangeDuration)
                             .zIndex(999)
 
                         RangedSliderView(
                             $rangeDuration,
                             bounds: 0...video.originalDuration,
                             step: 0.001,
-                            onEndChange: {}
+                            onEndChange: commitRangeChange
                         )
-                        .onChange(of: rangeDuration) { _, newValue in
-                            self.video?.rangeDuration = newValue
-                            onChangeTimeValue(newValue)
-                        }
                     }
                 }
                 .onAppear {
@@ -127,10 +123,10 @@ extension ThumbnailsSliderView {
 
     private var footerSection: some View {
         HStack(spacing: 8) {
-            if let video {
-                footerTime(video.rangeDuration.lowerBound)
+            if video != nil {
+                footerTime(rangeDuration.lowerBound)
                 Spacer()
-                footerTime(video.rangeDuration.upperBound)
+                footerTime(rangeDuration.upperBound)
             }
         }
         .padding(.horizontal, 4)
@@ -155,6 +151,14 @@ extension ThumbnailsSliderView {
         }
     }
 
+    private func commitRangeChange() {
+        guard let video else { return }
+        guard video.rangeDuration != rangeDuration else { return }
+
+        self.video?.rangeDuration = rangeDuration
+        onChangeTimeValue(rangeDuration)
+    }
+
     @ViewBuilder
     private func thumbnailsImagesSection(_ proxy: GeometryProxy) -> some View {
         if let video {
@@ -174,31 +178,27 @@ extension ThumbnailsSliderView {
         }
     }
 
-    private func playbackIndicator(_ proxy: GeometryProxy, video: Video) -> some View {
-        let metrics = timelineMetrics(for: video, width: proxy.size.width)
+    private func playbackIndicator(_ proxy: GeometryProxy, video: Video, range: ClosedRange<Double>) -> some View {
+        let metrics = timelineMetrics(for: video, range: range, width: proxy.size.width)
 
         return ZStack {
-            Rectangle()
-                .fill(.clear)
-                .frame(width: playheadHitWidth, height: proxy.size.height + 20)
-
             Capsule(style: .continuous)
                 .fill(.red)
                 .frame(width: playheadLineWidth, height: proxy.size.height + 10)
         }
-        .contentShape(Rectangle())
         .position(
             x: metrics.playbackPositionX(),
             y: proxy.size.height / 2
         )
-        .gesture(playbackIndicatorGesture(video: video, width: proxy.size.width))
+        .gesture(playbackIndicatorGesture(video: video, range: range, width: proxy.size.width))
     }
 
-    private func playheadBadge(_ proxy: GeometryProxy, video: Video) -> some View {
-        let metrics = timelineMetrics(for: video, width: proxy.size.width)
+    private func playheadBadge(_ proxy: GeometryProxy, video: Video, range: ClosedRange<Double>) -> some View {
+        let metrics = timelineMetrics(for: video, range: range, width: proxy.size.width)
         let clampedX = metrics.badgePositionX(for: playheadBadgeWidth)
+        let clipDuration = range.upperBound - range.lowerBound
 
-        return Text("\(metrics.currentClipTime().formatterTimeString()) / \(video.totalDuration.formatterTimeString())")
+        return Text("\(metrics.currentClipTime().formatterTimeString()) / \(clipDuration.formatterTimeString())")
             .font(.caption2)
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
@@ -216,28 +216,37 @@ extension ThumbnailsSliderView {
             .allowsHitTesting(false)
     }
 
-    private func playbackIndicatorGesture(video: Video, width: CGFloat) -> some Gesture {
+    private func playbackIndicatorGesture(
+        video: Video,
+        range: ClosedRange<Double>,
+        width: CGFloat
+    ) -> some Gesture {
         DragGesture(minimumDistance: 0)
             .onChanged { gesture in
                 if !isScrubbingPlaybackIndicator {
                     isScrubbingPlaybackIndicator = true
-                    onPlaybackScrubStarted(video.rangeDuration)
+                    onPlaybackScrubStarted(range)
                 }
 
-                let scrubTime = playbackTime(for: gesture.location.x, video: video, width: width)
+                let scrubTime = playbackTime(for: gesture.location.x, video: video, range: range, width: width)
                 currentTime = scrubTime
-                onPlaybackScrubChanged(scrubTime, video.rangeDuration)
+                onPlaybackScrubChanged(scrubTime, range)
             }
             .onEnded { gesture in
-                let scrubTime = playbackTime(for: gesture.location.x, video: video, width: width)
+                let scrubTime = playbackTime(for: gesture.location.x, video: video, range: range, width: width)
                 currentTime = scrubTime
                 isScrubbingPlaybackIndicator = false
-                onPlaybackScrubEnded(scrubTime, video.rangeDuration)
+                onPlaybackScrubEnded(scrubTime, range)
             }
     }
 
-    private func playbackTime(for locationX: CGFloat, video: Video, width: CGFloat) -> Double {
-        timelineMetrics(for: video, width: width)
+    private func playbackTime(
+        for locationX: CGFloat,
+        video: Video,
+        range: ClosedRange<Double>,
+        width: CGFloat
+    ) -> Double {
+        timelineMetrics(for: video, range: range, width: width)
             .playbackTime(for: locationX)
     }
 
@@ -274,10 +283,14 @@ extension ThumbnailsSliderView {
         .clipped()
     }
 
-    private func timelineMetrics(for video: Video, width: CGFloat) -> TimelineMetrics {
+    private func timelineMetrics(
+        for video: Video,
+        range: ClosedRange<Double>,
+        width: CGFloat
+    ) -> TimelineMetrics {
         TimelineMetrics(
             originalDuration: video.originalDuration,
-            playbackRange: video.rangeDuration,
+            playbackRange: range,
             currentTime: currentTime,
             width: width,
             handleInset: handleInnerInset
