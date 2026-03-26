@@ -99,6 +99,11 @@ struct VideoEditorView: View {
                 TextEditorView(textEditor, onSave: editorViewModel.setText)
             }
         }
+        .onChange(of: isFullScreen) { _, newValue in
+            if newValue {
+                editorViewModel.closeSelectedTool(textEditor: textEditor)
+            }
+        }
         .onDisappear(perform: editorViewModel.cancelDeferredTasks)
         .fullScreenCover(isPresented: $bindableEditorViewModel.showRecordView) {
             RecordVideoView { url in
