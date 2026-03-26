@@ -9,6 +9,7 @@ import AVKit
 import SwiftUI
 
 struct ThumbnailsSliderView: View {
+    private let handleInnerInset: CGFloat = 4
     @State private var rangeDuration: ClosedRange<Double> = 0...1
     @Binding var currentTime: Double
     @Binding var video: Video?
@@ -43,11 +44,11 @@ extension ThumbnailsSliderView {
             ZStack {
                 timelineBackground
                 thumbnailsImagesSection(proxy)
-                
+
                 if let video {
                     playbackIndicator(proxy, video: video)
                         .zIndex(9)
-                    
+
                     RangedSliderView(
                         value: $rangeDuration,
                         bounds: 0...video.originalDuration,
@@ -72,9 +73,9 @@ extension ThumbnailsSliderView {
     private var footerSection: some View {
         HStack(spacing: 8) {
             if let video {
-                footerTime(title: "Start", value: video.rangeDuration.lowerBound)
+                footerTime(title: "Start", value: video.rangeDuration.lowerBound, alignment: .leading)
                 Spacer()
-                footerTime(title: "End", value: video.rangeDuration.upperBound)
+                footerTime(title: "End", value: video.rangeDuration.upperBound, alignment: .trailing)
             }
         }
     }
@@ -103,8 +104,8 @@ extension ThumbnailsSliderView {
         }
     }
 
-    private func footerTime(title: String, value: Double) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+    private func footerTime(title: String, value: Double, alignment: HorizontalAlignment) -> some View {
+        VStack(alignment: alignment, spacing: 2) {
             Text(title)
                 .font(.caption2.weight(.medium))
                 .foregroundStyle(Theme.secondary)
@@ -178,8 +179,17 @@ extension ThumbnailsSliderView {
     private func playbackPositionX(for video: Video, width: CGFloat) -> CGFloat {
         guard video.originalDuration > 0, width > 0 else { return 2 }
         let clampedTime = currentTime.clamped(to: video.rangeDuration)
-        let progress = clampedTime / video.originalDuration
-        return min(max(width * progress, 2), width - 2)
+        let rangeStartX = (CGFloat(video.rangeDuration.lowerBound / video.originalDuration) * width) + handleInnerInset
+        let rangeEndX = (CGFloat(video.rangeDuration.upperBound / video.originalDuration) * width) - handleInnerInset
+
+        guard video.totalDuration > 0, rangeEndX > rangeStartX else {
+            return min(max(rangeStartX, 2), width - 2)
+        }
+
+        let trimmedProgress = (clampedTime - video.rangeDuration.lowerBound) / video.totalDuration
+        let positionX = rangeStartX + (CGFloat(trimmedProgress) * (rangeEndX - rangeStartX))
+
+        return min(max(positionX, 2), width - 2)
     }
 
     private func currentClipTime(for video: Video) -> Double {
