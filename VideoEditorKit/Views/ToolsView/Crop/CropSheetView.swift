@@ -15,7 +15,7 @@ struct CropSheetView: View {
     @State private var rotateValue: Double = 0
     @State private var currentTab: Tab = .rotate
 
-    // MARK: - Public Properties
+    // MARK: - Private Properties
 
     private let editorVM: EditorViewModel
 
@@ -43,7 +43,7 @@ struct CropSheetView: View {
 
     // MARK: - Initializer
 
-    init(editorVM: EditorViewModel) {
+    init(_ editorVM: EditorViewModel) {
         self.editorVM = editorVM
     }
 
@@ -62,7 +62,7 @@ extension CropSheetView {
     private var rotateSection: some View {
         HStack(spacing: 20) {
             CustomSlider(
-                value: $rotateValue,
+                $rotateValue,
                 in: 0...360,
                 step: 90,
                 onEditingChanged: { _ in },
@@ -125,7 +125,7 @@ extension CropSheetView {
 }
 
 #Preview {
-    CropSheetView(editorVM: EditorViewModel())
+    CropSheetView(EditorViewModel())
         .padding()
         .preferredColorScheme(.dark)
 }

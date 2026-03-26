@@ -20,7 +20,7 @@ struct TextEditorView: View {
     @State private var textHeight: CGFloat = 100
     @State private var isFocused: Bool = true
 
-    // MARK: - Public Properties
+    // MARK: - Private Properties
 
     private let onSave: ([TextBox]) -> Void
 
@@ -35,22 +35,22 @@ struct TextEditorView: View {
                 ScrollView {
                     VStack(spacing: 24) {
                         SystemColorSwatchPicker(
-                            selection: $viewModel.currentTextBox.fontColor,
+                            $viewModel.currentTextBox.fontColor,
                             title: "Text color",
                             options: SystemColorPalette.textForegrounds
                         )
 
                         SystemColorSwatchPicker(
-                            selection: $viewModel.currentTextBox.bgColor,
+                            $viewModel.currentTextBox.bgColor,
                             title: "Background color",
                             options: SystemColorPalette.textBackgrounds
                         )
 
                         TextView(
-                            textBox: $viewModel.currentTextBox,
+                            $viewModel.currentTextBox,
                             isFirstResponder: $isFocused,
-                            minHeight: textHeight,
-                            calculatedHeight: $textHeight
+                            calculatedHeight: $textHeight,
+                            minHeight: textHeight
                         )
                         .frame(maxHeight: textHeight)
                         .padding(.horizontal, 20)
@@ -114,7 +114,7 @@ struct TextEditorView: View {
 
     // MARK: - Initializer
 
-    init(viewModel: TextEditorViewModel, onSave: @escaping ([TextBox]) -> Void) {
+    init(_ viewModel: TextEditorViewModel, onSave: @escaping ([TextBox]) -> Void) {
         self.viewModel = viewModel
         self.onSave = onSave
     }
@@ -124,12 +124,15 @@ struct TextEditorView: View {
 @MainActor
 struct TextView: UIViewRepresentable {
 
-    // MARK: - Public Properties
+    // MARK: - Bindings
 
     @Binding private var isFirstResponder: Bool
     @Binding private var textBox: TextBox
-    private let minHeight: CGFloat
     @Binding private var calculatedHeight: CGFloat
+
+    // MARK: - Private Properties
+
+    private let minHeight: CGFloat
 
     final class Coordinator: NSObject, UITextViewDelegate {
 
@@ -151,13 +154,16 @@ struct TextView: UIViewRepresentable {
     // MARK: - Initializer
 
     init(
-        textBox: Binding<TextBox>, isFirstResponder: Binding<Bool>, minHeight: CGFloat,
-        calculatedHeight: Binding<CGFloat>
+        _ textBox: Binding<TextBox>,
+        isFirstResponder: Binding<Bool>,
+        calculatedHeight: Binding<CGFloat>,
+        minHeight: CGFloat
     ) {
-        self._textBox = textBox
-        self._isFirstResponder = isFirstResponder
+        _textBox = textBox
+        _isFirstResponder = isFirstResponder
+        _calculatedHeight = calculatedHeight
+
         self.minHeight = minHeight
-        self._calculatedHeight = calculatedHeight
     }
 
     // MARK: - Public Methods
@@ -239,7 +245,7 @@ struct SystemColorSwatchPicker: View {
 
     @Binding private var selection: Color
 
-    // MARK: - Public Properties
+    // MARK: - Private Properties
 
     private let title: String
     private let options: [SystemColorOption]
@@ -285,8 +291,9 @@ struct SystemColorSwatchPicker: View {
 
     // MARK: - Initializer
 
-    init(selection: Binding<Color>, title: String, options: [SystemColorOption]) {
-        self._selection = selection
+    init(_ selection: Binding<Color>, title: String, options: [SystemColorOption]) {
+        _selection = selection
+
         self.title = title
         self.options = options
     }
@@ -301,14 +308,12 @@ struct SystemColorSwatchPicker: View {
 
 @MainActor
 private func makeTextEditorPreviewModel() -> TextEditorViewModel {
-    // MARK: - Public Properties
-
     let viewModel = TextEditorViewModel()
     viewModel.openTextEditor(isEdit: false, timeRange: 0...5)
     return viewModel
 }
 
 #Preview {
-    TextEditorView(viewModel: makeTextEditorPreviewModel(), onSave: { _ in })
+    TextEditorView(makeTextEditorPreviewModel(), onSave: { _ in })
         .preferredColorScheme(.dark)
 }

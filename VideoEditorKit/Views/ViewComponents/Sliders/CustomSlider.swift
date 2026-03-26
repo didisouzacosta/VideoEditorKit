@@ -28,7 +28,7 @@ where Value: BinaryFloatingPoint, Value.Stride: BinaryFloatingPoint, Track: View
 
     // initializer allows us to set default values for some view params
 
-    // MARK: - Public Properties
+    // MARK: - Private Properties
 
     private let bounds: ClosedRange<Value>
     // tells how discretely does the value change
@@ -151,7 +151,7 @@ where Value: BinaryFloatingPoint, Value.Stride: BinaryFloatingPoint, Track: View
     // MARK: - Initializer
 
     init(
-        value: Binding<Value>,
+        _ value: Binding<Value>,
         in bounds: ClosedRange<Value> = 0...1,
         step: Value = 0.001,
         minimumValueLabel: Text? = nil,
@@ -163,6 +163,7 @@ where Value: BinaryFloatingPoint, Value.Stride: BinaryFloatingPoint, Track: View
         thumbSize: CGSize
     ) {
         _value = value
+
         self.bounds = bounds
         self.step = step
         self.minimumValueLabel = minimumValueLabel
@@ -179,7 +180,7 @@ where Value: BinaryFloatingPoint, Value.Stride: BinaryFloatingPoint, Track: View
 
 #Preview {
     CustomSlider(
-        value: .constant(10),
+        .constant(10),
         in: 10...255,
         step: 90,
         minimumValueLabel: Text("Min"),

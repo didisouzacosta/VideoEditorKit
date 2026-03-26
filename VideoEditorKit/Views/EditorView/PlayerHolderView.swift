@@ -15,7 +15,7 @@ struct PlayerHolderView: View {
 
     @Binding private var isFullScreen: Bool
 
-    // MARK: - Public Properties
+    // MARK: - Private Properties
 
     private let editorVM: EditorViewModel
     private let videoPlayer: VideoPlayerManager
@@ -44,12 +44,13 @@ struct PlayerHolderView: View {
     // MARK: - Initializer
 
     init(
-        isFullScreen: Binding<Bool>,
+        _ isFullScreen: Binding<Bool>,
         editorVM: EditorViewModel,
         videoPlayer: VideoPlayerManager,
         textEditor: TextEditorViewModel
     ) {
-        self._isFullScreen = isFullScreen
+        _isFullScreen = isFullScreen
+
         self.editorVM = editorVM
         self.videoPlayer = videoPlayer
         self.textEditor = textEditor
@@ -69,7 +70,7 @@ extension PlayerHolderView {
 
                     ZStack {
                         CropView(
-                            originalSize: displaySize,
+                            displaySize,
                             rotation: editorVM.currentVideo?.rotation,
                             isMirror: editorVM.currentVideo?.isMirror ?? false,
                             isActiveCrop: editorVM.selectedTools == .crop
@@ -77,9 +78,10 @@ extension PlayerHolderView {
                             ZStack {
                                 editorVM.frames.frameColor
                                 ZStack {
-                                    PlayerView(player: videoPlayer.videoPlayer)
+                                    PlayerView(videoPlayer.videoPlayer)
                                     TextOverlayView(
-                                        currentTime: videoPlayer.currentTime, viewModel: textEditor,
+                                        videoPlayer.currentTime,
+                                        viewModel: textEditor,
                                         disabledMagnification: isFullScreen
                                     )
                                     .disabled(isFullScreen)
@@ -219,7 +221,7 @@ struct PlayerControl: View {
 
     @Binding private var isFullScreen: Bool
 
-    // MARK: - Public Properties
+    // MARK: - Private Properties
 
     private let recorderManager: AudioRecorderManager
     private let textEditor: TextEditorViewModel
@@ -240,15 +242,16 @@ struct PlayerControl: View {
     // MARK: - Initializer
 
     init(
+        _ isFullScreen: Binding<Bool>,
         editorVM: EditorViewModel,
         videoPlayer: VideoPlayerManager,
-        isFullScreen: Binding<Bool>,
         recorderManager: AudioRecorderManager,
         textEditor: TextEditorViewModel
     ) {
+        _isFullScreen = isFullScreen
+
         self.editorVM = editorVM
         self.videoPlayer = videoPlayer
-        self._isFullScreen = isFullScreen
         self.recorderManager = recorderManager
         self.textEditor = textEditor
     }
@@ -296,7 +299,7 @@ struct PlayerControl: View {
 
     private func trimSection(_ video: Video) -> some View {
         ThumbnailsSliderView(
-            currentTime: $videoPlayer.currentTime,
+            $videoPlayer.currentTime,
             video: $editorVM.currentVideo,
             isChangeState: video.isAppliedTool(for: .cut)
         ) { newRange in

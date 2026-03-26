@@ -12,13 +12,15 @@ struct PlayerView: UIViewControllerRepresentable {
 
     // MARK: - Public Properties
 
-    private var player: AVPlayer
-
     typealias UIViewControllerType = AVPlayerViewController
+
+    // MARK: - Private Properties
+
+    private var player: AVPlayer
 
     // MARK: - Initializer
 
-    init(player: AVPlayer) {
+    init(_ player: AVPlayer) {
         self.player = player
     }
 

@@ -21,7 +21,7 @@ struct ToolsSectionView: View {
 
     @State private var filtersVM = FiltersViewModel()
 
-    // MARK: - Public Properties
+    // MARK: - Private Properties
 
     private let textEditor: TextEditorViewModel
 
@@ -32,7 +32,7 @@ struct ToolsSectionView: View {
             LazyVGrid(columns: columns, alignment: .center, spacing: 10) {
                 ForEach(ToolEnum.menuCases, id: \.self) { tool in
                     ToolButtonView(
-                        label: tool.title, image: tool.image,
+                        tool.title, image: tool.image,
                         isChange: editorVM.currentVideo?.isAppliedTool(for: tool) ?? false
                     ) {
                         editorVM.selectedTools = tool
@@ -84,7 +84,7 @@ struct ToolsSectionView: View {
 
     // MARK: - Initializer
 
-    init(videoPlayer: VideoPlayerManager, editorVM: EditorViewModel, textEditor: TextEditorViewModel) {
+    init(_ videoPlayer: VideoPlayerManager, editorVM: EditorViewModel, textEditor: TextEditorViewModel) {
         self.videoPlayer = videoPlayer
         self.editorVM = editorVM
         self.textEditor = textEditor
@@ -109,18 +109,18 @@ extension ToolsSectionView {
             sheetHeader(tool)
             switch tool {
             case .speed:
-                VideoSpeedSlider(value: Double(video.rate), isChangeState: isAppliedTool) { rate in
+                VideoSpeedSlider(Double(video.rate), isChangeState: isAppliedTool) { rate in
                     videoPlayer.pause()
                     editorVM.updateRate(rate: rate)
                 }
             case .crop:
-                CropSheetView(editorVM: editorVM)
+                CropSheetView(editorVM)
             case .audio:
-                AudioSheetView(videoPlayer: videoPlayer, editorVM: editorVM)
+                AudioSheetView(videoPlayer, editorVM: editorVM)
             case .text:
-                TextToolsView(video: video, editor: textEditor)
+                TextToolsView(video, editor: textEditor)
             case .filters:
-                FiltersView(selectedFilterName: video.filterName, viewModel: filtersVM) { filterName in
+                FiltersView(video.filterName, viewModel: filtersVM) { filterName in
                     if let filterName {
                         videoPlayer.setFilters(
                             mainFilter: CIFilter(name: filterName), colorCorrection: filtersVM.colorCorrection)
@@ -130,14 +130,15 @@ extension ToolsSectionView {
                     editorVM.setFilter(filterName)
                 }
             case .corrections:
-                CorrectionsToolView(correction: $filtersVM.colorCorrection) { corrections in
+                CorrectionsToolView($filtersVM.colorCorrection) { corrections in
                     videoPlayer.setFilters(
                         mainFilter: CIFilter(name: video.filterName ?? ""), colorCorrection: corrections)
                     editorVM.setCorrections(corrections)
                 }
             case .frames:
                 FramesToolView(
-                    selectedColor: $editorVM.frames.frameColor, scaleValue: $editorVM.frames.scaleValue,
+                    $editorVM.frames.frameColor,
+                    scaleValue: $editorVM.frames.scaleValue,
                     onChange: editorVM.setFrames)
             case .cut:
                 EmptyView()

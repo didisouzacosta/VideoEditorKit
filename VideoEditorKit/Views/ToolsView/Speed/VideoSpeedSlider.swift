@@ -13,7 +13,7 @@ struct VideoSpeedSlider: View {
 
     @State private var value: Double = 1
 
-    // MARK: - Public Properties
+    // MARK: - Private Properties
 
     private let isChangeState: Bool?
     private let onEditingChanged: (Float) -> Void
@@ -25,7 +25,7 @@ struct VideoSpeedSlider: View {
             Text("\(value, format: .number.precision(.fractionLength(1)))x")
                 .font(.title3.monospacedDigit().weight(.semibold))
             CustomSlider(
-                value: $value,
+                $value,
                 in: rateRange,
                 step: 0.2,
                 onEditingChanged: { started in
@@ -56,8 +56,9 @@ struct VideoSpeedSlider: View {
 
     // MARK: - Initializer
 
-    init(value: Double = 1, isChangeState: Bool?, onEditingChanged: @escaping (Float) -> Void) {
-        self._value = State(initialValue: value)
+    init(_ value: Double = 1, isChangeState: Bool?, onEditingChanged: @escaping (Float) -> Void) {
+        _value = State(initialValue: value)
+
         self.isChangeState = isChangeState
         self.onEditingChanged = onEditingChanged
     }

@@ -14,7 +14,7 @@ struct FramesToolView: View {
     @Binding private var selectedColor: Color
     @Binding private var scaleValue: Double
 
-    // MARK: - Public Properties
+    // MARK: - Private Properties
 
     private let onChange: () -> Void
 
@@ -23,7 +23,8 @@ struct FramesToolView: View {
     var body: some View {
         VStack(spacing: 20) {
             SystemColorSwatchPicker(
-                selection: $selectedColor, title: "Frame color",
+                $selectedColor,
+                title: "Frame color",
                 options: SystemColorPalette.frameColors
             )
 
@@ -42,9 +43,10 @@ struct FramesToolView: View {
 
     // MARK: - Initializer
 
-    init(selectedColor: Binding<Color>, scaleValue: Binding<Double>, onChange: @escaping () -> Void) {
-        self._selectedColor = selectedColor
-        self._scaleValue = scaleValue
+    init(_ selectedColor: Binding<Color>, scaleValue: Binding<Double>, onChange: @escaping () -> Void) {
+        _selectedColor = selectedColor
+        _scaleValue = scaleValue
+
         self.onChange = onChange
     }
 
@@ -52,7 +54,7 @@ struct FramesToolView: View {
 
 #Preview {
     FramesToolView(
-        selectedColor: .constant(Color(uiColor: .systemBackground)),
+        .constant(Color(uiColor: .systemBackground)),
         scaleValue: .constant(0.3)
     ) {}
     .frame(height: 300)

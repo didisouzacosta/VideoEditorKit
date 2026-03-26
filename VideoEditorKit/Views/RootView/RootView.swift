@@ -42,7 +42,7 @@ struct RootView: View {
                 .navigationTitle("Example Mode")
                 .scrollIndicators(.hidden)
                 .sheet(item: $editorDestination) { destination in
-                    MainEditorView(sourceVideoURL: destination.url) { exportedURL in
+                    MainEditorView(destination.url) { exportedURL in
                         replaceEditedVideo(with: exportedURL)
                     }
                 }
@@ -148,7 +148,7 @@ extension RootView {
 
             if let editedVideoURL {
                 VStack(alignment: .leading, spacing: 12) {
-                    PlayerView(player: resultPlayer)
+                    PlayerView(resultPlayer)
                         .frame(height: 260)
                         .clipShape(.rect(cornerRadius: 24))
 

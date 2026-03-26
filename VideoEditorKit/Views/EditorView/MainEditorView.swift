@@ -26,7 +26,7 @@ struct MainEditorView: View {
     @State private var videoPlayer = VideoPlayerManager()
     @State private var textEditor = TextEditorViewModel()
 
-    // MARK: - Public Properties
+    // MARK: - Private Properties
 
     private let sourceVideoURL: URL?
     private let onExported: (URL) -> Void
@@ -38,23 +38,23 @@ struct MainEditorView: View {
             GeometryReader { proxy in
                 VStack(spacing: 32) {
                     PlayerHolderView(
-                        isFullScreen: $isFullScreen,
+                        $isFullScreen,
                         editorVM: editorVM,
                         videoPlayer: videoPlayer,
                         textEditor: textEditor
                     )
 
                     PlayerControl(
+                        $isFullScreen,
                         editorVM: editorVM,
                         videoPlayer: videoPlayer,
-                        isFullScreen: $isFullScreen,
                         recorderManager: audioRecorder,
                         textEditor: textEditor
                     )
 
                     if !isFullScreen {
                         ToolsSectionView(
-                            videoPlayer: videoPlayer,
+                            videoPlayer,
                             editorVM: editorVM,
                             textEditor: textEditor
                         )
@@ -82,7 +82,7 @@ struct MainEditorView: View {
             }
 
             if showVideoQualitySheet, let video = editorVM.currentVideo {
-                VideoExporterBottomSheetView(isPresented: $showVideoQualitySheet, video: video) {
+                VideoExporterBottomSheetView($showVideoQualitySheet, video: video) {
                     exportedURL in
                     videoPlayer.pause()
                     onExported(exportedURL)
@@ -93,7 +93,7 @@ struct MainEditorView: View {
         .blur(radius: textEditor.showEditor ? 10 : 0)
         .overlay {
             if textEditor.showEditor {
-                TextEditorView(viewModel: textEditor, onSave: editorVM.setText)
+                TextEditorView(textEditor, onSave: editorVM.setText)
             }
         }
         .fullScreenCover(isPresented: $showRecordView) {
@@ -108,7 +108,7 @@ struct MainEditorView: View {
 
     // MARK: - Initializer
 
-    init(sourceVideoURL: URL? = nil, onExported: @escaping (URL) -> Void = { _ in }) {
+    init(_ sourceVideoURL: URL? = nil, onExported: @escaping (URL) -> Void = { _ in }) {
         self.sourceVideoURL = sourceVideoURL
         self.onExported = onExported
     }

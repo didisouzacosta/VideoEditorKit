@@ -9,7 +9,7 @@ import SwiftUI
 
 struct RangedSliderView: View {
 
-    // MARK: - Public Properties
+    // MARK: - Private Properties
 
     private let currentValue: Binding<ClosedRange<Double>>?
     private let sliderBounds: ClosedRange<Double>
@@ -28,14 +28,15 @@ struct RangedSliderView: View {
     // MARK: - Initializer
 
     init(
-        value: Binding<ClosedRange<Double>>?,
+        _ value: Binding<ClosedRange<Double>>?,
         bounds: ClosedRange<Double>,
         step: Double = 1,
         onEndChange: (() -> Void)?
     ) {
+        self.currentValue = value
+
         self.onEndChange = onEndChange
         self.step = step
-        self.currentValue = value
         self.sliderBounds = bounds
     }
 
@@ -193,7 +194,7 @@ struct RangedSliderView: View {
 
 #Preview {
     RangedSliderView(
-        value: .constant(20...60),
+        .constant(20...60),
         bounds: 1...100,
         onEndChange: {}
     )

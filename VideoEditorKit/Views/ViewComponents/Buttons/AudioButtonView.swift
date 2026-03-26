@@ -18,7 +18,7 @@ struct AudioButtonView: View {
 
     @State private var audioSamples = [Audio.AudioSample]()
 
-    // MARK: - Public Properties
+    // MARK: - Private Properties
 
     private let video: Video
     private let recorderManager: AudioRecorderManager
@@ -49,11 +49,12 @@ struct AudioButtonView: View {
     // MARK: - Initializer
 
     init(
-        isSelectedTrack: Binding<Bool>,
+        _ isSelectedTrack: Binding<Bool>,
         video: Video,
         recorderManager: AudioRecorderManager
     ) {
-        self._isSelectedTrack = isSelectedTrack
+        _isSelectedTrack = isSelectedTrack
+
         self.video = video
         self.recorderManager = recorderManager
     }
@@ -127,7 +128,7 @@ extension AudioButtonView {
 
 #Preview {
     AudioButtonView(
-        isSelectedTrack: .constant(false),
+        .constant(false),
         video: Video.mock,
         recorderManager: AudioRecorderManager()
     )

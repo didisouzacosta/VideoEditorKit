@@ -15,7 +15,7 @@ struct CropView<T: View>: View {
     @State private var size: CGSize = .zero
     @State private var clipped: Bool = false
 
-    // MARK: - Public Properties
+    // MARK: - Private Properties
 
     private let originalSize: CGSize
     private let rotation: Double?
@@ -85,7 +85,7 @@ struct CropView<T: View>: View {
     // MARK: - Initializer
 
     init(
-        originalSize: CGSize,
+        _ originalSize: CGSize,
         rotation: Double?,
         isMirror: Bool,
         isActiveCrop: Bool,
@@ -116,7 +116,7 @@ struct CropView<T: View>: View {
 
 #Preview {
     GeometryReader { proxy in
-        CropView(originalSize: .init(width: 300, height: 600), rotation: 0, isMirror: false, isActiveCrop: true) {
+        CropView(.init(width: 300, height: 600), rotation: 0, isMirror: false, isActiveCrop: true) {
             Rectangle()
                 .fill(Color.secondary)
         }
@@ -127,7 +127,7 @@ struct CropView<T: View>: View {
 
 struct CropFrame: Shape {
 
-    // MARK: - Public Properties
+    // MARK: - Private Properties
 
     let isActive: Bool
     let currentPosition: CGSize
@@ -157,7 +157,7 @@ struct CropImage<T: View>: View {
     @State private var newPosition: CGSize = .zero
     @State private var clipped = false
 
-    // MARK: - Public Properties
+    // MARK: - Private Properties
 
     private let originalSize: CGSize
     @ViewBuilder
@@ -194,8 +194,9 @@ struct CropImage<T: View>: View {
 
     // MARK: - Initializer
 
-    init(frameSize: Binding<CGSize>, originalSize: CGSize, @ViewBuilder frameView: @escaping () -> T) {
-        self._frameSize = frameSize
+    init(_ frameSize: Binding<CGSize>, originalSize: CGSize, @ViewBuilder frameView: @escaping () -> T) {
+        _frameSize = frameSize
+
         self.originalSize = originalSize
         self.frameView = frameView
     }

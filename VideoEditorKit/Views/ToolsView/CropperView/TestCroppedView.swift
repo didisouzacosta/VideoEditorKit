@@ -13,7 +13,7 @@ struct TestCroppedView: View {
 
     @State private var position = CGPoint(x: 100, y: 100)
 
-    // MARK: - Public Properties
+    // MARK: - Private Properties
 
     private let size: CGSize = .init(width: 200, height: 400)
     private let frameSize: CGSize = .init(width: 350, height: 700)

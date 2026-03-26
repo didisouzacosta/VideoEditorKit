@@ -52,7 +52,7 @@ final class ExporterViewModel {
 
     // MARK: - Initializer
 
-    init(video: Video) {
+    init(_ video: Video) {
         self.video = video
     }
 

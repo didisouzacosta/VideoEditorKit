@@ -111,7 +111,7 @@ enum VideoEditor {
 
 extension VideoEditor {
 
-    // MARK: - Public Properties
+    // MARK: - Private Properties
 
     private static var isSimulator: Bool {
         #if targetEnvironment(simulator)

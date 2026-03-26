@@ -15,7 +15,7 @@ struct RecorderButtonView: View {
     @State private var timer: Timer? = nil
     @State private var state: StateEnum = .empty
 
-    // MARK: - Public Properties
+    // MARK: - Private Properties
 
     private let video: Video
     private let recorderManager: AudioRecorderManager
@@ -53,7 +53,7 @@ struct RecorderButtonView: View {
     // MARK: - Initializer
 
     init(
-        video: Video,
+        _ video: Video,
         recorderManager: AudioRecorderManager,
         onRecorded: @escaping (Audio) -> Void,
         onRecordTime: @escaping (Double) -> Void
@@ -148,7 +148,7 @@ extension RecorderButtonView {
 
 #Preview {
     RecorderButtonView(
-        video: Video.mock, recorderManager: AudioRecorderManager(), onRecorded: { _ in },
+        Video.mock, recorderManager: AudioRecorderManager(), onRecorded: { _ in },
         onRecordTime: { _ in }
     )
     .padding()

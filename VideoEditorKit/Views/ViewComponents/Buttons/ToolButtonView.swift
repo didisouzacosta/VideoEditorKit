@@ -9,7 +9,7 @@ import SwiftUI
 
 struct ToolButtonView: View {
 
-    // MARK: - Public Properties
+    // MARK: - Private Properties
 
     private let label: String
     private let image: String
@@ -47,7 +47,7 @@ struct ToolButtonView: View {
 
     // MARK: - Initializer
 
-    init(label: String, image: String, isChange: Bool, action: @escaping () -> Void) {
+    init(_ label: String, image: String, isChange: Bool, action: @escaping () -> Void) {
         self.label = label
         self.image = image
         self.isChange = isChange
@@ -58,8 +58,8 @@ struct ToolButtonView: View {
 
 #Preview {
     VStack {
-        ToolButtonView(label: "Cut", image: "scissors", isChange: false) {}
-        ToolButtonView(label: "Cut", image: "scissors", isChange: true) {}
+        ToolButtonView("Cut", image: "scissors", isChange: false) {}
+        ToolButtonView("Cut", image: "scissors", isChange: true) {}
     }
     .frame(width: 100)
 }

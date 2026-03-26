@@ -393,6 +393,9 @@ Para mudanças futuras neste repositório, usar o padrão abaixo como baseline:
 - corrigir typos e preferir nomes claros em inglês ao tocar em propriedades, métodos e tipos
 - não espalhar `print` operacional pela base; preferir tratamento explícito e `assertionFailure` apenas para estados inesperados
 - manter extensões utilitárias enxutas e alinhadas com uso real do projeto
+- todo `init` explícito deve usar `_` no primeiro parâmetro
+- em `init` de views e componentes, parâmetros que alimentam `Binding` e `State` devem vir antes dos demais
+- no corpo do `init`, atribuições de `Binding` e `State` devem ficar agrupadas e separadas visualmente das demais propriedades por uma linha em branco
 - ao editar Swift, rodar formatação do projeto antes de finalizar
 
 ### Organização de arquivos Swift com `// MARK: -`

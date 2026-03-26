@@ -13,7 +13,7 @@ struct LineSlider: View {
 
     @Binding private var value: Double
 
-    // MARK: - Public Properties
+    // MARK: - Private Properties
 
     private let range: ClosedRange<Double>
     private let onEditingChanged: () -> Void
@@ -24,7 +24,7 @@ struct LineSlider: View {
 
         GeometryReader { proxy in
             CustomSlider(
-                value: $value,
+                $value,
                 in: range,
                 onChanged: {
 
@@ -45,8 +45,9 @@ struct LineSlider: View {
 
     // MARK: - Initializer
 
-    init(value: Binding<Double>, range: ClosedRange<Double>, onEditingChanged: @escaping () -> Void) {
-        self._value = value
+    init(_ value: Binding<Double>, range: ClosedRange<Double>, onEditingChanged: @escaping () -> Void) {
+        _value = value
+
         self.range = range
         self.onEditingChanged = onEditingChanged
     }
@@ -54,7 +55,7 @@ struct LineSlider: View {
 }
 
 #Preview {
-    LineSlider(value: .constant(100), range: 14...100) {}
+    LineSlider(.constant(100), range: 14...100) {}
         .frame(width: 250, height: 60)
         .background(Color(uiColor: .secondarySystemBackground))
 }

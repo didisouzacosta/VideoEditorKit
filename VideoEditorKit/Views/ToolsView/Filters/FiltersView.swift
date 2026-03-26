@@ -13,7 +13,7 @@ struct FiltersView: View {
 
     @State private var selectedFilterName: String? = nil
 
-    // MARK: - Public Properties
+    // MARK: - Private Properties
 
     private let viewModel: FiltersViewModel
     private let onChangeFilter: (String?) -> Void
@@ -46,11 +46,12 @@ struct FiltersView: View {
     // MARK: - Initializer
 
     init(
-        selectedFilterName: String? = nil,
+        _ selectedFilterName: String? = nil,
         viewModel: FiltersViewModel,
         onChangeFilter: @escaping (String?) -> Void
     ) {
-        self._selectedFilterName = State(initialValue: selectedFilterName)
+        _selectedFilterName = State(initialValue: selectedFilterName)
+
         self.viewModel = viewModel
         self.onChangeFilter = onChangeFilter
     }
@@ -100,14 +101,12 @@ extension FiltersView {
 }
 
 #Preview {
-    FiltersView(selectedFilterName: nil, viewModel: makeFiltersPreviewViewModel(), onChangeFilter: { _ in })
+    FiltersView(nil, viewModel: makeFiltersPreviewViewModel(), onChangeFilter: { _ in })
         .padding()
 }
 
 @MainActor
 private func makeFiltersPreviewViewModel() -> FiltersViewModel {
-    // MARK: - Public Properties
-
     let viewModel = FiltersViewModel()
     if let image = UIImage(named: "simpleImage") {
         viewModel.loadFilters(for: image)

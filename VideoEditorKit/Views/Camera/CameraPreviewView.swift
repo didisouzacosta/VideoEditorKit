@@ -12,7 +12,7 @@ final class CameraPreviewView: UIView {
 
     private let captureSession: AVCaptureSession
 
-    init(captureSession: AVCaptureSession) {
+    init(_ captureSession: AVCaptureSession) {
         self.captureSession = captureSession
         super.init(frame: .zero)
     }
@@ -49,18 +49,20 @@ struct CameraPreviewHolder: UIViewRepresentable {
 
     typealias UIViewType = CameraPreviewView
 
+    // MARK: - Private Properties
+
     private var captureSession: AVCaptureSession
 
     // MARK: - Initializer
 
-    init(captureSession: AVCaptureSession) {
+    init(_ captureSession: AVCaptureSession) {
         self.captureSession = captureSession
     }
 
     // MARK: - Public Methods
 
     func makeUIView(context: Context) -> CameraPreviewView {
-        CameraPreviewView(captureSession: captureSession)
+        CameraPreviewView(captureSession)
     }
 
     func updateUIView(_ uiView: CameraPreviewView, context: Context) {}

@@ -17,7 +17,7 @@ struct RecordVideoView: View {
 
     @State private var cameraManager = CameraManager()
 
-    // MARK: - Public Properties
+    // MARK: - Private Properties
 
     private let onFinishRecord: (URL) -> Void
 
@@ -26,7 +26,7 @@ struct RecordVideoView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                CameraPreviewHolder(captureSession: cameraManager.session)
+                CameraPreviewHolder(cameraManager.session)
                     .ignoresSafeArea()
             }
             .safeAreaInset(edge: .bottom) {
@@ -76,12 +76,12 @@ struct RecordVideoView: View {
 
     // MARK: - Initializer
 
-    init(onFinishRecord: @escaping (URL) -> Void) {
+    init(_ onFinishRecord: @escaping (URL) -> Void) {
         self.onFinishRecord = onFinishRecord
     }
 
 }
 
 #Preview {
-    RecordVideoView(onFinishRecord: { _ in })
+    RecordVideoView { _ in }
 }

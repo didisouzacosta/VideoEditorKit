@@ -20,7 +20,7 @@ struct ThumbnailsSliderView: View {
     @State private var rangeDuration: ClosedRange<Double> = 0...1
     @State private var isScrubbingPlaybackIndicator = false
 
-    // MARK: - Public Properties
+    // MARK: - Private Properties
 
     private let isChangeState: Bool?
     private let onChangeTimeValue: (ClosedRange<Double>) -> Void
@@ -56,7 +56,7 @@ struct ThumbnailsSliderView: View {
     // MARK: - Initializer
 
     init(
-        currentTime: Binding<Double>,
+        _ currentTime: Binding<Double>,
         video: Binding<Video?>,
         isChangeState: Bool? = nil,
         onChangeTimeValue: @escaping (ClosedRange<Double>) -> Void,
@@ -65,8 +65,9 @@ struct ThumbnailsSliderView: View {
         onPlaybackScrubChanged: @escaping (Double, ClosedRange<Double>) -> Void,
         onPlaybackScrubEnded: @escaping (Double, ClosedRange<Double>) -> Void
     ) {
-        self._currentTime = currentTime
-        self._video = video
+        _currentTime = currentTime
+        _video = video
+
         self.isChangeState = isChangeState
         self.onChangeTimeValue = onChangeTimeValue
         self.onRequestThumbnails = onRequestThumbnails
@@ -93,7 +94,7 @@ extension ThumbnailsSliderView {
                         .zIndex(9)
 
                     RangedSliderView(
-                        value: $rangeDuration,
+                        $rangeDuration,
                         bounds: 0...video.originalDuration,
                         step: 0.001,
                         onEndChange: {}
@@ -293,7 +294,7 @@ extension ThumbnailsSliderView {
 
 #Preview {
     ThumbnailsSliderView(
-        currentTime: .constant(0),
+        .constant(0),
         video: .constant(Video.mock),
         isChangeState: nil,
         onChangeTimeValue: { _ in },

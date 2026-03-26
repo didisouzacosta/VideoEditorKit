@@ -18,7 +18,7 @@ struct SliderView<V>: View where V: BinaryFloatingPoint, V.Stride: BinaryFloatin
     @State private var ratio: CGFloat = 0
     @State private var startX: CGFloat? = nil
 
-    // MARK: - Public Properties
+    // MARK: - Private Properties
 
     private let height: CGFloat
     private let onChange: () -> Void
@@ -67,10 +67,11 @@ struct SliderView<V>: View where V: BinaryFloatingPoint, V.Stride: BinaryFloatin
     // MARK: - Initializer
 
     init(
-        value: Binding<V>, in bounds: ClosedRange<V>, height: CGFloat = 60, step: V.Stride = 1,
+        _ value: Binding<V>, in bounds: ClosedRange<V>, height: CGFloat = 60, step: V.Stride = 1,
         onChange: @escaping () -> Void
     ) {
         _value = value
+
         self.onChange = onChange
         self.bounds = bounds
         self.height = height
@@ -122,7 +123,7 @@ struct SliderView<V>: View where V: BinaryFloatingPoint, V.Stride: BinaryFloatin
 }
 #Preview {
     VStack {
-        SliderView(value: .constant(40), in: 10...100) {}
+        SliderView(.constant(40), in: 10...100) {}
             .frame(height: 60)
             .background(Color(uiColor: .secondarySystemBackground))
             .padding()

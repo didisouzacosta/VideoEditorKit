@@ -9,7 +9,7 @@ import SwiftUI
 
 struct TextOverlayView: View {
 
-    // MARK: - Public Properties
+    // MARK: - Private Properties
 
     private let currentTime: Double
     private let viewModel: TextEditorViewModel
@@ -113,7 +113,7 @@ struct TextOverlayView: View {
 
     // MARK: - Initializer
 
-    init(currentTime: Double, viewModel: TextEditorViewModel, disabledMagnification: Bool = false) {
+    init(_ currentTime: Double, viewModel: TextEditorViewModel, disabledMagnification: Bool = false) {
         self.currentTime = currentTime
         self.viewModel = viewModel
         self.disabledMagnification = disabledMagnification
@@ -164,14 +164,12 @@ extension TextOverlayView {
 #Preview {
     ZStack {
         Color(uiColor: .systemBackground)
-        TextOverlayView(currentTime: 1.5, viewModel: makeTextOverlayPreviewViewModel())
+        TextOverlayView(1.5, viewModel: makeTextOverlayPreviewViewModel())
     }
 }
 
 @MainActor
 private func makeTextOverlayPreviewViewModel() -> TextEditorViewModel {
-    // MARK: - Public Properties
-
     let viewModel = TextEditorViewModel()
     viewModel.textBoxes = TextBox.texts
     viewModel.selectTextBox(TextBox.texts[0])

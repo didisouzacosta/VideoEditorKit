@@ -9,7 +9,7 @@ import SwiftUI
 
 struct TextToolsView: View {
 
-    // MARK: - Public Properties
+    // MARK: - Private Properties
 
     private let video: Video
     private let editor: TextEditorViewModel
@@ -37,7 +37,7 @@ struct TextToolsView: View {
 
     // MARK: - Initializer
 
-    init(video: Video, editor: TextEditorViewModel) {
+    init(_ video: Video, editor: TextEditorViewModel) {
         self.video = video
         self.editor = editor
     }
@@ -104,14 +104,12 @@ extension TextToolsView {
 }
 
 #Preview {
-    TextToolsView(video: Video.mock, editor: makeTextToolsPreviewViewModel())
+    TextToolsView(Video.mock, editor: makeTextToolsPreviewViewModel())
         .padding()
 }
 
 @MainActor
 private func makeTextToolsPreviewViewModel() -> TextEditorViewModel {
-    // MARK: - Public Properties
-
     let editor = TextEditorViewModel()
     editor.textBoxes = TextBox.texts
     return editor

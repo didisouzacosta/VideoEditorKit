@@ -15,7 +15,7 @@ struct AudioSheetView: View {
     @State private var videoVolume: Float = 1.0
     @State private var audioVolume: Float = 1.0
 
-    // MARK: - Public Properties
+    // MARK: - Private Properties
 
     private let videoPlayer: VideoPlayerManager
     private let editorVM: EditorViewModel
@@ -42,7 +42,7 @@ struct AudioSheetView: View {
 
     // MARK: - Initializer
 
-    init(videoPlayer: VideoPlayerManager, editorVM: EditorViewModel) {
+    init(_ videoPlayer: VideoPlayerManager, editorVM: EditorViewModel) {
         self.videoPlayer = videoPlayer
         self.editorVM = editorVM
     }
@@ -74,6 +74,6 @@ extension AudioSheetView {
 }
 
 #Preview {
-    AudioSheetView(videoPlayer: VideoPlayerManager(), editorVM: EditorViewModel())
+    AudioSheetView(VideoPlayerManager(), editorVM: EditorViewModel())
         .padding()
 }

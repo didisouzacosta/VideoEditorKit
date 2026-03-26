@@ -19,7 +19,7 @@ struct VideoExporterBottomSheetView: View {
 
     @State private var viewModel: ExporterViewModel
 
-    // MARK: - Public Properties
+    // MARK: - Private Properties
 
     private let onExported: (URL) -> Void
 
@@ -28,7 +28,7 @@ struct VideoExporterBottomSheetView: View {
     var body: some View {
         @Bindable var bindableViewModel = viewModel
         GeometryReader { proxy in
-            SheetView(isPresented: $isPresented, bgOpacity: 0.1) {
+            SheetView($isPresented, bgOpacity: 0.1) {
                 VStack(alignment: .leading) {
                     switch viewModel.renderState {
                     case .unknown, .failed:
@@ -47,9 +47,10 @@ struct VideoExporterBottomSheetView: View {
 
     // MARK: - Initializer
 
-    init(isPresented: Binding<Bool>, video: Video, onExported: @escaping (URL) -> Void) {
-        self._isPresented = isPresented
-        self._viewModel = State(initialValue: ExporterViewModel(video: video))
+    init(_ isPresented: Binding<Bool>, video: Video, onExported: @escaping (URL) -> Void) {
+        _isPresented = isPresented
+        _viewModel = State(initialValue: ExporterViewModel(video))
+
         self.onExported = onExported
     }
 
@@ -178,6 +179,6 @@ extension VideoExporterBottomSheetView {
     ZStack(alignment: .bottom) {
         Color.secondary.opacity(0.5)
             .ignoresSafeArea()
-        VideoExporterBottomSheetView(isPresented: .constant(true), video: Video.mock) { _ in }
+        VideoExporterBottomSheetView(.constant(true), video: Video.mock) { _ in }
     }
 }

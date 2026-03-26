@@ -18,7 +18,7 @@ struct SheetView<Content: View>: View {
     @State private var showSheet: Bool = false
     @State private var slideGesture: CGSize
 
-    // MARK: - Public Properties
+    // MARK: - Private Properties
 
     private let bgOpacity: CGFloat
     private let content: Content
@@ -51,12 +51,12 @@ struct SheetView<Content: View>: View {
 
     // MARK: - Initializer
 
-    init(isPresented: Binding<Bool>, bgOpacity: CGFloat = 0.01, @ViewBuilder content: () -> Content) {
-        self._isPresented = isPresented
-        self.bgOpacity = bgOpacity
-        self._slideGesture = State(initialValue: CGSize.zero)
-        self.content = content()
+    init(_ isPresented: Binding<Bool>, bgOpacity: CGFloat = 0.01, @ViewBuilder content: () -> Content) {
+        _isPresented = isPresented
+        _slideGesture = State(initialValue: CGSize.zero)
 
+        self.bgOpacity = bgOpacity
+        self.content = content()
     }
 
 }

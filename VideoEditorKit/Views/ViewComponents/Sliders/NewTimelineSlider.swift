@@ -20,7 +20,7 @@ struct TimelineSlider<T: View, A: View>: View {
     @State private var offset: CGFloat = 0
     @State private var gestureW: CGFloat = 0
 
-    // MARK: - Public Properties
+    // MARK: - Private Properties
 
     private let bounds: ClosedRange<Double>
     private let disableOffset: Bool
@@ -87,7 +87,7 @@ struct TimelineSlider<T: View, A: View>: View {
     // MARK: - Initializer
 
     init(
-        value: Binding<Double>,
+        _ value: Binding<Double>,
         bounds: ClosedRange<Double>,
         disableOffset: Bool,
         frameWidth: CGFloat = 65,
@@ -96,7 +96,8 @@ struct TimelineSlider<T: View, A: View>: View {
         @ViewBuilder actionView: @escaping () -> A,
         onChange: @escaping () -> Void
     ) {
-        self._value = value
+        _value = value
+
         self.bounds = bounds
         self.disableOffset = disableOffset
         self.frameWidth = frameWidth
@@ -110,7 +111,7 @@ struct TimelineSlider<T: View, A: View>: View {
 
 #Preview {
     TimelineSlider(
-        value: .constant(0), bounds: 5...34, disableOffset: false,
+        .constant(0), bounds: 5...34, disableOffset: false,
         frameView: {
             Rectangle()
                 .fill(Color.secondary)

@@ -17,7 +17,7 @@ struct CorrectionsToolView: View {
 
     @State private var currentTab: CorrectionType = .brightness
 
-    // MARK: - Public Properties
+    // MARK: - Private Properties
 
     private let onChange: (ColorCorrection) -> Void
 
@@ -48,15 +48,16 @@ struct CorrectionsToolView: View {
 
     // MARK: - Initializer
 
-    init(correction: Binding<ColorCorrection>, onChange: @escaping (ColorCorrection) -> Void) {
-        self._correction = correction
+    init(_ correction: Binding<ColorCorrection>, onChange: @escaping (ColorCorrection) -> Void) {
+        _correction = correction
+
         self.onChange = onChange
     }
 
 }
 
 #Preview {
-    CorrectionsToolView(correction: .constant(Video.mock.colorCorrection), onChange: { _ in })
+    CorrectionsToolView(.constant(Video.mock.colorCorrection), onChange: { _ in })
 }
 
 extension CorrectionsToolView {
