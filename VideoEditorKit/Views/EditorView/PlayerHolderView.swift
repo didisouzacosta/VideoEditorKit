@@ -90,7 +90,7 @@ extension PlayerHolderView {
                             }
                         }
                         .frame(width: displaySize.width, height: displaySize.height)
-                        .clipShape(.rect(cornerRadius: 24))
+                        .clipShape(.rect(cornerRadius: 4))
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .clipped()
