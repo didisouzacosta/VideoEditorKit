@@ -266,7 +266,7 @@ struct PlayerControl: View {
             } label: {
                 Image(
                     systemName: isFullScreen
-                        ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right"
+                    ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right"
                 )
                 .font(.headline.weight(.semibold))
                 .frame(width: 46, height: 46)
@@ -299,12 +299,12 @@ struct PlayerControl: View {
         } onPlaybackScrubChanged: { time, range in
             videoPlayer.scrub(
                 to: time,
-                in: editorViewModel.currentVideo?.rangeDuration ?? range
+                in: range
             )
         } onPlaybackScrubEnded: { time, range in
             videoPlayer.endScrubbing(
                 at: time,
-                in: editorViewModel.currentVideo?.rangeDuration ?? range
+                in: range
             )
         }
         .padding(.horizontal)

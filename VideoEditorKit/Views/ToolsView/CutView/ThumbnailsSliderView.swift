@@ -18,6 +18,7 @@ struct ThumbnailsSliderView: View {
 
     @State private var rangeDuration: ClosedRange<Double> = 0...1
     @State private var isScrubbingPlaybackIndicator = false
+    @State private var isSynchronizingAnchoredPlayback = false
     @State private var playheadBadgeWidth: CGFloat = 84
 
     // MARK: - Private Properties
@@ -43,6 +44,9 @@ struct ThumbnailsSliderView: View {
         }
         .onChange(of: video?.id) { _, _ in
             setVideoRange()
+        }
+        .onChange(of: rangeDuration) { oldRange, newRange in
+            syncAnchoredPlaybackIfNeeded(from: oldRange, to: newRange)
         }
     }
 
@@ -145,6 +149,35 @@ extension ThumbnailsSliderView {
             .font(.caption2.weight(.medium))
     }
 
+    private func syncAnchoredPlaybackIfNeeded(
+        from oldRange: ClosedRange<Double>,
+        to newRange: ClosedRange<Double>
+    ) {
+        guard video?.rangeDuration != newRange else { return }
+
+        let tolerance = 0.001
+
+        if abs(currentTime - oldRange.lowerBound) <= tolerance, oldRange.lowerBound != newRange.lowerBound {
+            beginAnchoredPlaybackSynchronizationIfNeeded(oldRange)
+            currentTime = newRange.lowerBound
+            onPlaybackScrubChanged(newRange.lowerBound, newRange)
+            return
+        }
+
+        if abs(currentTime - oldRange.upperBound) <= tolerance, oldRange.upperBound != newRange.upperBound {
+            beginAnchoredPlaybackSynchronizationIfNeeded(oldRange)
+            currentTime = newRange.upperBound
+            onPlaybackScrubChanged(newRange.upperBound, newRange)
+        }
+    }
+
+    private func beginAnchoredPlaybackSynchronizationIfNeeded(_ range: ClosedRange<Double>) {
+        guard !isSynchronizingAnchoredPlayback else { return }
+
+        isSynchronizingAnchoredPlayback = true
+        onPlaybackScrubStarted(range)
+    }
+
     private func setVideoRange() {
         if let video {
             rangeDuration = video.rangeDuration
@@ -152,6 +185,11 @@ extension ThumbnailsSliderView {
     }
 
     private func commitRangeChange() {
+        if isSynchronizingAnchoredPlayback {
+            onPlaybackScrubEnded(currentTime, rangeDuration)
+            isSynchronizingAnchoredPlayback = false
+        }
+
         guard let video else { return }
         guard video.rangeDuration != rangeDuration else { return }
 

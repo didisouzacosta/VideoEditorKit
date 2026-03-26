@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct RangedSliderView: View {
 
@@ -13,6 +14,8 @@ struct RangedSliderView: View {
 
     @State private var leftThumbDragStartX: CGFloat?
     @State private var rightThumbDragStartX: CGFloat?
+    @State private var leftThumbDragStartRange: ClosedRange<Double>?
+    @State private var rightThumbDragStartRange: ClosedRange<Double>?
 
     // MARK: - Private Properties
 
@@ -109,6 +112,8 @@ struct RangedSliderView: View {
                     .onChanged { dragValue in
                         if leftThumbDragStartX == nil {
                             leftThumbDragStartX = leftThumbLocation
+                            leftThumbDragStartRange = currentValue?.wrappedValue
+                            triggerDragStartHaptic()
                         }
 
                         let xThumbOffset = min(
@@ -119,7 +124,12 @@ struct RangedSliderView: View {
                         updateLowerBound(xThumbOffset, width: sliderSize.width)
                     }
                     .onEnded { _ in
+                        triggerDragEndHapticIfNeeded(
+                            initialRange: leftThumbDragStartRange,
+                            currentRange: currentValue?.wrappedValue
+                        )
                         leftThumbDragStartX = nil
+                        leftThumbDragStartRange = nil
                         onEndChange?()
                     }
             )
@@ -134,6 +144,8 @@ struct RangedSliderView: View {
                     .onChanged { dragValue in
                         if rightThumbDragStartX == nil {
                             rightThumbDragStartX = rightThumbLocation
+                            rightThumbDragStartRange = currentValue?.wrappedValue
+                            triggerDragStartHaptic()
                         }
 
                         let xThumbOffset = max(
@@ -147,7 +159,12 @@ struct RangedSliderView: View {
                         updateUpperBound(xThumbOffset, width: sliderSize.width)
                     }
                     .onEnded { _ in
+                        triggerDragEndHapticIfNeeded(
+                            initialRange: rightThumbDragStartRange,
+                            currentRange: currentValue?.wrappedValue
+                        )
                         rightThumbDragStartX = nil
+                        rightThumbDragStartRange = nil
                         onEndChange?()
                     }
             )
@@ -271,6 +288,23 @@ struct RangedSliderView: View {
         guard newUpperBound > currentRange.lowerBound else { return }
 
         currentValue.wrappedValue = newRange
+    }
+
+    private func triggerDragStartHaptic() {
+        let generator = UIImpactFeedbackGenerator(style: .light)
+        generator.prepare()
+        generator.impactOccurred(intensity: 0.75)
+    }
+
+    private func triggerDragEndHapticIfNeeded(
+        initialRange: ClosedRange<Double>?,
+        currentRange: ClosedRange<Double>?
+    ) {
+        guard initialRange != currentRange else { return }
+
+        let generator = UIImpactFeedbackGenerator(style: .soft)
+        generator.prepare()
+        generator.impactOccurred(intensity: 1)
     }
 
 }
