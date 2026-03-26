@@ -14,6 +14,7 @@ struct ToolsSectionView: View {
     // MARK: - States
 
     @State private var filtersVM = FiltersViewModel()
+    @State private var selectedDetent: PresentationDetent = .medium
 
     // MARK: - Private Properties
 
@@ -38,6 +39,9 @@ struct ToolsSectionView: View {
             toolSheet(tool)
         }
         .onChange(of: editorVM.currentVideo) { _, newValue in
+            if newValue == nil {
+                selectedToolBinding.wrappedValue = nil
+            }
             editorVM.handleCurrentVideoChange(
                 newValue,
                 filtersViewModel: filtersVM,
@@ -51,7 +55,7 @@ struct ToolsSectionView: View {
             editorVM.handleSelectedTextBoxChange(box)
         }
         .onChange(of: editorVM.selectedTools) { _, newValue in
-            editorVM.handleSelectedToolChange(newValue, textEditor: textEditor)
+            handleSelectedToolChange(newValue)
         }
     }
 
@@ -83,8 +87,10 @@ extension ToolsSectionView {
         .padding(.horizontal, 20)
         .padding(.top, 20)
         .padding(.bottom, 28)
-        .presentationDetents(detents(for: tool))
+        .presentationDetents(detents(for: tool), selection: $selectedDetent)
         .presentationDragIndicator(.visible)
+        .presentationContentInteraction(contentInteraction(for: tool))
+        .presentationCornerRadius(32)
     }
 
 }
@@ -137,16 +143,42 @@ extension ToolsSectionView {
 
     private func detents(for tool: ToolEnum) -> Set<PresentationDetent> {
         switch tool {
-        case .audio, .filters, .text:
+        case .audio:
             [.height(220)]
+        case .filters, .text:
+            [.height(220), .medium]
         case .speed:
-            [.height(260)]
+            [.height(260), .medium]
         case .crop, .corrections:
-            [.height(300)]
+            [.height(300), .medium]
         case .frames:
-            [.height(340)]
+            [.height(340), .medium]
         case .cut:
             [.medium]
+        }
+    }
+
+    private func defaultDetent(for tool: ToolEnum) -> PresentationDetent {
+        switch tool {
+        case .audio, .filters, .text:
+            .height(220)
+        case .speed:
+            .height(260)
+        case .crop, .corrections:
+            .height(300)
+        case .frames:
+            .height(340)
+        case .cut:
+            .medium
+        }
+    }
+
+    private func contentInteraction(for tool: ToolEnum) -> PresentationContentInteraction {
+        switch tool {
+        case .audio:
+            .resizes
+        case .speed, .crop, .text, .filters, .corrections, .frames, .cut:
+            .scrolls
         }
     }
 
@@ -161,6 +193,14 @@ extension ToolsSectionView {
                 }
             }
         )
+    }
+
+    private func handleSelectedToolChange(_ tool: ToolEnum?) {
+        if let tool {
+            selectedDetent = defaultDetent(for: tool)
+        }
+
+        editorVM.handleSelectedToolChange(tool, textEditor: textEditor)
     }
 
     @ViewBuilder
