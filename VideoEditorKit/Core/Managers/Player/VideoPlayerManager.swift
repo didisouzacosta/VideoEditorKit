@@ -173,6 +173,32 @@ final class VideoPlayerManager {
         }
     }
 
+    func beginScrubbing(in range: ClosedRange<Double>) {
+        currentDurationRange = range
+        scrubState = .scrubStarted
+        pause()
+    }
+
+    func scrub(to time: Double, in range: ClosedRange<Double>) {
+        currentDurationRange = range
+        let clampedTime = time.clamped(to: range)
+
+        currentTime = clampedTime
+        seek(clampedTime, player: videoPlayer)
+
+        if isSetAudio {
+            seek(clampedTime, player: audioPlayer)
+        }
+    }
+
+    func endScrubbing(at time: Double, in range: ClosedRange<Double>) {
+        currentDurationRange = range
+        let clampedTime = time.clamped(to: range)
+
+        currentTime = clampedTime
+        scrubState = .scrubEnded(clampedTime)
+    }
+
     private func seek(_ seconds: Double, player: AVPlayer) {
         player.seek(
             to: CMTime(seconds: seconds, preferredTimescale: 600),

@@ -11,11 +11,15 @@ import SwiftUI
 struct ThumbnailsSliderView: View {
     private let handleInnerInset: CGFloat = 4
     @State private var rangeDuration: ClosedRange<Double> = 0...1
+    @State private var isScrubbingPlaybackIndicator = false
     @Binding var currentTime: Double
     @Binding var video: Video?
     var isChangeState: Bool?
     let onChangeTimeValue: (ClosedRange<Double>) -> Void
     let onRequestThumbnails: (CGSize) -> Void
+    let onPlaybackScrubStarted: (ClosedRange<Double>) -> Void
+    let onPlaybackScrubChanged: (Double, ClosedRange<Double>) -> Void
+    let onPlaybackScrubEnded: (Double, ClosedRange<Double>) -> Void
 
     private var totalDuration: Double {
         rangeDuration.upperBound - rangeDuration.lowerBound
@@ -52,6 +56,7 @@ extension ThumbnailsSliderView {
                     RangedSliderView(
                         value: $rangeDuration,
                         bounds: 0...video.originalDuration,
+                        step: 0.001,
                         onEndChange: {}
                     )
                     .onChange(of: rangeDuration) { _, newValue in
@@ -78,6 +83,7 @@ extension ThumbnailsSliderView {
                 footerTime(title: "End", value: video.rangeDuration.upperBound, alignment: .trailing)
             }
         }
+        .padding(.horizontal)
     }
 
     private var timelineBackground: some View {
@@ -153,14 +159,21 @@ extension ThumbnailsSliderView {
     }
 
     private func playbackIndicator(_ proxy: GeometryProxy, video: Video) -> some View {
-        Capsule(style: .continuous)
-            .fill(.red)
-            .frame(width: 4, height: proxy.size.height + 10)
-            .position(
-                x: playbackPositionX(for: video, width: proxy.size.width),
-                y: proxy.size.height / 2
-            )
-            .allowsHitTesting(false)
+        ZStack {
+            Rectangle()
+                .fill(.clear)
+                .frame(width: 36, height: proxy.size.height + 20)
+
+            Capsule(style: .continuous)
+                .fill(.red)
+                .frame(width: 4, height: proxy.size.height + 10)
+        }
+        .contentShape(Rectangle())
+        .position(
+            x: playbackPositionX(for: video, width: proxy.size.width),
+            y: proxy.size.height / 2
+        )
+        .gesture(playbackIndicatorGesture(video: video, width: proxy.size.width))
     }
 
     private func playheadBadge(_ proxy: GeometryProxy, video: Video) -> some View {
@@ -182,19 +195,51 @@ extension ThumbnailsSliderView {
         let rangeStartX = (CGFloat(video.rangeDuration.lowerBound / video.originalDuration) * width) + handleInnerInset
         let rangeEndX = (CGFloat(video.rangeDuration.upperBound / video.originalDuration) * width) - handleInnerInset
 
-        guard video.totalDuration > 0, rangeEndX > rangeStartX else {
+        guard rangeEndX > rangeStartX else {
             return min(max(rangeStartX, 2), width - 2)
         }
 
-        let trimmedProgress = (clampedTime - video.rangeDuration.lowerBound) / video.totalDuration
-        let positionX = rangeStartX + (CGFloat(trimmedProgress) * (rangeEndX - rangeStartX))
+        let absoluteProgress = clampedTime / video.originalDuration
+        let positionX = CGFloat(absoluteProgress) * width
 
-        return min(max(positionX, 2), width - 2)
+        return min(max(positionX, rangeStartX), rangeEndX)
     }
 
     private func currentClipTime(for video: Video) -> Double {
         let displayTime = currentTime.clamped(to: video.rangeDuration)
         return max(displayTime - video.rangeDuration.lowerBound, 0)
+    }
+
+    private func playbackIndicatorGesture(video: Video, width: CGFloat) -> some Gesture {
+        DragGesture(minimumDistance: 0)
+            .onChanged { gesture in
+                if !isScrubbingPlaybackIndicator {
+                    isScrubbingPlaybackIndicator = true
+                    onPlaybackScrubStarted(video.rangeDuration)
+                }
+
+                let scrubTime = playbackTime(for: gesture.location.x, video: video, width: width)
+                currentTime = scrubTime
+                onPlaybackScrubChanged(scrubTime, video.rangeDuration)
+            }
+            .onEnded { gesture in
+                let scrubTime = playbackTime(for: gesture.location.x, video: video, width: width)
+                currentTime = scrubTime
+                isScrubbingPlaybackIndicator = false
+                onPlaybackScrubEnded(scrubTime, video.rangeDuration)
+            }
+    }
+
+    private func playbackTime(for locationX: CGFloat, video: Video, width: CGFloat) -> Double {
+        guard width > 0, video.originalDuration > 0 else {
+            return video.rangeDuration.lowerBound
+        }
+
+        let clampedX = min(max(locationX, 0), width)
+        let progress = clampedX / width
+        let time = Double(progress) * video.originalDuration
+
+        return time.clamped(to: video.rangeDuration)
     }
 
     private func thumbnailRequestID(for size: CGSize) -> String {
@@ -211,6 +256,9 @@ extension ThumbnailsSliderView {
         video: .constant(Video.mock),
         isChangeState: nil,
         onChangeTimeValue: { _ in },
-        onRequestThumbnails: { _ in }
+        onRequestThumbnails: { _ in },
+        onPlaybackScrubStarted: { _ in },
+        onPlaybackScrubChanged: { _, _ in },
+        onPlaybackScrubEnded: { _, _ in }
     )
 }

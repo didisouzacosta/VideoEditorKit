@@ -212,6 +212,18 @@ struct PlayerControl: View {
             editorVM.setCut()
         } onRequestThumbnails: { size in
             editorVM.refreshThumbnailsIfNeeded(containerSize: size)
+        } onPlaybackScrubStarted: { range in
+            videoPlayer.beginScrubbing(in: range)
+        } onPlaybackScrubChanged: { time, range in
+            videoPlayer.scrub(
+                to: time,
+                in: editorVM.currentVideo?.rangeDuration ?? range
+            )
+        } onPlaybackScrubEnded: { time, range in
+            videoPlayer.endScrubbing(
+                at: time,
+                in: editorVM.currentVideo?.rangeDuration ?? range
+            )
         }
         .padding(.horizontal)
     }
