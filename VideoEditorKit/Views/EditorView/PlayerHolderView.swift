@@ -208,8 +208,6 @@ struct PlayerControl: View {
     var body: some View {
         if let video = editorViewModel.currentVideo {
             playbackTimelineSection(video)
-        } else {
-            playSection
         }
     }
 

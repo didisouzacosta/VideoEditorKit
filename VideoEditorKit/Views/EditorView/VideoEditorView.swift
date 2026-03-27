@@ -48,14 +48,16 @@ struct VideoEditorView: View {
                         textEditor: textEditor
                     )
 
-                    ToolsSectionView(
-                        videoPlayer,
-                        editorVM: editorViewModel,
-                        textEditor: textEditor
-                    )
-                    .disabled(isEditingLocked)
-                    .opacity(isEditingLocked ? 0.45 : 1)
+                    if !isEditingLocked {
+                        ToolsSectionView(
+                            videoPlayer,
+                            editorVM: editorViewModel,
+                            textEditor: textEditor
+                        )
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                    }
                 }
+                .animation(.snappy(duration: 0.22), value: isEditingLocked)
                 .safeAreaPadding()
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {

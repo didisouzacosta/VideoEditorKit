@@ -54,7 +54,7 @@ struct ThumbnailsSliderView: View {
     // MARK: - Private Properties
 
     private let handleInnerInset: CGFloat = 4
-    private let playheadLineWidth: CGFloat = 4
+    private let playheadLineWidth: CGFloat = 2
     private let playheadLabelHeight: CGFloat = 28
     private let timelineHeight: CGFloat = 60
 
@@ -224,7 +224,7 @@ extension ThumbnailsSliderView {
         let metrics = timelineMetrics(for: video, range: range, width: proxy.size.width)
 
         return Capsule(style: .continuous)
-            .fill(.red)
+            .fill(.blue)
             .frame(width: playheadLineWidth, height: proxy.size.height + 10)
             .position(
                 x: metrics.playbackPositionX(),
