@@ -1,5 +1,5 @@
 //
-//  VideoExporterBottomSheetView.swift
+//  VideoExporterView.swift
 //  VideoEditorKit
 //
 //  Created by Adriano Souza Costa on 23.03.2026.
@@ -9,7 +9,7 @@ import Observation
 import SwiftUI
 
 @MainActor
-struct VideoExporterBottomSheetView: View {
+struct VideoExporterView: View {
 
     // MARK: - Environments
 
@@ -17,7 +17,6 @@ struct VideoExporterBottomSheetView: View {
 
     // MARK: - States
 
-    @State private var selectedDetent: PresentationDetent = .height(420)
     @State private var viewModel: ExporterViewModel
 
     // MARK: - Private Properties
@@ -28,51 +27,14 @@ struct VideoExporterBottomSheetView: View {
 
     var body: some View {
         @Bindable var bindableViewModel = viewModel
-        NavigationStack {
-            VStack(alignment: .leading) {
-                if viewModel.shouldShowLoadingView {
-                    loadingView
-                } else {
-                    list
-                }
-            }
-            .navigationTitle("Export Video")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel", role: .cancel) {
-                        dismiss()
-                    }
-                    .disabled(viewModel.isInteractionDisabled)
-                }
 
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Export") {
-                        viewModel.exportVideo(handleExportedVideo)
-                    }
-                    .disabled(!viewModel.canExportVideo)
-                }
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 20)
-            .padding(.bottom, 28)
-            .disabled(viewModel.isInteractionDisabled)
-            .animation(.easeInOut, value: viewModel.renderState)
-        }
-        .presentationDetents(detents, selection: $selectedDetent)
-        .presentationDragIndicator(.visible)
-        .presentationContentInteraction(.scrolls)
-        .presentationCornerRadius(32)
-        .onChange(of: viewModel.renderState) { _, newValue in
-            updateSelectedDetent(for: newValue)
-        }
-        .alert("Unable to export video", isPresented: $bindableViewModel.showAlert) {}
+        navigationContent
+            .alert("Unable to export video", isPresented: $bindableViewModel.showAlert) {}
     }
 
     // MARK: - Initializer
 
     init(video: Video, onExported: @escaping (URL) -> Void) {
-        _selectedDetent = State(initialValue: .height(420))
         _viewModel = State(initialValue: ExporterViewModel(video))
 
         self.onExported = onExported
@@ -80,31 +42,64 @@ struct VideoExporterBottomSheetView: View {
 
 }
 
-extension VideoExporterBottomSheetView {
+extension VideoExporterView {
 
     // MARK: - Private Properties
 
-    private var detents: Set<PresentationDetent> {
-        if viewModel.shouldShowLoadingView {
-            [.medium, .large]
-        } else {
-            [.height(420), .medium]
+    private var navigationContent: some View {
+        sheetContent
+            .navigationTitle("Export Video")
+            .navigationBarTitleDisplayMode(.inline)
+            .animation(.easeInOut, value: viewModel.renderState)
+            .disabled(viewModel.isInteractionDisabled)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel", role: .cancel) {
+                        dismiss()
+                    }
+                    .disabled(viewModel.isInteractionDisabled)
+                }
+            }
+    }
+
+    private var sheetContent: some View {
+        VStack(alignment: .leading) {
+            if viewModel.shouldShowLoadingView {
+                loadingView
+            } else {
+                list
+            }
         }
+        .padding()
     }
 
     private var list: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            Text("Choose the output quality for the rendered file.")
-                .font(.subheadline)
-                .foregroundStyle(Theme.secondary)
-
-            qualityListSection
-
-            if viewModel.shouldShowFailureMessage {
-                Text("The video could not be exported. Check the current edit state and try again.")
-                    .font(.footnote)
+        VStack(spacing: 32) {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Choose the output quality for the rendered file.")
+                    .font(.subheadline)
                     .foregroundStyle(Theme.secondary)
+                    .padding(.horizontal)
+
+                qualityListSection
+
+                if viewModel.shouldShowFailureMessage {
+                    Text("The video could not be exported. Check the current edit state and try again.")
+                        .font(.footnote)
+                        .foregroundStyle(Theme.secondary)
+                }
             }
+
+            Button {
+                viewModel.exportVideo(handleExportedVideo)
+            } label: {
+                Text("Exportar")
+                    .font(.headline.weight(.bold))
+                    .padding()
+            }
+            .buttonSizing(.flexible)
+            .buttonStyle(.glassProminent)
+            .disabled(!viewModel.canExportVideo)
         }
     }
 
@@ -121,11 +116,11 @@ extension VideoExporterBottomSheetView {
                 .font(.subheadline)
                 .foregroundStyle(Theme.secondary)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(maxWidth: .infinity)
     }
 
     private var qualityListSection: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 8) {
             ForEach(VideoQuality.allCases.reversed(), id: \.self) { type in
                 Button {
                     viewModel.selectQuality(type)
@@ -157,9 +152,11 @@ extension VideoExporterBottomSheetView {
                             )
                         }
                     }
-                    .padding(14)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(16)
+                    .contentShape(.rect(cornerRadius: 16))
                     .card(
-                        cornerRadius: 22,
+                        cornerRadius: 16,
                         prominent: viewModel.isSelectedQuality(type),
                         tint: viewModel.isSelectedQuality(type) ? Theme.accent : Theme.secondary
                     )
@@ -176,19 +173,10 @@ extension VideoExporterBottomSheetView {
         onExported(url)
     }
 
-    private func updateSelectedDetent(for state: ExporterViewModel.ExportState) {
-        switch state {
-        case .loading, .loaded:
-            selectedDetent = .medium
-        case .unknown, .failed:
-            selectedDetent = .height(420)
-        }
-    }
-
 }
 
 #Preview {
     NavigationStack {
-        VideoExporterBottomSheetView(video: Video.mock) { _ in }
+        VideoExporterView(video: Video.mock) { _ in }
     }
 }

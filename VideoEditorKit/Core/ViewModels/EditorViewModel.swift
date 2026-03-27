@@ -282,7 +282,7 @@ extension EditorViewModel {
         selectedTools = tool
     }
 
-    func closeSelectedTool(textEditor: TextEditorViewModel) {
+    func closeSelectedTool(_ textEditor: TextEditorViewModel) {
         selectedTools = nil
         setText(textEditor.textBoxes)
     }
@@ -366,6 +366,7 @@ extension EditorViewModel {
         }
 
         videoPlayer.setVolume(isSelectVideo, value: value)
+        syncAudioToolState()
     }
 
     func selectedTrackVolume() -> Float {
@@ -381,6 +382,19 @@ extension EditorViewModel {
             get: { self.selectedTrackVolume() },
             set: { self.updateSelectedTrackVolume($0, videoPlayer: videoPlayer) }
         )
+    }
+
+    private func syncAudioToolState() {
+        guard let video = currentVideo else { return }
+
+        let hasRecordedAudio = video.audio != nil
+        let hasAdjustedVideoVolume = abs(video.volume - 1.0) > 0.001
+
+        if hasRecordedAudio || hasAdjustedVideoVolume {
+            currentVideo?.appliedTool(for: .audio)
+        } else {
+            currentVideo?.removeTool(for: .audio)
+        }
     }
 
     func frameColorBinding() -> Binding<Color> {

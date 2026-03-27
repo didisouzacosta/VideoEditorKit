@@ -201,22 +201,26 @@ extension ThumbnailsSliderView {
     private func thumbnailsImagesSection(_ proxy: GeometryProxy) -> some View {
         if let video {
             if video.thumbnailsImages.isEmpty {
-                Rectangle()
-                    .fill(.secondary)
-                    .overlay {
-                        ProgressView()
-                    }
+                ProgressView()
             } else {
                 HStack(spacing: 0) {
                     ForEach(video.thumbnailsImages) { trimData in
-                        thumbnailCell(trimData, in: proxy.size, thumbnailCount: video.thumbnailsImages.count)
+                        thumbnailCell(
+                            trimData,
+                            in: proxy.size,
+                            thumbnailCount: video.thumbnailsImages.count
+                        )
                     }
                 }
             }
         }
     }
 
-    private func playbackIndicator(_ proxy: GeometryProxy, video: Video, range: ClosedRange<Double>) -> some View {
+    private func playbackIndicator(
+        _ proxy: GeometryProxy,
+        video: Video,
+        range: ClosedRange<Double>
+    ) -> some View {
         let metrics = timelineMetrics(for: video, range: range, width: proxy.size.width)
 
         return Capsule(style: .continuous)

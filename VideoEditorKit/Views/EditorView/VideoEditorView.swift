@@ -61,9 +61,11 @@ struct VideoEditorView: View {
                         }
                     }
 
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button("Export") {
+                    ToolbarItem(placement: .primaryAction) {
+                        Button(role: .confirm) {
                             editorViewModel.presentExporter()
+                        } label: {
+                            Text("Export")
                         }
                     }
                 }
@@ -83,9 +85,12 @@ struct VideoEditorView: View {
                 TextEditorView(textEditor, onSave: editorViewModel.setText)
             }
         }
-        .sheet(isPresented: $bindableEditorViewModel.showVideoQualitySheet) {
+        .dynamicHeightSheet(
+            isPresented: $bindableEditorViewModel.showVideoQualitySheet,
+            initialHeight: 420
+        ) {
             if let video = editorViewModel.currentVideo {
-                VideoExporterBottomSheetView(video: video) { exportedURL in
+                VideoExporterView(video: video) { exportedURL in
                     videoPlayer.pause()
                     onExported(exportedURL)
                     dismiss()

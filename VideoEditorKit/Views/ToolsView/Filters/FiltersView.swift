@@ -96,11 +96,6 @@ extension FiltersView {
 
 }
 
-#Preview {
-    FiltersView(nil, viewModel: makeFiltersPreviewViewModel(), onChangeFilter: { _ in })
-        .padding()
-}
-
 @MainActor
 private func makeFiltersPreviewViewModel() -> FiltersViewModel {
     let viewModel = FiltersViewModel()
@@ -108,4 +103,9 @@ private func makeFiltersPreviewViewModel() -> FiltersViewModel {
         viewModel.loadFilters(for: image)
     }
     return viewModel
+}
+
+#Preview {
+    FiltersView(nil, viewModel: makeFiltersPreviewViewModel(), onChangeFilter: { _ in })
+        .padding()
 }

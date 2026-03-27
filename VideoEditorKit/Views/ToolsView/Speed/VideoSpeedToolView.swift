@@ -1,5 +1,5 @@
 //
-//  VideoSpeedSlider.swift
+//  VideoSpeedToolView.swift
 //  VideoEditorKit
 //
 //  Created by Adriano Souza Costa on 23.03.2026.
@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct VideoSpeedSlider: View {
+struct VideoSpeedToolView: View {
 
     // MARK: - States
 
@@ -21,28 +21,17 @@ struct VideoSpeedSlider: View {
     // MARK: - Body
 
     var body: some View {
-        VStack(spacing: 16) {
+        HStack {
+            Image(systemName: "speedometer")
+            Slider(value: $value, in: rateRange, step: 0.2) { isEditing in
+                if !isEditing {
+                    onEditingChanged(Float(value))
+                }
+            }
             Text("\(value, format: .number.precision(.fractionLength(1)))x")
-                .font(.title3.monospacedDigit().weight(.semibold))
-            CustomSlider(
-                $value,
-                in: rateRange,
-                step: 0.2,
-                onEditingChanged: { started in
-                    if !started {
-                        onEditingChanged(Float(value))
-                    }
-                },
-                track: {
-                    Capsule()
-                        .fill(Theme.sliderTrack)
-                        .frame(width: 250, height: 5)
-                },
-                thumb: {
-                    Circle()
-                        .fill(Theme.sliderThumb)
-                }, thumbSize: CGSize(width: 20, height: 20))
+                .monospacedDigit()
         }
+        .font(.caption)
         .onChange(of: isChangeState) { _, isChange in
             if !(isChange ?? true) {
                 value = 1
@@ -66,5 +55,5 @@ struct VideoSpeedSlider: View {
 }
 
 #Preview {
-    VideoSpeedSlider(isChangeState: false) { _ in }
+    VideoSpeedToolView(isChangeState: false) { _ in }
 }
