@@ -4,6 +4,7 @@ import Testing
 
 @testable import VideoEditorKit
 
+@MainActor
 @Suite("CameraManagerTests")
 struct CameraManagerTests {
 
@@ -59,12 +60,39 @@ struct CameraManagerTests {
     }
 
     @Test
-    func startRecordingUsesTheInjectedOutputAndTemporaryURLFactory() {
-        let output = CameraRecordingOutputDouble()
+    func autoConfigureDelegatesConfigurationToTheCaptureController() {
+        let captureController = CameraCaptureControllerDouble()
+
+        _ = CameraManager(captureController: captureController)
+
+        #expect(captureController.configureRequests.count == 1)
+        #expect(captureController.configureRequests.first?.cameraPosition == .back)
+        #expect(captureController.configureRequests.first?.maxDuration == 100)
+    }
+
+    @Test
+    func controllSessionDelegatesStateChangesToTheCaptureController() {
+        let captureController = CameraCaptureControllerDouble()
+        let manager = CameraManager(
+            captureController: captureController,
+            autoConfigure: false
+        )
+
+        manager.controllSession(start: true)
+        manager.controllSession(start: false)
+
+        #expect(captureController.controlRequests.map(\.start) == [true, false])
+        #expect(captureController.controlRequests.allSatisfy { $0.cameraPosition == .back })
+        #expect(captureController.controlRequests.allSatisfy { $0.maxDuration == 100 })
+    }
+
+    @Test
+    func startRecordingUsesTheInjectedCaptureControllerAndTemporaryURLFactory() {
+        let captureController = CameraCaptureControllerDouble()
         let expectedURL = URL(fileURLWithPath: "/tmp/camera-phase3.mov")
         let manager = CameraManager(
             maxDuration: 5,
-            videoOutput: output,
+            captureController: captureController,
             sleep: { _ in throw CancellationError() },
             temporaryURLProvider: { expectedURL },
             autoConfigure: false
@@ -74,24 +102,51 @@ struct CameraManagerTests {
         manager.startRecording()
 
         #expect(manager.recordedDuration == 0)
-        #expect(output.startedURLs == [expectedURL])
-        #expect(output.maxDurationConfigurations.isEmpty)
+        #expect(captureController.startedURLs == [expectedURL])
         #expect(manager.isRecording == true)
     }
 
     @Test
-    func toggleRecordingStopsTheInjectedOutputWhenAlreadyRecording() {
-        let output = CameraRecordingOutputDouble()
-        output.isRecording = true
+    func toggleRecordingStopsTheInjectedCaptureControllerWhenAlreadyRecording() {
+        let captureController = CameraCaptureControllerDouble()
+        captureController.isRecording = true
         let manager = CameraManager(
-            videoOutput: output,
+            captureController: captureController,
             sleep: { _ in },
             autoConfigure: false
         )
 
         manager.toggleRecording()
 
-        #expect(output.stopRecordingCallCount == 1)
+        #expect(captureController.stopRecordingCallCount == 1)
+    }
+
+    @Test
+    func captureControllerErrorsPublishOnTheObservedState() async {
+        let captureController = CameraCaptureControllerDouble()
+        let manager = CameraManager(
+            captureController: captureController,
+            autoConfigure: false
+        )
+
+        let sampleError = NSError(domain: "CameraManagerTests", code: 77)
+        captureController.emitError(.outputError(sampleError))
+
+        await waitUntil {
+            if case .outputError = manager.error {
+                true
+            } else {
+                false
+            }
+        }
+
+        guard case .outputError(let receivedError)? = manager.error else {
+            Issue.record("Expected an outputError published by the capture controller.")
+            return
+        }
+
+        #expect((receivedError as NSError).domain == sampleError.domain)
+        #expect((receivedError as NSError).code == sampleError.code)
     }
 
     @Test
@@ -99,14 +154,12 @@ struct CameraManagerTests {
         let manager = CameraManager(autoConfigure: false)
         let outputURL = URL(fileURLWithPath: "/tmp/camera-success.mov")
 
-        await MainActor.run {
-            manager.fileOutput(
-                AVCaptureMovieFileOutput(),
-                didFinishRecordingTo: outputURL,
-                from: [],
-                error: nil
-            )
-        }
+        manager.fileOutput(
+            AVCaptureMovieFileOutput(),
+            didFinishRecordingTo: outputURL,
+            from: [],
+            error: nil
+        )
 
         await waitUntil { manager.finalURL == outputURL }
 
@@ -119,14 +172,12 @@ struct CameraManagerTests {
         let manager = CameraManager(autoConfigure: false)
         let sampleError = NSError(domain: "CameraManagerTests", code: 99)
 
-        await MainActor.run {
-            manager.fileOutput(
-                AVCaptureMovieFileOutput(),
-                didFinishRecordingTo: URL(fileURLWithPath: "/tmp/camera-failure.mov"),
-                from: [],
-                error: sampleError
-            )
-        }
+        manager.fileOutput(
+            AVCaptureMovieFileOutput(),
+            didFinishRecordingTo: URL(fileURLWithPath: "/tmp/camera-failure.mov"),
+            from: [],
+            error: sampleError
+        )
 
         await waitUntil {
             if case .outputError = manager.error {
@@ -147,10 +198,10 @@ struct CameraManagerTests {
 
     @Test
     func recordingDurationUpdatesCanBeDrivenByTheInjectedSleeper() async {
-        let output = CameraRecordingOutputDouble()
+        let captureController = CameraCaptureControllerDouble()
         let manager = CameraManager(
             maxDuration: 2,
-            videoOutput: output,
+            captureController: captureController,
             sleep: { _ in },
             autoConfigure: false
         )
@@ -161,24 +212,50 @@ struct CameraManagerTests {
         await Task.yield()
 
         #expect(manager.recordedDuration == 2)
-        #expect(output.stopRecordingCallCount == 1)
+        #expect(captureController.stopRecordingCallCount == 1)
         #expect(manager.isRecording == false)
     }
 
 }
 
-private final class CameraRecordingOutputDouble: CameraRecordingOutput {
+private final class CameraCaptureControllerDouble: CameraCaptureControlling {
 
     // MARK: - Public Properties
 
+    let session = AVCaptureSession()
     var isRecording = false
+    private(set) var configureRequests: [(cameraPosition: AVCaptureDevice.Position, maxDuration: Double)] = []
+    private(set) var controlRequests: [(start: Bool, cameraPosition: AVCaptureDevice.Position, maxDuration: Double)] =
+        []
     private(set) var startedURLs: [URL] = []
     private(set) var stopRecordingCallCount = 0
-    private(set) var maxDurationConfigurations: [Double] = []
+
+    // MARK: - Private Properties
+
+    private var errorHandler: (@MainActor (CameraError) -> Void)?
 
     // MARK: - Public Methods
 
-    func startRecording(to outputFileURL: URL, recordingDelegate: AVCaptureFileOutputRecordingDelegate) {
+    func setErrorHandler(_ handler: @escaping @MainActor (CameraError) -> Void) {
+        errorHandler = handler
+    }
+
+    func configureIfNeeded(cameraPosition: AVCaptureDevice.Position, maxDuration: Double) {
+        configureRequests.append((cameraPosition, maxDuration))
+    }
+
+    func controlSession(
+        start: Bool,
+        cameraPosition: AVCaptureDevice.Position,
+        maxDuration: Double
+    ) {
+        controlRequests.append((start, cameraPosition, maxDuration))
+    }
+
+    func startRecording(
+        to outputFileURL: URL,
+        recordingDelegate: AVCaptureFileOutputRecordingDelegate
+    ) {
         startedURLs.append(outputFileURL)
         isRecording = true
     }
@@ -188,21 +265,19 @@ private final class CameraRecordingOutputDouble: CameraRecordingOutput {
         isRecording = false
     }
 
-    func setMaximumRecordedDuration(seconds: Double) {
-        maxDurationConfigurations.append(seconds)
-    }
-
-    func addToSession(_ session: AVCaptureSession) -> Bool {
-        true
+    func emitError(_ error: CameraError) {
+        Task { @MainActor [errorHandler] in
+            errorHandler?(error)
+        }
     }
 
 }
 
 private func waitUntil(
     iterations: Int = 20,
-    condition: @escaping @Sendable () -> Bool
+    condition: @escaping @MainActor () -> Bool
 ) async {
-    for _ in 0..<iterations where !condition() {
+    for _ in 0..<iterations where !(await MainActor.run { condition() }) {
         await Task.yield()
     }
 }
