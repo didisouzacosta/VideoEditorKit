@@ -57,7 +57,7 @@ struct VideoEditorView: View {
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
                 }
-                .animation(.snappy(duration: 0.22), value: videoPlayer.isPlaying)
+                .animation(.default, value: videoPlayer.isPlaying)
                 .safeAreaPadding()
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {

@@ -225,35 +225,11 @@ struct PlayerControl: View {
         self.textEditor = textEditor
     }
 
-    // MARK: - Private Properties
-
-    private let timelineTrackHeight: CGFloat = 60
-    private let timelineTrackTopInset: CGFloat = 32
+    // MARK: - Private Methods
 
     private func playbackTimelineSection(_ video: Video) -> some View {
-        HStack(alignment: .top, spacing: 16) {
-            playSection
-                .padding(.top, timelineTrackTopInset)
-
-            trimSection(video)
-                .disabled(videoPlayer.isPlaying)
-        }
+        trimSection(video)
     }
-
-    private var playSection: some View {
-        Button {
-            if let video = editorViewModel.currentVideo {
-                videoPlayer.action(video)
-            }
-        } label: {
-            Image(systemName: videoPlayer.isPlaying ? "pause.fill" : "play.fill")
-                .font(.title2.weight(.semibold))
-                .frame(width: timelineTrackHeight, height: timelineTrackHeight)
-                .circleControl()
-        }
-    }
-
-    // MARK: - Private Methods
 
     private func trimSection(_ video: Video) -> some View {
         ThumbnailsSliderView(
@@ -262,7 +238,13 @@ struct PlayerControl: View {
                 get: { editorViewModel.currentVideo },
                 set: { editorViewModel.currentVideo = $0 }
             ),
-            isChangeState: video.isAppliedTool(for: .cut)
+            isPlaying: videoPlayer.isPlaying,
+            isChangeState: video.isAppliedTool(for: .cut),
+            onPlayPauseTapped: {
+                if let video = editorViewModel.currentVideo {
+                    videoPlayer.action(video)
+                }
+            }
         ) { newRange in
             videoPlayer.pause()
             videoPlayer.updatePlaybackRange(newRange)

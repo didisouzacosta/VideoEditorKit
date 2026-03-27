@@ -24,7 +24,9 @@ struct ThumbnailsSliderView: View {
 
     // MARK: - Private Properties
 
+    private let isPlaying: Bool
     private let isChangeState: Bool?
+    private let onPlayPauseTapped: () -> Void
     private let onChangeTimeValue: (ClosedRange<Double>) -> Void
     private let onRequestThumbnails: (CGSize) -> Void
     private let onPlaybackScrubStarted: (ClosedRange<Double>) -> Void
@@ -34,14 +36,25 @@ struct ThumbnailsSliderView: View {
     // MARK: - Body
 
     var body: some View {
-        VStack(spacing: 8) {
-            timelineSection
-            footerSection
+        HStack(spacing: 32) {
+            Button {
+                onPlayPauseTapped()
+            } label: {
+                Image(systemName: isPlaying ? "pause.fill" : "play.fill")
+                    .frame(width: timelineHeight, height: timelineHeight)
+                    .circleControl()
+            }
+            .padding(.top, 8)
+
+            VStack(spacing: 8) {
+                timelineSection
+                footerSection
+            }
+            .disabled(isPlaying)
         }
         .onChange(of: isChangeState) { _, isChange in
-            if !(isChange ?? true) {
-                setVideoRange()
-            }
+            guard let isChange, !isChange else { return }
+            setVideoRange()
         }
         .onChange(of: video?.id) { _, _ in
             setVideoRange()
@@ -64,7 +77,9 @@ struct ThumbnailsSliderView: View {
     init(
         _ currentTime: Binding<Double>,
         video: Binding<Video?>,
+        isPlaying: Bool,
         isChangeState: Bool? = nil,
+        onPlayPauseTapped: @escaping () -> Void,
         onChangeTimeValue: @escaping (ClosedRange<Double>) -> Void,
         onRequestThumbnails: @escaping (CGSize) -> Void,
         onPlaybackScrubStarted: @escaping (ClosedRange<Double>) -> Void,
@@ -74,7 +89,9 @@ struct ThumbnailsSliderView: View {
         _currentTime = currentTime
         _video = video
 
+        self.isPlaying = isPlaying
         self.isChangeState = isChangeState
+        self.onPlayPauseTapped = onPlayPauseTapped
         self.onChangeTimeValue = onChangeTimeValue
         self.onRequestThumbnails = onRequestThumbnails
         self.onPlaybackScrubStarted = onPlaybackScrubStarted
@@ -410,7 +427,9 @@ private struct PlayheadBadgeWidthPreferenceKey: PreferenceKey {
     ThumbnailsSliderView(
         .constant(0),
         video: .constant(Video.mock),
+        isPlaying: false,
         isChangeState: nil,
+        onPlayPauseTapped: {},
         onChangeTimeValue: { _ in },
         onRequestThumbnails: { _ in },
         onPlaybackScrubStarted: { _ in },
