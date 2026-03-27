@@ -23,37 +23,95 @@ struct ToolButtonView: View {
         Button {
             action()
         } label: {
-            VStack(spacing: 4) {
-                Image(systemName: image)
-                    .font(.headline.weight(.semibold))
-                Text(label)
-                    .font(.caption.weight(.medium))
-            }
+            buttonContent
+        }
+        .buttonStyle(.plain)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityLabel)
+        .accessibilityValue(accessibilityValue)
+        .accessibilityHint(accessibilityHint)
+        .accessibilityIdentifier(accessibilityIdentifier)
+    }
+
+    // MARK: - Private Properties
+
+    private var buttonContent: some View {
+        toolLabel
             .frame(maxWidth: .infinity, minHeight: 85)
             .opacity(isBlocked ? 0.55 : 1)
+            .contentShape(Rectangle())
             .overlay(alignment: .topLeading) {
                 if isBlocked {
-                    Image(systemName: "lock.fill")
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(Theme.secondary)
-                        .padding(8)
+                    blockedBadge
                 }
             }
             .overlay(alignment: .topTrailing) {
                 if isChange {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(Theme.primary)
-                        .padding(8)
+                    appliedBadge
                 }
             }
             .card(
                 cornerRadius: 16,
                 prominent: isChange && !isBlocked,
-                tint: isBlocked ? Theme.secondary : (isChange ? Theme.accent : Theme.secondary)
+                tint: buttonTint
             )
+    }
+
+    private var toolLabel: some View {
+        VStack(spacing: 4) {
+            Image(systemName: image)
+                .font(.headline.weight(.semibold))
+            Text(label)
+                .font(.caption.weight(.medium))
         }
-        .buttonStyle(.plain)
+    }
+
+    private var blockedBadge: some View {
+        ZStack {
+            Circle()
+                .fill(Theme.rootBackground.opacity(0.95))
+
+            Image(systemName: "lock.fill")
+                .font(.caption.weight(.bold))
+                .foregroundStyle(Theme.secondary)
+        }
+        .frame(width: 28, height: 28)
+        .padding(8)
+    }
+
+    private var appliedBadge: some View {
+        Image(systemName: "checkmark.circle.fill")
+            .font(.caption.weight(.bold))
+            .foregroundStyle(Theme.primary)
+            .padding(8)
+    }
+
+    private var buttonTint: Color {
+        isBlocked ? Theme.secondary : (isChange ? Theme.accent : Theme.secondary)
+    }
+
+    private var accessibilityLabel: String {
+        isBlocked ? "\(label), locked" : label
+    }
+
+    private var accessibilityValue: String {
+        if isBlocked {
+            "Unavailable"
+        } else if isChange {
+            "Applied"
+        } else {
+            "Available"
+        }
+    }
+
+    private var accessibilityHint: String {
+        isBlocked
+            ? "Double-tap to learn how to unlock this tool."
+            : "Double-tap to open this editing tool."
+    }
+
+    private var accessibilityIdentifier: String {
+        "tool-button-\(label.lowercased().replacingOccurrences(of: " ", with: "-"))"
     }
 
     // MARK: - Initializer

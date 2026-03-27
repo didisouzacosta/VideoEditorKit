@@ -55,26 +55,43 @@ struct VideoEditorConfigurationTests {
     // MARK: - Public Methods
 
     @Test
+    func toolAvailabilityHelpersProduceTheExpectedAccessStates() {
+        let visibleTools = ToolAvailability.enabled([.speed, .text])
+        let blockedTool = ToolAvailability.blocked(.filters)
+
+        #expect(visibleTools.map(\.tool) == [.speed, .text])
+        #expect(visibleTools.allSatisfy { $0.isEnabled })
+        #expect(blockedTool.tool == .filters)
+        #expect(blockedTool.isBlocked)
+    }
+
+    @Test
     func defaultConfigurationExposesAllVisibleToolsAsEnabled() {
         let configuration = VideoEditorView.Configuration()
 
         #expect(configuration.tools.map(\.tool) == ToolEnum.all)
         #expect(configuration.tools.allSatisfy { $0.access == .enabled })
+        #expect(configuration.visibleTools == ToolEnum.all)
     }
 
     @Test
     func customConfigurationPreservesTheProvidedOrderAndAccessState() {
         let configuration = VideoEditorView.Configuration(
             tools: [
-                .init(.filters),
-                .init(.speed, access: .blocked),
-                .init(.text),
+                .enabled(.filters),
+                .blocked(.speed),
+                .enabled(.text),
             ]
         )
 
         #expect(configuration.tools.map(\.tool) == [.filters, .speed, .text])
+        #expect(configuration.isVisible(.filters))
+        #expect(configuration.isEnabled(.filters))
         #expect(configuration.availability(for: .filters)?.isBlocked == false)
+        #expect(configuration.isBlocked(.speed))
         #expect(configuration.availability(for: .speed)?.isBlocked == true)
+        #expect(configuration.isVisible(.audio) == false)
+        #expect(configuration.isEnabled(.audio) == false)
         #expect(configuration.availability(for: .audio) == nil)
     }
 
@@ -82,13 +99,20 @@ struct VideoEditorConfigurationTests {
     func blockedToolHandlerReceivesTheTappedTool() {
         var receivedTool: ToolEnum?
         let configuration = VideoEditorView.Configuration(
-            tools: [.init(.speed, access: .blocked)],
+            tools: [.blocked(.speed)],
             onBlockedToolTap: { receivedTool = $0 }
         )
 
         configuration.notifyBlockedToolTap(for: .speed)
 
         #expect(receivedTool == .speed)
+    }
+
+    @Test
+    func allToolsEnabledStaticPresetMatchesTheDefaultConfiguration() {
+        let preset = VideoEditorView.Configuration.allToolsEnabled
+
+        #expect(preset.tools == VideoEditorView.Configuration().tools)
     }
 
 }

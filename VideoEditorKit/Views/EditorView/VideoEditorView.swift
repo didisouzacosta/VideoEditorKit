@@ -154,13 +154,21 @@ extension VideoEditorView {
 
         // MARK: - Public Properties
 
+        static var allToolsEnabled: Self {
+            Self()
+        }
+
         let tools: [ToolAvailability]
         let onBlockedToolTap: ((ToolEnum) -> Void)?
+
+        var visibleTools: [ToolEnum] {
+            tools.map(\.tool)
+        }
 
         // MARK: - Initializer
 
         init(
-            tools: [ToolAvailability] = ToolEnum.all.map { ToolAvailability($0) },
+            tools: [ToolAvailability] = ToolAvailability.enabled(ToolEnum.all),
             onBlockedToolTap: ((ToolEnum) -> Void)? = nil
         ) {
             self.tools = tools
@@ -171,6 +179,18 @@ extension VideoEditorView {
 
         func availability(for tool: ToolEnum) -> ToolAvailability? {
             tools.first(where: { $0.tool == tool })
+        }
+
+        func isVisible(_ tool: ToolEnum) -> Bool {
+            availability(for: tool) != nil
+        }
+
+        func isEnabled(_ tool: ToolEnum) -> Bool {
+            availability(for: tool)?.isEnabled == true
+        }
+
+        func isBlocked(_ tool: ToolEnum) -> Bool {
+            availability(for: tool)?.isBlocked == true
         }
 
         func notifyBlockedToolTap(for tool: ToolEnum) {

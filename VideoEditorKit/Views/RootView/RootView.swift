@@ -15,6 +15,7 @@ struct RootView: View {
     // MARK: - States
 
     @State private var viewModel = RootViewModel()
+    @State private var blockedTool: ToolEnum?
 
     // MARK: - Body
 
@@ -49,10 +50,21 @@ struct RootView: View {
             ) { destination in
                 VideoEditorView(
                     destination.url,
-                    configuration: .init(tools: [])
+                    configuration: editorConfiguration
                 ) { exportedURL in
                     viewModel.handleExportedVideo(exportedURL)
                 }
+            }
+            .alert(
+                "Premium Tool",
+                isPresented: blockedToolAlertBinding,
+                presenting: blockedTool
+            ) { _ in
+                Button("OK", role: .cancel) {}
+            } message: { tool in
+                Text(
+                    "\(tool.title) is locked in this demo. Connect `onBlockedToolTap` to your paywall or upgrade flow in the host app."
+                )
             }
         }
     }
@@ -62,6 +74,30 @@ struct RootView: View {
 extension RootView {
 
     // MARK: - Private Properties
+
+    private var blockedToolAlertBinding: Binding<Bool> {
+        Binding(
+            get: { blockedTool != nil },
+            set: { isPresented in
+                if !isPresented {
+                    blockedTool = nil
+                }
+            }
+        )
+    }
+
+    private var editorConfiguration: VideoEditorView.Configuration {
+        .init(
+            tools: [
+                .enabled(.speed),
+                .blocked(.audio),
+                .blocked(.filters),
+            ],
+            onBlockedToolTap: { tool in
+                blockedTool = tool
+            }
+        )
+    }
 
     @ViewBuilder
     private var heroSection: some View {
@@ -75,7 +111,7 @@ extension RootView {
             .font(.title3.weight(.semibold))
 
             Text(
-                "This screen now works as an example mode. It starts a temporary editing session and shows the exported output."
+                "This screen now works as an example integration. It exposes one tool, keeps premium tools visible as locked, and shows the exported output here."
             )
             .font(.subheadline)
             .foregroundStyle(Theme.secondary)

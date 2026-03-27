@@ -78,4 +78,16 @@ struct ToolAvailability: Hashable, Identifiable {
         self.access = access
     }
 
+    static func enabled(_ tool: ToolEnum) -> Self {
+        .init(tool)
+    }
+
+    static func blocked(_ tool: ToolEnum) -> Self {
+        .init(tool, access: .blocked)
+    }
+
+    static func enabled(_ tools: [ToolEnum]) -> [Self] {
+        tools.map(Self.enabled)
+    }
+
 }
