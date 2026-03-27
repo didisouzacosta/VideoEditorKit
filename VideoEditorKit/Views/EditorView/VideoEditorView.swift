@@ -25,7 +25,7 @@ struct VideoEditorView: View {
 
     private let configuration: Configuration
     private let sourceVideoURL: URL?
-    private let onExported: (URL) -> Void
+    private let onExported: (ExportedVideo) -> Void
 
     // MARK: - Body
 
@@ -130,7 +130,7 @@ struct VideoEditorView: View {
     init(
         _ sourceVideoURL: URL? = nil,
         configuration: Configuration = .init(),
-        onExported: @escaping (URL) -> Void = { _ in }
+        onExported: @escaping (ExportedVideo) -> Void = { _ in }
     ) {
         self.configuration = configuration
         self.sourceVideoURL = sourceVideoURL

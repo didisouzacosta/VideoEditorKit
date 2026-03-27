@@ -347,7 +347,13 @@ extension VideoEditor {
             progressTask.cancel()
         }
 
-        try await session.export(to: outputURL, as: fileType)
+        try await withTaskCancellationHandler {
+            try await session.export(to: outputURL, as: fileType)
+        } onCancel: {
+            sessionBox.session.cancelExport()
+        }
+
+        try Task.checkCancellation()
         await reportProgress(progressRange.upperBound, via: onProgress)
     }
 

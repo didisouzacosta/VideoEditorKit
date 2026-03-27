@@ -30,13 +30,21 @@ struct RootView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
                         heroSection
-                        selectVideoCard(
-                            $bindableViewModel.selectedItem,
-                            isLoading: viewModel.isLoading
-                        )
+                        
+                        if viewModel.shouldShowVideoPicker {
+                            selectVideoCard(
+                                $bindableViewModel.selectedItem,
+                                isLoading: viewModel.isLoading
+                            )
+                            .transition(.blurReplace)
+                        }
+                        
                         resultSection
+                            .transition(.blurReplace)
                     }
+                    .animation(.default, value: viewModel.shouldShowVideoPicker)
                 }
+                .defaultScrollAnchor(.center)
                 .scrollIndicators(.hidden)
                 .contentMargins(16)
             }
@@ -51,20 +59,18 @@ struct RootView: View {
                 VideoEditorView(
                     destination.url,
                     configuration: editorConfiguration
-                ) { exportedURL in
-                    viewModel.handleExportedVideo(exportedURL)
+                ) { exportedVideo in
+                    viewModel.handleExportedVideo(exportedVideo)
                 }
-            }
-            .alert(
-                "Premium Tool",
-                isPresented: blockedToolAlertBinding,
-                presenting: blockedTool
-            ) { _ in
-                Button("OK", role: .cancel) {}
-            } message: { tool in
-                Text(
-                    "\(tool.title) is locked in this demo. Connect `onBlockedToolTap` to your paywall or upgrade flow in the host app."
-                )
+                .alert(
+                    "Premium Tool",
+                    isPresented: blockedToolAlertBinding,
+                    presenting: blockedTool
+                ) { _ in
+                    Button("OK", role: .cancel) {}
+                } message: { tool in
+                    Text(blockedToolAlertMessage(for: tool))
+                }
             }
         }
     }
@@ -120,6 +126,10 @@ extension RootView {
         .card()
     }
 
+    private func blockedToolAlertMessage(for tool: ToolEnum) -> String {
+        "\(tool.title) is locked in this demo. Connect `onBlockedToolTap` to your paywall or upgrade flow in the host app."
+    }
+
     private func selectVideoCard(
         _ selectedItem: Binding<PhotosPickerItem?>,
         isLoading: Bool
@@ -157,14 +167,34 @@ extension RootView {
 
     @ViewBuilder
     private var resultSection: some View {
-        if viewModel.editedVideoURL != nil {
+        if let editedVideo = viewModel.editedVideo {
             VStack(alignment: .leading, spacing: 16) {
                 Text("Edited Result")
                     .font(.headline)
                     .padding(.horizontal)
 
                 PlayerView(viewModel.resultPlayer, showControls: true)
-                    .scaledToFill()
+                    .aspectRatio(viewModel.editedVideoAspectRatio, contentMode: .fit)
+                    .clipShape(.rect(cornerRadius: 28))
+                    .card()
+
+                HStack(spacing: 12) {
+                    ShareLink(item: editedVideo.url) {
+                        Label("Share", systemImage: "square.and.arrow.up")
+                            .font(.headline.weight(.semibold))
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                    }
+                    .buttonStyle(.glassProminent)
+
+                    Button(role: .destructive, action: viewModel.clearEditedVideo) {
+                        Label("Clear", systemImage: "trash")
+                            .font(.headline.weight(.semibold))
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                    }
+                    .buttonStyle(.glass)
+                }
             }
         }
     }

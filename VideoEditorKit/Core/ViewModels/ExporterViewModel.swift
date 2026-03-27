@@ -16,7 +16,7 @@ final class ExporterViewModel {
     // MARK: - Public Properties
 
     let video: Video
-    
+
     var showAlert = false
     var exportProgress: Double = .zero
     var selectedQuality: VideoQuality = .medium
@@ -27,13 +27,17 @@ final class ExporterViewModel {
             handleRenderStateChange(renderState)
         }
     }
-    
+
     var isInteractionDisabled: Bool {
         renderState == .loading
     }
 
     var canExportVideo: Bool {
         !isInteractionDisabled
+    }
+
+    var canCancelExport: Bool {
+        renderState == .loading
     }
 
     var shouldShowLoadingView: Bool {
@@ -72,7 +76,7 @@ final class ExporterViewModel {
     enum ExportState: Identifiable, Equatable {
 
         case unknown, loading
-        case loaded(URL)
+        case loaded(ExportedVideo)
         case failed(Error)
 
         var id: Int {
@@ -85,7 +89,16 @@ final class ExporterViewModel {
         }
 
         static func == (lhs: ExporterViewModel.ExportState, rhs: ExporterViewModel.ExportState) -> Bool {
-            lhs.id == rhs.id
+            switch (lhs, rhs) {
+            case (.unknown, .unknown), (.loading, .loading):
+                true
+            case (.loaded(let lhsVideo), .loaded(let rhsVideo)):
+                lhsVideo == rhsVideo
+            case (.failed, .failed):
+                true
+            default:
+                false
+            }
         }
 
     }
@@ -100,6 +113,9 @@ final class ExporterViewModel {
         ) async throws -> URL
 
     private let renderVideo: RenderVideo
+    private let loadExportedVideo: @Sendable (URL) async -> ExportedVideo
+
+    @ObservationIgnored private var exportTask: Task<Void, Never>?
 
     // MARK: - Initializer
 
@@ -111,15 +127,19 @@ final class ExporterViewModel {
                 videoQuality: quality,
                 onProgress: onProgress
             )
+        },
+        loadExportedVideo: @escaping @Sendable (URL) async -> ExportedVideo = { url in
+            await ExportedVideo.load(from: url)
         }
     ) {
         self.video = video
         self.renderVideo = renderVideo
+        self.loadExportedVideo = loadExportedVideo
     }
 
     // MARK: - Public Methods
 
-    func export() async -> URL? {
+    func export() async -> ExportedVideo? {
         renderState = .loading
 
         do {
@@ -128,23 +148,47 @@ final class ExporterViewModel {
                     self?.exportProgress = progress.clamped(to: 0...1)
                 }
             }
-            renderState = .loaded(url)
-            return url
+            try Task.checkCancellation()
+
+            let exportedVideo = await loadExportedVideo(url)
+            try Task.checkCancellation()
+
+            renderState = .loaded(exportedVideo)
+            return exportedVideo
+        } catch is CancellationError {
+            renderState = .unknown
+            return nil
         } catch {
             renderState = .failed(error)
             return nil
         }
     }
 
-    func exportVideo(_ onExported: @escaping (URL) -> Void) {
-        Task { [weak self] in
-            guard let self, let url = await self.export() else { return }
-            onExported(url)
+    func exportVideo(_ onExported: @escaping (ExportedVideo) -> Void) {
+        exportTask?.cancel()
+
+        exportTask = Task { [weak self] in
+            guard let self else { return }
+
+            defer {
+                Task { @MainActor [weak self] in
+                    self?.exportTask = nil
+                }
+            }
+
+            guard let exportedVideo = await self.export(), !Task.isCancelled else { return }
+            onExported(exportedVideo)
         }
     }
 
-    func retryExport(_ onExported: @escaping (URL) -> Void) {
+    func retryExport(_ onExported: @escaping (ExportedVideo) -> Void) {
         exportVideo(onExported)
+    }
+
+    func cancelExport() {
+        exportTask?.cancel()
+        exportTask = nil
+        renderState = .unknown
     }
 
     func selectQuality(_ quality: VideoQuality) {

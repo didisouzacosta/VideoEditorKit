@@ -21,7 +21,7 @@ struct VideoExporterView: View {
 
     // MARK: - Private Properties
 
-    private let onExported: (URL) -> Void
+    private let onExported: (ExportedVideo) -> Void
 
     // MARK: - Body
 
@@ -43,7 +43,7 @@ struct VideoExporterView: View {
 
     // MARK: - Initializer
 
-    init(video: Video, onExported: @escaping (URL) -> Void) {
+    init(video: Video, onExported: @escaping (ExportedVideo) -> Void) {
         _viewModel = State(initialValue: ExporterViewModel(video))
 
         self.onExported = onExported
@@ -69,7 +69,9 @@ struct VideoExporterView: View {
             if viewModel.shouldShowLoadingView {
                 ExportProgressSection(
                     progress: viewModel.exportProgress,
-                    progressText: viewModel.progressText
+                    progressText: viewModel.progressText,
+                    canCancelExport: viewModel.canCancelExport,
+                    onCancel: viewModel.cancelExport
                 )
             } else {
                 ExportQualitySelectionSection(
@@ -103,9 +105,9 @@ struct VideoExporterView: View {
         dismiss()
     }
 
-    private func handleExportedVideo(_ url: URL) {
+    private func handleExportedVideo(_ video: ExportedVideo) {
         dismiss()
-        onExported(url)
+        onExported(video)
     }
 
 }
@@ -241,6 +243,8 @@ private struct ExportProgressSection: View {
 
     let progress: Double
     let progressText: String
+    let canCancelExport: Bool
+    let onCancel: () -> Void
 
     // MARK: - Body
 
@@ -260,6 +264,11 @@ private struct ExportProgressSection: View {
                 .font(.subheadline)
                 .foregroundStyle(Theme.secondary)
                 .multilineTextAlignment(.center)
+
+            Button("Cancel", role: .cancel, action: onCancel)
+                .buttonSizing(.flexible)
+                .buttonStyle(.glass)
+                .disabled(!canCancelExport)
         }
         .frame(maxWidth: .infinity, minHeight: 220)
     }

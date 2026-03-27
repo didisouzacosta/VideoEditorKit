@@ -6,6 +6,7 @@
 //
 
 import AVKit
+import CoreGraphics
 import Foundation
 import Observation
 import PhotosUI
@@ -20,7 +21,16 @@ final class RootViewModel {
     var selectedItem: PhotosPickerItem?
     var isLoading = false
     var editorDestination: EditorDestination?
-    var editedVideoURL: URL?
+    var editedVideo: ExportedVideo?
+
+    var shouldShowVideoPicker: Bool {
+        editedVideo == nil
+    }
+
+    var editedVideoAspectRatio: CGFloat {
+        let fallbackAspectRatio = CGFloat(16.0 / 9.0)
+        return max(editedVideo?.aspectRatio ?? fallbackAspectRatio, 0.1)
+    }
 
     private(set) var resultPlayer = AVPlayer()
 
@@ -75,11 +85,18 @@ final class RootViewModel {
         resetPickerSelection()
     }
 
-    func handleExportedVideo(_ url: URL) {
-        cleanupFileIfNeeded(editedVideoURL)
-        editedVideoURL = url
-        resultPlayer.replaceCurrentItem(with: AVPlayerItem(url: url))
+    func handleExportedVideo(_ video: ExportedVideo) {
+        cleanupFileIfNeeded(editedVideo?.url)
+        editedVideo = video
+        resultPlayer.replaceCurrentItem(with: AVPlayerItem(url: video.url))
         resultPlayer.seek(to: .zero)
+    }
+
+    func clearEditedVideo() {
+        resultPlayer.pause()
+        resultPlayer.replaceCurrentItem(with: nil)
+        cleanupFileIfNeeded(editedVideo?.url)
+        editedVideo = nil
     }
 
     // MARK: - Private Methods
@@ -88,8 +105,8 @@ final class RootViewModel {
         resultPlayer.pause()
         resultPlayer.replaceCurrentItem(with: nil)
         cleanupFileIfNeeded(sessionSourceURL)
-        cleanupFileIfNeeded(editedVideoURL)
-        editedVideoURL = nil
+        cleanupFileIfNeeded(editedVideo?.url)
+        editedVideo = nil
         sessionSourceURL = url
         resetPickerSelection()
         editorDestination = .init(url: url)
