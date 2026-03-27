@@ -39,6 +39,7 @@ struct VideoEditorView: View {
                         videoPlayer: videoPlayer,
                         textEditor: textEditor
                     )
+                    .disabled(isEditingLocked)
 
                     PlayerControl(
                         editorViewModel,
@@ -52,6 +53,8 @@ struct VideoEditorView: View {
                         editorVM: editorViewModel,
                         textEditor: textEditor
                     )
+                    .disabled(isEditingLocked)
+                    .opacity(isEditingLocked ? 0.45 : 1)
                 }
                 .safeAreaPadding()
                 .toolbar {
@@ -67,6 +70,7 @@ struct VideoEditorView: View {
                         } label: {
                             Text("Export")
                         }
+                        .disabled(isEditingLocked)
                     }
                 }
                 .onAppear {
@@ -102,6 +106,15 @@ struct VideoEditorView: View {
                 editorViewModel.handleRecordedVideo(url, videoPlayer: videoPlayer)
             }
         }
+        .onChange(of: videoPlayer.isPlaying) { _, isPlaying in
+            handlePlaybackLockChange(isPlaying)
+        }
+    }
+
+    // MARK: - Private Properties
+
+    private var isEditingLocked: Bool {
+        videoPlayer.isPlaying
     }
 
     // MARK: - Initializer
@@ -113,6 +126,16 @@ struct VideoEditorView: View {
     ) {
         self.sourceVideoURL = sourceVideoURL
         self.onExported = onExported
+    }
+
+    // MARK: - Private Methods
+
+    private func handlePlaybackLockChange(_ isPlaying: Bool) {
+        guard isPlaying else { return }
+
+        editorViewModel.closeSelectedTool(textEditor)
+        textEditor.cancelTextEditor()
+        textEditor.selectedTextBox = nil
     }
 
 }

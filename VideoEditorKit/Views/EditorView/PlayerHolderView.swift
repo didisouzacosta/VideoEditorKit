@@ -24,7 +24,7 @@ struct PlayerHolderView: View {
     // MARK: - Body
 
     var body: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: 8) {
             ZStack(alignment: .bottom) {
                 switch videoPlayer.loadState {
                 case .loading:
@@ -74,7 +74,7 @@ extension PlayerHolderView {
                         ) {
                             ZStack {
                                 editorViewModel.frames.frameColor
-                                
+
                                 ZStack {
                                     PlayerView(videoPlayer.videoPlayer)
                                     TextOverlayView(
@@ -150,7 +150,7 @@ extension PlayerHolderView {
 
     private func rotatedBaseSize(for video: Video) -> CGSize {
         let baseSize: CGSize
-        
+
         if video.presentationSize.width > 0, video.presentationSize.height > 0 {
             baseSize = video.presentationSize
         } else {
@@ -160,7 +160,7 @@ extension PlayerHolderView {
         guard baseSize.width > 0, baseSize.height > 0 else { return .zero }
 
         let normalizedRotation = abs(Int(video.rotation)) % 180
-        
+
         if normalizedRotation == 90 {
             return CGSize(width: baseSize.height, height: baseSize.width)
         }
@@ -170,9 +170,9 @@ extension PlayerHolderView {
 
     private func syncVideoLayout(for containerSize: CGSize) {
         guard let video = editorViewModel.currentVideo else { return }
-        
+
         let size = resolvedDisplaySize(for: video, in: containerSize)
-        
+
         guard size.width > 0, size.height > 0 else { return }
 
         guard editorViewModel.currentVideo?.id == video.id else { return }
@@ -206,12 +206,10 @@ struct PlayerControl: View {
 
     @ViewBuilder
     var body: some View {
-        VStack(spacing: 32) {
+        if let video = editorViewModel.currentVideo {
+            playbackTimelineSection(video)
+        } else {
             playSection
-
-            if editorViewModel.hasCurrentVideo {
-                timeLineControlSection
-            }
         }
     }
 
@@ -231,10 +229,16 @@ struct PlayerControl: View {
 
     // MARK: - Private Properties
 
-    @ViewBuilder
-    private var timeLineControlSection: some View {
-        if let video = editorViewModel.currentVideo {
+    private let timelineTrackHeight: CGFloat = 60
+    private let timelineTrackTopInset: CGFloat = 32
+
+    private func playbackTimelineSection(_ video: Video) -> some View {
+        HStack(alignment: .top, spacing: 16) {
+            playSection
+                .padding(.top, timelineTrackTopInset)
+
             trimSection(video)
+                .disabled(videoPlayer.isPlaying)
         }
     }
 
@@ -246,7 +250,7 @@ struct PlayerControl: View {
         } label: {
             Image(systemName: videoPlayer.isPlaying ? "pause.fill" : "play.fill")
                 .font(.title2.weight(.semibold))
-                .frame(width: 72, height: 72)
+                .frame(width: timelineTrackHeight, height: timelineTrackHeight)
                 .circleControl()
         }
     }
