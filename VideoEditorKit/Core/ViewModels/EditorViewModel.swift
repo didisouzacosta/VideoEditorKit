@@ -24,6 +24,7 @@ final class EditorViewModel {
     var showVideoQualitySheet = false
     var showRecordView = false
     var cropTab: CropToolTab = .rotate
+    
     var hasCurrentVideo: Bool {
         currentVideo != nil
     }
@@ -35,6 +36,7 @@ final class EditorViewModel {
     var isMirrorEnabled: Bool {
         currentVideo?.isMirror ?? false
     }
+    
     var cropRotation: Double {
         get { currentVideo?.rotation ?? 0 }
         set { setRotation(newValue) }
@@ -260,7 +262,12 @@ extension EditorViewModel {
         case .cut:
             currentVideo?.resetRangeDuration()
         case .speed:
+            let previousRate = currentVideo?.rate ?? 1
+            videoPlayer.pause()
             currentVideo?.resetRate()
+            if let currentVideo {
+                videoPlayer.syncPlaybackState(with: currentVideo, previousRate: previousRate)
+            }
         case .crop:
             currentVideo?.rotation = 0
             currentVideo?.isMirror = false

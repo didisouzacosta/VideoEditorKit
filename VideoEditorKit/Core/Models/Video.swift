@@ -192,7 +192,7 @@ struct Video: Identifiable, @unchecked Sendable {
             timelineTime: timelineTime,
             previousRate: previousRate,
             newRate: rate,
-            newRange: rangeDuration,
+            newRange: outputRangeDuration,
             originalDuration: originalDuration
         )
     }

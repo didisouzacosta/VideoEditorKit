@@ -44,4 +44,22 @@ struct EditorViewModelTests {
         #expect(abs(Double(viewModel.currentVideo?.volume ?? 0) - 1.0) < 0.0001)
     }
 
+    @Test
+    func resetSpeedPreservesTimelineIndicatorPosition() {
+        let viewModel = EditorViewModel()
+        let videoPlayer = VideoPlayerManager()
+        var video = Video.mock
+        video.rangeDuration = 20...80
+        viewModel.currentVideo = video
+        videoPlayer.syncPlaybackState(with: video)
+        videoPlayer.currentTime = 50
+
+        viewModel.handleRateChange(2, videoPlayer: videoPlayer)
+
+        viewModel.reset(.speed, textEditor: TextEditorViewModel(), videoPlayer: videoPlayer)
+
+        #expect(abs(Double(viewModel.currentVideo?.rate ?? 0) - 1.0) < 0.0001)
+        #expect(abs(videoPlayer.currentTime - 50) < 0.0001)
+    }
+
 }

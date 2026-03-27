@@ -26,9 +26,11 @@ final class ExporterViewModel {
     var showAlert = false
     var progressTimer: TimeInterval = .zero
     var selectedQuality: VideoQuality = .medium
+    
     var isInteractionDisabled: Bool {
         renderState == .loading
     }
+    
     var canExportVideo: Bool {
         !isInteractionDisabled
     }
@@ -68,6 +70,7 @@ final class ExporterViewModel {
         static func == (lhs: ExporterViewModel.ExportState, rhs: ExporterViewModel.ExportState) -> Bool {
             lhs.id == rhs.id
         }
+        
     }
 
     // MARK: - Private Properties
