@@ -15,10 +15,6 @@ struct PlayerHolderView: View {
 
     @Environment(\.displayScale) private var displayScale
 
-    // MARK: - Bindings
-
-    @Binding private var isFullScreen: Bool
-
     // MARK: - Private Properties
 
     private let editorViewModel: EditorViewModel
@@ -48,14 +44,11 @@ struct PlayerHolderView: View {
     // MARK: - Initializer
 
     init(
-        _ isFullScreen: Binding<Bool>,
-        editorVM: EditorViewModel,
+        _ editorViewModel: EditorViewModel,
         videoPlayer: VideoPlayerManager,
         textEditor: TextEditorViewModel
     ) {
-        _isFullScreen = isFullScreen
-
-        self.editorViewModel = editorVM
+        self.editorViewModel = editorViewModel
         self.videoPlayer = videoPlayer
         self.textEditor = textEditor
     }
@@ -81,14 +74,13 @@ extension PlayerHolderView {
                         ) {
                             ZStack {
                                 editorViewModel.frames.frameColor
+                                
                                 ZStack {
                                     PlayerView(videoPlayer.videoPlayer)
                                     TextOverlayView(
                                         videoPlayer.currentTime,
-                                        viewModel: textEditor,
-                                        disabledMagnification: isFullScreen
+                                        viewModel: textEditor
                                     )
-                                    .disabled(isFullScreen)
                                 }
                                 .scaleEffect(editorViewModel.frames.scale)
                             }
@@ -195,10 +187,6 @@ struct PlayerControl: View {
 
     @Environment(\.displayScale) private var displayScale
 
-    // MARK: - Bindings
-
-    @Binding private var isFullScreen: Bool
-
     // MARK: - Private Properties
 
     private let editorViewModel: EditorViewModel
@@ -222,14 +210,11 @@ struct PlayerControl: View {
     // MARK: - Initializer
 
     init(
-        _ isFullScreen: Binding<Bool>,
-        editorViewModel: EditorViewModel,
+        _ editorViewModel: EditorViewModel,
         videoPlayer: VideoPlayerManager,
         recorderManager: AudioRecorderManager,
         textEditor: TextEditorViewModel
     ) {
-        _isFullScreen = isFullScreen
-
         self.editorViewModel = editorViewModel
         self.videoPlayer = videoPlayer
         self.recorderManager = recorderManager
@@ -255,23 +240,6 @@ struct PlayerControl: View {
                 .font(.title2.weight(.semibold))
                 .frame(width: 72, height: 72)
                 .circleControl()
-        }
-        .hCenter()
-        .overlay(alignment: .trailing) {
-            Button {
-                videoPlayer.pause()
-                withAnimation {
-                    isFullScreen.toggle()
-                }
-            } label: {
-                Image(
-                    systemName: isFullScreen
-                    ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right"
-                )
-                .font(.headline.weight(.semibold))
-                .frame(width: 46, height: 46)
-                .circleControl()
-            }
         }
     }
 

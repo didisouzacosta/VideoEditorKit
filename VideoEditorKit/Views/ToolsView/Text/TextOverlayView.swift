@@ -65,7 +65,11 @@ struct TextOverlayView: View {
 
     // MARK: - Initializer
 
-    init(_ currentTime: Double, viewModel: TextEditorViewModel, disabledMagnification: Bool = false) {
+    init(
+        _ currentTime: Double,
+        viewModel: TextEditorViewModel,
+        disabledMagnification: Bool = false
+    ) {
         self.currentTime = currentTime
         self.viewModel = viewModel
         self.disabledMagnification = disabledMagnification

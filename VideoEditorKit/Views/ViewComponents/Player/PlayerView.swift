@@ -16,12 +16,14 @@ struct PlayerView: UIViewControllerRepresentable {
 
     // MARK: - Private Properties
 
-    private var player: AVPlayer
+    private let player: AVPlayer
+    private let showControls: Bool
 
     // MARK: - Initializer
 
-    init(_ player: AVPlayer) {
+    init(_ player: AVPlayer, showControls: Bool = false) {
         self.player = player
+        self.showControls = showControls
     }
 
     // MARK: - Public Methods
@@ -29,7 +31,7 @@ struct PlayerView: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> AVPlayerViewController {
         let view = AVPlayerViewController()
         view.player = player
-        view.showsPlaybackControls = false
+        view.showsPlaybackControls = showControls
         view.videoGravity = .resizeAspect
         return view
     }

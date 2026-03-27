@@ -400,10 +400,9 @@ extension EditorViewModel {
     func setSourceVideoIfNeeded(
         _ sourceVideoURL: URL?,
         availableSize: CGSize,
-        isFullScreen: Bool,
         videoPlayer: VideoPlayerManager
     ) {
-        let containerSize = playerContainerSize(in: availableSize, isFullScreen: isFullScreen)
+        let containerSize = playerContainerSize(in: availableSize)
         lastPlayerContainerSize = containerSize
 
         guard !hasLoadedSourceVideo, let sourceVideoURL else { return }
@@ -433,10 +432,10 @@ extension EditorViewModel {
         exportSheetTask = nil
     }
 
-    func playerContainerSize(in availableSize: CGSize, isFullScreen: Bool) -> CGSize {
+    func playerContainerSize(in availableSize: CGSize) -> CGSize {
         CGSize(
             width: max(availableSize.width - 32, 1),
-            height: playerHeight(in: availableSize, isFullScreen: isFullScreen)
+            height: playerHeight(in: availableSize)
         )
     }
 
@@ -446,8 +445,8 @@ extension EditorViewModel {
 
     // MARK: - Private Methods
 
-    private func playerHeight(in availableSize: CGSize, isFullScreen: Bool) -> CGFloat {
-        let heightRatio = isFullScreen ? 0.62 : 0.40
+    private func playerHeight(in availableSize: CGSize) -> CGFloat {
+        let heightRatio = 0.40
         let proposedHeight = availableSize.height * heightRatio
         return max(220, proposedHeight)
     }

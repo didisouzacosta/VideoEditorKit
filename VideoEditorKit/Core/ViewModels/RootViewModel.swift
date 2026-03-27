@@ -18,16 +18,15 @@ final class RootViewModel {
     // MARK: - Public Properties
 
     var selectedItem: PhotosPickerItem?
-    var showLoader = false
+    var isLoading = false
     var editorDestination: EditorDestination?
     var editedVideoURL: URL?
+    
     private(set) var resultPlayer = AVPlayer()
 
     struct EditorDestination: Hashable, Identifiable {
-
         let id = UUID()
         let url: URL
-
     }
 
     // MARK: - Private Properties
@@ -42,16 +41,17 @@ final class RootViewModel {
         itemLoadTask?.cancel()
 
         guard let newItem else {
-            showLoader = false
+            isLoading = false
             return
         }
 
         itemLoadTask = Task { [weak self] in
             guard let self else { return }
-            showLoader = true
+            
+            isLoading = true
 
             defer {
-                showLoader = false
+                isLoading = false
                 itemLoadTask = nil
             }
 

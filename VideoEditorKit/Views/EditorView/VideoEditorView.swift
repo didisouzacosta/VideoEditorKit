@@ -16,7 +16,6 @@ struct VideoEditorView: View {
 
     // MARK: - States
 
-    @State private var isFullScreen = false
     @State private var editorViewModel = EditorViewModel()
     @State private var audioRecorder = AudioRecorderManager()
     @State private var videoPlayer = VideoPlayerManager()
@@ -36,27 +35,23 @@ struct VideoEditorView: View {
             GeometryReader { proxy in
                 VStack(spacing: 32) {
                     PlayerHolderView(
-                        $isFullScreen,
-                        editorVM: editorViewModel,
+                        editorViewModel,
                         videoPlayer: videoPlayer,
                         textEditor: textEditor
                     )
 
                     PlayerControl(
-                        $isFullScreen,
-                        editorViewModel: editorViewModel,
+                        editorViewModel,
                         videoPlayer: videoPlayer,
                         recorderManager: audioRecorder,
                         textEditor: textEditor
                     )
 
-                    if !isFullScreen {
-                        ToolsSectionView(
-                            videoPlayer,
-                            editorVM: editorViewModel,
-                            textEditor: textEditor
-                        )
-                    }
+                    ToolsSectionView(
+                        videoPlayer,
+                        editorVM: editorViewModel,
+                        textEditor: textEditor
+                    )
                 }
                 .safeAreaPadding()
                 .toolbar {
@@ -76,12 +71,12 @@ struct VideoEditorView: View {
                     editorViewModel.setSourceVideoIfNeeded(
                         sourceVideoURL,
                         availableSize: proxy.size,
-                        isFullScreen: isFullScreen,
                         videoPlayer: videoPlayer
                     )
                 }
             }
         }
+        .onDisappear(perform: editorViewModel.cancelDeferredTasks)
         .blur(radius: textEditor.editorBlurRadius)
         .overlay {
             if textEditor.isPresentingEditor {
@@ -102,12 +97,6 @@ struct VideoEditorView: View {
                 editorViewModel.handleRecordedVideo(url, videoPlayer: videoPlayer)
             }
         }
-        .onChange(of: isFullScreen) { _, newValue in
-            if newValue {
-                editorViewModel.closeSelectedTool(textEditor: textEditor)
-            }
-        }
-        .onDisappear(perform: editorViewModel.cancelDeferredTasks)
     }
 
     // MARK: - Initializer
@@ -117,8 +106,6 @@ struct VideoEditorView: View {
         configuration: Configuration = .init(),
         onExported: @escaping (URL) -> Void = { _ in }
     ) {
-        _isFullScreen = State(initialValue: configuration.isFullScreen)
-
         self.sourceVideoURL = sourceVideoURL
         self.onExported = onExported
     }
@@ -131,13 +118,9 @@ extension VideoEditorView {
 
         // MARK: - Public Properties
 
-        let isFullScreen: Bool
-
         // MARK: - Initializer
 
-        init(isFullScreen: Bool = true) {
-            self.isFullScreen = isFullScreen
-        }
+        init() {}
 
     }
 
