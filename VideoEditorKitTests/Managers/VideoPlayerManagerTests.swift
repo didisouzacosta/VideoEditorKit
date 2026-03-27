@@ -180,6 +180,28 @@ struct VideoPlayerManagerTests {
     }
 
     @Test
+    func actionRestartsFromRangeStartWhenTimelineIsAtTheEnd() async throws {
+        let manager = VideoPlayerManager()
+        let videoURL = try await TestFixtures.createTemporaryVideo(frameCount: 60)
+        defer { FileManager.default.removeIfExists(for: videoURL) }
+
+        let video = await Video.load(from: videoURL)
+
+        manager.loadState = .loaded(videoURL)
+        manager.syncPlaybackState(with: video)
+        manager.currentTime = video.outputRangeDuration.upperBound
+
+        await seek(
+            player: manager.videoPlayer,
+            to: max(video.originalDuration - 0.02, 0)
+        )
+
+        manager.action(video)
+
+        #expect(abs(manager.currentTime - video.outputRangeDuration.lowerBound) < 0.0001)
+    }
+
+    @Test
     func setVolumeUpdatesTheChosenPlayer() throws {
         let manager = VideoPlayerManager()
         let audioURL = try TestFixtures.createTemporaryAudio()
@@ -219,4 +241,16 @@ struct VideoPlayerManagerTests {
         #expect((manager.videoPlayer.currentItem?.asset as? AVURLAsset)?.url == videoURL)
     }
 
+}
+
+private func seek(player: AVPlayer, to seconds: Double) async {
+    await withCheckedContinuation { continuation in
+        player.seek(
+            to: CMTime(seconds: seconds, preferredTimescale: 600),
+            toleranceBefore: .zero,
+            toleranceAfter: .zero
+        ) { _ in
+            continuation.resume()
+        }
+    }
 }

@@ -83,6 +83,9 @@ final class VideoPlayerManager {
     private var filterCompositionTask: Task<Void, Never>?
 
     @ObservationIgnored
+    private var pendingPlaybackTask: Task<Void, Never>?
+
+    @ObservationIgnored
     private var previewMainFilterName: String?
 
     @ObservationIgnored
@@ -99,6 +102,8 @@ final class VideoPlayerManager {
 
     @ObservationIgnored
     private var loadedAudioURL: URL?
+
+    private let playbackRestartTolerance = 0.05
 
     // MARK: - Public Methods
 
@@ -159,6 +164,9 @@ final class VideoPlayerManager {
     }
 
     func pause() {
+        pendingPlaybackTask?.cancel()
+        pendingPlaybackTask = nil
+
         videoPlayer.pause()
 
         if isSetAudio { audioPlayer.pause() }
@@ -281,40 +289,58 @@ final class VideoPlayerManager {
     private func play() {
         AVAudioSession.sharedInstance().configurePlaybackSession()
 
+        pendingPlaybackTask?.cancel()
+
+        var startTime = currentTime
+
         if let currentDurationRange {
             let currentPlaybackTime = timelineTime(fromSourceTime: videoPlayer.currentTime().seconds)
             let targetTime = currentTime.clamped(to: currentDurationRange)
+            let isAtOrPastRangeEnd =
+                targetTime >= (currentDurationRange.upperBound - playbackRestartTolerance)
+                || (currentPlaybackTime.isFinite
+                    && currentPlaybackTime >= (currentDurationRange.upperBound - playbackRestartTolerance))
             let shouldSeekToRangeStart =
                 !currentPlaybackTime.isFinite
                 || !currentDurationRange.contains(targetTime)
                 || currentPlaybackTime < currentDurationRange.lowerBound
-                || currentPlaybackTime >= currentDurationRange.upperBound
+                || isAtOrPastRangeEnd
 
             if shouldSeekToRangeStart {
-                seek(sourceTime(forTimelineTime: currentDurationRange.lowerBound), player: videoPlayer)
-                if isSetAudio {
-                    seek(sourceTime(forTimelineTime: currentDurationRange.lowerBound), player: audioPlayer)
-                }
-                currentTime = currentDurationRange.lowerBound
+                startTime = currentDurationRange.lowerBound
             } else {
-                seek(sourceTime(forTimelineTime: targetTime), player: videoPlayer)
-                if isSetAudio {
-                    seek(sourceTime(forTimelineTime: targetTime), player: audioPlayer)
-                }
-                currentTime = targetTime
+                startTime = targetTime
             }
         }
 
-        videoPlayer.play()
+        currentTime = startTime
 
-        if isSetAudio {
-            audioPlayer.play()
-            audioPlayer.rate = currentPlaybackRate
+        let playbackStartTime = startTime
+
+        pendingPlaybackTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+
+            let sourcePlaybackTime = self.sourceTime(forTimelineTime: playbackStartTime)
+
+            await self.seek(sourcePlaybackTime, player: self.videoPlayer)
+
+            if self.isSetAudio {
+                await self.seek(sourcePlaybackTime, player: self.audioPlayer)
+            }
+
+            guard !Task.isCancelled else { return }
+
+            self.videoPlayer.play()
+
+            if self.isSetAudio {
+                self.audioPlayer.play()
+                self.audioPlayer.rate = self.currentPlaybackRate
+            }
+
+            self.videoPlayer.rate = self.currentPlaybackRate
+            self.registerPlaybackObserverIfNeeded()
+            self.pendingPlaybackTask = nil
         }
-
-        videoPlayer.rate = currentPlaybackRate
-
-        registerPlaybackObserverIfNeeded()
     }
 
     private func seek(_ seconds: Double, player: AVPlayer) {
@@ -323,6 +349,18 @@ final class VideoPlayerManager {
             toleranceBefore: .zero,
             toleranceAfter: .zero
         )
+    }
+
+    private func seek(_ seconds: Double, player: AVPlayer) async {
+        await withCheckedContinuation { continuation in
+            player.seek(
+                to: CMTime(seconds: seconds, preferredTimescale: 600),
+                toleranceBefore: .zero,
+                toleranceAfter: .zero
+            ) { _ in
+                continuation.resume()
+            }
+        }
     }
 
     private func startTimer() {
@@ -410,6 +448,8 @@ final class VideoPlayerManager {
     }
 
     private func cleanupObservers() {
+        pendingPlaybackTask?.cancel()
+        pendingPlaybackTask = nil
         removeTimeObserver()
         removeEndPlaybackObserver()
         statusCancellable?.cancel()

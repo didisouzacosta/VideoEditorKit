@@ -267,7 +267,6 @@ struct PlayerControl: View {
                 in: range
             )
         }
-        .padding(.horizontal)
     }
 
 }
