@@ -109,8 +109,8 @@ extension PlayerHolderView {
     private func statusView(_ text: String) -> some View {
         Text(text)
             .font(.headline)
-            .padding(.horizontal, 18)
-            .padding(.vertical, 12)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
             .capsuleControl()
     }
 
@@ -140,12 +140,17 @@ extension PlayerHolderView {
         )
     }
 
-    private func playerLayoutID(for containerSize: CGSize, rotation: Double, videoID: UUID) -> String {
+    private func playerLayoutID(
+        for containerSize: CGSize,
+        rotation: Double,
+        videoID: UUID
+    ) -> String {
         "\(videoID.uuidString)-\(Int(containerSize.width.rounded()))-\(Int(containerSize.height.rounded()))-\(Int(rotation))"
     }
 
     private func rotatedBaseSize(for video: Video) -> CGSize {
         let baseSize: CGSize
+        
         if video.presentationSize.width > 0, video.presentationSize.height > 0 {
             baseSize = video.presentationSize
         } else {
@@ -155,6 +160,7 @@ extension PlayerHolderView {
         guard baseSize.width > 0, baseSize.height > 0 else { return .zero }
 
         let normalizedRotation = abs(Int(video.rotation)) % 180
+        
         if normalizedRotation == 90 {
             return CGSize(width: baseSize.height, height: baseSize.width)
         }
@@ -164,7 +170,9 @@ extension PlayerHolderView {
 
     private func syncVideoLayout(for containerSize: CGSize) {
         guard let video = editorViewModel.currentVideo else { return }
+        
         let size = resolvedDisplaySize(for: video, in: containerSize)
+        
         guard size.width > 0, size.height > 0 else { return }
 
         guard editorViewModel.currentVideo?.id == video.id else { return }
