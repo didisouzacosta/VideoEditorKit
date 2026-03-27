@@ -23,6 +23,7 @@ struct VideoEditorView: View {
 
     // MARK: - Private Properties
 
+    private let configuration: Configuration
     private let sourceVideoURL: URL?
     private let onExported: (URL) -> Void
 
@@ -52,7 +53,8 @@ struct VideoEditorView: View {
                         ToolsSectionView(
                             videoPlayer,
                             editorVM: editorViewModel,
-                            textEditor: textEditor
+                            textEditor: textEditor,
+                            configuration: configuration
                         )
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
@@ -76,6 +78,7 @@ struct VideoEditorView: View {
                     }
                 }
                 .onAppear {
+                    editorViewModel.setToolAvailability(configuration.tools)
                     editorViewModel.setSourceVideoIfNeeded(
                         sourceVideoURL,
                         availableSize: proxy.size,
@@ -111,6 +114,9 @@ struct VideoEditorView: View {
         .onChange(of: videoPlayer.isPlaying) { _, isPlaying in
             handlePlaybackLockChange(isPlaying)
         }
+        .onChange(of: configuration.tools) { _, newValue in
+            editorViewModel.setToolAvailability(newValue)
+        }
     }
 
     // MARK: - Private Properties
@@ -126,6 +132,7 @@ struct VideoEditorView: View {
         configuration: Configuration = .init(),
         onExported: @escaping (URL) -> Void = { _ in }
     ) {
+        self.configuration = configuration
         self.sourceVideoURL = sourceVideoURL
         self.onExported = onExported
     }
@@ -148,9 +155,28 @@ extension VideoEditorView {
 
         // MARK: - Public Properties
 
+        let tools: [ToolAvailability]
+        let onBlockedToolTap: ((ToolEnum) -> Void)?
+
         // MARK: - Initializer
 
-        init() {}
+        init(
+            tools: [ToolAvailability] = ToolEnum.all.map { ToolAvailability($0) },
+            onBlockedToolTap: ((ToolEnum) -> Void)? = nil
+        ) {
+            self.tools = tools
+            self.onBlockedToolTap = onBlockedToolTap
+        }
+
+        // MARK: - Public Methods
+
+        func availability(for tool: ToolEnum) -> ToolAvailability? {
+            tools.first(where: { $0.tool == tool })
+        }
+
+        func notifyBlockedToolTap(for tool: ToolEnum) {
+            onBlockedToolTap?(tool)
+        }
 
     }
 

@@ -49,6 +49,50 @@ struct ToolEnumTests {
 
 }
 
+@Suite("VideoEditorConfigurationTests")
+struct VideoEditorConfigurationTests {
+
+    // MARK: - Public Methods
+
+    @Test
+    func defaultConfigurationExposesAllVisibleToolsAsEnabled() {
+        let configuration = VideoEditorView.Configuration()
+
+        #expect(configuration.tools.map(\.tool) == ToolEnum.all)
+        #expect(configuration.tools.allSatisfy { $0.access == .enabled })
+    }
+
+    @Test
+    func customConfigurationPreservesTheProvidedOrderAndAccessState() {
+        let configuration = VideoEditorView.Configuration(
+            tools: [
+                .init(.filters),
+                .init(.speed, access: .blocked),
+                .init(.text),
+            ]
+        )
+
+        #expect(configuration.tools.map(\.tool) == [.filters, .speed, .text])
+        #expect(configuration.availability(for: .filters)?.isBlocked == false)
+        #expect(configuration.availability(for: .speed)?.isBlocked == true)
+        #expect(configuration.availability(for: .audio) == nil)
+    }
+
+    @Test
+    func blockedToolHandlerReceivesTheTappedTool() {
+        var receivedTool: ToolEnum?
+        let configuration = VideoEditorView.Configuration(
+            tools: [.init(.speed, access: .blocked)],
+            onBlockedToolTap: { receivedTool = $0 }
+        )
+
+        configuration.notifyBlockedToolTap(for: .speed)
+
+        #expect(receivedTool == .speed)
+    }
+
+}
+
 @Suite("VideoQualityTests")
 struct VideoQualityTests {
 

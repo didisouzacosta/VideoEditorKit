@@ -15,9 +15,9 @@ struct PagedToolsRow: View {
 
     // MARK: - Private Properties
 
-    private let tools: [ToolEnum]
+    private let toolAvailability: [ToolAvailability]
     private let isApplied: (ToolEnum) -> Bool
-    private let action: (ToolEnum) -> Void
+    private let action: (ToolAvailability) -> Void
 
     // MARK: - Body
 
@@ -31,13 +31,14 @@ struct PagedToolsRow: View {
                         LazyHStack(spacing: metrics.pageSpacing) {
                             ForEach(Array(toolPages.enumerated()), id: \.offset) { index, page in
                                 HStack(spacing: metrics.itemSpacing) {
-                                    ForEach(page) { tool in
+                                    ForEach(page) { item in
                                         ToolButtonView(
-                                            tool.title,
-                                            image: tool.image,
-                                            isChange: isApplied(tool)
+                                            item.tool.title,
+                                            image: item.tool.image,
+                                            isChange: isApplied(item.tool),
+                                            isBlocked: item.isBlocked
                                         ) {
-                                            action(tool)
+                                            action(item)
                                         }
                                         .frame(width: metrics.itemWidth)
                                     }
@@ -67,11 +68,11 @@ struct PagedToolsRow: View {
     // MARK: - Initializer
 
     init(
-        _ tools: [ToolEnum],
+        _ tools: [ToolAvailability],
         isApplied: @escaping (ToolEnum) -> Bool,
-        action: @escaping (ToolEnum) -> Void
+        action: @escaping (ToolAvailability) -> Void
     ) {
-        self.tools = tools
+        self.toolAvailability = tools
         self.isApplied = isApplied
         self.action = action
     }
@@ -96,8 +97,8 @@ struct PagedToolsRow: View {
 
     // MARK: - Private Properties
 
-    private var toolPages: [[ToolEnum]] {
-        tools.chunked(into: Layout.itemsPerPage)
+    private var toolPages: [[ToolAvailability]] {
+        toolAvailability.chunked(into: Layout.itemsPerPage)
     }
 
     private var shouldShowPagination: Bool {
@@ -167,7 +168,9 @@ extension Array {
 }
 
 #Preview {
-    PagedToolsRow(ToolEnum.all) { tool in
+    PagedToolsRow(
+        ToolEnum.all.map { ToolAvailability($0) }
+    ) { tool in
         [.speed].contains(tool)
     } action: { _ in
     }

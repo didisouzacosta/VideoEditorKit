@@ -18,13 +18,13 @@ final class EditorViewModel {
     // MARK: - Public Properties
 
     var currentVideo: Video?
-    var selectedTools: ToolEnum?
+    private(set) var selectedTools: ToolEnum?
     var frames = VideoFrames()
     var selectedAudioTrack: AudioTrackSelection = .video
     var showVideoQualitySheet = false
     var showRecordView = false
     var cropTab: CropToolTab = .rotate
-    
+
     var hasCurrentVideo: Bool {
         currentVideo != nil
     }
@@ -36,7 +36,7 @@ final class EditorViewModel {
     var isMirrorEnabled: Bool {
         currentVideo?.isMirror ?? false
     }
-    
+
     var cropRotation: Double {
         get { currentVideo?.rotation ?? 0 }
         set { setRotation(newValue) }
@@ -52,6 +52,7 @@ final class EditorViewModel {
     @ObservationIgnored private var thumbnailsTask: Task<Void, Never>?
     @ObservationIgnored private var exportSheetTask: Task<Void, Never>?
 
+    private var enabledTools = Set(ToolEnum.all)
     private var hasLoadedSourceVideo = false
     private var lastPlayerContainerSize = CGSize(width: 1, height: 220)
     private var lastThumbnailDisplayScale: CGFloat = 1
@@ -77,6 +78,14 @@ final class EditorViewModel {
         }
     }
 
+    func setToolAvailability(_ tools: [ToolAvailability]) {
+        enabledTools = Set(tools.filter(\.isEnabled).map(\.tool))
+
+        if let selectedTools, !canSelectTool(selectedTools) {
+            self.selectedTools = nil
+        }
+    }
+
     // MARK: - Private Methods
 
     deinit {
@@ -88,7 +97,7 @@ final class EditorViewModel {
 }
 
 extension EditorViewModel {
-    
+
     enum AudioTrackSelection: String, CaseIterable, Identifiable {
         case video
         case recorded
@@ -115,15 +124,15 @@ extension EditorViewModel {
     ) {
         lastPlayerContainerSize = containerSize
         lastThumbnailDisplayScale = displayScale
-        
+
         guard let video = currentVideo else { return }
-        
+
         guard containerSize.width > 0, containerSize.height > 0 else { return }
 
         let expectedCount = video.thumbnailCount(for: containerSize)
-        
+
         guard expectedCount > 0 else { return }
-        
+
         let expectedThumbnailWidth = max(
             (containerSize.width / CGFloat(expectedCount)) * max(displayScale, 1),
             1
@@ -134,7 +143,7 @@ extension EditorViewModel {
         let hasLowResolutionThumbnails = (video.thumbnailsImages.first?.image?.size.width ?? 0) < expectedThumbnailWidth
 
         guard isMissingThumbnails || needsResize || hasLowResolutionThumbnails else { return }
-        
+
         loadThumbnails(
             for: video,
             containerSize: containerSize,
@@ -150,13 +159,13 @@ extension EditorViewModel {
         displayScale: CGFloat
     ) {
         let videoID = video.id
-        
+
         thumbnailsTask = Task.detached(priority: .userInitiated) {
             let thumbnails = await video.makeThumbnails(
                 containerSize: containerSize,
                 displayScale: displayScale
             )
-        
+
             guard !Task.isCancelled else { return }
 
             await MainActor.run { [weak self] in
@@ -312,6 +321,7 @@ extension EditorViewModel {
     }
 
     func selectTool(_ tool: ToolEnum) {
+        guard canSelectTool(tool) else { return }
         selectedTools = tool
     }
 
@@ -343,7 +353,7 @@ extension EditorViewModel {
     func handleSelectedTextBoxChange(_ box: TextBox?) {
         if box != nil {
             if selectedTools != .text {
-                selectedTools = .text
+                selectTool(.text)
             }
         } else if selectedTools == .text {
             selectedTools = nil
@@ -351,6 +361,11 @@ extension EditorViewModel {
     }
 
     func handleSelectedToolChange(_ tool: ToolEnum?, textEditor: TextEditorViewModel) {
+        guard tool == nil || canSelectTool(tool) else {
+            selectedTools = nil
+            return
+        }
+
         if tool == .text {
             textEditor.prepareForToolPresentation(timeRange: currentVideo?.rangeDuration)
         }
@@ -498,10 +513,17 @@ extension EditorViewModel {
     func presentExporter() {
         exportSheetTask?.cancel()
         selectedTools = nil
-        exportSheetTask = Task { [weak self] in
-            try? await Task.sleep(for: .milliseconds(200))
+        exportSheetTask = Task { @MainActor [self] in
+            defer { exportSheetTask = nil }
+
+            do {
+                try await Task.sleep(for: .milliseconds(200))
+            } catch {
+                return
+            }
+
             guard !Task.isCancelled else { return }
-            self?.showVideoQualitySheet = true
+            showVideoQualitySheet = true
         }
     }
 
@@ -522,6 +544,11 @@ extension EditorViewModel {
 extension EditorViewModel {
 
     // MARK: - Private Methods
+
+    private func canSelectTool(_ tool: ToolEnum?) -> Bool {
+        guard let tool else { return true }
+        return enabledTools.contains(tool)
+    }
 
     private func playerHeight(in availableSize: CGSize) -> CGFloat {
         let heightRatio = 0.40

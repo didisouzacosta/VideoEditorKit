@@ -20,14 +20,15 @@ struct ToolsSectionView: View {
     private let videoPlayer: VideoPlayerManager
     private let editorViewModel: EditorViewModel
     private let textEditor: TextEditorViewModel
+    private let configuration: VideoEditorView.Configuration
 
     // MARK: - Body
 
     var body: some View {
-        PagedToolsRow(ToolEnum.all) { tool in
+        PagedToolsRow(configuration.tools) { tool in
             editorViewModel.currentVideo?.isAppliedTool(for: tool) ?? false
-        } action: { tool in
-            editorViewModel.selectTool(tool)
+        } action: { toolAvailability in
+            handleToolTap(toolAvailability)
         }
         .dynamicHeightSheet(item: selectedToolBinding, initialHeight: initialSheetHeight) { tool in
             toolSheet(tool)
@@ -56,10 +57,16 @@ struct ToolsSectionView: View {
 
     // MARK: - Initializer
 
-    init(_ videoPlayer: VideoPlayerManager, editorVM: EditorViewModel, textEditor: TextEditorViewModel) {
+    init(
+        _ videoPlayer: VideoPlayerManager,
+        editorVM: EditorViewModel,
+        textEditor: TextEditorViewModel,
+        configuration: VideoEditorView.Configuration
+    ) {
         self.videoPlayer = videoPlayer
         self.editorViewModel = editorVM
         self.textEditor = textEditor
+        self.configuration = configuration
     }
 
 }
@@ -155,6 +162,15 @@ extension ToolsSectionView {
 
     private func handleSelectedToolChange(_ tool: ToolEnum?) {
         editorViewModel.handleSelectedToolChange(tool, textEditor: textEditor)
+    }
+
+    private func handleToolTap(_ toolAvailability: ToolAvailability) {
+        guard !toolAvailability.isBlocked else {
+            configuration.notifyBlockedToolTap(for: toolAvailability.tool)
+            return
+        }
+
+        editorViewModel.selectTool(toolAvailability.tool)
     }
 
     @ViewBuilder

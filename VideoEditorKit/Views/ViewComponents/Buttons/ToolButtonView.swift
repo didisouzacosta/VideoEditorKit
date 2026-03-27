@@ -14,6 +14,7 @@ struct ToolButtonView: View {
     private let label: String
     private let image: String
     private let isChange: Bool
+    private let isBlocked: Bool
     private let action: () -> Void
 
     // MARK: - Body
@@ -29,6 +30,15 @@ struct ToolButtonView: View {
                     .font(.caption.weight(.medium))
             }
             .frame(maxWidth: .infinity, minHeight: 85)
+            .opacity(isBlocked ? 0.55 : 1)
+            .overlay(alignment: .topLeading) {
+                if isBlocked {
+                    Image(systemName: "lock.fill")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(Theme.secondary)
+                        .padding(8)
+                }
+            }
             .overlay(alignment: .topTrailing) {
                 if isChange {
                     Image(systemName: "checkmark.circle.fill")
@@ -39,8 +49,8 @@ struct ToolButtonView: View {
             }
             .card(
                 cornerRadius: 16,
-                prominent: isChange,
-                tint: isChange ? Theme.accent : Theme.secondary
+                prominent: isChange && !isBlocked,
+                tint: isBlocked ? Theme.secondary : (isChange ? Theme.accent : Theme.secondary)
             )
         }
         .buttonStyle(.plain)
@@ -48,10 +58,17 @@ struct ToolButtonView: View {
 
     // MARK: - Initializer
 
-    init(_ label: String, image: String, isChange: Bool, action: @escaping () -> Void) {
+    init(
+        _ label: String,
+        image: String,
+        isChange: Bool,
+        isBlocked: Bool = false,
+        action: @escaping () -> Void
+    ) {
         self.label = label
         self.image = image
         self.isChange = isChange
+        self.isBlocked = isBlocked
         self.action = action
     }
 
@@ -61,6 +78,7 @@ struct ToolButtonView: View {
     VStack {
         ToolButtonView("Cut", image: "scissors", isChange: false) {}
         ToolButtonView("Cut", image: "scissors", isChange: true) {}
+        ToolButtonView("Cut", image: "scissors", isChange: false, isBlocked: true) {}
     }
     .frame(width: 100)
 }

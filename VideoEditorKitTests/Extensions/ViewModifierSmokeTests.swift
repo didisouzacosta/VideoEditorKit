@@ -38,6 +38,18 @@ struct ViewModifierSmokeTests {
         assertRenders(ItemSheetHostView())
     }
 
+    @Test
+    func blockedToolButtonsStillRenderInsideAHostingController() {
+        assertRenders(
+            ToolButtonView(
+                "Filters",
+                image: "camera.filters",
+                isChange: false,
+                isBlocked: true
+            ) {}
+        )
+    }
+
     // MARK: - Private Methods
 
     private func assertRenders<Content: View>(_ content: Content) {

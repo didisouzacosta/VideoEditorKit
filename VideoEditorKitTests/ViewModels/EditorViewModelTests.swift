@@ -78,7 +78,7 @@ struct EditorViewModelTests {
     func setFilterAppliesAndRemovesTheSelectedTool() {
         let viewModel = EditorViewModel()
         viewModel.currentVideo = Video.mock
-        viewModel.selectedTools = .filters
+        viewModel.selectTool(.filters)
 
         viewModel.setFilter("CIPhotoEffectNoir")
 
@@ -141,7 +141,7 @@ struct EditorViewModelTests {
         defer { FileManager.default.removeIfExists(for: audioURL) }
 
         viewModel.currentVideo = Video.mock
-        viewModel.selectedTools = .audio
+        viewModel.selectTool(.audio)
 
         viewModel.setAudio(Audio(url: audioURL, duration: 3, volume: 0.5))
 
@@ -158,7 +158,7 @@ struct EditorViewModelTests {
         video.audio = Audio(url: audioURL, duration: 4, volume: 0.7)
         video.appliedTool(for: .audio)
         viewModel.currentVideo = video
-        viewModel.selectedTools = .audio
+        viewModel.selectTool(.audio)
         viewModel.selectedAudioTrack = .recorded
 
         viewModel.removeAudio()
@@ -225,6 +225,50 @@ struct EditorViewModelTests {
     }
 
     @Test
+    func selectToolIgnoresBlockedAndHiddenToolsFromAvailability() {
+        let viewModel = EditorViewModel()
+        viewModel.setToolAvailability([
+            .init(.filters),
+            .init(.speed, access: .blocked),
+        ])
+
+        viewModel.selectTool(.filters)
+        #expect(viewModel.selectedTools == .filters)
+
+        viewModel.selectTool(.speed)
+        #expect(viewModel.selectedTools == .filters)
+
+        viewModel.selectTool(.audio)
+        #expect(viewModel.selectedTools == .filters)
+    }
+
+    @Test
+    func changingAvailabilityClearsTheCurrentSelectionWhenItBecomesUnavailable() {
+        let viewModel = EditorViewModel()
+        viewModel.selectTool(.text)
+
+        viewModel.setToolAvailability([
+            .init(.filters),
+            .init(.speed),
+        ])
+
+        #expect(viewModel.selectedTools == nil)
+    }
+
+    @Test
+    func handleSelectedTextBoxChangeDoesNotOpenTextWhenTheToolIsUnavailable() {
+        let viewModel = EditorViewModel()
+        viewModel.setToolAvailability([
+            .init(.filters),
+            .init(.speed),
+        ])
+
+        viewModel.handleSelectedTextBoxChange(TextBox(text: "Hello"))
+
+        #expect(viewModel.selectedTools == nil)
+    }
+
+    @Test
     func frameBindingsMutateTheSharedFramesState() {
         let viewModel = EditorViewModel()
         let colorBinding = viewModel.frameColorBinding()
@@ -252,14 +296,16 @@ struct EditorViewModelTests {
     @Test
     func presentExporterShowsTheQualitySheetAfterTheDeferredDelay() async {
         let viewModel = EditorViewModel()
-        viewModel.selectedTools = .text
+        viewModel.selectTool(.text)
 
         viewModel.presentExporter()
 
         #expect(viewModel.selectedTools == nil)
         #expect(viewModel.showVideoQualitySheet == false)
 
-        try? await Task.sleep(for: .milliseconds(350))
+        for _ in 0..<10 where !viewModel.showVideoQualitySheet {
+            try? await Task.sleep(for: .milliseconds(100))
+        }
 
         #expect(viewModel.showVideoQualitySheet)
     }

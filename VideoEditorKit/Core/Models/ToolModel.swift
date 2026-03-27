@@ -8,7 +8,7 @@
 import Foundation
 
 enum ToolEnum: Int, CaseIterable, Identifiable {
-    
+
     case cut, speed, crop, audio, text, filters, corrections, frames
 
     var id: Int {
@@ -44,5 +44,38 @@ enum ToolEnum: Int, CaseIterable, Identifiable {
         case .frames: "person.crop.artframe"
         }
     }
-    
+
+}
+
+struct ToolAvailability: Hashable, Identifiable {
+
+    // MARK: - Public Properties
+
+    enum Access: Hashable {
+        case enabled
+        case blocked
+    }
+
+    let tool: ToolEnum
+    let access: Access
+
+    var id: ToolEnum {
+        tool
+    }
+
+    var isBlocked: Bool {
+        access == .blocked
+    }
+
+    var isEnabled: Bool {
+        access == .enabled
+    }
+
+    // MARK: - Initializer
+
+    init(_ tool: ToolEnum, access: Access = .enabled) {
+        self.tool = tool
+        self.access = access
+    }
+
 }
