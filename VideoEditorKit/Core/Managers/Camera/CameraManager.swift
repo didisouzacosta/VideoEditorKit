@@ -28,10 +28,16 @@ final class CameraManager: NSObject, @unchecked Sendable {
 
     // MARK: - Private Properties
 
-    private var timer: Timer?
+    @ObservationIgnored
+    private var recordingDurationTask: Task<Void, Never>?
+    
+    @ObservationIgnored
     private let sessionQueue = DispatchQueue(label: "com.VideoEditorKit.camera.session", qos: .userInitiated)
-
+    
+    @ObservationIgnored
     private let videoOutput = AVCaptureMovieFileOutput()
+    
+    @ObservationIgnored
     private var status: Status = .unconfigurate
 
     // MARK: - Initializer
@@ -48,6 +54,7 @@ final class CameraManager: NSObject, @unchecked Sendable {
             config()
             return
         }
+        
         sessionQueue.async { [weak self] in
             guard let self else { return }
             if start {
@@ -61,8 +68,7 @@ final class CameraManager: NSObject, @unchecked Sendable {
     }
 
     func stopRecord() {
-        timer?.invalidate()
-        timer = nil
+        stopRecordingDurationUpdates()
         videoOutput.stopRecording()
     }
 
@@ -81,7 +87,7 @@ final class CameraManager: NSObject, @unchecked Sendable {
 
         videoOutput.startRecording(to: tempURL, recordingDelegate: self)
 
-        startTimer()
+        startRecordingDurationUpdates()
     }
 
     // MARK: - Private Methods
@@ -142,7 +148,9 @@ final class CameraManager: NSObject, @unchecked Sendable {
         guard status == .unconfigurate else { return }
 
         session.beginConfiguration()
+        
         defer { session.commitConfiguration() }
+        
         session.sessionPreset = .hd1280x720
 
         let device = getCameraDevice(for: cameraPosition)
@@ -221,22 +229,33 @@ extension CameraManager {
 
     // MARK: - Private Methods
 
-    private func onTimerFires() {
-        if recordedDuration <= maxDuration && videoOutput.isRecording {
-            recordedDuration += 1
-        }
+    private func startRecordingDurationUpdates() {
+        recordingDurationTask = Task { [weak self] in
+            let clock = ContinuousClock()
 
-        if recordedDuration >= maxDuration && videoOutput.isRecording {
-            stopRecord()
+            while !Task.isCancelled {
+                do {
+                    try await clock.sleep(for: .seconds(1))
+                } catch {
+                    return
+                }
+
+                guard let self else { return }
+                guard videoOutput.isRecording else { return }
+
+                recordedDuration = min(recordedDuration + 1, maxDuration)
+
+                if recordedDuration >= maxDuration {
+                    stopRecord()
+                    return
+                }
+            }
         }
     }
 
-    private func startTimer() {
-        if timer == nil {
-            timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] (timer) in
-                self?.onTimerFires()
-            }
-        }
+    private func stopRecordingDurationUpdates() {
+        recordingDurationTask?.cancel()
+        recordingDurationTask = nil
     }
 
 }
@@ -249,8 +268,7 @@ extension CameraManager: AVCaptureFileOutputRecordingDelegate {
         _ output: AVCaptureFileOutput, didFinishRecordingTo outputFileURL: URL,
         from connections: [AVCaptureConnection], error: Error?
     ) {
-        timer?.invalidate()
-        timer = nil
+        stopRecordingDurationUpdates()
 
         if let error {
             setError(.outputError(error))

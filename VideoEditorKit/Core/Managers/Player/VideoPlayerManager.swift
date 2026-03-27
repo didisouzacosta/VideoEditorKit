@@ -22,8 +22,12 @@ final class VideoPlayerManager {
     var currentTime: Double = .zero
     var selectedItem: PhotosPickerItem?
 
+    @ObservationIgnored
     private(set) var videoPlayer = AVPlayer()
+
+    @ObservationIgnored
     private(set) var audioPlayer = AVPlayer()
+
     private(set) var isPlaying = false
 
     var loadState: LoadState = .unknown {
@@ -54,19 +58,46 @@ final class VideoPlayerManager {
 
     // MARK: - Private Properties
 
+    @ObservationIgnored
     private var isSetAudio = false
+
+    @ObservationIgnored
     private var statusCancellable: AnyCancellable?
+
+    @ObservationIgnored
     private var timeObserver: Any?
+
+    @ObservationIgnored
     private var currentDurationRange: ClosedRange<Double>?
+
+    @ObservationIgnored
     private var currentPlaybackRate: Float = 1
+
+    @ObservationIgnored
     private var currentOriginalDuration: Double = .zero
+
+    @ObservationIgnored
     private var endPlaybackObserver: NSObjectProtocol?
+
+    @ObservationIgnored
     private var filterCompositionTask: Task<Void, Never>?
+
+    @ObservationIgnored
     private var previewMainFilterName: String?
+
+    @ObservationIgnored
     private var previewColorCorrection = ColorCorrection()
+
+    @ObservationIgnored
     private var appliedFilterSignature: String?
+
+    @ObservationIgnored
     private var appliedFilterItemID: ObjectIdentifier?
+
+    @ObservationIgnored
     private var loadedVideoURL: URL?
+
+    @ObservationIgnored
     private var loadedAudioURL: URL?
 
     // MARK: - Public Methods
@@ -302,7 +333,8 @@ final class VideoPlayerManager {
         timeObserver = videoPlayer.addPeriodicTimeObserver(forInterval: interval, queue: .main) {
             [weak self] time in
             Task { @MainActor [weak self] in
-                guard let self = self else { return }
+                guard let self else { return }
+
                 if self.isPlaying {
                     let playbackTime = time.seconds
                     let resolvedTime = self.resolvedCurrentTime(from: playbackTime)

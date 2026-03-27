@@ -79,4 +79,11 @@ struct AudioRecorderManagerTests {
         #expect(secondURL.deletingLastPathComponent() == cachesDirectory)
     }
 
+    @Test
+    func cancellationActionMatchesCurrentFlowRules() {
+        #expect(AudioRecorderManager.cancellationAction(for: .empty) == .none)
+        #expect(AudioRecorderManager.cancellationAction(for: .countdown) == .resetCountdown)
+        #expect(AudioRecorderManager.cancellationAction(for: .record) == .discardRecording)
+    }
+
 }

@@ -136,6 +136,8 @@ Não há separação atual entre camada de domínio pura, engines testáveis e U
 
 - O app suporta um áudio adicional gravado no próprio editor.
 - `AudioRecorderManager` grava para um arquivo `.m4a` temporário no cache.
+- O fluxo de contagem regressiva e atualização de duração agora usa `Task` cancelável em vez de `Timer`.
+- A gravação usa a duração máxima nativa de `AVAudioRecorder.record(forDuration:)`.
 - O timeline mostra uma faixa de áudio quando existe áudio gravado.
 - O usuário pode alternar entre faixa do vídeo e faixa gravada para ajustar volume.
 - O export mistura:
@@ -187,14 +189,16 @@ Não há separação atual entre camada de domínio pura, engines testáveis e U
 ### Câmera
 
 - Existe implementação de câmera/gravação em `CameraManager` e `RecordVideoView`.
+- O `AVCaptureMovieFileOutput` já usa `maxRecordedDuration` para o limite máximo da gravação.
 - `MainEditorView` tem `showRecordView`, mas a UI atual não expõe um botão para abrir esse fluxo.
 - Na prática, a câmera está presente no código, porém não integrada ao fluxo principal visível.
 
 ### Roadmap atual de modernização dos managers
 
 - O plano incremental para `VideoPlayerManager`, `AudioRecorderManager` e `CameraManager` está documentado em `docs/managers-modernization-roadmap.md`.
-- Fase 1 cobre correções seguras de ciclo de vida, identidade de players e geração de arquivo temporário por gravação.
-- Fases posteriores tratam modernização de concorrência, timers e seams de teste.
+- Fase 1 ja foi concluida com correcoes seguras de ciclo de vida, identidade de players e geracao de arquivo temporario por gravacao.
+- Fase 2 ja foi concluida com `Task` cancelavel para countdown/progresso, `record(forDuration:)`, `maxRecordedDuration` e ajustes de isolamento/observation nos managers.
+- Fase 3 segue como proxima etapa para seams de teste mais limpos e menor acoplamento com AVFoundation.
 
 ---
 

@@ -11,7 +11,7 @@ import Observation
 
 @MainActor
 @Observable
-final class AudioRecorderManager {
+final class AudioRecorderManager: NSObject {
 
     // MARK: - Public Properties
 
@@ -23,9 +23,23 @@ final class AudioRecorderManager {
 
     // MARK: - Private Properties
 
+    @ObservationIgnored
     private var audioRecorder: AVAudioRecorder?
-    private var timer: Timer?
-    private var countdownTimer: Timer?
+
+    @ObservationIgnored
+    private var countdownTask: Task<Void, Never>?
+
+    @ObservationIgnored
+    private var recordingProgressTask: Task<Void, Never>?
+
+    @ObservationIgnored
+    private let clock = ContinuousClock()
+
+    // MARK: - Initializer
+
+    override init() {
+        super.init()
+    }
 
     // MARK: - Public Methods
 
@@ -34,44 +48,70 @@ final class AudioRecorderManager {
         return cachesDirectory.appendingPathComponent("video-record-\(UUID().uuidString).m4a")
     }
 
+    static func cancellationAction(for controlState: ControlState) -> FlowCancellationAction {
+        switch controlState {
+        case .empty:
+            .none
+        case .countdown:
+            .resetCountdown
+        case .record:
+            .discardRecording
+        }
+    }
+
     func startRecordingFlow(recordMaxTime: Double) {
         stopCountdown()
+        stopRecordingProgress()
         countdownRemaining = 3
         controlState = .countdown
 
-        countdownTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                guard let self else { return }
-                self.countdownRemaining -= 1
+        countdownTask = Task { [weak self] in
+            guard let self else { return }
 
-                if self.countdownRemaining == 0 {
-                    self.stopCountdown()
-                    self.startRecording(recordMaxTime: recordMaxTime)
+            for remaining in stride(from: 2, through: 1, by: -1) {
+                do {
+                    try await clock.sleep(for: .seconds(1))
+                } catch {
+                    return
                 }
+
+                guard !Task.isCancelled else { return }
+                countdownRemaining = remaining
             }
+
+            do {
+                try await clock.sleep(for: .seconds(1))
+            } catch {
+                return
+            }
+
+            guard !Task.isCancelled else { return }
+            stopCountdown()
+            startRecording(recordMaxTime: recordMaxTime)
         }
     }
 
     func cancelRecordingFlow() {
-        if controlState == .countdown {
+        switch Self.cancellationAction(for: controlState) {
+        case .none:
+            break
+        case .resetCountdown:
             stopCountdown()
             controlState = .empty
-            return
-        }
-
-        if controlState == .record {
-            stopRecording()
+        case .discardRecording:
+            cancel()
         }
     }
 
     func startRecording(recordMaxTime: Double = 10) {
         AVAudioSession.sharedInstance().configureRecordAudioSessionCategory()
         stopCountdown()
+        stopRecordingProgress()
 
         let audioURL = Self.makeRecordingURL()
         FileManager.default.removeIfExists(for: audioURL)
         finishedAudio = nil
-        resetTimer()
+        currentRecordTime = 0
 
         let settings = [
             AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
@@ -79,22 +119,16 @@ final class AudioRecorderManager {
             AVNumberOfChannelsKey: 1,
             AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue,
         ]
+
         do {
             let recorder = try AVAudioRecorder(url: audioURL, settings: settings)
+            recorder.delegate = self
             audioRecorder = recorder
             recorder.prepareToRecord()
-            recorder.record()
+            recorder.record(forDuration: recordMaxTime)
             recordState = .recording
             controlState = .record
-            timer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { [weak self] _ in
-                Task { @MainActor [weak self] in
-                    guard let self = self else { return }
-                    self.currentRecordTime += 0.2
-                    if self.currentRecordTime >= recordMaxTime {
-                        self.stopRecording()
-                    }
-                }
-            }
+            startRecordingProgress()
         } catch {
             recordState = .error
             controlState = .empty
@@ -104,35 +138,74 @@ final class AudioRecorderManager {
 
     func stopRecording() {
         guard let audioRecorder else { return }
+
+        let duration = audioRecorder.currentTime
+        audioRecorder.delegate = nil
         audioRecorder.stop()
-        recordState = .empty
-        controlState = .empty
-        finishedAudio = .init(url: audioRecorder.url, duration: currentRecordTime)
-        self.audioRecorder = nil
-        resetTimer()
+        finishRecording(at: audioRecorder.url, duration: duration)
     }
 
     func cancel() {
         guard let audioRecorder else { return }
+
+        audioRecorder.delegate = nil
         audioRecorder.stop()
-        recordState = .empty
-        controlState = .empty
-        self.audioRecorder = nil
-        resetTimer()
-        FileManager.default.removeIfExists(for: audioRecorder.url)
+        discardRecording(at: audioRecorder.url)
     }
 
     // MARK: - Private Methods
 
-    private func resetTimer() {
-        timer?.invalidate()
-        timer = nil
+    private func startRecordingProgress() {
+        recordingProgressTask = Task { [weak self] in
+            guard let self else { return }
+
+            while !Task.isCancelled {
+                guard let audioRecorder else { return }
+
+                currentRecordTime = audioRecorder.currentTime
+
+                if !audioRecorder.isRecording {
+                    return
+                }
+
+                do {
+                    try await clock.sleep(for: .milliseconds(200))
+                } catch {
+                    return
+                }
+            }
+        }
+    }
+
+    private func stopRecordingProgress() {
+        recordingProgressTask?.cancel()
+        recordingProgressTask = nil
         currentRecordTime = 0
     }
 
+    private func finishRecording(
+        at url: URL,
+        duration: TimeInterval
+    ) {
+        recordState = .empty
+        controlState = .empty
+        finishedAudio = .init(url: url, duration: duration)
+        audioRecorder = nil
+        stopRecordingProgress()
+    }
+
+    private func discardRecording(at url: URL) {
+        recordState = .empty
+        controlState = .empty
+        finishedAudio = nil
+        audioRecorder = nil
+        stopRecordingProgress()
+        FileManager.default.removeIfExists(for: url)
+    }
+
     private func stopCountdown() {
-        countdownTimer?.invalidate()
-        countdownTimer = nil
+        countdownTask?.cancel()
+        countdownTask = nil
         countdownRemaining = 3
     }
 
@@ -146,6 +219,38 @@ extension AudioRecorderManager {
 
     enum ControlState: Int {
         case empty, countdown, record
+    }
+
+    enum FlowCancellationAction: Equatable {
+        case none
+        case resetCountdown
+        case discardRecording
+    }
+
+}
+
+extension AudioRecorderManager: AVAudioRecorderDelegate {
+
+    // MARK: - Public Methods
+
+    nonisolated func audioRecorderDidFinishRecording(
+        _ recorder: AVAudioRecorder,
+        successfully flag: Bool
+    ) {
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+
+            if flag {
+                finishRecording(at: recorder.url, duration: recorder.currentTime)
+            } else {
+                recordState = .error
+                controlState = .empty
+                finishedAudio = nil
+                audioRecorder = nil
+                stopRecordingProgress()
+                FileManager.default.removeIfExists(for: recorder.url)
+            }
+        }
     }
 
 }

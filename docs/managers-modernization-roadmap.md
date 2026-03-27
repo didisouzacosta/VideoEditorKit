@@ -6,6 +6,8 @@ Modernizar `VideoPlayerManager`, `AudioRecorderManager` e `CameraManager` de for
 
 ## Fase 1
 
+Status atual: concluida.
+
 Escopo seguro, com baixo risco de regressao comportamental:
 
 - estabilizar o ciclo de vida de `AVPlayer` e `AVPlayerItem` no `VideoPlayerManager`
@@ -23,6 +25,8 @@ Entregaveis esperados:
 - atualizacao do comportamento real documentado quando necessario
 
 ## Fase 2
+
+Status atual: concluida.
 
 Modernizacao de fluxo e concorrencia, ainda sem redesenhar a arquitetura:
 
