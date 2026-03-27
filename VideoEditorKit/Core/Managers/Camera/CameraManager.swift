@@ -9,15 +9,44 @@ import AVFoundation
 import Observation
 import SwiftUI
 
+protocol CameraRecordingOutput: AnyObject {
+
+    // MARK: - Public Properties
+
+    var isRecording: Bool { get }
+
+    // MARK: - Public Methods
+
+    func startRecording(to outputFileURL: URL, recordingDelegate: AVCaptureFileOutputRecordingDelegate)
+    func stopRecording()
+    func setMaximumRecordedDuration(seconds: Double)
+    func addToSession(_ session: AVCaptureSession) -> Bool
+
+}
+
+extension AVCaptureMovieFileOutput: CameraRecordingOutput {
+
+    func setMaximumRecordedDuration(seconds: Double) {
+        maxRecordedDuration = CMTime(seconds: seconds, preferredTimescale: 1)
+    }
+
+    func addToSession(_ session: AVCaptureSession) -> Bool {
+        guard session.canAddOutput(self) else { return false }
+        session.addOutput(self)
+        return true
+    }
+
+}
+
 @Observable
 final class CameraManager: NSObject, @unchecked Sendable {
 
     // MARK: - Public Properties
 
-    let maxDuration: Double = 100
+    let maxDuration: Double
 
     var error: CameraError?
-    var session = AVCaptureSession()
+    var session: AVCaptureSession
     var finalURL: URL?
     var recordedDuration: Double = .zero
     var cameraPosition: AVCaptureDevice.Position = .back
@@ -30,21 +59,46 @@ final class CameraManager: NSObject, @unchecked Sendable {
 
     @ObservationIgnored
     private var recordingDurationTask: Task<Void, Never>?
-    
+
     @ObservationIgnored
     private let sessionQueue = DispatchQueue(label: "com.VideoEditorKit.camera.session", qos: .userInitiated)
-    
+
     @ObservationIgnored
-    private let videoOutput = AVCaptureMovieFileOutput()
-    
+    private let videoOutput: any CameraRecordingOutput
+
     @ObservationIgnored
     private var status: Status = .unconfigurate
 
+    @ObservationIgnored
+    private let sleep: @Sendable (Duration) async throws -> Void
+
+    @ObservationIgnored
+    private let temporaryURLProvider: () -> URL
+
     // MARK: - Initializer
 
-    override init() {
+    init(
+        maxDuration: Double = 100,
+        session: AVCaptureSession = AVCaptureSession(),
+        videoOutput: any CameraRecordingOutput = AVCaptureMovieFileOutput(),
+        sleep: @escaping @Sendable (Duration) async throws -> Void = { duration in
+            try await ContinuousClock().sleep(for: duration)
+        },
+        temporaryURLProvider: @escaping () -> URL = {
+            URL.temporaryDirectory.appending(path: "\(UUID().uuidString).mov")
+        },
+        autoConfigure: Bool = true
+    ) {
+        self.maxDuration = maxDuration
+        self.session = session
+        self.videoOutput = videoOutput
+        self.sleep = sleep
+        self.temporaryURLProvider = temporaryURLProvider
         super.init()
-        config()
+
+        if autoConfigure {
+            config()
+        }
     }
 
     // MARK: - Public Methods
@@ -54,7 +108,7 @@ final class CameraManager: NSObject, @unchecked Sendable {
             config()
             return
         }
-        
+
         sessionQueue.async { [weak self] in
             guard let self else { return }
             if start {
@@ -83,7 +137,7 @@ final class CameraManager: NSObject, @unchecked Sendable {
     func startRecording() {
         recordedDuration = .zero
 
-        let tempURL = URL.temporaryDirectory.appending(path: "\(UUID().uuidString).mov")
+        let tempURL = temporaryURLProvider()
 
         videoOutput.startRecording(to: tempURL, recordingDelegate: self)
 
@@ -107,14 +161,22 @@ final class CameraManager: NSObject, @unchecked Sendable {
     }
 
     private func setError(_ error: CameraError?) {
-        Task { @MainActor [weak self] in
-            self?.error = error
+        if Thread.isMainThread {
+            self.error = error
+        } else {
+            Task { @MainActor [weak self] in
+                self?.error = error
+            }
         }
     }
 
     private func setFinalURL(_ url: URL) {
-        Task { @MainActor [weak self] in
-            self?.finalURL = url
+        if Thread.isMainThread {
+            finalURL = url
+        } else {
+            Task { @MainActor [weak self] in
+                self?.finalURL = url
+            }
         }
     }
 
@@ -148,9 +210,9 @@ final class CameraManager: NSObject, @unchecked Sendable {
         guard status == .unconfigurate else { return }
 
         session.beginConfiguration()
-        
+
         defer { session.commitConfiguration() }
-        
+
         session.sessionPreset = .hd1280x720
 
         let device = getCameraDevice(for: cameraPosition)
@@ -180,9 +242,8 @@ final class CameraManager: NSObject, @unchecked Sendable {
             return
         }
 
-        if session.canAddOutput(videoOutput) {
-            session.addOutput(videoOutput)
-            videoOutput.maxRecordedDuration = CMTime(seconds: maxDuration, preferredTimescale: 1)
+        if videoOutput.addToSession(session) {
+            videoOutput.setMaximumRecordedDuration(seconds: maxDuration)
         } else {
             setError(.cannotAddInput)
             status = .faild
@@ -231,16 +292,15 @@ extension CameraManager {
 
     private func startRecordingDurationUpdates() {
         recordingDurationTask = Task { [weak self] in
-            let clock = ContinuousClock()
-
             while !Task.isCancelled {
+                guard let self else { return }
+
                 do {
-                    try await clock.sleep(for: .seconds(1))
+                    try await self.sleep(.seconds(1))
                 } catch {
                     return
                 }
 
-                guard let self else { return }
                 guard videoOutput.isRecording else { return }
 
                 recordedDuration = min(recordedDuration + 1, maxDuration)

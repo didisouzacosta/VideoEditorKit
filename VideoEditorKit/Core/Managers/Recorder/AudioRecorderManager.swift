@@ -9,6 +9,27 @@ import AVFoundation
 import Foundation
 import Observation
 
+protocol AudioRecorderControlling: AnyObject {
+
+    // MARK: - Public Properties
+
+    var delegate: AVAudioRecorderDelegate? { get set }
+    var url: URL { get }
+    var currentTime: TimeInterval { get }
+    var isRecording: Bool { get }
+
+    // MARK: - Public Methods
+
+    @discardableResult
+    func prepareToRecord() -> Bool
+    @discardableResult
+    func record(forDuration duration: TimeInterval) -> Bool
+    func stop()
+
+}
+
+extension AVAudioRecorder: AudioRecorderControlling {}
+
 @MainActor
 @Observable
 final class AudioRecorderManager: NSObject {
@@ -24,7 +45,7 @@ final class AudioRecorderManager: NSObject {
     // MARK: - Private Properties
 
     @ObservationIgnored
-    private var audioRecorder: AVAudioRecorder?
+    private var audioRecorder: (any AudioRecorderControlling)?
 
     @ObservationIgnored
     private var countdownTask: Task<Void, Never>?
@@ -33,11 +54,12 @@ final class AudioRecorderManager: NSObject {
     private var recordingProgressTask: Task<Void, Never>?
 
     @ObservationIgnored
-    private let clock = ContinuousClock()
+    private let dependencies: Dependencies
 
     // MARK: - Initializer
 
-    override init() {
+    init(dependencies: Dependencies = .live) {
+        self.dependencies = dependencies
         super.init()
     }
 
@@ -70,7 +92,7 @@ final class AudioRecorderManager: NSObject {
 
             for remaining in stride(from: 2, through: 1, by: -1) {
                 do {
-                    try await clock.sleep(for: .seconds(1))
+                    try await dependencies.sleep(.seconds(1))
                 } catch {
                     return
                 }
@@ -80,7 +102,7 @@ final class AudioRecorderManager: NSObject {
             }
 
             do {
-                try await clock.sleep(for: .seconds(1))
+                try await dependencies.sleep(.seconds(1))
             } catch {
                 return
             }
@@ -104,12 +126,12 @@ final class AudioRecorderManager: NSObject {
     }
 
     func startRecording(recordMaxTime: Double = 10) {
-        AVAudioSession.sharedInstance().configureRecordAudioSessionCategory()
+        dependencies.configureRecordSession()
         stopCountdown()
         stopRecordingProgress()
 
-        let audioURL = Self.makeRecordingURL()
-        FileManager.default.removeIfExists(for: audioURL)
+        let audioURL = dependencies.makeRecordingURL()
+        dependencies.removeFile(audioURL)
         finishedAudio = nil
         currentRecordTime = 0
 
@@ -121,7 +143,7 @@ final class AudioRecorderManager: NSObject {
         ]
 
         do {
-            let recorder = try AVAudioRecorder(url: audioURL, settings: settings)
+            let recorder = try dependencies.makeRecorder(audioURL, settings)
             recorder.delegate = self
             audioRecorder = recorder
             recorder.prepareToRecord()
@@ -169,7 +191,7 @@ final class AudioRecorderManager: NSObject {
                 }
 
                 do {
-                    try await clock.sleep(for: .milliseconds(200))
+                    try await dependencies.sleep(.milliseconds(200))
                 } catch {
                     return
                 }
@@ -200,7 +222,7 @@ final class AudioRecorderManager: NSObject {
         finishedAudio = nil
         audioRecorder = nil
         stopRecordingProgress()
-        FileManager.default.removeIfExists(for: url)
+        dependencies.removeFile(url)
     }
 
     private func stopCountdown() {
@@ -212,6 +234,48 @@ final class AudioRecorderManager: NSObject {
 }
 
 extension AudioRecorderManager {
+
+    @MainActor
+    struct Dependencies {
+
+        // MARK: - Public Properties
+
+        static let live = Self()
+
+        let configureRecordSession: @MainActor () -> Void
+        let makeRecordingURL: @MainActor () -> URL
+        let makeRecorder: @MainActor (_ url: URL, _ settings: [String: Any]) throws -> any AudioRecorderControlling
+        let sleep: @Sendable (Duration) async throws -> Void
+        let removeFile: (URL) -> Void
+
+        // MARK: - Initializer
+
+        init(
+            configureRecordSession: @escaping @MainActor () -> Void = {
+                AVAudioSession.sharedInstance().configureRecordAudioSessionCategory()
+            },
+            makeRecordingURL: @escaping @MainActor () -> URL = {
+                AudioRecorderManager.makeRecordingURL()
+            },
+            makeRecorder:
+                @escaping @MainActor (_ url: URL, _ settings: [String: Any]) throws -> any AudioRecorderControlling = {
+                    try AVAudioRecorder(url: $0, settings: $1)
+                },
+            sleep: @escaping @Sendable (Duration) async throws -> Void = {
+                try await ContinuousClock().sleep(for: $0)
+            },
+            removeFile: @escaping (URL) -> Void = {
+                FileManager.default.removeIfExists(for: $0)
+            }
+        ) {
+            self.configureRecordSession = configureRecordSession
+            self.makeRecordingURL = makeRecordingURL
+            self.makeRecorder = makeRecorder
+            self.sleep = sleep
+            self.removeFile = removeFile
+        }
+
+    }
 
     enum AudioRecordEnum: Int {
         case recording, empty, error
@@ -248,7 +312,7 @@ extension AudioRecorderManager: AVAudioRecorderDelegate {
                 finishedAudio = nil
                 audioRecorder = nil
                 stopRecordingProgress()
-                FileManager.default.removeIfExists(for: recorder.url)
+                dependencies.removeFile(recorder.url)
             }
         }
     }

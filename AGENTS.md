@@ -198,7 +198,7 @@ Não há separação atual entre camada de domínio pura, engines testáveis e U
 - O plano incremental para `VideoPlayerManager`, `AudioRecorderManager` e `CameraManager` está documentado em `docs/managers-modernization-roadmap.md`.
 - Fase 1 ja foi concluida com correcoes seguras de ciclo de vida, identidade de players e geracao de arquivo temporario por gravacao.
 - Fase 2 ja foi concluida com `Task` cancelavel para countdown/progresso, `record(forDuration:)`, `maxRecordedDuration` e ajustes de isolamento/observation nos managers.
-- Fase 3 segue como proxima etapa para seams de teste mais limpos e menor acoplamento com AVFoundation.
+- Fase 3 ja foi concluida com seams injetaveis para `AudioRecorderManager` e `CameraManager`, reduzindo a dependencia de hardware real nos testes e preparando o terreno para futuras extracoes de regras mais puras.
 
 ---
 

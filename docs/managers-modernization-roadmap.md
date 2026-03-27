@@ -43,6 +43,8 @@ Entregaveis esperados:
 
 ## Fase 3
 
+Status atual: concluida.
+
 Consolidacao e preparacao para evolucoes maiores:
 
 - extrair pequenas dependencias injetaveis para sessao de audio, relogio e captura
@@ -54,3 +56,10 @@ Entregaveis esperados:
 
 - seams de teste mais limpos
 - menor acoplamento entre UI, managers e AVFoundation
+
+Entregaveis implementados:
+
+- `AudioRecorderManager` agora recebe dependencias injetaveis para configuracao da sessao de audio, criacao do arquivo, fabrica do recorder, sleeper async e remocao de arquivos
+- `CameraManager` agora recebe output de gravacao, sleeper async, `temporaryURLProvider`, `AVCaptureSession` e flag de `autoConfigure`, permitindo testes sem tocar hardware real
+- os testes dos managers passaram a validar essas seams com doubles proprios, cobrindo publicacao de estado, regras de cancelamento, URLs temporarias e sincronizacao do estado observado com os recursos injetados
+- a API publica usada pelas views foi preservada, mantendo a modernizacao incremental e com baixo impacto no fluxo atual do app
