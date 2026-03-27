@@ -266,7 +266,6 @@ private struct ExportProgressSection: View {
                 .multilineTextAlignment(.center)
 
             Button("Cancel", role: .cancel, action: onCancel)
-                .buttonSizing(.flexible)
                 .buttonStyle(.glass)
                 .disabled(!canCancelExport)
         }

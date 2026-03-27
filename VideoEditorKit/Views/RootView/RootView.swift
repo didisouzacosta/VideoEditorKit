@@ -30,7 +30,7 @@ struct RootView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
                         heroSection
-                        
+
                         if viewModel.shouldShowVideoPicker {
                             selectVideoCard(
                                 $bindableViewModel.selectedItem,
@@ -38,7 +38,7 @@ struct RootView: View {
                             )
                             .transition(.blurReplace)
                         }
-                        
+
                         resultSection
                             .transition(.blurReplace)
                     }
@@ -175,8 +175,12 @@ extension RootView {
 
                 PlayerView(viewModel.resultPlayer, showControls: true)
                     .aspectRatio(viewModel.editedVideoAspectRatio, contentMode: .fit)
+                    .background(.black, in: .rect(cornerRadius: 28))
                     .clipShape(.rect(cornerRadius: 28))
-                    .card()
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 28)
+                            .stroke(Theme.outline, lineWidth: 1)
+                    }
 
                 HStack(spacing: 12) {
                     ShareLink(item: editedVideo.url) {

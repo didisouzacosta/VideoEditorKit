@@ -67,15 +67,21 @@ enum VideoEditor {
 
         let naturalSize = videoTrack.naturalSize
         let videoTrackPreferredTransform = try await videoTrack.load(.preferredTransform)
-        let outputSize = getSizeFromOrientation(
-            newSize: videoQuality.size, videoTrackPreferredTransform: videoTrackPreferredTransform)
+        let presentationSize = resolvedPresentationSize(
+            naturalSize: naturalSize,
+            preferredTransform: videoTrackPreferredTransform
+        )
+        let outputSize = resolvedRenderSize(
+            for: presentationSize,
+            constrainedTo: videoQuality.size
+        )
 
         let layerInstruction = videoCompositionInstructionForTrackWithSizeAndTime(
             preferredTransform: videoTrackPreferredTransform,
             naturalSize: naturalSize,
-            newSize: outputSize,
+            presentationSize: presentationSize,
+            renderSize: outputSize,
             track: videoTrack,
-            scale: video.videoFrames?.scale ?? 1,
             isMirror: video.isMirror
         )
 
@@ -179,6 +185,51 @@ extension VideoEditor {
         )
 
         return (CGSize(width: newSize.width, height: newSize.height), ratio)
+    }
+
+    static func resolvedPresentationSize(
+        naturalSize: CGSize,
+        preferredTransform: CGAffineTransform
+    ) -> CGSize {
+        let transformedBounds = CGRect(origin: .zero, size: naturalSize)
+            .applying(preferredTransform)
+            .standardized
+        let resolvedSize = CGSize(
+            width: abs(transformedBounds.width),
+            height: abs(transformedBounds.height)
+        )
+
+        guard resolvedSize.width > 0, resolvedSize.height > 0 else {
+            return CGSize(
+                width: abs(naturalSize.width),
+                height: abs(naturalSize.height)
+            )
+        }
+
+        return resolvedSize
+    }
+
+    static func resolvedRenderSize(
+        for sourceSize: CGSize,
+        constrainedTo maximumSize: CGSize
+    ) -> CGSize {
+        guard sourceSize.width > 0, sourceSize.height > 0 else {
+            return evenPixelSize(for: maximumSize)
+        }
+
+        guard maximumSize.width > 0, maximumSize.height > 0 else {
+            return evenPixelSize(for: sourceSize)
+        }
+
+        let widthScale = maximumSize.width / sourceSize.width
+        let heightScale = maximumSize.height / sourceSize.height
+        let scale = min(widthScale, heightScale)
+        let fittedSize = CGSize(
+            width: sourceSize.width * scale,
+            height: sourceSize.height * scale
+        )
+
+        return evenPixelSize(for: fittedSize)
     }
 
     private static func exportSession(
@@ -377,77 +428,49 @@ extension VideoEditor {
     }
 
     private static func videoCompositionInstructionForTrackWithSizeAndTime(
-        preferredTransform: CGAffineTransform, naturalSize: CGSize, newSize: CGSize,
-        track: AVAssetTrack, scale: Double, isMirror: Bool
+        preferredTransform: CGAffineTransform,
+        naturalSize: CGSize,
+        presentationSize: CGSize,
+        renderSize: CGSize,
+        track: AVAssetTrack,
+        isMirror: Bool
     ) -> AVVideoCompositionLayerInstruction {
         var configuration = AVVideoCompositionLayerInstruction.Configuration(assetTrack: track)
-        let assetInfo = orientationFromTransform(preferredTransform)
-        var aspectFillRatio: CGFloat = 1
-        if naturalSize.height < naturalSize.width {
-            aspectFillRatio = newSize.height / naturalSize.height
-        } else {
-            aspectFillRatio = newSize.width / naturalSize.width
-        }
+        let transformedBounds = CGRect(origin: .zero, size: naturalSize)
+            .applying(preferredTransform)
+            .standardized
+        let normalizedTransform = preferredTransform.concatenating(
+            CGAffineTransform(
+                translationX: -transformedBounds.minX,
+                y: -transformedBounds.minY
+            )
+        )
+        let widthScale = renderSize.width / max(presentationSize.width, 1)
+        let heightScale = renderSize.height / max(presentationSize.height, 1)
+        let scaleFactor = min(widthScale, heightScale)
+        let scaledContentSize = CGSize(
+            width: presentationSize.width * scaleFactor,
+            height: presentationSize.height * scaleFactor
+        )
+        let centerOffset = CGAffineTransform(
+            translationX: (renderSize.width - scaledContentSize.width) / 2,
+            y: (renderSize.height - scaledContentSize.height) / 2
+        )
 
-        let scaleFactor = CGAffineTransform(scaleX: aspectFillRatio, y: aspectFillRatio)
-        var finalTransform: CGAffineTransform
-
-        if assetInfo.isPortrait {
-            let posX = newSize.width / 2 - (naturalSize.height * aspectFillRatio) / 2
-            let posY = newSize.height / 2 - (naturalSize.width * aspectFillRatio) / 2
-            let moveFactor = CGAffineTransform(translationX: posX, y: posY)
-            finalTransform = preferredTransform.concatenating(scaleFactor).concatenating(moveFactor)
-        } else {
-            let posX = newSize.width / 2 - (naturalSize.width * aspectFillRatio) / 2
-            let posY = newSize.height / 2 - (naturalSize.height * aspectFillRatio) / 2
-            let moveFactor = CGAffineTransform(translationX: posX, y: posY)
-            finalTransform = preferredTransform.concatenating(scaleFactor).concatenating(moveFactor)
-
-            if assetInfo.orientation == .down {
-                let fixUpsideDown = CGAffineTransform(rotationAngle: CGFloat(Double.pi))
-                finalTransform = fixUpsideDown.concatenating(scaleFactor).concatenating(moveFactor)
-            }
-        }
+        var finalTransform =
+            normalizedTransform
+            .concatenating(CGAffineTransform(scaleX: scaleFactor, y: scaleFactor))
+            .concatenating(centerOffset)
 
         if isMirror {
-            let mirrorTransform = CGAffineTransform(translationX: newSize.width, y: 0).scaledBy(x: -1, y: 1)
+            let mirrorTransform = CGAffineTransform(translationX: renderSize.width, y: 0)
+                .scaledBy(x: -1, y: 1)
             finalTransform = finalTransform.concatenating(mirrorTransform)
         }
 
         configuration.setTransform(finalTransform, at: .zero)
 
         return AVVideoCompositionLayerInstruction(configuration: configuration)
-    }
-
-    private static func getSizeFromOrientation(
-        newSize: CGSize, videoTrackPreferredTransform: CGAffineTransform
-    ) -> CGSize {
-        let orientation = self.orientationFromTransform(videoTrackPreferredTransform)
-        var outputSize = newSize
-        if !orientation.isPortrait {
-            outputSize.width = newSize.height
-            outputSize.height = newSize.width
-        }
-        return outputSize
-    }
-
-    private static func orientationFromTransform(_ transform: CGAffineTransform) -> (
-        orientation: UIImage.Orientation, isPortrait: Bool
-    ) {
-        var assetOrientation = UIImage.Orientation.up
-        var isPortrait = false
-        if transform.a == 0 && transform.b == 1.0 && transform.c == -1.0 && transform.d == 0 {
-            assetOrientation = .right
-            isPortrait = true
-        } else if transform.a == 0 && transform.b == -1.0 && transform.c == 1.0 && transform.d == 0 {
-            assetOrientation = .left
-            isPortrait = true
-        } else if transform.a == 1.0 && transform.b == 0 && transform.c == 0 && transform.d == 1.0 {
-            assetOrientation = .up
-        } else if transform.a == -1.0 && transform.b == 0 && transform.c == 0 && transform.d == -1.0 {
-            assetOrientation = .down
-        }
-        return (assetOrientation, isPortrait)
     }
 
     private static func createTempPath() -> URL {
@@ -516,6 +539,13 @@ extension VideoEditor {
             disappearance.isRemovedOnCompletion = false
             textLayer.add(disappearance, forKey: "Disappearance")
         }
+    }
+
+    private static func evenPixelSize(for size: CGSize) -> CGSize {
+        CGSize(
+            width: max(round(size.width / 2) * 2, 2),
+            height: max(round(size.height / 2) * 2, 2)
+        )
     }
 
 }

@@ -273,3 +273,52 @@ struct MathAndRatioTests {
     }
 
 }
+
+@Suite("VideoEditorGeometryTests")
+struct VideoEditorGeometryTests {
+
+    // MARK: - Public Methods
+
+    @Test
+    func resolvedPresentationSizeAccountsForTrackTransforms() {
+        let transform = CGAffineTransform(a: 0, b: 1, c: -1, d: 0, tx: 1920, ty: 0)
+
+        let size = VideoEditor.resolvedPresentationSize(
+            naturalSize: CGSize(width: 1080, height: 1920),
+            preferredTransform: transform
+        )
+
+        #expect(size == CGSize(width: 1920, height: 1080))
+    }
+
+    @Test
+    func resolvedRenderSizeKeepsLandscapeFourByThreeWithinQualityBounds() {
+        let renderSize = VideoEditor.resolvedRenderSize(
+            for: CGSize(width: 1440, height: 1080),
+            constrainedTo: VideoQuality.medium.size
+        )
+
+        #expect(renderSize == CGSize(width: 960, height: 720))
+    }
+
+    @Test
+    func resolvedRenderSizeKeepsSquareVideosSquare() {
+        let renderSize = VideoEditor.resolvedRenderSize(
+            for: CGSize(width: 1080, height: 1080),
+            constrainedTo: VideoQuality.medium.size
+        )
+
+        #expect(renderSize == CGSize(width: 720, height: 720))
+    }
+
+    @Test
+    func resolvedRenderSizeKeepsPortraitAspectRatioWithinQualityBounds() {
+        let renderSize = VideoEditor.resolvedRenderSize(
+            for: CGSize(width: 1080, height: 1920),
+            constrainedTo: VideoQuality.medium.size
+        )
+
+        #expect(renderSize == CGSize(width: 406, height: 720))
+    }
+
+}
