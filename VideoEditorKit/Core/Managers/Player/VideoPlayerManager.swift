@@ -21,27 +21,33 @@ final class VideoPlayerManager {
 
     var currentTime: Double = .zero
     var selectedItem: PhotosPickerItem?
+
+    private(set) var videoPlayer = AVPlayer()
+    private(set) var audioPlayer = AVPlayer()
+    private(set) var isPlaying = false
+
     var loadState: LoadState = .unknown {
         didSet {
             guard loadState != oldValue else { return }
             handleLoadStateChange(loadState)
         }
     }
-    private(set) var videoPlayer = AVPlayer()
-    private(set) var audioPlayer = AVPlayer()
-    private(set) var isPlaying = false
 
     var scrubState: PlayerScrubState = .reset {
         didSet {
             switch scrubState {
             case .scrubEnded(let seekTime):
                 pause()
+
                 seek(sourceTime(forTimelineTime: seekTime), player: videoPlayer)
+
                 if isSetAudio {
                     seek(sourceTime(forTimelineTime: seekTime), player: audioPlayer)
                 }
+
                 currentTime = seekTime
-            default: break
+            default:
+                break
             }
         }
     }
@@ -60,11 +66,14 @@ final class VideoPlayerManager {
     private var previewColorCorrection = ColorCorrection()
     private var appliedFilterSignature: String?
     private var appliedFilterItemID: ObjectIdentifier?
+    private var loadedVideoURL: URL?
+    private var loadedAudioURL: URL?
 
     // MARK: - Public Methods
 
     func action(_ video: Video) {
         syncPlaybackState(with: video)
+
         if isPlaying {
             pause()
         } else {
@@ -74,10 +83,13 @@ final class VideoPlayerManager {
 
     func syncPlaybackState(with video: Video, previousRate: Float? = nil) {
         let referenceRate = normalizedPlaybackRate(previousRate ?? currentPlaybackRate)
+
         currentDurationRange = video.outputRangeDuration
         currentPlaybackRate = normalizedPlaybackRate(video.rate)
         currentOriginalDuration = max(video.originalDuration, .zero)
+
         setAudio(video.audio?.url)
+
         videoPlayer.volume = video.volume
         audioPlayer.volume = video.audio?.volume ?? 1
 
@@ -85,6 +97,7 @@ final class VideoPlayerManager {
             currentTime,
             fromRate: referenceRate
         )
+
         currentTime = clampedTime
 
         guard !isPlaying else { return }
@@ -98,24 +111,34 @@ final class VideoPlayerManager {
     func setAudio(_ url: URL?) {
         guard let url else {
             isSetAudio = false
-            audioPlayer = AVPlayer()
+            loadedAudioURL = nil
+            audioPlayer.pause()
+            audioPlayer.replaceCurrentItem(with: nil)
             return
         }
-        audioPlayer = .init(url: url)
+
+        guard loadedAudioURL != url || audioPlayer.currentItem == nil else {
+            isSetAudio = true
+            return
+        }
+
+        audioPlayer.replaceCurrentItem(with: AVPlayerItem(url: url))
+        loadedAudioURL = url
         isSetAudio = true
     }
 
     func pause() {
         videoPlayer.pause()
-        if isSetAudio {
-            audioPlayer.pause()
-        }
+
+        if isSetAudio { audioPlayer.pause() }
+
         isPlaying = false
         syncCurrentTimeFromPlayer()
     }
 
     func setVolume(_ isVideo: Bool, value: Float) {
         pause()
+
         if isVideo {
             videoPlayer.volume = value
         } else {
@@ -148,6 +171,7 @@ final class VideoPlayerManager {
 
     func scrub(to time: Double, in range: ClosedRange<Double>) {
         currentDurationRange = range
+
         let clampedTime = time.clamped(to: range)
 
         currentTime = clampedTime
@@ -160,6 +184,7 @@ final class VideoPlayerManager {
 
     func endScrubbing(at time: Double, in range: ClosedRange<Double>) {
         currentDurationRange = range
+
         let clampedTime = time.clamped(to: range)
 
         currentTime = clampedTime
@@ -184,7 +209,16 @@ final class VideoPlayerManager {
             currentPlaybackRate = 1
             currentOriginalDuration = .zero
             currentTime = .zero
-            videoPlayer = AVPlayer(url: url)
+
+            let previousLoadedVideoURL = loadedVideoURL
+            loadedVideoURL = url
+
+            if previousLoadedVideoURL != url || videoPlayer.currentItem == nil {
+                videoPlayer.replaceCurrentItem(with: AVPlayerItem(url: url))
+            } else if (videoPlayer.currentItem?.asset as? AVURLAsset)?.url != url {
+                videoPlayer.replaceCurrentItem(with: AVPlayerItem(url: url))
+            }
+
             startStatusSubscriptions()
             appliedFilterItemID = nil
             applyCurrentFilterComposition()
@@ -239,7 +273,9 @@ final class VideoPlayerManager {
                 currentTime = targetTime
             }
         }
+
         videoPlayer.play()
+
         if isSetAudio {
             audioPlayer.play()
             audioPlayer.rate = currentPlaybackRate
@@ -260,7 +296,9 @@ final class VideoPlayerManager {
 
     private func startTimer() {
         removeTimeObserver()
+
         let interval = CMTimeMake(value: 1, timescale: 30)
+
         timeObserver = videoPlayer.addPeriodicTimeObserver(forInterval: interval, queue: .main) {
             [weak self] time in
             Task { @MainActor [weak self] in
@@ -313,11 +351,15 @@ final class VideoPlayerManager {
 
     private func playerDidFinishPlaying() {
         let restartTime = currentDurationRange?.lowerBound ?? .zero
+
         pause()
+
         seek(sourceTime(forTimelineTime: restartTime), player: videoPlayer)
+
         if isSetAudio {
             seek(sourceTime(forTimelineTime: restartTime), player: audioPlayer)
         }
+
         currentTime = restartTime
     }
 
@@ -340,6 +382,8 @@ final class VideoPlayerManager {
         removeEndPlaybackObserver()
         statusCancellable?.cancel()
         statusCancellable = nil
+        filterCompositionTask?.cancel()
+        filterCompositionTask = nil
     }
 
     private func resolvedCurrentTime(from playbackTime: Double) -> Double {
@@ -350,6 +394,7 @@ final class VideoPlayerManager {
         let timelinePlaybackTime = timelineTime(fromSourceTime: playbackTime)
 
         guard let currentDurationRange else { return timelinePlaybackTime }
+
         return timelinePlaybackTime.clamped(to: currentDurationRange)
     }
 
@@ -485,35 +530,6 @@ extension VideoPlayerManager {
 
 }
 
-enum LoadState: Identifiable, Equatable {
-    // MARK: - Public Properties
-
-    case unknown, loading
-
-    case loaded(URL)
-
-    case failed
-
-    var id: Int {
-        switch self {
-        case .unknown: return 0
-        case .loading: return 1
-        case .loaded: return 2
-        case .failed: return 3
-        }
-    }
-}
-
-enum PlayerScrubState {
-    // MARK: - Public Properties
-
-    case reset
-
-    case scrubStarted
-
-    case scrubEnded(Double)
-}
-
 extension AVAsset {
 
     // MARK: - Public Methods
@@ -574,8 +590,4 @@ extension AVAsset {
         }
     }
 
-}
-
-private enum VideoCompositionError: Error {
-    case creationFailed
 }

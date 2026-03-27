@@ -14,19 +14,14 @@ final class CameraManager: NSObject, @unchecked Sendable {
 
     // MARK: - Public Properties
 
-    enum Status {
-        case unconfigurate
-        case configurate
-        case unauthorized
-        case faild
-    }
+    let maxDuration: Double = 100
 
     var error: CameraError?
     var session = AVCaptureSession()
     var finalURL: URL?
     var recordedDuration: Double = .zero
-    var cameraPosition: AVCaptureDevice.Position = .front
-    let maxDuration: Double = 100  // sec
+    var cameraPosition: AVCaptureDevice.Position = .back
+
     var isRecording: Bool {
         videoOutput.isRecording
     }
@@ -34,8 +29,7 @@ final class CameraManager: NSObject, @unchecked Sendable {
     // MARK: - Private Properties
 
     private var timer: Timer?
-    private let sessionQueue = DispatchQueue(
-        label: "com.VideoEditorKit.camera.session", qos: .userInitiated)
+    private let sessionQueue = DispatchQueue(label: "com.VideoEditorKit.camera.session", qos: .userInitiated)
 
     private let videoOutput = AVCaptureMovieFileOutput()
     private var status: Status = .unconfigurate
@@ -68,6 +62,7 @@ final class CameraManager: NSObject, @unchecked Sendable {
 
     func stopRecord() {
         timer?.invalidate()
+        timer = nil
         videoOutput.stopRecording()
     }
 
@@ -80,29 +75,27 @@ final class CameraManager: NSObject, @unchecked Sendable {
     }
 
     func startRecording() {
-        ///Temporary URL for recording Video
         recordedDuration = .zero
-        let tempURL = URL(fileURLWithPath: NSTemporaryDirectory())
-            .appendingPathComponent("\(UUID().uuidString).mov")
+
+        let tempURL = URL.temporaryDirectory.appending(path: "\(UUID().uuidString).mov")
+
         videoOutput.startRecording(to: tempURL, recordingDelegate: self)
+
         startTimer()
     }
-
-    //    func set(_ delegate: AVCaptureVideoDataOutputSampleBufferDelegate,
-    //             queue: DispatchQueue){
-    //        sessionQueue.async {
-    //            self.videoOutput.setSampleBufferDelegate(delegate, queue: queue)
-    //        }
-    //    }
 
     // MARK: - Private Methods
 
     private func config() {
         checkPermissions()
+
         sessionQueue.async { [weak self] in
             guard let self else { return }
+
             self.configCaptureSession()
+
             guard self.status == .configurate else { return }
+
             self.session.startRunning()
         }
     }
@@ -118,8 +111,6 @@ final class CameraManager: NSObject, @unchecked Sendable {
             self?.finalURL = url
         }
     }
-
-    ///Check user permissions
 
     private func checkPermissions() {
         switch AVCaptureDevice.authorizationStatus(for: .video) {
@@ -147,17 +138,14 @@ final class CameraManager: NSObject, @unchecked Sendable {
         }
     }
 
-    ///Configuring a session and adding video, audio input and adding video output
-
     private func configCaptureSession() {
-        guard status == .unconfigurate else {
-            return
-        }
-        session.beginConfiguration()
+        guard status == .unconfigurate else { return }
 
+        session.beginConfiguration()
+        defer { session.commitConfiguration() }
         session.sessionPreset = .hd1280x720
 
-        let device = getCameraDevice(for: .back)
+        let device = getCameraDevice(for: cameraPosition)
         let audioDevice = AVCaptureDevice.default(for: .audio)
 
         guard let camera = device, let audio = audioDevice else {
@@ -186,13 +174,13 @@ final class CameraManager: NSObject, @unchecked Sendable {
 
         if session.canAddOutput(videoOutput) {
             session.addOutput(videoOutput)
+            videoOutput.maxRecordedDuration = CMTime(seconds: maxDuration, preferredTimescale: 1)
         } else {
             setError(.cannotAddInput)
             status = .faild
             return
         }
 
-        session.commitConfiguration()
         status = .configurate
     }
 
@@ -202,11 +190,13 @@ final class CameraManager: NSObject, @unchecked Sendable {
                 .builtInTripleCamera, .builtInTelephotoCamera, .builtInDualCamera, .builtInTrueDepthCamera,
                 .builtInDualWideCamera,
             ], mediaType: AVMediaType.video, position: .unspecified)
+
         for device in discoverySession.devices {
             if device.position == position {
                 return device
             }
         }
+
         return nil
     }
 
@@ -214,13 +204,28 @@ final class CameraManager: NSObject, @unchecked Sendable {
 
 extension CameraManager {
 
+    enum Status {
+        case unconfigurate
+        case configurate
+        case unauthorized
+        case faild
+    }
+
+    // MARK: - Public Methods
+
+    func consumeFinalURL() -> URL? {
+        let url = finalURL
+        finalURL = nil
+        return url
+    }
+
     // MARK: - Private Methods
 
     private func onTimerFires() {
-
         if recordedDuration <= maxDuration && videoOutput.isRecording {
             recordedDuration += 1
         }
+
         if recordedDuration >= maxDuration && videoOutput.isRecording {
             stopRecord()
         }
@@ -236,18 +241,6 @@ extension CameraManager {
 
 }
 
-extension CameraManager {
-
-    // MARK: - Public Methods
-
-    func consumeFinalURL() -> URL? {
-        let url = finalURL
-        finalURL = nil
-        return url
-    }
-
-}
-
 extension CameraManager: AVCaptureFileOutputRecordingDelegate {
 
     // MARK: - Public Methods
@@ -256,6 +249,9 @@ extension CameraManager: AVCaptureFileOutputRecordingDelegate {
         _ output: AVCaptureFileOutput, didFinishRecordingTo outputFileURL: URL,
         from connections: [AVCaptureConnection], error: Error?
     ) {
+        timer?.invalidate()
+        timer = nil
+
         if let error {
             setError(.outputError(error))
         } else {
@@ -263,14 +259,4 @@ extension CameraManager: AVCaptureFileOutputRecordingDelegate {
         }
     }
 
-}
-
-enum CameraError: Error {
-    case deniedAuthorization
-    case restrictedAuthorization
-    case unknowAuthorization
-    case cameraUnavalible
-    case cannotAddInput
-    case createCaptureInput(Error)
-    case outputError(Error)
 }

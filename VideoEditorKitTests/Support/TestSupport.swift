@@ -38,6 +38,40 @@ enum TestFixtures {
         return url
     }
 
+    static func createTemporaryAudio(
+        duration: TimeInterval = 0.5,
+        sampleRate: Double = 44_100
+    ) throws -> URL {
+        let url = temporaryURL(fileExtension: "m4a")
+        let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)
+        let frameCount = AVAudioFrameCount(duration * sampleRate)
+
+        guard let format else {
+            throw TestFixtureError.unableToCreateContext
+        }
+
+        guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount) else {
+            throw TestFixtureError.unableToCreatePixelBuffer
+        }
+
+        buffer.frameLength = frameCount
+
+        if let channelData = buffer.floatChannelData {
+            channelData[0].update(repeating: 0, count: Int(frameCount))
+        }
+
+        let settings: [String: Any] = [
+            AVFormatIDKey: kAudioFormatMPEG4AAC,
+            AVSampleRateKey: sampleRate,
+            AVNumberOfChannelsKey: 1,
+            AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue,
+        ]
+
+        let file = try AVAudioFile(forWriting: url, settings: settings)
+        try file.write(from: buffer)
+        return url
+    }
+
     static func makeSolidImage(
         size: CGSize = CGSize(width: 40, height: 20),
         color: UIColor = .systemBlue,

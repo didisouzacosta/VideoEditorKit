@@ -135,7 +135,7 @@ Não há separação atual entre camada de domínio pura, engines testáveis e U
 ### Áudio
 
 - O app suporta um áudio adicional gravado no próprio editor.
-- `AudioRecorderManager` grava para um arquivo `.m4a` no cache.
+- `AudioRecorderManager` grava para um arquivo `.m4a` temporário no cache.
 - O timeline mostra uma faixa de áudio quando existe áudio gravado.
 - O usuário pode alternar entre faixa do vídeo e faixa gravada para ajustar volume.
 - O export mistura:
@@ -189,6 +189,12 @@ Não há separação atual entre camada de domínio pura, engines testáveis e U
 - Existe implementação de câmera/gravação em `CameraManager` e `RecordVideoView`.
 - `MainEditorView` tem `showRecordView`, mas a UI atual não expõe um botão para abrir esse fluxo.
 - Na prática, a câmera está presente no código, porém não integrada ao fluxo principal visível.
+
+### Roadmap atual de modernização dos managers
+
+- O plano incremental para `VideoPlayerManager`, `AudioRecorderManager` e `CameraManager` está documentado em `docs/managers-modernization-roadmap.md`.
+- Fase 1 cobre correções seguras de ciclo de vida, identidade de players e geração de arquivo temporário por gravação.
+- Fases posteriores tratam modernização de concorrência, timers e seams de teste.
 
 ---
 

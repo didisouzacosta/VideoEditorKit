@@ -137,7 +137,7 @@ struct EditorViewModelTests {
     @Test
     func setAudioSwitchesToRecordedTrackAndMarksAudioTool() throws {
         let viewModel = EditorViewModel()
-        let audioURL = try TestFixtures.createTemporaryFile(fileExtension: "m4a")
+        let audioURL = try TestFixtures.createTemporaryAudio()
         defer { FileManager.default.removeIfExists(for: audioURL) }
 
         viewModel.currentVideo = Video.mock
@@ -153,7 +153,7 @@ struct EditorViewModelTests {
     @Test
     func removeAudioDeletesTheRecordedFileAndRestoresTheVideoTrackSelection() throws {
         let viewModel = EditorViewModel()
-        let audioURL = try TestFixtures.createTemporaryFile(fileExtension: "m4a")
+        let audioURL = try TestFixtures.createTemporaryAudio()
         var video = Video.mock
         video.audio = Audio(url: audioURL, duration: 4, volume: 0.7)
         video.appliedTool(for: .audio)
@@ -259,7 +259,7 @@ struct EditorViewModelTests {
         #expect(viewModel.selectedTools == nil)
         #expect(viewModel.showVideoQualitySheet == false)
 
-        try? await Task.sleep(for: .milliseconds(250))
+        try? await Task.sleep(for: .milliseconds(350))
 
         #expect(viewModel.showVideoQualitySheet)
     }

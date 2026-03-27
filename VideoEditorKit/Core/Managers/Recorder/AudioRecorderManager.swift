@@ -21,14 +21,6 @@ final class AudioRecorderManager {
     private(set) var controlState: ControlState = .empty
     private(set) var countdownRemaining = 3
 
-    enum AudioRecordEnum: Int {
-        case recording, empty, error
-    }
-
-    enum ControlState: Int {
-        case empty, countdown, record
-    }
-
     // MARK: - Private Properties
 
     private var audioRecorder: AVAudioRecorder?
@@ -36,6 +28,11 @@ final class AudioRecorderManager {
     private var countdownTimer: Timer?
 
     // MARK: - Public Methods
+
+    static func makeRecordingURL() -> URL {
+        let cachesDirectory = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+        return cachesDirectory.appendingPathComponent("video-record-\(UUID().uuidString).m4a")
+    }
 
     func startRecordingFlow(recordMaxTime: Double) {
         stopCountdown()
@@ -69,9 +66,9 @@ final class AudioRecorderManager {
 
     func startRecording(recordMaxTime: Double = 10) {
         AVAudioSession.sharedInstance().configureRecordAudioSessionCategory()
+        stopCountdown()
 
-        let path = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
-        let audioURL = path.appendingPathComponent("video-record.m4a")
+        let audioURL = Self.makeRecordingURL()
         FileManager.default.removeIfExists(for: audioURL)
         finishedAudio = nil
         resetTimer()
@@ -111,6 +108,7 @@ final class AudioRecorderManager {
         recordState = .empty
         controlState = .empty
         finishedAudio = .init(url: audioRecorder.url, duration: currentRecordTime)
+        self.audioRecorder = nil
         resetTimer()
     }
 
@@ -119,6 +117,7 @@ final class AudioRecorderManager {
         audioRecorder.stop()
         recordState = .empty
         controlState = .empty
+        self.audioRecorder = nil
         resetTimer()
         FileManager.default.removeIfExists(for: audioRecorder.url)
     }
@@ -135,6 +134,18 @@ final class AudioRecorderManager {
         countdownTimer?.invalidate()
         countdownTimer = nil
         countdownRemaining = 3
+    }
+
+}
+
+extension AudioRecorderManager {
+
+    enum AudioRecordEnum: Int {
+        case recording, empty, error
+    }
+
+    enum ControlState: Int {
+        case empty, countdown, record
     }
 
 }
