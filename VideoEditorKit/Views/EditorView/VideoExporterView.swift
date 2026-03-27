@@ -29,7 +29,16 @@ struct VideoExporterView: View {
         @Bindable var bindableViewModel = viewModel
 
         navigationContent
-            .alert("Unable to export video", isPresented: $bindableViewModel.showAlert) {}
+            .interactiveDismissDisabled(viewModel.isInteractionDisabled)
+            .alert(
+                "Unable to export video",
+                isPresented: $bindableViewModel.showAlert
+            ) {
+                Button("Try Again", action: retryExport)
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(viewModel.errorMessage)
+            }
     }
 
     // MARK: - Initializer
@@ -40,40 +49,83 @@ struct VideoExporterView: View {
         self.onExported = onExported
     }
 
-}
-
-extension VideoExporterView {
-
     // MARK: - Private Properties
 
     private var navigationContent: some View {
-        sheetContent
+        content
             .navigationTitle("Export Video")
             .navigationBarTitleDisplayMode(.inline)
             .animation(.easeInOut, value: viewModel.renderState)
-            .disabled(viewModel.isInteractionDisabled)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel", role: .cancel) {
-                        dismiss()
-                    }
-                    .disabled(viewModel.isInteractionDisabled)
+                    Button("Cancel", role: .cancel, action: dismissView)
+                        .disabled(viewModel.isInteractionDisabled)
                 }
             }
     }
 
-    private var sheetContent: some View {
+    private var content: some View {
         VStack(alignment: .leading) {
             if viewModel.shouldShowLoadingView {
-                loadingView
+                ExportProgressSection(
+                    progress: viewModel.exportProgress,
+                    progressText: viewModel.progressText
+                )
             } else {
-                list
+                ExportQualitySelectionSection(
+                    selectedQuality: viewModel.selectedQuality,
+                    estimatedVideoSizeText: viewModel.estimatedVideoSizeText(for:),
+                    showsFailureMessage: viewModel.shouldShowFailureMessage,
+                    errorMessage: viewModel.errorMessage,
+                    actionTitle: viewModel.exportActionTitle,
+                    canExportVideo: viewModel.canExportVideo,
+                    onSelectQuality: viewModel.selectQuality(_:),
+                    onExport: exportVideo
+                )
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
     }
 
-    private var list: some View {
+    // MARK: - Private Methods
+
+    private func exportVideo() {
+        viewModel.exportVideo(handleExportedVideo)
+    }
+
+    private func retryExport() {
+        viewModel.retryExport(handleExportedVideo)
+    }
+
+    private func dismissView() {
+        guard !viewModel.isInteractionDisabled else { return }
+        dismiss()
+    }
+
+    private func handleExportedVideo(_ url: URL) {
+        dismiss()
+        onExported(url)
+    }
+
+}
+
+private struct ExportQualitySelectionSection: View {
+
+    // MARK: - Public Properties
+
+    let selectedQuality: VideoQuality
+    let estimatedVideoSizeText: (VideoQuality) -> String?
+    let showsFailureMessage: Bool
+    let errorMessage: String
+    let actionTitle: String
+    let canExportVideo: Bool
+    let onSelectQuality: (VideoQuality) -> Void
+    let onExport: () -> Void
+
+    // MARK: - Body
+
+    var body: some View {
         VStack(spacing: 32) {
             VStack(alignment: .leading, spacing: 16) {
                 Text("Choose the output quality for the rendered file.")
@@ -81,96 +133,135 @@ extension VideoExporterView {
                     .foregroundStyle(Theme.secondary)
                     .padding(.horizontal)
 
-                qualityListSection
+                VStack(spacing: 8) {
+                    ForEach(VideoQuality.allCases.reversed(), id: \.self) { quality in
+                        ExportQualityOptionRow(
+                            quality: quality,
+                            estimatedSizeText: estimatedVideoSizeText(quality),
+                            isSelected: quality == selectedQuality,
+                            onTap: { onSelectQuality(quality) }
+                        )
+                    }
+                }
 
-                if viewModel.shouldShowFailureMessage {
-                    Text("The video could not be exported. Check the current edit state and try again.")
-                        .font(.footnote)
-                        .foregroundStyle(Theme.secondary)
+                if showsFailureMessage {
+                    ExportFailureMessageCard(message: errorMessage)
                 }
             }
 
-            Button {
-                viewModel.exportVideo(handleExportedVideo)
-            } label: {
-                Text("Exportar")
+            Button(action: onExport) {
+                Text(actionTitle)
                     .font(.headline.weight(.bold))
                     .padding()
             }
             .buttonSizing(.flexible)
             .buttonStyle(.glassProminent)
-            .disabled(!viewModel.canExportVideo)
+            .disabled(!canExportVideo)
         }
     }
 
-    private var loadingView: some View {
-        VStack(spacing: 22) {
-            ProgressView()
-                .controlSize(.large)
-                .tint(Theme.accent)
-            Text(viewModel.progressTimer.formatted())
-                .font(.title.monospacedDigit())
-            Text("Video export in progress")
-                .font(.headline)
-            Text("The edited video will be returned to the example screen.")
-                .font(.subheadline)
+}
+
+private struct ExportQualityOptionRow: View {
+
+    // MARK: - Public Properties
+
+    let quality: VideoQuality
+    let estimatedSizeText: String?
+    let isSelected: Bool
+    let onTap: () -> Void
+
+    // MARK: - Body
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(quality.title)
+                        .font(.headline)
+                    Text(quality.subtitle)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                VStack(alignment: .trailing, spacing: 4) {
+                    if let estimatedSizeText {
+                        Text(estimatedSizeText)
+                            .font(.subheadline.weight(.semibold))
+                    }
+
+                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                        .font(.headline)
+                        .foregroundStyle(isSelected ? Theme.primary : Theme.secondary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(16)
+            .contentShape(.rect(cornerRadius: 16))
+            .card(
+                cornerRadius: 16,
+                prominent: isSelected,
+                tint: isSelected ? Theme.accent : Theme.secondary
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+}
+
+private struct ExportFailureMessageCard: View {
+
+    // MARK: - Public Properties
+
+    let message: String
+
+    // MARK: - Body
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(.yellow)
+
+            Text(message)
+                .font(.footnote)
                 .foregroundStyle(Theme.secondary)
         }
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .card(cornerRadius: 16, prominent: false, tint: .yellow)
     }
 
-    private var qualityListSection: some View {
-        VStack(spacing: 8) {
-            ForEach(VideoQuality.allCases.reversed(), id: \.self) { type in
-                Button {
-                    viewModel.selectQuality(type)
-                } label: {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(type.title)
-                                .font(.headline)
-                            Text(type.subtitle)
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
+}
 
-                        Spacer()
+private struct ExportProgressSection: View {
 
-                        VStack(alignment: .trailing, spacing: 4) {
-                            if let value = viewModel.estimatedVideoSizeText(for: type) {
-                                Text(value)
-                                    .font(.subheadline.weight(.semibold))
-                            }
+    // MARK: - Public Properties
 
-                            Image(
-                                systemName: viewModel.isSelectedQuality(type) ? "checkmark.circle.fill" : "circle"
-                            )
-                            .font(.headline)
-                            .foregroundStyle(
-                                viewModel.isSelectedQuality(type)
-                                    ? Theme.primary : Theme.secondary
-                            )
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(16)
-                    .contentShape(.rect(cornerRadius: 16))
-                    .card(
-                        cornerRadius: 16,
-                        prominent: viewModel.isSelectedQuality(type),
-                        tint: viewModel.isSelectedQuality(type) ? Theme.accent : Theme.secondary
-                    )
-                }
-                .buttonStyle(.plain)
-            }
+    let progress: Double
+    let progressText: String
+
+    // MARK: - Body
+
+    var body: some View {
+        VStack(spacing: 24) {
+            ProgressView(value: progress, total: 1)
+                .tint(Theme.accent)
+
+            Text(progressText)
+                .font(.system(.largeTitle, design: .rounded).weight(.bold))
+                .contentTransition(.numericText())
+
+            Text("Video export in progress")
+                .font(.headline)
+
+            Text("Keep this sheet open while we prepare the final video.")
+                .font(.subheadline)
+                .foregroundStyle(Theme.secondary)
+                .multilineTextAlignment(.center)
         }
-    }
-
-    // MARK: - Private Methods
-
-    private func handleExportedVideo(_ url: URL) {
-        dismiss()
-        onExported(url)
+        .frame(maxWidth: .infinity, minHeight: 220)
     }
 
 }

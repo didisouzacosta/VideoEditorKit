@@ -10,13 +10,37 @@ import Foundation
 import UIKit
 
 enum VideoEditor {
-    
+
+    typealias ProgressHandler = @Sendable (_ progress: Double) async -> Void
+
     // MARK: - Public Methods
 
-    static func startRender(video: Video, videoQuality: VideoQuality) async throws -> URL {
+    static func startRender(
+        video: Video,
+        videoQuality: VideoQuality,
+        onProgress: ProgressHandler? = nil
+    ) async throws -> URL {
+        let filters = Helpers.createFilters(
+            CIFilter(name: video.filterName ?? ""),
+            colorCorrection: video.colorCorrection
+        )
+
+        let usesFilterStage = !filters.isEmpty
+
         do {
-            let url = try await resizeAndLayerOperation(video: video, videoQuality: videoQuality)
-            let finalUrl = try await applyFiltersOperations(video, fromUrl: url)
+            let url = try await resizeAndLayerOperation(
+                video: video,
+                videoQuality: videoQuality,
+                progressRange: usesFilterStage ? 0...0.7 : 0...1,
+                onProgress: onProgress
+            )
+            let finalUrl = try await applyFiltersOperations(
+                video,
+                filters: filters,
+                fromUrl: url,
+                progressRange: 0.7...1,
+                onProgress: onProgress
+            )
             return finalUrl
         } catch {
             throw error
@@ -25,7 +49,9 @@ enum VideoEditor {
 
     private static func resizeAndLayerOperation(
         video: Video,
-        videoQuality: VideoQuality
+        videoQuality: VideoQuality,
+        progressRange: ClosedRange<Double>,
+        onProgress: ProgressHandler?
     ) async throws -> URL {
         let composition = AVMutableComposition()
         let timeRange = getTimeRange(for: video.timelineDuration, with: video.outputRangeDuration)
@@ -75,18 +101,26 @@ enum VideoEditor {
             composition: composition, videoComposition: videoComposition, outputURL: outputURL,
             timeRange: timeRange)
 
-        try await session.export(to: outputURL, as: .mp4)
+        try await export(
+            session,
+            to: outputURL,
+            as: .mp4,
+            progressRange: progressRange,
+            onProgress: onProgress
+        )
 
         return outputURL
     }
 
-    private static func applyFiltersOperations(_ video: Video, fromUrl: URL) async throws -> URL {
-        let filters = Helpers.createFilters(
-            CIFilter(name: video.filterName ?? ""),
-            colorCorrection: video.colorCorrection
-        )
-
+    private static func applyFiltersOperations(
+        _ video: Video,
+        filters: [CIFilter],
+        fromUrl: URL,
+        progressRange: ClosedRange<Double>,
+        onProgress: ProgressHandler?
+    ) async throws -> URL {
         if filters.isEmpty {
+            await reportProgress(progressRange.upperBound, via: onProgress)
             return fromUrl
         }
 
@@ -106,7 +140,13 @@ enum VideoEditor {
 
         session.videoComposition = composition
 
-        try await session.export(to: outputURL, as: .mp4)
+        try await export(
+            session,
+            to: outputURL,
+            as: .mp4,
+            progressRange: progressRange,
+            onProgress: onProgress
+        )
 
         return outputURL
     }
@@ -154,6 +194,7 @@ extension VideoEditor {
             assertionFailure("Unable to create composition export session.")
             throw ExporterError.cannotCreateExportSession
         }
+
         export.videoComposition = videoComposition
         export.timeRange = timeRange
 
@@ -277,6 +318,45 @@ extension VideoEditor {
                 )
             )
         }
+    }
+
+    private static func export(
+        _ session: AVAssetExportSession,
+        to outputURL: URL,
+        as fileType: AVFileType,
+        progressRange: ClosedRange<Double>,
+        onProgress: ProgressHandler?
+    ) async throws {
+        await reportProgress(progressRange.lowerBound, via: onProgress)
+        let sessionBox = UncheckedExportSessionBox(session)
+
+        let progressTask = Task {
+            while !Task.isCancelled {
+                let sessionProgress = Double(sessionBox.session.progress).clamped(to: 0...1)
+                let mappedProgress =
+                    progressRange.lowerBound
+                    + (progressRange.upperBound - progressRange.lowerBound) * sessionProgress
+
+                await reportProgress(mappedProgress, via: onProgress)
+
+                try? await Task.sleep(for: .milliseconds(120))
+            }
+        }
+
+        defer {
+            progressTask.cancel()
+        }
+
+        try await session.export(to: outputURL, as: fileType)
+        await reportProgress(progressRange.upperBound, via: onProgress)
+    }
+
+    private static func reportProgress(
+        _ progress: Double,
+        via onProgress: ProgressHandler?
+    ) async {
+        guard let onProgress else { return }
+        await onProgress(progress.clamped(to: 0...1))
     }
 
     private static func getTimeRange(for duration: Double, with timeRange: ClosedRange<Double>)
@@ -434,6 +514,16 @@ extension VideoEditor {
 
 }
 
+private struct UncheckedExportSessionBox: @unchecked Sendable {
+
+    let session: AVAssetExportSession
+
+    init(_ session: AVAssetExportSession) {
+        self.session = session
+    }
+
+}
+
 enum ExporterError: Error, LocalizedError {
     // MARK: - Public Properties
 
@@ -444,6 +534,19 @@ enum ExporterError: Error, LocalizedError {
     case cannotCreateExportSession
 
     case failed
+
+    var errorDescription: String? {
+        switch self {
+        case .unknow:
+            return "An unexpected error happened while preparing the export."
+        case .cancelled:
+            return "The export was cancelled before the final video was generated."
+        case .cannotCreateExportSession:
+            return "The export session could not be created for this video."
+        case .failed:
+            return "The video could not be exported. Please try again."
+        }
+    }
 }
 
 extension Double {
