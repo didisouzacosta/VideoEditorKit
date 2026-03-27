@@ -141,7 +141,6 @@ extension EditorViewModel {
 
 }
 
-//MARK: - Tools logic
 extension EditorViewModel {
 
     // MARK: - Public Methods
@@ -290,11 +289,17 @@ extension EditorViewModel {
     func handleCurrentVideoChange(
         _ video: Video?,
         filtersViewModel: FiltersViewModel,
-        textEditor: TextEditorViewModel
+        textEditor: TextEditorViewModel,
+        videoPlayer: VideoPlayerManager
     ) {
         guard let video else { return }
         filtersViewModel.sync(with: video)
         textEditor.load(textBoxes: video.textBoxes)
+        videoPlayer.syncPlaybackState(with: video)
+        videoPlayer.setFilters(
+            mainFilter: video.filterName.flatMap(CIFilter.init(name:)),
+            colorCorrection: video.colorCorrection
+        )
     }
 
     func handleThumbnailImagesChange(filtersViewModel: FiltersViewModel) {
@@ -322,8 +327,12 @@ extension EditorViewModel {
     }
 
     func handleRateChange(_ rate: Float, videoPlayer: VideoPlayerManager) {
+        let previousRate = currentVideo?.rate ?? 1
         videoPlayer.pause()
         updateRate(rate: rate)
+        if let currentVideo {
+            videoPlayer.syncPlaybackState(with: currentVideo, previousRate: previousRate)
+        }
     }
 
     func handleFilterChange(

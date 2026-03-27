@@ -29,7 +29,7 @@ struct ToolsSectionView: View {
         } action: { tool in
             editorViewModel.selectTool(tool)
         }
-        .dynamicHeightSheet(item: selectedToolBinding, initialHeight: initialSheetHeight(for:)) { tool in
+        .dynamicHeightSheet(item: selectedToolBinding, initialHeight: initialSheetHeight) { tool in
             toolSheet(tool)
         }
         .onChange(of: editorViewModel.currentVideo) { _, newValue in
@@ -39,7 +39,8 @@ struct ToolsSectionView: View {
             editorViewModel.handleCurrentVideoChange(
                 newValue,
                 filtersViewModel: filtersVM,
-                textEditor: textEditor
+                textEditor: textEditor,
+                videoPlayer: videoPlayer
             )
         }
         .onChange(of: editorViewModel.currentVideo?.thumbnailsImages.count ?? 0) { _, _ in
@@ -92,8 +93,6 @@ extension ToolsSectionView {
                         textEditor: textEditor,
                         videoPlayer: videoPlayer
                     )
-
-                    editorViewModel.closeSelectedTool(textEditor)
                 }
                 .disabled(!canReset(tool))
             }

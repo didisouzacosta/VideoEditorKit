@@ -35,8 +35,21 @@ struct Video: Identifiable, @unchecked Sendable {
         audio != nil
     }
 
+    var timelineDuration: Double {
+        guard rate.isFinite, rate > 0 else { return originalDuration }
+        return originalDuration / Double(rate)
+    }
+
+    var outputRangeDuration: ClosedRange<Double> {
+        PlaybackTimeMapping.scaledTimelineRange(
+            sourceRange: rangeDuration,
+            rate: rate,
+            originalDuration: originalDuration
+        )
+    }
+
     var totalDuration: Double {
-        rangeDuration.upperBound - rangeDuration.lowerBound
+        outputRangeDuration.upperBound - outputRangeDuration.lowerBound
     }
 
     @MainActor
@@ -86,7 +99,7 @@ struct Video: Identifiable, @unchecked Sendable {
     init(url: URL, rangeDuration: ClosedRange<Double>, rate: Float = 1.0, rotation: Double = 0) {
         let asset = AVURLAsset(url: url)
         let originalDuration = max(rangeDuration.upperBound, .zero)
-        
+
         self.init(
             url: url,
             asset: asset,
@@ -135,10 +148,7 @@ struct Video: Identifiable, @unchecked Sendable {
     }
 
     mutating func updateRate(_ rate: Float) {
-        let lowerBound = (rangeDuration.lowerBound * Double(self.rate)) / Double(rate)
-        let upperBound = (rangeDuration.upperBound * Double(self.rate)) / Double(rate)
-
-        rangeDuration = lowerBound...upperBound
+        guard rate.isFinite, rate > 0 else { return }
 
         self.rate = rate
     }
@@ -173,6 +183,18 @@ struct Video: Identifiable, @unchecked Sendable {
 
     mutating func setFilter(_ filter: String?) {
         filterName = filter
+    }
+
+    func timelineTimePreservingSourcePosition(_ timelineTime: Double, fromRate previousRate: Float)
+        -> Double
+    {
+        PlaybackTimeMapping.timelineTimePreservingSourcePosition(
+            timelineTime: timelineTime,
+            previousRate: previousRate,
+            newRate: rate,
+            newRange: rangeDuration,
+            originalDuration: originalDuration
+        )
     }
 
     // MARK: - Private Methods

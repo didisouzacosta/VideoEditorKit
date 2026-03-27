@@ -57,6 +57,7 @@ struct ThumbnailsSliderView: View {
     private let playheadLineWidth: CGFloat = 2
     private let playheadLabelHeight: CGFloat = 28
     private let timelineHeight: CGFloat = 60
+    private let minimumClipDuration: Double = 3
 
     // MARK: - Initializer
 
@@ -110,6 +111,7 @@ extension ThumbnailsSliderView {
                             $rangeDuration,
                             bounds: 0...video.originalDuration,
                             step: 0.001,
+                            minimumDistance: min(minimumClipDuration, video.originalDuration),
                             onEndChange: commitRangeChange
                         )
                     }
@@ -154,17 +156,16 @@ extension ThumbnailsSliderView {
         to newRange: ClosedRange<Double>
     ) {
         guard video?.rangeDuration != newRange else { return }
+        guard oldRange != newRange else { return }
 
-        let tolerance = 0.001
-
-        if abs(currentTime - oldRange.lowerBound) <= tolerance, oldRange.lowerBound != newRange.lowerBound {
+        if currentTime < newRange.lowerBound {
             beginAnchoredPlaybackSynchronizationIfNeeded(oldRange)
             currentTime = newRange.lowerBound
             onPlaybackScrubChanged(newRange.lowerBound, newRange)
             return
         }
 
-        if abs(currentTime - oldRange.upperBound) <= tolerance, oldRange.upperBound != newRange.upperBound {
+        if currentTime > newRange.upperBound {
             beginAnchoredPlaybackSynchronizationIfNeeded(oldRange)
             currentTime = newRange.upperBound
             onPlaybackScrubChanged(newRange.upperBound, newRange)
@@ -354,7 +355,7 @@ extension ThumbnailsSliderView {
         width: CGFloat
     ) -> TimelineMetrics {
         TimelineMetrics(
-            originalDuration: video.originalDuration,
+            duration: video.originalDuration,
             playbackRange: range,
             currentTime: currentTime,
             width: width,

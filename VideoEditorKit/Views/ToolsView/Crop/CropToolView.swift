@@ -46,21 +46,21 @@ extension CropToolView {
         @Bindable var bindableEditorVM = editorVM
 
         return HStack(spacing: 20) {
-            CustomSlider(
-                $bindableEditorVM.cropRotation,
-                in: 0...360,
-                step: 90,
-                onEditingChanged: { _ in },
-                onChanged: {},
-                track: {
-                    Capsule()
-                        .fill(Theme.sliderTrack)
-                        .frame(width: 200, height: 5)
-                },
-                thumb: {
-                    Circle()
-                        .fill(Theme.sliderThumb)
-                }, thumbSize: CGSize(width: 20, height: 20))
+//            CustomSlider(
+//                $bindableEditorVM.cropRotation,
+//                in: 0...360,
+//                step: 90,
+//                onEditingChanged: { _ in },
+//                onChanged: {},
+//                track: {
+//                    Capsule()
+//                        .fill(Theme.sliderTrack)
+//                        .frame(width: 200, height: 5)
+//                },
+//                thumb: {
+//                    Circle()
+//                        .fill(Theme.sliderThumb)
+//                }, thumbSize: CGSize(width: 20, height: 20))
 
             Button {
                 editorVM.rotate()

@@ -37,12 +37,18 @@ enum CorrectionType: String, CaseIterable {
     }
 }
 
-struct ColorCorrection {
+struct ColorCorrection: Equatable {
 
     // MARK: - Public Properties
 
     var brightness: Double = 0
     var contrast: Double = 0
     var saturation: Double = 0
+
+    var isIdentity: Bool {
+        abs(brightness) <= 0.001
+            && abs(contrast) <= 0.001
+            && abs(saturation) <= 0.001
+    }
 
 }

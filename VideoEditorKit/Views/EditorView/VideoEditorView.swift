@@ -48,7 +48,7 @@ struct VideoEditorView: View {
                         textEditor: textEditor
                     )
 
-                    if !isEditingLocked {
+                    if !videoPlayer.isPlaying {
                         ToolsSectionView(
                             videoPlayer,
                             editorVM: editorViewModel,
@@ -57,7 +57,7 @@ struct VideoEditorView: View {
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
                 }
-                .animation(.snappy(duration: 0.22), value: isEditingLocked)
+                .animation(.snappy(duration: 0.22), value: videoPlayer.isPlaying)
                 .safeAreaPadding()
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {

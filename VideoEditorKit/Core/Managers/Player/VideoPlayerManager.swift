@@ -36,10 +36,11 @@ final class VideoPlayerManager {
             switch scrubState {
             case .scrubEnded(let seekTime):
                 pause()
-                seek(seekTime, player: videoPlayer)
+                seek(sourceTime(forTimelineTime: seekTime), player: videoPlayer)
                 if isSetAudio {
                     seek(seekTime, player: audioPlayer)
                 }
+                currentTime = seekTime
             default: break
             }
         }
@@ -51,17 +52,44 @@ final class VideoPlayerManager {
     private var statusCancellable: AnyCancellable?
     private var timeObserver: Any?
     private var currentDurationRange: ClosedRange<Double>?
+    private var currentPlaybackRate: Float = 1
     private var endPlaybackObserver: NSObjectProtocol?
     private var filterCompositionTask: Task<Void, Never>?
+    private var previewMainFilterName: String?
+    private var previewColorCorrection = ColorCorrection()
+    private var appliedFilterSignature: String?
+    private var appliedFilterItemID: ObjectIdentifier?
 
     // MARK: - Public Methods
 
     func action(_ video: Video) {
-        self.currentDurationRange = video.rangeDuration
+        syncPlaybackState(with: video)
         if isPlaying {
             pause()
         } else {
-            play(video.rate)
+            play()
+        }
+    }
+
+    func syncPlaybackState(with video: Video, previousRate: Float? = nil) {
+        let referenceRate = normalizedPlaybackRate(previousRate ?? currentPlaybackRate)
+        currentDurationRange = video.rangeDuration
+        currentPlaybackRate = normalizedPlaybackRate(video.rate)
+        setAudio(video.audio?.url)
+        videoPlayer.volume = video.volume
+        audioPlayer.volume = video.audio?.volume ?? 1
+
+        let clampedTime = video.timelineTimePreservingSourcePosition(
+            currentTime,
+            fromRate: referenceRate
+        )
+        currentTime = clampedTime
+
+        guard !isPlaying else { return }
+
+        seek(sourceTime(forTimelineTime: clampedTime), player: videoPlayer)
+        if isSetAudio {
+            seek(clampedTime, player: audioPlayer)
         }
     }
 
@@ -97,14 +125,14 @@ final class VideoPlayerManager {
         currentDurationRange = range
 
         let playbackTime = videoPlayer.currentTime().seconds
-        let referenceTime = playbackTime.isFinite ? playbackTime : currentTime
+        let referenceTime = playbackTime.isFinite ? timelineTime(fromSourceTime: playbackTime) : currentTime
         let clampedTime = referenceTime.clamped(to: range)
 
         currentTime = clampedTime
 
-        guard !playbackTime.isFinite || abs(playbackTime - clampedTime) > 0.01 else { return }
+        guard !playbackTime.isFinite || abs(referenceTime - clampedTime) > 0.01 else { return }
 
-        seek(clampedTime, player: videoPlayer)
+        seek(sourceTime(forTimelineTime: clampedTime), player: videoPlayer)
         if isSetAudio {
             seek(clampedTime, player: audioPlayer)
         }
@@ -121,7 +149,7 @@ final class VideoPlayerManager {
         let clampedTime = time.clamped(to: range)
 
         currentTime = clampedTime
-        seek(clampedTime, player: videoPlayer)
+        seek(sourceTime(forTimelineTime: clampedTime), player: videoPlayer)
 
         if isSetAudio {
             seek(clampedTime, player: audioPlayer)
@@ -151,9 +179,12 @@ final class VideoPlayerManager {
             pause()
             cleanupObservers()
             currentDurationRange = nil
+            currentPlaybackRate = 1
             currentTime = .zero
             videoPlayer = AVPlayer(url: url)
             startStatusSubscriptions()
+            appliedFilterItemID = nil
+            applyCurrentFilterComposition()
         case .failed, .loading, .unknown:
             break
         }
@@ -179,28 +210,30 @@ final class VideoPlayerManager {
             }
     }
 
-    private func play(_ rate: Float?) {
+    private func play() {
         AVAudioSession.sharedInstance().configurePlaybackSession()
 
         if let currentDurationRange {
-            let currentPlaybackTime = videoPlayer.currentTime().seconds
+            let currentPlaybackTime = timelineTime(fromSourceTime: videoPlayer.currentTime().seconds)
+            let targetTime = currentTime.clamped(to: currentDurationRange)
             let shouldSeekToRangeStart =
-                !currentDurationRange.contains(currentTime)
-                || !currentPlaybackTime.isFinite
+                !currentPlaybackTime.isFinite
+                || !currentDurationRange.contains(targetTime)
                 || currentPlaybackTime < currentDurationRange.lowerBound
                 || currentPlaybackTime >= currentDurationRange.upperBound
 
             if shouldSeekToRangeStart {
-                seek(currentDurationRange.lowerBound, player: videoPlayer)
+                seek(sourceTime(forTimelineTime: currentDurationRange.lowerBound), player: videoPlayer)
                 if isSetAudio {
                     seek(currentDurationRange.lowerBound, player: audioPlayer)
                 }
                 currentTime = currentDurationRange.lowerBound
             } else {
-                seek(currentPlaybackTime, player: videoPlayer)
+                seek(sourceTime(forTimelineTime: targetTime), player: videoPlayer)
                 if isSetAudio {
-                    seek(audioPlayer.currentTime().seconds, player: audioPlayer)
+                    seek(targetTime, player: audioPlayer)
                 }
+                currentTime = targetTime
             }
         }
         videoPlayer.play()
@@ -208,9 +241,7 @@ final class VideoPlayerManager {
             audioPlayer.play()
         }
 
-        if let rate {
-            videoPlayer.rate = rate
-        }
+        videoPlayer.rate = currentPlaybackRate
 
         registerPlaybackObserverIfNeeded()
     }
@@ -235,7 +266,7 @@ final class VideoPlayerManager {
                     let resolvedTime = self.resolvedCurrentTime(from: playbackTime)
 
                     if let currentDurationRange = self.currentDurationRange,
-                        playbackTime >= currentDurationRange.upperBound
+                        playbackTime >= self.sourceTime(forTimelineTime: currentDurationRange.upperBound)
                     {
                         self.currentTime = currentDurationRange.upperBound
                         self.pause()
@@ -259,7 +290,8 @@ final class VideoPlayerManager {
         removeEndPlaybackObserver()
 
         guard let currentDurationRange,
-            videoPlayer.currentItem?.duration.seconds ?? 0 >= currentDurationRange.upperBound
+            videoPlayer.currentItem?.duration.seconds ?? 0
+                >= sourceTime(forTimelineTime: currentDurationRange.upperBound)
         else {
             return
         }
@@ -278,7 +310,7 @@ final class VideoPlayerManager {
     private func playerDidFinishPlaying() {
         let restartTime = currentDurationRange?.lowerBound ?? .zero
         pause()
-        seek(restartTime, player: videoPlayer)
+        seek(sourceTime(forTimelineTime: restartTime), player: videoPlayer)
         if isSetAudio {
             seek(restartTime, player: audioPlayer)
         }
@@ -311,12 +343,27 @@ final class VideoPlayerManager {
             return currentDurationRange.map { currentTime.clamped(to: $0) } ?? currentTime
         }
 
-        guard let currentDurationRange else { return playbackTime }
-        return playbackTime.clamped(to: currentDurationRange)
+        let timelinePlaybackTime = timelineTime(fromSourceTime: playbackTime)
+
+        guard let currentDurationRange else { return timelinePlaybackTime }
+        return timelinePlaybackTime.clamped(to: currentDurationRange)
     }
 
     private func syncCurrentTimeFromPlayer() {
         currentTime = resolvedCurrentTime(from: videoPlayer.currentTime().seconds)
+    }
+
+    private func normalizedPlaybackRate(_ rate: Float) -> Float {
+        guard rate.isFinite, rate > 0 else { return 1 }
+        return rate
+    }
+
+    private func sourceTime(forTimelineTime time: Double) -> Double {
+        time
+    }
+
+    private func timelineTime(fromSourceTime time: Double) -> Double {
+        time
     }
 
 }
@@ -347,30 +394,82 @@ extension VideoPlayerManager {
     // MARK: - Public Methods
 
     func setFilters(mainFilter: CIFilter?, colorCorrection: ColorCorrection?) {
-        let filters = Helpers.createFilters(mainFilter: mainFilter, colorCorrection)
+        previewMainFilterName = mainFilter?.name
+        previewColorCorrection = colorCorrection ?? .init()
 
-        if filters.isEmpty {
-            filterCompositionTask?.cancel()
-            return
-        }
-        pause()
+        applyCurrentFilterComposition()
+    }
+
+    func removeFilter() {
+        previewMainFilterName = nil
+        applyCurrentFilterComposition()
+    }
+
+    // MARK: - Private Methods
+
+    private func applyCurrentFilterComposition() {
         filterCompositionTask?.cancel()
 
-        guard let currentItem = videoPlayer.currentItem else { return }
+        guard let currentItem = videoPlayer.currentItem else {
+            appliedFilterSignature = nil
+            appliedFilterItemID = nil
+            return
+        }
+
+        let currentItemID = ObjectIdentifier(currentItem)
+        let signature = currentFilterSignature()
+
+        if signature == nil {
+            guard appliedFilterSignature != nil || appliedFilterItemID != currentItemID else {
+                return
+            }
+
+            pause()
+            currentItem.videoComposition = nil
+            appliedFilterSignature = nil
+            appliedFilterItemID = currentItemID
+            return
+        }
+
+        guard appliedFilterSignature != signature || appliedFilterItemID != currentItemID else {
+            return
+        }
+
+        let filters = Helpers.createFilters(
+            mainFilter: previewMainFilterName.flatMap(CIFilter.init(name:)),
+            previewColorCorrection.isIdentity ? nil : previewColorCorrection
+        )
+
+        guard !filters.isEmpty else {
+            currentItem.videoComposition = nil
+            appliedFilterSignature = nil
+            appliedFilterItemID = currentItemID
+            return
+        }
+
+        pause()
 
         filterCompositionTask = Task { [weak self] in
             guard let composition = try? await currentItem.asset.setFilters(filters) else { return }
             await MainActor.run {
                 guard let self, self.videoPlayer.currentItem === currentItem else { return }
                 currentItem.videoComposition = composition
+                self.appliedFilterSignature = signature
+                self.appliedFilterItemID = currentItemID
             }
         }
     }
 
-    func removeFilter() {
-        filterCompositionTask?.cancel()
-        pause()
-        videoPlayer.currentItem?.videoComposition = nil
+    private func currentFilterSignature() -> String? {
+        guard previewMainFilterName != nil || !previewColorCorrection.isIdentity else { return nil }
+
+        return [
+            previewMainFilterName ?? "none",
+            String(previewColorCorrection.brightness),
+            String(previewColorCorrection.contrast),
+            String(previewColorCorrection.saturation),
+        ]
+        .joined(separator: "|")
     }
 
 }

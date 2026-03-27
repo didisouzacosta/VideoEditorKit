@@ -9,7 +9,7 @@ final class TimelineMetricsTests: XCTestCase {
 
     func testPlaybackPositionXClampsCurrentTimeInsideTrimmedRange() {
         let metrics = TimelineMetrics(
-            originalDuration: 100,
+            duration: 100,
             playbackRange: 20...80,
             currentTime: 10,
             width: 200
@@ -20,7 +20,7 @@ final class TimelineMetricsTests: XCTestCase {
 
     func testPlaybackPositionXReturnsMinimumXForZeroDuration() {
         let metrics = TimelineMetrics(
-            originalDuration: 0,
+            duration: 0,
             playbackRange: 0...0,
             currentTime: 0,
             width: 200
@@ -31,7 +31,7 @@ final class TimelineMetricsTests: XCTestCase {
 
     func testCurrentClipTimeSubtractsRangeLowerBound() {
         let metrics = TimelineMetrics(
-            originalDuration: 120,
+            duration: 120,
             playbackRange: 30...90,
             currentTime: 45,
             width: 240
@@ -42,7 +42,7 @@ final class TimelineMetricsTests: XCTestCase {
 
     func testPlaybackTimeClampsTouchBeforeRangeStart() {
         let metrics = TimelineMetrics(
-            originalDuration: 100,
+            duration: 100,
             playbackRange: 20...80,
             currentTime: 50,
             width: 200
@@ -53,7 +53,7 @@ final class TimelineMetricsTests: XCTestCase {
 
     func testPlaybackTimeClampsTouchAfterRangeEnd() {
         let metrics = TimelineMetrics(
-            originalDuration: 100,
+            duration: 100,
             playbackRange: 20...80,
             currentTime: 50,
             width: 200
@@ -64,7 +64,7 @@ final class TimelineMetricsTests: XCTestCase {
 
     func testBadgePositionXUsesMeasuredWidthNearLeadingEdge() {
         let metrics = TimelineMetrics(
-            originalDuration: 100,
+            duration: 100,
             playbackRange: 0...100,
             currentTime: 0,
             width: 200
@@ -75,7 +75,7 @@ final class TimelineMetricsTests: XCTestCase {
 
     func testBadgePositionXUsesMeasuredWidthNearTrailingEdge() {
         let metrics = TimelineMetrics(
-            originalDuration: 100,
+            duration: 100,
             playbackRange: 0...100,
             currentTime: 100,
             width: 200

@@ -8,16 +8,49 @@ final class VideoModelTests: XCTestCase {
 
     // MARK: - Public Methods
 
-    func testUpdateRateRescalesSelectedRange() {
+    func testUpdateRateKeepsSelectedSourceRangeIntact() {
         var video = Video.mock
         video.rangeDuration = 2...8
         video.rate = 1
 
         video.updateRate(2)
 
-        XCTAssertEqual(video.rangeDuration.lowerBound, 1, accuracy: 0.0001)
-        XCTAssertEqual(video.rangeDuration.upperBound, 4, accuracy: 0.0001)
+        XCTAssertEqual(video.rangeDuration.lowerBound, 2, accuracy: 0.0001)
+        XCTAssertEqual(video.rangeDuration.upperBound, 8, accuracy: 0.0001)
         XCTAssertEqual(video.rate, 2)
+    }
+
+    func testResetRangeDurationUsesOriginalDurationForCurrentRate() {
+        var video = Video.mock
+
+        video.updateRate(2)
+        video.resetRangeDuration()
+
+        XCTAssertEqual(video.timelineDuration, 125, accuracy: 0.0001)
+        XCTAssertEqual(video.rangeDuration.lowerBound, 0, accuracy: 0.0001)
+        XCTAssertEqual(video.rangeDuration.upperBound, 250, accuracy: 0.0001)
+    }
+
+    func testOutputRangeDurationReflectsCurrentRate() {
+        var video = Video.mock
+        video.rangeDuration = 20...80
+
+        video.updateRate(2)
+
+        XCTAssertEqual(video.outputRangeDuration.lowerBound, 10, accuracy: 0.0001)
+        XCTAssertEqual(video.outputRangeDuration.upperBound, 40, accuracy: 0.0001)
+        XCTAssertEqual(video.totalDuration, 30, accuracy: 0.0001)
+    }
+
+    func testTimelineTimePreservingSourcePositionUsesSameSourceTimeAfterRateChange() {
+        var video = Video.mock
+        let previousRate = video.rate
+
+        video.updateRate(2)
+
+        let remappedTime = video.timelineTimePreservingSourcePosition(60, fromRate: previousRate)
+
+        XCTAssertEqual(remappedTime, 60, accuracy: 0.0001)
     }
 
     func testRotateCyclesBackToZeroAfterFullTurn() {

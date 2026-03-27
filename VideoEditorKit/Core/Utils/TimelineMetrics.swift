@@ -11,7 +11,7 @@ struct TimelineMetrics {
 
     // MARK: - Public Properties
 
-    let originalDuration: Double
+    let duration: Double
     let playbackRange: ClosedRange<Double>
     let currentTime: Double
     let width: CGFloat
@@ -25,24 +25,24 @@ struct TimelineMetrics {
     }
 
     private var rangeStartX: CGFloat {
-        (CGFloat(playbackRange.lowerBound / originalDuration) * width) + handleInset
+        (CGFloat(playbackRange.lowerBound / duration) * width) + handleInset
     }
 
     private var rangeEndX: CGFloat {
-        (CGFloat(playbackRange.upperBound / originalDuration) * width) - handleInset
+        (CGFloat(playbackRange.upperBound / duration) * width) - handleInset
     }
 
     // MARK: - Initializer
 
     init(
-        originalDuration: Double,
+        duration: Double,
         playbackRange: ClosedRange<Double>,
         currentTime: Double,
         width: CGFloat,
         handleInset: CGFloat = 4,
         minimumX: CGFloat = 2
     ) {
-        self.originalDuration = originalDuration
+        self.duration = duration
         self.playbackRange = playbackRange
         self.currentTime = currentTime
         self.width = width
@@ -53,12 +53,12 @@ struct TimelineMetrics {
     // MARK: - Public Methods
 
     func playbackPositionX() -> CGFloat {
-        guard originalDuration > 0, width > 0 else { return minimumX }
+        guard duration > 0, width > 0 else { return minimumX }
         guard rangeEndX > rangeStartX else {
             return min(max(rangeStartX, minimumX), width - minimumX)
         }
 
-        let absoluteProgress = clampedCurrentTime / originalDuration
+        let absoluteProgress = clampedCurrentTime / duration
         let positionX = CGFloat(absoluteProgress) * width
 
         return min(max(positionX, rangeStartX), rangeEndX)
@@ -69,13 +69,13 @@ struct TimelineMetrics {
     }
 
     func playbackTime(for locationX: CGFloat) -> Double {
-        guard width > 0, originalDuration > 0 else {
+        guard width > 0, duration > 0 else {
             return playbackRange.lowerBound
         }
 
         let clampedX = min(max(locationX, 0), width)
         let progress = clampedX / width
-        let time = Double(progress) * originalDuration
+        let time = Double(progress) * duration
 
         return time.clamped(to: playbackRange)
     }

@@ -27,7 +27,7 @@ enum VideoEditor {
         videoQuality: VideoQuality
     ) async throws -> URL {
         let composition = AVMutableComposition()
-        let timeRange = getTimeRange(for: video.originalDuration, with: video.rangeDuration)
+        let timeRange = getTimeRange(for: video.timelineDuration, with: video.outputRangeDuration)
         let asset = video.asset
 
         try await setTimeScaleAndAddTracks(
@@ -187,7 +187,9 @@ extension VideoEditor {
                 let position = convertSize(text.offset, fromFrame: video.geometrySize, toFrame: size)
                 let textLayer = createTextLayer(
                     with: text, size: size, position: position.size, ratio: position.ratio,
-                    duration: video.totalDuration)
+                    duration: video.timelineDuration,
+                    rate: video.rate
+                )
                 outputLayer.addSublayer(textLayer)
             }
         }
@@ -359,7 +361,12 @@ extension VideoEditor {
     }
 
     private static func createTextLayer(
-        with model: TextBox, size: CGSize, position: CGSize, ratio: Double, duration: Double
+        with model: TextBox,
+        size: CGSize,
+        position: CGSize,
+        ratio: Double,
+        duration: Double,
+        rate: Float
     ) -> CATextLayer {
         let textLayer = CATextLayer()
         textLayer.string = model.text
@@ -372,31 +379,41 @@ extension VideoEditor {
             x: position.width, y: position.height, width: size.width, height: size.height)
         textLayer.backgroundColor = UIColor(model.bgColor).cgColor
 
-        addAnimation(to: textLayer, with: model.timeRange, duration: duration)
+        addAnimation(to: textLayer, with: model.timeRange, duration: duration, rate: rate)
 
         return textLayer
     }
 
     private static func addAnimation(
-        to textLayer: CATextLayer, with timeRange: ClosedRange<Double>, duration: Double
+        to textLayer: CATextLayer,
+        with timeRange: ClosedRange<Double>,
+        duration: Double,
+        rate: Float
     ) {
-        if timeRange.lowerBound > 0 {
+        let resolvedRate = rate.isFinite && rate > 0 ? Double(rate) : 1
+        let scaledTimeRange = PlaybackTimeMapping.scaledTimelineRange(
+            sourceRange: timeRange,
+            rate: rate,
+            originalDuration: max(timeRange.upperBound, duration * resolvedRate)
+        )
+
+        if scaledTimeRange.lowerBound > 0 {
             let appearance = CABasicAnimation(keyPath: "opacity")
             appearance.fromValue = 0
             appearance.toValue = 1
             appearance.duration = 0.05
-            appearance.beginTime = timeRange.lowerBound
+            appearance.beginTime = scaledTimeRange.lowerBound
             appearance.fillMode = .forwards
             appearance.isRemovedOnCompletion = false
             textLayer.add(appearance, forKey: "Appearance")
             textLayer.opacity = 0
         }
 
-        if timeRange.upperBound < duration {
+        if scaledTimeRange.upperBound < duration {
             let disappearance = CABasicAnimation(keyPath: "opacity")
             disappearance.fromValue = 1
             disappearance.toValue = 0
-            disappearance.beginTime = timeRange.upperBound
+            disappearance.beginTime = scaledTimeRange.upperBound
             disappearance.duration = 0.05
             disappearance.fillMode = .forwards
             disappearance.isRemovedOnCompletion = false
