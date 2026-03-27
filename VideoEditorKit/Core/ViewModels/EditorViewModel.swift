@@ -46,24 +46,6 @@ final class EditorViewModel {
         case format, rotate
     }
 
-    enum AudioTrackSelection: String, CaseIterable, Identifiable {
-        case video
-        case recorded
-
-        var id: String {
-            rawValue
-        }
-
-        var title: String {
-            switch self {
-            case .video:
-                "Video"
-            case .recorded:
-                "Recorded"
-            }
-        }
-    }
-
     // MARK: - Private Properties
 
     @ObservationIgnored private var loadVideoTask: Task<Void, Never>?
@@ -106,6 +88,24 @@ final class EditorViewModel {
 }
 
 extension EditorViewModel {
+    
+    enum AudioTrackSelection: String, CaseIterable, Identifiable {
+        case video
+        case recorded
+
+        var id: String {
+            rawValue
+        }
+
+        var title: String {
+            switch self {
+            case .video:
+                "Video"
+            case .recorded:
+                "Recorded"
+            }
+        }
+    }
 
     // MARK: - Public Methods
 
@@ -115,11 +115,15 @@ extension EditorViewModel {
     ) {
         lastPlayerContainerSize = containerSize
         lastThumbnailDisplayScale = displayScale
+        
         guard let video = currentVideo else { return }
+        
         guard containerSize.width > 0, containerSize.height > 0 else { return }
 
         let expectedCount = video.thumbnailCount(for: containerSize)
+        
         guard expectedCount > 0 else { return }
+        
         let expectedThumbnailWidth = max(
             (containerSize.width / CGFloat(expectedCount)) * max(displayScale, 1),
             1
@@ -130,6 +134,7 @@ extension EditorViewModel {
         let hasLowResolutionThumbnails = (video.thumbnailsImages.first?.image?.size.width ?? 0) < expectedThumbnailWidth
 
         guard isMissingThumbnails || needsResize || hasLowResolutionThumbnails else { return }
+        
         loadThumbnails(
             for: video,
             containerSize: containerSize,
@@ -145,11 +150,13 @@ extension EditorViewModel {
         displayScale: CGFloat
     ) {
         let videoID = video.id
+        
         thumbnailsTask = Task.detached(priority: .userInitiated) {
             let thumbnails = await video.makeThumbnails(
                 containerSize: containerSize,
                 displayScale: displayScale
             )
+        
             guard !Task.isCancelled else { return }
 
             await MainActor.run { [weak self] in

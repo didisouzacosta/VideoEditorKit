@@ -1,5 +1,5 @@
 //
-//  CorrectionsToolView.swift
+//  VideoCorrectionsToolView.swift
 //  VideoEditorKit
 //
 //  Created by Adriano Souza Costa on 23.03.2026.
@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct CorrectionsToolView: View {
+struct VideoCorrectionsToolView: View {
 
     // MARK: - Bindings
 
@@ -52,7 +52,7 @@ struct CorrectionsToolView: View {
 
 }
 
-extension CorrectionsToolView {
+extension VideoCorrectionsToolView {
 
     // MARK: - Private Methods
 
@@ -79,5 +79,5 @@ extension CorrectionsToolView {
 }
 
 #Preview {
-    CorrectionsToolView(.constant(Video.mock.colorCorrection), onChange: { _ in })
+    VideoCorrectionsToolView(.constant(Video.mock.colorCorrection), onChange: { _ in })
 }

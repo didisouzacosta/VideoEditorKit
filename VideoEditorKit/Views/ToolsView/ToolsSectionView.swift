@@ -169,11 +169,11 @@ extension ToolsSectionView {
         case .crop:
             CropToolView(editorViewModel)
         case .audio:
-            AudioToolView(videoPlayer, editorVM: editorViewModel)
+            VideoAudioToolView(videoPlayer, editorVM: editorViewModel)
         case .text:
             TextToolsView(video, editor: textEditor)
         case .filters:
-            FiltersView(video.filterName, viewModel: filtersVM) { filterName in
+            VideoFiltersToolView(video.filterName, viewModel: filtersVM) { filterName in
                 editorViewModel.handleFilterChange(
                     filterName,
                     filtersViewModel: filtersVM,
@@ -181,7 +181,7 @@ extension ToolsSectionView {
                 )
             }
         case .corrections:
-            CorrectionsToolView($filtersVM.colorCorrection) { corrections in
+            VideoCorrectionsToolView($filtersVM.colorCorrection) { corrections in
                 editorViewModel.handleCorrectionsChange(corrections, videoPlayer: videoPlayer)
             }
         case .frames:

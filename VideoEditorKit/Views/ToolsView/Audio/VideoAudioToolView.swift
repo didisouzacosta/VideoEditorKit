@@ -1,5 +1,5 @@
 //
-//  AudioToolView.swift
+//  VideoAudioToolView.swift
 //  VideoEditorKit
 //
 //  Created by Adriano Souza Costa on 23.03.2026.
@@ -8,7 +8,7 @@
 import SwiftUI
 
 @MainActor
-struct AudioToolView: View {
+struct VideoAudioToolView: View {
 
     // MARK: - Private Properties
 
@@ -50,5 +50,5 @@ struct AudioToolView: View {
 }
 
 #Preview {
-    AudioToolView(VideoPlayerManager(), editorVM: EditorViewModel())
+    VideoAudioToolView(VideoPlayerManager(), editorVM: EditorViewModel())
 }

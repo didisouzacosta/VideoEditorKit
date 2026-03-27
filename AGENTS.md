@@ -403,6 +403,8 @@ Para mudanças futuras neste repositório, usar o padrão abaixo como baseline:
 - corrigir typos e preferir nomes claros em inglês ao tocar em propriedades, métodos e tipos
 - não espalhar `print` operacional pela base; preferir tratamento explícito e `assertionFailure` apenas para estados inesperados
 - manter extensões utilitárias enxutas e alinhadas com uso real do projeto
+- toda nova feature deve começar com testes cobrindo suas principais regras de negócio antes da implementação final ou, no mínimo, no mesmo ciclo da primeira alteração funcional
+- ao tocar em código legado, primeiro criar um teste unitário de caracterização para preservar o comportamento atual e só depois aplicar refactors, correções ou melhorias
 - todo `init` explícito deve usar `_` no primeiro parâmetro
 - em `init` de views e componentes, parâmetros que alimentam `Binding` e `State` devem vir antes dos demais
 - no corpo do `init`, atribuições de `Binding` e `State` devem ficar agrupadas e separadas visualmente das demais propriedades por uma linha em branco

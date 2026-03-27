@@ -1,5 +1,5 @@
 //
-//  FiltersView.swift
+//  VideoFiltersToolView.swift
 //  VideoEditorKit
 //
 //  Created by Adriano Souza Costa on 23.03.2026.
@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct FiltersView: View {
+struct VideoFiltersToolView: View {
 
     // MARK: - Private Properties
 
@@ -52,7 +52,7 @@ struct FiltersView: View {
 
 }
 
-fileprivate extension FiltersView {
+fileprivate extension VideoFiltersToolView {
 
     func imageView(_ uiImage: UIImage, isSelected: Bool) -> some View {
         Image(uiImage: uiImage)
@@ -86,5 +86,5 @@ fileprivate func makeFiltersPreviewViewModel() -> FiltersViewModel {
 }
 
 #Preview {
-    FiltersView(nil, viewModel: makeFiltersPreviewViewModel(), onChangeFilter: { _ in })
+    VideoFiltersToolView(nil, viewModel: makeFiltersPreviewViewModel(), onChangeFilter: { _ in })
 }
