@@ -50,6 +50,7 @@ struct ThumbnailsSliderView: View {
                 timelineSection
                 footerSection
             }
+            .padding(.trailing, 8)
             .disabled(isPlaying)
         }
         .onChange(of: isChangeState) { _, isChange in
