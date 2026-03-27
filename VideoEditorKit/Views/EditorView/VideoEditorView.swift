@@ -143,8 +143,7 @@ struct VideoEditorView: View {
         guard isPlaying else { return }
 
         editorViewModel.closeSelectedTool(textEditor)
-        textEditor.cancelTextEditor()
-        textEditor.selectedTextBox = nil
+        textEditor.dismissTextToolPresentation()
     }
 
 }

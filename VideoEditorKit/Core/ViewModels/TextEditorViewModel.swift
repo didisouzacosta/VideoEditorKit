@@ -121,6 +121,11 @@ final class TextEditorViewModel {
         }
     }
 
+    func dismissTextToolPresentation() {
+        cancelTextEditor()
+        handleTextToolDisappear()
+    }
+
     func handleTextToolAppear() {
         if selectedTextBox == nil {
             selectedTextBox = textBoxes.first

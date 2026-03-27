@@ -366,6 +366,10 @@ extension EditorViewModel {
             return
         }
 
+        if tool != .text {
+            textEditor.dismissTextToolPresentation()
+        }
+
         if tool == .text {
             textEditor.prepareForToolPresentation(timeRange: currentVideo?.rangeDuration)
         }

@@ -51,6 +51,7 @@ struct PagedToolsRow: View {
                     }
                     .padding(.vertical, Layout.verticalContentPadding)
                 }
+                .defaultScrollAnchor(.center)
                 .contentMargins(.horizontal, Layout.horizontalInset, for: .scrollContent)
                 .scrollClipDisabled()
                 .scrollIndicators(.hidden)

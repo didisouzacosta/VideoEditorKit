@@ -222,6 +222,46 @@ struct EditorViewModelTests {
         viewModel.handleSelectedToolChange(nil, textEditor: textEditor)
 
         #expect(viewModel.currentVideo?.textBoxes == [existingText])
+        #expect(textEditor.showEditor == false)
+        #expect(textEditor.selectedTextBox == nil)
+    }
+
+    @Test
+    func handleSelectedToolChangeDismissesTextPresentationWhenSwitchingToAnotherTool() {
+        let viewModel = EditorViewModel()
+        let textEditor = TextEditorViewModel()
+        let textBox = TextBox(text: "Overlay")
+        viewModel.currentVideo = Video.mock
+        textEditor.load(textBoxes: [textBox])
+        textEditor.selectTextBox(textBox)
+        textEditor.openTextEditor(isEdit: true, textBox)
+
+        viewModel.handleSelectedToolChange(.speed, textEditor: textEditor)
+
+        #expect(textEditor.showEditor == false)
+        #expect(textEditor.selectedTextBox == nil)
+    }
+
+    @Test
+    func removingTextToolAvailabilityClosesAnOpenTextEditorFlow() {
+        let viewModel = EditorViewModel()
+        let textEditor = TextEditorViewModel()
+        let textBox = TextBox(text: "Overlay")
+        viewModel.currentVideo = Video.mock
+        textEditor.load(textBoxes: [textBox])
+        textEditor.selectTextBox(textBox)
+        textEditor.openTextEditor(isEdit: true, textBox)
+        viewModel.selectTool(.text)
+
+        viewModel.setToolAvailability([
+            .init(.filters),
+            .init(.speed),
+        ])
+        viewModel.handleSelectedToolChange(viewModel.selectedTools, textEditor: textEditor)
+
+        #expect(viewModel.selectedTools == nil)
+        #expect(textEditor.showEditor == false)
+        #expect(textEditor.selectedTextBox == nil)
     }
 
     @Test

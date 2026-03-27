@@ -47,7 +47,10 @@ struct RootView: View {
                 item: $bindableViewModel.editorDestination,
                 onDismiss: viewModel.handleEditorDismiss
             ) { destination in
-                VideoEditorView(destination.url) { exportedURL in
+                VideoEditorView(
+                    destination.url,
+                    configuration: .init(tools: [])
+                ) { exportedURL in
                     viewModel.handleExportedVideo(exportedURL)
                 }
             }

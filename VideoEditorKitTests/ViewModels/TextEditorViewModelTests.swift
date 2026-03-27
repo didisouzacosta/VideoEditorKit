@@ -129,6 +129,20 @@ struct TextEditorViewModelTests {
     }
 
     @Test
+    func dismissTextToolPresentationCancelsTheEditorAndClearsSelection() {
+        let viewModel = TextEditorViewModel()
+        let textBox = TextBox(text: "Hello")
+        viewModel.textBoxes = [textBox]
+        viewModel.selectTextBox(textBox)
+        viewModel.openTextEditor(isEdit: true, textBox)
+
+        viewModel.dismissTextToolPresentation()
+
+        #expect(viewModel.showEditor == false)
+        #expect(viewModel.selectedTextBox == nil)
+    }
+
+    @Test
     func handleTextBoxTapSelectsFirstAndOpensEditorOnSecondTap() {
         let viewModel = TextEditorViewModel()
         let textBox = TextBox(text: "Tap me")
