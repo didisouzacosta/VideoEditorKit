@@ -24,15 +24,10 @@ struct ToolsSectionView: View {
     // MARK: - Body
 
     var body: some View {
-        LazyVGrid(columns: columns, alignment: .center, spacing: 10) {
-            ForEach(ToolEnum.menuCases, id: \.self) { tool in
-                ToolButtonView(
-                    tool.title, image: tool.image,
-                    isChange: editorViewModel.currentVideo?.isAppliedTool(for: tool) ?? false
-                ) {
-                    editorViewModel.selectTool(tool)
-                }
-            }
+        PagedToolsRow(ToolEnum.all) { tool in
+            editorViewModel.currentVideo?.isAppliedTool(for: tool) ?? false
+        } action: { tool in
+            editorViewModel.selectTool(tool)
         }
         .dynamicHeightSheet(item: selectedToolBinding, initialHeight: initialSheetHeight(for:)) { tool in
             toolSheet(tool)
@@ -65,10 +60,6 @@ struct ToolsSectionView: View {
         self.editorViewModel = editorVM
         self.textEditor = textEditor
     }
-
-    // MARK: - Private Properties
-
-    private let columns = Array(repeating: GridItem(.flexible()), count: 4)
 
 }
 
@@ -209,5 +200,4 @@ extension ToolsSectionView {
 
 #Preview {
     VideoEditorView()
-        .preferredColorScheme(.dark)
 }

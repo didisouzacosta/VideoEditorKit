@@ -25,7 +25,6 @@ struct ToolButtonView: View {
             VStack(spacing: 4) {
                 Image(systemName: image)
                     .font(.headline.weight(.semibold))
-                    .foregroundStyle(Theme.primary)
                 Text(label)
                     .font(.caption.weight(.medium))
             }
@@ -39,8 +38,10 @@ struct ToolButtonView: View {
                 }
             }
             .card(
-                cornerRadius: 20, prominent: isChange,
-                tint: isChange ? Theme.accent : Theme.secondary)
+                cornerRadius: 16,
+                prominent: isChange,
+                tint: isChange ? Theme.accent : Theme.secondary
+            )
         }
         .buttonStyle(.plain)
     }

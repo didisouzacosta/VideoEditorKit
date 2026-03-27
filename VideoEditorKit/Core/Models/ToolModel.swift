@@ -16,7 +16,7 @@ enum ToolEnum: Int, CaseIterable, Identifiable {
         rawValue
     }
 
-    static var menuCases: [ToolEnum] {
+    static var all: [ToolEnum] {
         allCases.filter { $0 != .cut }
     }
 
