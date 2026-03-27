@@ -38,7 +38,7 @@ final class VideoPlayerManager {
                 pause()
                 seek(sourceTime(forTimelineTime: seekTime), player: videoPlayer)
                 if isSetAudio {
-                    seek(seekTime, player: audioPlayer)
+                    seek(sourceTime(forTimelineTime: seekTime), player: audioPlayer)
                 }
                 currentTime = seekTime
             default: break
@@ -53,6 +53,7 @@ final class VideoPlayerManager {
     private var timeObserver: Any?
     private var currentDurationRange: ClosedRange<Double>?
     private var currentPlaybackRate: Float = 1
+    private var currentOriginalDuration: Double = .zero
     private var endPlaybackObserver: NSObjectProtocol?
     private var filterCompositionTask: Task<Void, Never>?
     private var previewMainFilterName: String?
@@ -73,8 +74,9 @@ final class VideoPlayerManager {
 
     func syncPlaybackState(with video: Video, previousRate: Float? = nil) {
         let referenceRate = normalizedPlaybackRate(previousRate ?? currentPlaybackRate)
-        currentDurationRange = video.rangeDuration
+        currentDurationRange = video.outputRangeDuration
         currentPlaybackRate = normalizedPlaybackRate(video.rate)
+        currentOriginalDuration = max(video.originalDuration, .zero)
         setAudio(video.audio?.url)
         videoPlayer.volume = video.volume
         audioPlayer.volume = video.audio?.volume ?? 1
@@ -89,7 +91,7 @@ final class VideoPlayerManager {
 
         seek(sourceTime(forTimelineTime: clampedTime), player: videoPlayer)
         if isSetAudio {
-            seek(clampedTime, player: audioPlayer)
+            seek(sourceTime(forTimelineTime: clampedTime), player: audioPlayer)
         }
     }
 
@@ -134,7 +136,7 @@ final class VideoPlayerManager {
 
         seek(sourceTime(forTimelineTime: clampedTime), player: videoPlayer)
         if isSetAudio {
-            seek(clampedTime, player: audioPlayer)
+            seek(sourceTime(forTimelineTime: clampedTime), player: audioPlayer)
         }
     }
 
@@ -152,7 +154,7 @@ final class VideoPlayerManager {
         seek(sourceTime(forTimelineTime: clampedTime), player: videoPlayer)
 
         if isSetAudio {
-            seek(clampedTime, player: audioPlayer)
+            seek(sourceTime(forTimelineTime: clampedTime), player: audioPlayer)
         }
     }
 
@@ -180,6 +182,7 @@ final class VideoPlayerManager {
             cleanupObservers()
             currentDurationRange = nil
             currentPlaybackRate = 1
+            currentOriginalDuration = .zero
             currentTime = .zero
             videoPlayer = AVPlayer(url: url)
             startStatusSubscriptions()
@@ -225,13 +228,13 @@ final class VideoPlayerManager {
             if shouldSeekToRangeStart {
                 seek(sourceTime(forTimelineTime: currentDurationRange.lowerBound), player: videoPlayer)
                 if isSetAudio {
-                    seek(currentDurationRange.lowerBound, player: audioPlayer)
+                    seek(sourceTime(forTimelineTime: currentDurationRange.lowerBound), player: audioPlayer)
                 }
                 currentTime = currentDurationRange.lowerBound
             } else {
                 seek(sourceTime(forTimelineTime: targetTime), player: videoPlayer)
                 if isSetAudio {
-                    seek(targetTime, player: audioPlayer)
+                    seek(sourceTime(forTimelineTime: targetTime), player: audioPlayer)
                 }
                 currentTime = targetTime
             }
@@ -239,6 +242,7 @@ final class VideoPlayerManager {
         videoPlayer.play()
         if isSetAudio {
             audioPlayer.play()
+            audioPlayer.rate = currentPlaybackRate
         }
 
         videoPlayer.rate = currentPlaybackRate
@@ -312,7 +316,7 @@ final class VideoPlayerManager {
         pause()
         seek(sourceTime(forTimelineTime: restartTime), player: videoPlayer)
         if isSetAudio {
-            seek(restartTime, player: audioPlayer)
+            seek(sourceTime(forTimelineTime: restartTime), player: audioPlayer)
         }
         currentTime = restartTime
     }
@@ -359,11 +363,18 @@ final class VideoPlayerManager {
     }
 
     private func sourceTime(forTimelineTime time: Double) -> Double {
-        time
+        PlaybackTimeMapping.sourceTime(
+            forTimelineTime: time,
+            rate: currentPlaybackRate,
+            originalDuration: currentOriginalDuration
+        )
     }
 
     private func timelineTime(fromSourceTime time: Double) -> Double {
-        time
+        PlaybackTimeMapping.timelineTime(
+            fromSourceTime: time,
+            rate: currentPlaybackRate
+        )
     }
 
 }
@@ -436,8 +447,8 @@ extension VideoPlayerManager {
         }
 
         let filters = Helpers.createFilters(
-            mainFilter: previewMainFilterName.flatMap(CIFilter.init(name:)),
-            previewColorCorrection.isIdentity ? nil : previewColorCorrection
+            previewMainFilterName.flatMap(CIFilter.init(name:)),
+            colorCorrection: previewColorCorrection.isIdentity ? nil : previewColorCorrection
         )
 
         guard !filters.isEmpty else {

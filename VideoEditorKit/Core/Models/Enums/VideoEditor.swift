@@ -10,6 +10,7 @@ import Foundation
 import UIKit
 
 enum VideoEditor {
+    
     // MARK: - Public Methods
 
     static func startRender(video: Video, videoQuality: VideoQuality) async throws -> URL {
@@ -81,7 +82,9 @@ enum VideoEditor {
 
     private static func applyFiltersOperations(_ video: Video, fromUrl: URL) async throws -> URL {
         let filters = Helpers.createFilters(
-            mainFilter: CIFilter(name: video.filterName ?? ""), video.colorCorrection)
+            CIFilter(name: video.filterName ?? ""),
+            colorCorrection: video.colorCorrection
+        )
 
         if filters.isEmpty {
             return fromUrl
@@ -162,27 +165,36 @@ extension VideoEditor {
         video: Video,
         size: CGSize
     ) -> AVVideoCompositionCoreAnimationTool? {
-        guard let videoFrame else { return nil }
+        let hasFrame = videoFrame != nil
+        let hasText = !video.textBoxes.isEmpty
 
-        let color = videoFrame.frameColor
-        let scale = videoFrame.scale
-        let scaleSize = CGSize(width: size.width * scale, height: size.height * scale)
-        let centerPoint = CGPoint(
-            x: (size.width - scaleSize.width) / 2, y: (size.height - scaleSize.height) / 2)
+        guard hasFrame || hasText else { return nil }
 
         let videoLayer = CALayer()
-        videoLayer.frame = CGRect(origin: centerPoint, size: scaleSize)
-        let bgLayer = CALayer()
-        bgLayer.frame = CGRect(origin: .zero, size: size)
-        bgLayer.backgroundColor = UIColor(color).cgColor
+        videoLayer.frame = CGRect(origin: .zero, size: size)
 
         let outputLayer = CALayer()
         outputLayer.frame = CGRect(origin: .zero, size: size)
 
-        outputLayer.addSublayer(bgLayer)
+        if let videoFrame {
+            let scale = videoFrame.scale
+            let scaleSize = CGSize(width: size.width * scale, height: size.height * scale)
+            let centerPoint = CGPoint(
+                x: (size.width - scaleSize.width) / 2,
+                y: (size.height - scaleSize.height) / 2
+            )
+
+            let bgLayer = CALayer()
+            bgLayer.frame = CGRect(origin: .zero, size: size)
+            bgLayer.backgroundColor = UIColor(videoFrame.frameColor).cgColor
+            outputLayer.addSublayer(bgLayer)
+
+            videoLayer.frame = CGRect(origin: centerPoint, size: scaleSize)
+        }
+
         outputLayer.addSublayer(videoLayer)
 
-        if !video.textBoxes.isEmpty {
+        if hasText {
             for text in video.textBoxes {
                 let position = convertSize(text.offset, fromFrame: video.geometrySize, toFrame: size)
                 let textLayer = createTextLayer(
@@ -242,12 +254,28 @@ extension VideoEditor {
             guard let secondAudioTrack = try await asset.loadTracks(withMediaType: .audio).first else {
                 return
             }
+            let secondAudioDuration = try await asset.load(.duration)
+            let secondAudioTimeRange = CMTimeRange(
+                start: .zero,
+                duration: CMTimeMinimum(duration, secondAudioDuration)
+            )
+
+            guard secondAudioTimeRange.duration > .zero else {
+                return
+            }
+
             let compositionAudioTrack = composition.addMutableTrack(
                 withMediaType: AVMediaType.audio, preferredTrackID: kCMPersistentTrackID_Invalid)
             compositionAudioTrack?.preferredVolume = audio.volume
             try compositionAudioTrack?.insertTimeRange(
-                oldTimeRange, of: secondAudioTrack, at: CMTime.zero)
-            compositionAudioTrack?.scaleTimeRange(oldTimeRange, toDuration: destinationTimeRange)
+                secondAudioTimeRange, of: secondAudioTrack, at: CMTime.zero)
+            compositionAudioTrack?.scaleTimeRange(
+                secondAudioTimeRange,
+                toDuration: CMTimeMultiplyByFloat64(
+                    secondAudioTimeRange.duration,
+                    multiplier: (1 / timeScale)
+                )
+            )
         }
     }
 
@@ -276,34 +304,31 @@ extension VideoEditor {
         }
 
         let scaleFactor = CGAffineTransform(scaleX: aspectFillRatio, y: aspectFillRatio)
+        var finalTransform: CGAffineTransform
 
         if assetInfo.isPortrait {
-
             let posX = newSize.width / 2 - (naturalSize.height * aspectFillRatio) / 2
             let posY = newSize.height / 2 - (naturalSize.width * aspectFillRatio) / 2
             let moveFactor = CGAffineTransform(translationX: posX, y: posY)
-            configuration.setTransform(
-                preferredTransform.concatenating(scaleFactor).concatenating(moveFactor), at: .zero)
-
+            finalTransform = preferredTransform.concatenating(scaleFactor).concatenating(moveFactor)
         } else {
             let posX = newSize.width / 2 - (naturalSize.width * aspectFillRatio) / 2
             let posY = newSize.height / 2 - (naturalSize.height * aspectFillRatio) / 2
             let moveFactor = CGAffineTransform(translationX: posX, y: posY)
-            var concat = preferredTransform.concatenating(scaleFactor).concatenating(moveFactor)
+            finalTransform = preferredTransform.concatenating(scaleFactor).concatenating(moveFactor)
 
             if assetInfo.orientation == .down {
                 let fixUpsideDown = CGAffineTransform(rotationAngle: CGFloat(Double.pi))
-                concat = fixUpsideDown.concatenating(scaleFactor).concatenating(moveFactor)
-
+                finalTransform = fixUpsideDown.concatenating(scaleFactor).concatenating(moveFactor)
             }
-            configuration.setTransform(concat, at: .zero)
         }
 
         if isMirror {
-            var transform: CGAffineTransform = CGAffineTransform(scaleX: -1.0, y: 1.0)
-            transform = transform.translatedBy(x: -newSize.width, y: 0.0)
-            configuration.setTransform(transform, at: .zero)
+            let mirrorTransform = CGAffineTransform(translationX: newSize.width, y: 0).scaledBy(x: -1, y: 1)
+            finalTransform = finalTransform.concatenating(mirrorTransform)
         }
+
+        configuration.setTransform(finalTransform, at: .zero)
 
         return AVVideoCompositionLayerInstruction(configuration: configuration)
     }
@@ -344,20 +369,6 @@ extension VideoEditor {
         let tempURL = URL.temporaryDirectory.appending(path: fileName)
         FileManager.default.removeIfExists(for: tempURL)
         return tempURL
-    }
-
-    private static func addImage(to layer: CALayer, watermark: UIImage, videoSize: CGSize) {
-        let imageLayer = CALayer()
-        let aspect: CGFloat = watermark.size.width / watermark.size.height
-        let width = videoSize.width / 4
-        let height = width / aspect
-        imageLayer.frame = CGRect(
-            x: width,
-            y: 0,
-            width: width,
-            height: height)
-        imageLayer.contents = watermark.cgImage
-        layer.addSublayer(imageLayer)
     }
 
     private static func createTextLayer(

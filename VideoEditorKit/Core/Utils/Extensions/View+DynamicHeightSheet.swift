@@ -170,11 +170,11 @@ private struct DynamicHeightItemSheetModifier<Item: Identifiable, SheetContent: 
     // MARK: - States
 
     @Binding private var item: Item?
-    
+
     @State private var sheetContentHeight: CGFloat = DynamicHeightSheetConstants.minimumSheetHeight
 
     // MARK: - Private Properties
-    
+
     private let initialHeight: (Item) -> CGFloat
     private let sheetContent: (Item) -> SheetContent
 

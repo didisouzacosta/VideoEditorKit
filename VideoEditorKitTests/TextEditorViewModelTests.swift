@@ -1,13 +1,16 @@
-import XCTest
+import CoreGraphics
+import Testing
 
 @testable import VideoEditorKit
 
 @MainActor
-final class TextEditorViewModelTests: XCTestCase {
+@Suite("TextEditorViewModelTests")
+struct TextEditorViewModelTests {
 
     // MARK: - Public Methods
 
-    func testSaveTappedTrimsWhitespaceBeforePersisting() {
+    @Test
+    func saveTappedTrimsWhitespaceBeforePersisting() throws {
         let viewModel = TextEditorViewModel()
 
         viewModel.openTextEditor(isEdit: false, timeRange: 2...4)
@@ -15,13 +18,16 @@ final class TextEditorViewModelTests: XCTestCase {
 
         viewModel.saveTapped()
 
-        XCTAssertEqual(viewModel.textBoxes.count, 1)
-        XCTAssertEqual(viewModel.textBoxes.first?.text, "Hello world")
-        XCTAssertEqual(viewModel.selectedTextBox?.text, "Hello world")
-        XCTAssertFalse(viewModel.showEditor)
+        let firstTextBox = try #require(viewModel.textBoxes.first)
+
+        #expect(viewModel.textBoxes.count == 1)
+        #expect(firstTextBox.text == "Hello world")
+        #expect(viewModel.selectedTextBox?.text == "Hello world")
+        #expect(viewModel.showEditor == false)
     }
 
-    func testSaveTappedIgnoresWhitespaceOnlyText() {
+    @Test
+    func saveTappedIgnoresWhitespaceOnlyText() {
         let viewModel = TextEditorViewModel()
 
         viewModel.openTextEditor(isEdit: false, timeRange: 1...3)
@@ -29,12 +35,13 @@ final class TextEditorViewModelTests: XCTestCase {
 
         viewModel.saveTapped()
 
-        XCTAssertTrue(viewModel.textBoxes.isEmpty)
-        XCTAssertFalse(viewModel.showEditor)
-        XCTAssertNil(viewModel.selectedTextBox)
+        #expect(viewModel.textBoxes.isEmpty)
+        #expect(viewModel.showEditor == false)
+        #expect(viewModel.selectedTextBox == nil)
     }
 
-    func testRemoveTextBoxClearsSelection() {
+    @Test
+    func removeTextBoxClearsSelection() {
         let viewModel = TextEditorViewModel()
         let textBox = TextBox(text: "Remove me")
 
@@ -43,20 +50,21 @@ final class TextEditorViewModelTests: XCTestCase {
 
         viewModel.removeTextBox()
 
-        XCTAssertTrue(viewModel.textBoxes.isEmpty)
-        XCTAssertNil(viewModel.selectedTextBox)
+        #expect(viewModel.textBoxes.isEmpty)
+        #expect(viewModel.selectedTextBox == nil)
     }
 
-    func testCopyDuplicatesWithOffset() {
+    @Test
+    func copyDuplicatesWithOffset() {
         let viewModel = TextEditorViewModel()
         let textBox = TextBox(text: "Copy me", offset: CGSize(width: 5, height: 7))
 
         viewModel.copy(textBox)
 
-        XCTAssertEqual(viewModel.textBoxes.count, 1)
-        XCTAssertEqual(viewModel.textBoxes[0].text, "Copy me")
-        XCTAssertEqual(viewModel.textBoxes[0].offset, CGSize(width: 15, height: 17))
-        XCTAssertNotEqual(viewModel.textBoxes[0].id, textBox.id)
+        #expect(viewModel.textBoxes.count == 1)
+        #expect(viewModel.textBoxes[0].text == "Copy me")
+        #expect(viewModel.textBoxes[0].offset == CGSize(width: 15, height: 17))
+        #expect(viewModel.textBoxes[0].id != textBox.id)
     }
 
 }

@@ -21,7 +21,7 @@ final class RootViewModel {
     var isLoading = false
     var editorDestination: EditorDestination?
     var editedVideoURL: URL?
-    
+
     private(set) var resultPlayer = AVPlayer()
 
     struct EditorDestination: Hashable, Identifiable {
@@ -47,7 +47,7 @@ final class RootViewModel {
 
         itemLoadTask = Task { [weak self] in
             guard let self else { return }
-            
+
             isLoading = true
 
             defer {

@@ -8,8 +8,7 @@
 import Foundation
 
 enum ToolEnum: Int, CaseIterable, Identifiable {
-    // MARK: - Public Properties
-
+    
     case cut, speed, crop, audio, text, filters, corrections, frames
 
     var id: Int {
@@ -22,27 +21,28 @@ enum ToolEnum: Int, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .cut: return "Cut"
-        case .speed: return "Speed"
-        case .crop: return "Crop"
-        case .audio: return "Audio"
-        case .text: return "Text"
-        case .filters: return "Filters"
-        case .corrections: return "Corrections"
-        case .frames: return "Frames"
+        case .cut: "Cut"
+        case .speed: "Speed"
+        case .crop: "Crop"
+        case .audio: "Audio"
+        case .text: "Text"
+        case .filters: "Filters"
+        case .corrections: "Corrections"
+        case .frames: "Frames"
         }
     }
 
     var image: String {
         switch self {
-        case .cut: return "scissors"
-        case .speed: return "timer"
-        case .crop: return "crop"
-        case .audio: return "waveform"
-        case .text: return "t.square.fill"
-        case .filters: return "camera.filters"
-        case .corrections: return "circle.righthalf.filled"
-        case .frames: return "person.crop.artframe"
+        case .cut: "scissors"
+        case .speed: "timer"
+        case .crop: "crop"
+        case .audio: "waveform"
+        case .text: "t.square.fill"
+        case .filters: "camera.filters"
+        case .corrections: "circle.righthalf.filled"
+        case .frames: "person.crop.artframe"
         }
     }
+    
 }

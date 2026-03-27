@@ -1,13 +1,15 @@
 import CoreGraphics
-import XCTest
+import Testing
 
 @testable import VideoEditorKit
 
-final class TimelineMetricsTests: XCTestCase {
+@Suite("TimelineMetricsTests")
+struct TimelineMetricsTests {
 
     // MARK: - Public Methods
 
-    func testPlaybackPositionXClampsCurrentTimeInsideTrimmedRange() {
+    @Test
+    func playbackPositionXClampsCurrentTimeInsideTrimmedRange() {
         let metrics = TimelineMetrics(
             duration: 100,
             playbackRange: 20...80,
@@ -15,10 +17,11 @@ final class TimelineMetricsTests: XCTestCase {
             width: 200
         )
 
-        XCTAssertEqual(metrics.playbackPositionX(), 44, accuracy: 0.0001)
+        #expect(abs(metrics.playbackPositionX() - 44) < 0.0001)
     }
 
-    func testPlaybackPositionXReturnsMinimumXForZeroDuration() {
+    @Test
+    func playbackPositionXReturnsMinimumXForZeroDuration() {
         let metrics = TimelineMetrics(
             duration: 0,
             playbackRange: 0...0,
@@ -26,10 +29,11 @@ final class TimelineMetricsTests: XCTestCase {
             width: 200
         )
 
-        XCTAssertEqual(metrics.playbackPositionX(), 2, accuracy: 0.0001)
+        #expect(abs(metrics.playbackPositionX() - 2) < 0.0001)
     }
 
-    func testCurrentClipTimeSubtractsRangeLowerBound() {
+    @Test
+    func currentClipTimeSubtractsRangeLowerBound() {
         let metrics = TimelineMetrics(
             duration: 120,
             playbackRange: 30...90,
@@ -37,10 +41,11 @@ final class TimelineMetricsTests: XCTestCase {
             width: 240
         )
 
-        XCTAssertEqual(metrics.currentClipTime(), 15, accuracy: 0.0001)
+        #expect(abs(metrics.currentClipTime() - 15) < 0.0001)
     }
 
-    func testPlaybackTimeClampsTouchBeforeRangeStart() {
+    @Test
+    func playbackTimeClampsTouchBeforeRangeStart() {
         let metrics = TimelineMetrics(
             duration: 100,
             playbackRange: 20...80,
@@ -48,10 +53,11 @@ final class TimelineMetricsTests: XCTestCase {
             width: 200
         )
 
-        XCTAssertEqual(metrics.playbackTime(for: 10), 20, accuracy: 0.0001)
+        #expect(abs(metrics.playbackTime(for: 10) - 20) < 0.0001)
     }
 
-    func testPlaybackTimeClampsTouchAfterRangeEnd() {
+    @Test
+    func playbackTimeClampsTouchAfterRangeEnd() {
         let metrics = TimelineMetrics(
             duration: 100,
             playbackRange: 20...80,
@@ -59,10 +65,11 @@ final class TimelineMetricsTests: XCTestCase {
             width: 200
         )
 
-        XCTAssertEqual(metrics.playbackTime(for: 190), 80, accuracy: 0.0001)
+        #expect(abs(metrics.playbackTime(for: 190) - 80) < 0.0001)
     }
 
-    func testBadgePositionXUsesMeasuredWidthNearLeadingEdge() {
+    @Test
+    func badgePositionXUsesMeasuredWidthNearLeadingEdge() {
         let metrics = TimelineMetrics(
             duration: 100,
             playbackRange: 0...100,
@@ -70,10 +77,11 @@ final class TimelineMetricsTests: XCTestCase {
             width: 200
         )
 
-        XCTAssertEqual(metrics.badgePositionX(for: 120), 60, accuracy: 0.0001)
+        #expect(abs(metrics.badgePositionX(for: 120) - 60) < 0.0001)
     }
 
-    func testBadgePositionXUsesMeasuredWidthNearTrailingEdge() {
+    @Test
+    func badgePositionXUsesMeasuredWidthNearTrailingEdge() {
         let metrics = TimelineMetrics(
             duration: 100,
             playbackRange: 0...100,
@@ -81,7 +89,7 @@ final class TimelineMetricsTests: XCTestCase {
             width: 200
         )
 
-        XCTAssertEqual(metrics.badgePositionX(for: 120), 140, accuracy: 0.0001)
+        #expect(abs(metrics.badgePositionX(for: 120) - 140) < 0.0001)
     }
 
 }

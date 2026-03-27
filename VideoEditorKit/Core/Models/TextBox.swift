@@ -8,7 +8,7 @@
 import Foundation
 import SwiftUI
 
-struct TextBox: Identifiable {
+struct TextBox: Identifiable, Equatable {
 
     // MARK: - Public Properties
 
@@ -24,52 +24,47 @@ struct TextBox: Identifiable {
 
 }
 
-extension TextBox: Equatable {}
-
 extension TextBox {
 
     // MARK: - Public Properties
 
-    static let texts: [TextBox] =
-
-        [
-
-            .init(
-                text: "Test1",
-                fontSize: 38,
-                bgColor: Color(uiColor: .systemBlue),
-                fontColor: Color(uiColor: .systemBackground),
-                timeRange: 0...2
-            ),
-            .init(
-                text: "Test2",
-                fontSize: 38,
-                bgColor: Color(uiColor: .secondarySystemBackground),
-                fontColor: Color(uiColor: .label),
-                timeRange: 2...6
-            ),
-            .init(
-                text: "Test3",
-                fontSize: 38,
-                bgColor: Color(uiColor: .systemBackground),
-                fontColor: Color(uiColor: .systemRed),
-                timeRange: 3...6
-            ),
-            .init(
-                text: "Test4",
-                fontSize: 38,
-                bgColor: Color(uiColor: .systemBackground),
-                fontColor: Color(uiColor: .systemTeal),
-                timeRange: 5...6
-            ),
-            .init(
-                text: "Test5",
-                fontSize: 38,
-                bgColor: Color(uiColor: .tertiarySystemBackground),
-                fontColor: Color(uiColor: .label),
-                timeRange: 1...6
-            ),
-        ]
+    static let texts: [TextBox] = [
+        .init(
+            text: "Test1",
+            fontSize: 38,
+            bgColor: Color(uiColor: .systemBlue),
+            fontColor: Color(uiColor: .systemBackground),
+            timeRange: 0...2
+        ),
+        .init(
+            text: "Test2",
+            fontSize: 38,
+            bgColor: Color(uiColor: .secondarySystemBackground),
+            fontColor: Color(uiColor: .label),
+            timeRange: 2...6
+        ),
+        .init(
+            text: "Test3",
+            fontSize: 38,
+            bgColor: Color(uiColor: .systemBackground),
+            fontColor: Color(uiColor: .systemRed),
+            timeRange: 3...6
+        ),
+        .init(
+            text: "Test4",
+            fontSize: 38,
+            bgColor: Color(uiColor: .systemBackground),
+            fontColor: Color(uiColor: .systemTeal),
+            timeRange: 5...6
+        ),
+        .init(
+            text: "Test5",
+            fontSize: 38,
+            bgColor: Color(uiColor: .tertiarySystemBackground),
+            fontColor: Color(uiColor: .label),
+            timeRange: 1...6
+        ),
+    ]
 
     static let simple = TextBox(
         text: "Test",

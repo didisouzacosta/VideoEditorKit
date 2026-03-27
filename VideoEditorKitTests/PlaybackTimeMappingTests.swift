@@ -1,12 +1,14 @@
-import XCTest
+import Testing
 
 @testable import VideoEditorKit
 
-final class PlaybackTimeMappingTests: XCTestCase {
+@Suite("PlaybackTimeMappingTests")
+struct PlaybackTimeMappingTests {
 
     // MARK: - Public Methods
 
-    func testTimelineTimePreservingSourcePositionMapsToNewRate() {
+    @Test
+    func timelineTimePreservingSourcePositionMapsToNewRate() {
         let mappedTime = PlaybackTimeMapping.timelineTimePreservingSourcePosition(
             timelineTime: 24,
             previousRate: 1,
@@ -15,10 +17,11 @@ final class PlaybackTimeMappingTests: XCTestCase {
             originalDuration: 100
         )
 
-        XCTAssertEqual(mappedTime, 24, accuracy: 0.0001)
+        #expect(abs(mappedTime - 12) < 0.0001)
     }
 
-    func testTimelineTimePreservingSourcePositionStaysFixedWhenSlowingDown() {
+    @Test
+    func timelineTimePreservingSourcePositionStaysFixedWhenSlowingDown() {
         let mappedTime = PlaybackTimeMapping.timelineTimePreservingSourcePosition(
             timelineTime: 12,
             previousRate: 2,
@@ -27,10 +30,11 @@ final class PlaybackTimeMappingTests: XCTestCase {
             originalDuration: 100
         )
 
-        XCTAssertEqual(mappedTime, 12, accuracy: 0.0001)
+        #expect(abs(mappedTime - 48) < 0.0001)
     }
 
-    func testTimelineTimePreservingSourcePositionClampsToUpdatedRange() {
+    @Test
+    func timelineTimePreservingSourcePositionClampsToUpdatedRange() {
         let mappedTime = PlaybackTimeMapping.timelineTimePreservingSourcePosition(
             timelineTime: 80,
             previousRate: 1,
@@ -39,10 +43,11 @@ final class PlaybackTimeMappingTests: XCTestCase {
             originalDuration: 100
         )
 
-        XCTAssertEqual(mappedTime, 30, accuracy: 0.0001)
+        #expect(abs(mappedTime - 30) < 0.0001)
     }
 
-    func testTimelineTimePreservingSourcePositionFallsBackToRateOneForInvalidRate() {
+    @Test
+    func timelineTimePreservingSourcePositionFallsBackToRateOneForInvalidRate() {
         let mappedTime = PlaybackTimeMapping.timelineTimePreservingSourcePosition(
             timelineTime: 20,
             previousRate: 0,
@@ -51,18 +56,19 @@ final class PlaybackTimeMappingTests: XCTestCase {
             originalDuration: 100
         )
 
-        XCTAssertEqual(mappedTime, 20, accuracy: 0.0001)
+        #expect(abs(mappedTime - 20) < 0.0001)
     }
 
-    func testScaledTimelineRangeDividesSourceRangeByRate() {
+    @Test
+    func scaledTimelineRangeDividesSourceRangeByRate() {
         let scaledRange = PlaybackTimeMapping.scaledTimelineRange(
             sourceRange: 20...80,
             rate: 2,
             originalDuration: 100
         )
 
-        XCTAssertEqual(scaledRange.lowerBound, 10, accuracy: 0.0001)
-        XCTAssertEqual(scaledRange.upperBound, 40, accuracy: 0.0001)
+        #expect(abs(scaledRange.lowerBound - 10) < 0.0001)
+        #expect(abs(scaledRange.upperBound - 40) < 0.0001)
     }
 
 }

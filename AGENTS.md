@@ -27,10 +27,10 @@ O código ainda não segue a arquitetura alvo descrita em `AGENTS.md` e no `CLAU
 
 Build settings atuais:
 
-- app target: iOS 18.6
-- tests target: iOS 18.6
+- app target: iOS 26.0
+- tests target: iOS 26.0
 - app em Swift 6
-- tests em Swift 5
+- tests em Swift 6
 
 ---
 
@@ -316,11 +316,21 @@ Ou seja: o projeto está mais próximo de um **app SwiftUI com MVVM + services**
 
 Existem apenas testes unitários.
 
+A suíte usa **Swift Testing** como padrão:
+
+- `import Testing`
+- `@Suite` para agrupar cenários
+- `@Test` para casos individuais
+- `#expect` e `#require` para asserções
+
 Cobertura atual:
 
+- `EditorViewModelTests`
+- `PlaybackTimeMappingTests`
 - `TextEditorViewModelTests`
-- `VideoModelTests`
+- `TimelineMetricsTests`
 - `TimeIntervalFormattingTests`
+- `VideoModelTests`
 
 Os testes cobrem apenas partes pequenas do comportamento:
 
@@ -397,6 +407,8 @@ Para mudanças futuras neste repositório, usar o padrão abaixo como baseline:
 - em `init` de views e componentes, parâmetros que alimentam `Binding` e `State` devem vir antes dos demais
 - no corpo do `init`, atribuições de `Binding` e `State` devem ficar agrupadas e separadas visualmente das demais propriedades por uma linha em branco
 - ao editar Swift, rodar formatação do projeto antes de finalizar
+- novos testes e refactors de testes devem usar `Swift Testing`; não introduzir novos casos em `XCTestCase`
+- em testes, preferir `@Suite` + `@Test` + `#expect`/`#require` e só usar `@MainActor` quando o cenário realmente tocar estado de UI ou tipos main-thread-bound
 
 ### Organização de arquivos Swift com `// MARK: -`
 

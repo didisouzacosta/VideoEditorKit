@@ -1,42 +1,50 @@
-import XCTest
+import Foundation
+import Testing
 
 @testable import VideoEditorKit
 
-final class TimeIntervalFormattingTests: XCTestCase {
+@Suite("TimeIntervalFormattingTests")
+struct TimeIntervalFormattingTests {
 
     // MARK: - Public Methods
 
-    func testMinuteSecondsFormatsFinitePositiveValues() {
+    @Test
+    func minuteSecondsFormatsFinitePositiveValues() {
         let interval: TimeInterval = 65
 
-        XCTAssertEqual(interval.minuteSeconds, "01:05")
+        #expect(interval.minuteSeconds == "01:05")
     }
 
-    func testMinuteSecondsReturnsUnknownForInvalidValues() {
-        XCTAssertEqual(TimeInterval.zero.minuteSeconds, "unknown")
-        XCTAssertEqual(TimeInterval.infinity.minuteSeconds, "unknown")
+    @Test
+    func minuteSecondsReturnsUnknownForInvalidValues() {
+        #expect(TimeInterval.zero.minuteSeconds == "unknown")
+        #expect(TimeInterval.infinity.minuteSeconds == "unknown")
     }
 
-    func testFormatterTimeStringFormatsHoursMinutesAndSecondsWhenNeeded() {
+    @Test
+    func formatterTimeStringFormatsHoursMinutesAndSecondsWhenNeeded() {
         let interval: TimeInterval = 5_422
 
-        XCTAssertEqual(interval.formatterTimeString(), "01:30:22")
+        #expect(interval.formatterTimeString() == "01:30:22")
     }
 
-    func testFormatterTimeStringFormatsLargeMinuteValuesWithoutHours() {
+    @Test
+    func formatterTimeStringFormatsLargeMinuteValuesWithoutHours() {
         let interval: TimeInterval = 1_992
 
-        XCTAssertEqual(interval.formatterTimeString(), "33:12")
+        #expect(interval.formatterTimeString() == "33:12")
     }
 
-    func testFormatterTimeStringFormatsTwoDigitMinutesAndSeconds() {
+    @Test
+    func formatterTimeStringFormatsTwoDigitMinutesAndSeconds() {
         let interval: TimeInterval = 71
 
-        XCTAssertEqual(interval.formatterTimeString(), "01:11")
+        #expect(interval.formatterTimeString() == "01:11")
     }
 
-    func testSecondsToTimeClampsNegativeValues() {
-        XCTAssertEqual((-3).secondsToTime(), "00:00")
+    @Test
+    func secondsToTimeClampsNegativeValues() {
+        #expect((-3).secondsToTime() == "00:00")
     }
 
 }

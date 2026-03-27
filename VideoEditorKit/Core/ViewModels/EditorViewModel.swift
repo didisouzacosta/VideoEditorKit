@@ -20,7 +20,7 @@ final class EditorViewModel {
     var currentVideo: Video?
     var selectedTools: ToolEnum?
     var frames = VideoFrames()
-    var isSelectVideo = true
+    var selectedAudioTrack: AudioTrackSelection = .video
     var showVideoQualitySheet = false
     var showRecordView = false
     var cropTab: CropToolTab = .rotate
@@ -42,6 +42,24 @@ final class EditorViewModel {
 
     enum CropToolTab: String, CaseIterable {
         case format, rotate
+    }
+
+    enum AudioTrackSelection: String, CaseIterable, Identifiable {
+        case video
+        case recorded
+
+        var id: String {
+            rawValue
+        }
+
+        var title: String {
+            switch self {
+            case .video:
+                "Video"
+            case .recorded:
+                "Recorded"
+            }
+        }
     }
 
     // MARK: - Private Properties
@@ -211,6 +229,7 @@ extension EditorViewModel {
 
     func setAudio(_ audio: Audio) {
         currentVideo?.audio = audio
+        selectedAudioTrack = .recorded
         setTools()
     }
 
@@ -228,7 +247,7 @@ extension EditorViewModel {
         guard let url = currentVideo?.audio?.url else { return }
         FileManager.default.removeIfExists(for: url)
         currentVideo?.audio = nil
-        isSelectVideo = true
+        selectedAudioTrack = .video
         removeTool()
     }
 
@@ -247,6 +266,7 @@ extension EditorViewModel {
             currentVideo?.isMirror = false
             cropTab = .rotate
         case .audio:
+            selectedAudioTrack = .video
             if currentVideo?.audio != nil {
                 removeAudio(using: videoPlayer)
                 return
@@ -367,19 +387,39 @@ extension EditorViewModel {
         removeAudio()
     }
 
+    func selectAudioTrack(_ track: AudioTrackSelection) {
+        if track == .recorded, !hasRecordedAudioTrack {
+            selectedAudioTrack = .video
+            return
+        }
+
+        selectedAudioTrack = track
+    }
+
+    func audioTrackSelectionBinding() -> Binding<AudioTrackSelection> {
+        Binding(
+            get: { self.selectedAudioTrack },
+            set: { self.selectAudioTrack($0) }
+        )
+    }
+
+    var hasRecordedAudioTrack: Bool {
+        currentVideo?.audio != nil
+    }
+
     func updateSelectedTrackVolume(_ value: Float, videoPlayer: VideoPlayerManager) {
-        if isSelectVideo {
+        if selectedAudioTrack == .video {
             currentVideo?.setVolume(value)
         } else {
             currentVideo?.audio?.setVolume(value)
         }
 
-        videoPlayer.setVolume(isSelectVideo, value: value)
+        videoPlayer.setVolume(selectedAudioTrack == .video, value: value)
         syncAudioToolState()
     }
 
     func selectedTrackVolume() -> Float {
-        if isSelectVideo {
+        if selectedAudioTrack == .video {
             return currentVideo?.volume ?? 1.0
         }
 
@@ -436,6 +476,7 @@ extension EditorViewModel {
 
     func handleRecordedVideo(_ url: URL, videoPlayer: VideoPlayerManager) {
         hasLoadedSourceVideo = true
+        selectedAudioTrack = .video
         videoPlayer.loadState = .loaded(url)
         setNewVideo(url, containerSize: lastPlayerContainerSize)
     }

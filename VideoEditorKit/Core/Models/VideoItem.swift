@@ -13,6 +13,7 @@ struct VideoItem: Transferable {
     // MARK: - Public Properties
 
     let url: URL
+
     static var transferRepresentation: some TransferRepresentation {
         FileRepresentation(contentType: .movie) { movie in
             SentTransferredFile(movie.url)
@@ -26,6 +27,7 @@ struct VideoItem: Transferable {
             }
 
             try FileManager.default.copyItem(at: received.file, to: copy)
+
             return Self.init(url: copy)
         }
     }

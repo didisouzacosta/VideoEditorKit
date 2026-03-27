@@ -1,48 +1,53 @@
+import Testing
 import UIKit
-import XCTest
 
 @testable import VideoEditorKit
 
 @MainActor
-final class VideoModelTests: XCTestCase {
+@Suite("VideoModelTests")
+struct VideoModelTests {
 
     // MARK: - Public Methods
 
-    func testUpdateRateKeepsSelectedSourceRangeIntact() {
+    @Test
+    func updateRateKeepsSelectedSourceRangeIntact() {
         var video = Video.mock
         video.rangeDuration = 2...8
         video.rate = 1
 
         video.updateRate(2)
 
-        XCTAssertEqual(video.rangeDuration.lowerBound, 2, accuracy: 0.0001)
-        XCTAssertEqual(video.rangeDuration.upperBound, 8, accuracy: 0.0001)
-        XCTAssertEqual(video.rate, 2)
+        #expect(abs(video.rangeDuration.lowerBound - 2) < 0.0001)
+        #expect(abs(video.rangeDuration.upperBound - 8) < 0.0001)
+        #expect(video.rate == 2)
     }
 
-    func testResetRangeDurationUsesOriginalDurationForCurrentRate() {
+    @Test
+    func resetRangeDurationUsesOriginalDurationForCurrentRate() {
         var video = Video.mock
 
         video.updateRate(2)
         video.resetRangeDuration()
 
-        XCTAssertEqual(video.timelineDuration, 125, accuracy: 0.0001)
-        XCTAssertEqual(video.rangeDuration.lowerBound, 0, accuracy: 0.0001)
-        XCTAssertEqual(video.rangeDuration.upperBound, 250, accuracy: 0.0001)
+        #expect(abs(video.timelineDuration - 125) < 0.0001)
+        #expect(abs(video.rangeDuration.lowerBound) < 0.0001)
+        #expect(abs(video.rangeDuration.upperBound - 250) < 0.0001)
     }
 
-    func testOutputRangeDurationReflectsCurrentRate() {
+    @Test
+    func outputRangeDurationReflectsCurrentRate() {
         var video = Video.mock
         video.rangeDuration = 20...80
 
         video.updateRate(2)
 
-        XCTAssertEqual(video.outputRangeDuration.lowerBound, 10, accuracy: 0.0001)
-        XCTAssertEqual(video.outputRangeDuration.upperBound, 40, accuracy: 0.0001)
-        XCTAssertEqual(video.totalDuration, 30, accuracy: 0.0001)
+        #expect(abs(video.outputRangeDuration.lowerBound - 10) < 0.0001)
+        #expect(abs(video.outputRangeDuration.upperBound - 40) < 0.0001)
+        #expect(abs(video.totalDuration - 30) < 0.0001)
     }
 
-    func testTimelineTimePreservingSourcePositionUsesSameSourceTimeAfterRateChange() {
+    @Test
+    func timelineTimePreservingSourcePositionUsesSameSourceTimeAfterRateChange() {
         var video = Video.mock
         let previousRate = video.rate
 
@@ -50,10 +55,11 @@ final class VideoModelTests: XCTestCase {
 
         let remappedTime = video.timelineTimePreservingSourcePosition(60, fromRate: previousRate)
 
-        XCTAssertEqual(remappedTime, 60, accuracy: 0.0001)
+        #expect(abs(remappedTime - 30) < 0.0001)
     }
 
-    func testRotateCyclesBackToZeroAfterFullTurn() {
+    @Test
+    func rotateCyclesBackToZeroAfterFullTurn() {
         var video = Video.mock
 
         video.rotate()
@@ -61,29 +67,32 @@ final class VideoModelTests: XCTestCase {
         video.rotate()
         video.rotate()
 
-        XCTAssertEqual(video.rotation, 0)
+        #expect(video.rotation == 0)
     }
 
-    func testAppliedToolAddsOnlyOnce() {
+    @Test
+    func appliedToolAddsOnlyOnce() {
         var video = Video.mock
 
         video.appliedTool(for: .text)
         video.appliedTool(for: .text)
 
-        XCTAssertEqual(video.toolsApplied, [ToolEnum.text.rawValue])
+        #expect(video.toolsApplied == [ToolEnum.text.rawValue])
     }
 
-    func testRemoveToolClearsPreviouslyAppliedTool() {
+    @Test
+    func removeToolClearsPreviouslyAppliedTool() {
         var video = Video.mock
         video.appliedTool(for: .filters)
 
         video.removeTool(for: .filters)
 
-        XCTAssertFalse(video.isAppliedTool(for: .filters))
-        XCTAssertTrue(video.toolsApplied.isEmpty)
+        #expect(video.isAppliedTool(for: .filters) == false)
+        #expect(video.toolsApplied.isEmpty)
     }
 
-    func testThumbnailImagePreservesOriginalImageSize() {
+    @Test
+    func thumbnailImagePreservesOriginalImageSize() {
         let sourceImage = UIGraphicsImageRenderer(
             size: CGSize(width: 400, height: 200)
         ).image { context in
@@ -98,8 +107,8 @@ final class VideoModelTests: XCTestCase {
 
         let thumbnailImage = ThumbnailImage(image: sourceImage)
 
-        XCTAssertEqual(thumbnailImage.image?.size.width ?? 0, 400, accuracy: 0.0001)
-        XCTAssertEqual(thumbnailImage.image?.size.height ?? 0, 200, accuracy: 0.0001)
+        #expect(abs((thumbnailImage.image?.size.width ?? 0) - 400) < 0.0001)
+        #expect(abs((thumbnailImage.image?.size.height ?? 0) - 200) < 0.0001)
     }
 
 }

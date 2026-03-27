@@ -20,7 +20,7 @@ struct RootView: View {
 
     var body: some View {
         @Bindable var bindableViewModel = viewModel
-        
+
         NavigationStack {
             ZStack {
                 Theme.rootBackground
@@ -70,7 +70,7 @@ extension RootView {
                 "Pick a video from your gallery, edit it, and get the rendered result back on this screen."
             )
             .font(.title3.weight(.semibold))
-            
+
             Text(
                 "This screen now works as an example mode. It starts a temporary editing session and shows the exported output."
             )

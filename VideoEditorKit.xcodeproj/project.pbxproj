@@ -423,7 +423,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.didisouzacosta.VideoEditorKitTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/VideoEditorKit.app/VideoEditorKit";
 				VALIDATE_PRODUCT = YES;
 			};
@@ -441,7 +441,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.didisouzacosta.VideoEditorKitTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/VideoEditorKit.app/VideoEditorKit";
 			};
 			name = Debug;

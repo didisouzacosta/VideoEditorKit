@@ -20,13 +20,24 @@ struct AudioToolView: View {
     var body: some View {
         let currentVolume = editorVM.selectedTrackVolume()
 
-        HStack {
-            Image(systemName: currentVolume > 0 ? "speaker.wave.2.fill" : "speaker.slash.fill")
-            Slider(value: editorVM.selectedTrackVolumeBinding(videoPlayer: videoPlayer), in: 0...1) { _ in }
-                .tint(Theme.accent)
-            Text("\(Int(currentVolume * 100))")
+        VStack(alignment: .leading, spacing: 16) {
+            if editorVM.hasRecordedAudioTrack {
+                Picker("Track", selection: editorVM.audioTrackSelectionBinding()) {
+                    ForEach(EditorViewModel.AudioTrackSelection.allCases) { track in
+                        Text(track.title).tag(track)
+                    }
+                }
+                .pickerStyle(.segmented)
+            }
+
+            HStack {
+                Image(systemName: currentVolume > 0 ? "speaker.wave.2.fill" : "speaker.slash.fill")
+                Slider(value: editorVM.selectedTrackVolumeBinding(videoPlayer: videoPlayer), in: 0...1) { _ in }
+                    .tint(Theme.accent)
+                Text("\(Int(currentVolume * 100))")
+            }
+            .font(.caption)
         }
-        .font(.caption)
     }
 
     // MARK: - Initializer

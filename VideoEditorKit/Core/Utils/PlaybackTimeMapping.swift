@@ -18,14 +18,17 @@ enum PlaybackTimeMapping {
         newRange: ClosedRange<Double>,
         originalDuration: Double
     ) -> Double {
-        let resolvedOriginalDuration = max(originalDuration, .zero)
-        let sourceTime = timelineTime.clamped(
-            to: .zero...resolvedOriginalDuration
+        let sourceTime = sourceTime(
+            forTimelineTime: timelineTime,
+            rate: previousRate,
+            originalDuration: originalDuration
         )
-        _ = previousRate
-        _ = newRate
+        let remappedTimelineTime = Self.timelineTime(
+            fromSourceTime: sourceTime,
+            rate: newRate
+        )
 
-        return sourceTime.clamped(to: newRange)
+        return remappedTimelineTime.clamped(to: newRange)
     }
 
     static func scaledTimelineRange(
@@ -41,6 +44,26 @@ enum PlaybackTimeMapping {
         )
 
         return (clampedLowerBound / resolvedRate)...(clampedUpperBound / resolvedRate)
+    }
+
+    static func sourceTime(
+        forTimelineTime timelineTime: Double,
+        rate: Float,
+        originalDuration: Double
+    ) -> Double {
+        let resolvedRate = Double(normalizedRate(rate))
+        let resolvedOriginalDuration = max(originalDuration, .zero)
+        let sourceTime = max(timelineTime, .zero) * resolvedRate
+
+        return sourceTime.clamped(to: .zero...resolvedOriginalDuration)
+    }
+
+    static func timelineTime(
+        fromSourceTime sourceTime: Double,
+        rate: Float
+    ) -> Double {
+        let resolvedRate = Double(normalizedRate(rate))
+        return max(sourceTime, .zero) / resolvedRate
     }
 
     // MARK: - Private Methods
