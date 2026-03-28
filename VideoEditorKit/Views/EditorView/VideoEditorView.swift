@@ -19,15 +19,14 @@ struct VideoEditorView: View {
     @State private var editorViewModel = EditorViewModel()
     @State private var audioRecorder = AudioRecorderManager()
     @State private var videoPlayer = VideoPlayerManager()
+    @State private var lastPublishedEditingConfiguration: VideoEditingConfiguration?
     @State private var textEditor = TextEditorViewModel()
 
     // MARK: - Private Properties
 
+    private let callbacks: Callbacks
     private let configuration: Configuration
-    private let editingConfiguration: VideoEditingConfiguration?
-    private let sourceVideoURL: URL?
-    private let onDismissed: (VideoEditingConfiguration?) -> Void
-    private let onExported: (ExportedVideo, VideoEditingConfiguration) -> Void
+    private let session: Session
 
     // MARK: - Body
 
@@ -82,8 +81,8 @@ struct VideoEditorView: View {
                 .onAppear {
                     editorViewModel.setToolAvailability(configuration.tools)
                     editorViewModel.setSourceVideoIfNeeded(
-                        sourceVideoURL,
-                        editingConfiguration: editingConfiguration,
+                        session.sourceVideoURL,
+                        editingConfiguration: session.editingConfiguration,
                         availableSize: proxy.size,
                         videoPlayer: videoPlayer
                     )
@@ -112,7 +111,7 @@ struct VideoEditorView: View {
                     editingConfiguration: editingConfiguration
                 ) { exportedURL in
                     videoPlayer.pause()
-                    onExported(exportedURL, editingConfiguration)
+                    callbacks.onExported(exportedURL, editingConfiguration)
                     dismiss()
                 }
             }
@@ -124,6 +123,9 @@ struct VideoEditorView: View {
         }
         .onChange(of: videoPlayer.isPlaying) { _, isPlaying in
             handlePlaybackLockChange(isPlaying)
+        }
+        .onChange(of: editorViewModel.editingConfigurationChangeCounter) { _, _ in
+            publishEditingConfigurationIfNeeded()
         }
         .onChange(of: configuration.tools) { _, newValue in
             editorViewModel.setToolAvailability(newValue)
@@ -139,17 +141,35 @@ struct VideoEditorView: View {
     // MARK: - Initializer
 
     init(
+        _ session: Session,
+        configuration: Configuration = .init(),
+        callbacks: Callbacks = .init()
+    ) {
+        self.callbacks = callbacks
+        self.configuration = configuration
+        self.session = session
+    }
+
+    init(
         _ sourceVideoURL: URL? = nil,
         editingConfiguration: VideoEditingConfiguration? = nil,
         configuration: Configuration = .init(),
+        onEditingConfigurationChanged: @escaping (VideoEditingConfiguration) -> Void = { _ in },
         onDismissed: @escaping (VideoEditingConfiguration?) -> Void = { _ in },
         onExported: @escaping (ExportedVideo, VideoEditingConfiguration) -> Void = { _, _ in }
     ) {
-        self.configuration = configuration
-        self.editingConfiguration = editingConfiguration
-        self.sourceVideoURL = sourceVideoURL
-        self.onDismissed = onDismissed
-        self.onExported = onExported
+        self.init(
+            .init(
+                sourceVideoURL: sourceVideoURL,
+                editingConfiguration: editingConfiguration
+            ),
+            configuration: configuration,
+            callbacks: .init(
+                onEditingConfigurationChanged: onEditingConfigurationChanged,
+                onDismissed: onDismissed,
+                onExported: onExported
+            )
+        )
     }
 
     // MARK: - Private Methods
@@ -165,15 +185,70 @@ struct VideoEditorView: View {
         let currentEditingConfiguration =
             editorViewModel.currentEditingConfiguration(
                 currentTimelineTime: videoPlayer.currentTime
-            ) ?? editingConfiguration
+            ) ?? session.editingConfiguration
 
-        onDismissed(currentEditingConfiguration)
+        callbacks.onDismissed(currentEditingConfiguration)
         dismiss()
+    }
+
+    private func publishEditingConfigurationIfNeeded() {
+        guard
+            let currentEditingConfiguration = editorViewModel.currentEditingConfiguration(
+                currentTimelineTime: videoPlayer.currentTime
+            ),
+            currentEditingConfiguration != lastPublishedEditingConfiguration
+        else {
+            return
+        }
+
+        lastPublishedEditingConfiguration = currentEditingConfiguration
+        callbacks.onEditingConfigurationChanged(currentEditingConfiguration)
     }
 
 }
 
 extension VideoEditorView {
+
+    struct Session: Equatable {
+
+        // MARK: - Public Properties
+
+        let sourceVideoURL: URL?
+        let editingConfiguration: VideoEditingConfiguration?
+
+        // MARK: - Initializer
+
+        init(
+            sourceVideoURL: URL? = nil,
+            editingConfiguration: VideoEditingConfiguration? = nil
+        ) {
+            self.sourceVideoURL = sourceVideoURL
+            self.editingConfiguration = editingConfiguration
+        }
+
+    }
+
+    struct Callbacks {
+
+        // MARK: - Public Properties
+
+        let onEditingConfigurationChanged: (VideoEditingConfiguration) -> Void
+        let onDismissed: (VideoEditingConfiguration?) -> Void
+        let onExported: (ExportedVideo, VideoEditingConfiguration) -> Void
+
+        // MARK: - Initializer
+
+        init(
+            onEditingConfigurationChanged: @escaping (VideoEditingConfiguration) -> Void = { _ in },
+            onDismissed: @escaping (VideoEditingConfiguration?) -> Void = { _ in },
+            onExported: @escaping (ExportedVideo, VideoEditingConfiguration) -> Void = { _, _ in }
+        ) {
+            self.onEditingConfigurationChanged = onEditingConfigurationChanged
+            self.onDismissed = onDismissed
+            self.onExported = onExported
+        }
+
+    }
 
     struct Configuration {
 

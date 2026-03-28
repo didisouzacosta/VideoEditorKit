@@ -59,18 +59,9 @@ struct RootView: View {
                 }
             ) { destination in
                 VideoEditorView(
-                    destination.url,
-                    editingConfiguration: destination.editingConfiguration,
+                    destination.session,
                     configuration: editorConfiguration,
-                    onDismissed: { editingConfiguration in
-                        viewModel.handleEditorDismiss(editingConfiguration: editingConfiguration)
-                    },
-                    onExported: { exportedVideo, editingConfiguration in
-                        viewModel.handleExportedVideo(
-                            exportedVideo,
-                            editingConfiguration: editingConfiguration
-                        )
-                    }
+                    callbacks: editorCallbacks
                 )
                 .alert(
                     "Premium Tool",
@@ -111,6 +102,23 @@ extension RootView {
             ],
             onBlockedToolTap: { tool in
                 blockedTool = tool
+            }
+        )
+    }
+
+    private var editorCallbacks: VideoEditorView.Callbacks {
+        .init(
+            onEditingConfigurationChanged: { editingConfiguration in
+                viewModel.handleEditingConfigurationChanged(editingConfiguration)
+            },
+            onDismissed: { editingConfiguration in
+                viewModel.handleEditorDismiss(editingConfiguration: editingConfiguration)
+            },
+            onExported: { exportedVideo, editingConfiguration in
+                viewModel.handleExportedVideo(
+                    exportedVideo,
+                    editingConfiguration: editingConfiguration
+                )
             }
         )
     }
@@ -179,9 +187,19 @@ extension RootView {
     private var resultSection: some View {
         if let editedVideo = viewModel.editedVideo {
             VStack(alignment: .leading, spacing: 16) {
-                Text("Edited Result")
-                    .font(.headline)
-                    .padding(.horizontal)
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Edited Result")
+                        .font(.headline)
+
+                    if viewModel.hasUnrenderedChanges {
+                        Text(
+                            "This preview still shows the last export. Re-export the latest draft to refresh it."
+                        )
+                        .font(.subheadline)
+                        .foregroundStyle(Theme.secondary)
+                    }
+                }
+                .padding(.horizontal)
 
                 PlayerView(viewModel.resultPlayer, showControls: true)
                     .aspectRatio(viewModel.editedVideoAspectRatio, contentMode: .fit)
@@ -195,10 +213,13 @@ extension RootView {
                 HStack(spacing: 12) {
                     if viewModel.canReopenEditor {
                         Button(action: viewModel.reopenEditor) {
-                            Label("Continue Editing", systemImage: "slider.horizontal.3")
-                                .font(.headline.weight(.semibold))
-                                .frame(maxWidth: .infinity)
-                                .padding()
+                            Label(
+                                viewModel.hasUnrenderedChanges ? "Resume Draft" : "Continue Editing",
+                                systemImage: "slider.horizontal.3"
+                            )
+                            .font(.headline.weight(.semibold))
+                            .frame(maxWidth: .infinity)
+                            .padding()
                         }
                         .buttonStyle(.glassProminent)
                     }

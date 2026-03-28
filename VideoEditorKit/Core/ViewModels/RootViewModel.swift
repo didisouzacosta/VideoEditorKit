@@ -23,6 +23,7 @@ final class RootViewModel {
     var editorDestination: EditorDestination?
     var editedVideo: ExportedVideo?
     var latestEditingConfiguration: VideoEditingConfiguration?
+    var latestExportedEditingConfiguration: VideoEditingConfiguration?
 
     var shouldShowVideoPicker: Bool {
         editedVideo == nil
@@ -37,12 +38,16 @@ final class RootViewModel {
         return max(editedVideo?.aspectRatio ?? fallbackAspectRatio, 0.1)
     }
 
+    var hasUnrenderedChanges: Bool {
+        guard editedVideo != nil else { return false }
+        return latestEditingConfiguration != latestExportedEditingConfiguration
+    }
+
     private(set) var resultPlayer = AVPlayer()
 
     struct EditorDestination: Identifiable {
         let id = UUID()
-        let url: URL
-        let editingConfiguration: VideoEditingConfiguration?
+        let session: VideoEditorView.Session
     }
 
     // MARK: - Private Properties
@@ -95,6 +100,10 @@ final class RootViewModel {
         resetPickerSelection()
     }
 
+    func handleEditingConfigurationChanged(_ editingConfiguration: VideoEditingConfiguration) {
+        latestEditingConfiguration = editingConfiguration
+    }
+
     func startEditorSession(with url: URL) {
         resultPlayer.pause()
         resultPlayer.replaceCurrentItem(with: nil)
@@ -102,9 +111,12 @@ final class RootViewModel {
         cleanupFileIfNeeded(editedVideo?.url)
         editedVideo = nil
         latestEditingConfiguration = nil
+        latestExportedEditingConfiguration = nil
         sessionSourceURL = url
         resetPickerSelection()
-        editorDestination = .init(url: url, editingConfiguration: nil)
+        editorDestination = .init(
+            session: .init(sourceVideoURL: url)
+        )
     }
 
     func handleExportedVideo(
@@ -114,6 +126,7 @@ final class RootViewModel {
         cleanupFileIfNeeded(editedVideo?.url)
         editedVideo = video
         latestEditingConfiguration = editingConfiguration
+        latestExportedEditingConfiguration = editingConfiguration
         resultPlayer.replaceCurrentItem(with: AVPlayerItem(url: video.url))
         resultPlayer.seek(to: .zero)
     }
@@ -121,8 +134,10 @@ final class RootViewModel {
     func reopenEditor() {
         guard let sessionSourceURL else { return }
         editorDestination = .init(
-            url: sessionSourceURL,
-            editingConfiguration: latestEditingConfiguration
+            session: .init(
+                sourceVideoURL: sessionSourceURL,
+                editingConfiguration: latestEditingConfiguration
+            )
         )
     }
 
@@ -132,6 +147,7 @@ final class RootViewModel {
         cleanupFileIfNeeded(editedVideo?.url)
         editedVideo = nil
         latestEditingConfiguration = nil
+        latestExportedEditingConfiguration = nil
     }
 
     // MARK: - Private Methods

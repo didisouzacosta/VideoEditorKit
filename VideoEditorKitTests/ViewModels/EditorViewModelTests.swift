@@ -196,6 +196,31 @@ struct EditorViewModelTests {
     }
 
     @Test
+    func editingConfigurationChangeCounterAdvancesWhenEditingStateMutates() {
+        let viewModel = EditorViewModel()
+        viewModel.currentVideo = Video.mock
+        let initialCounter = viewModel.editingConfigurationChangeCounter
+
+        viewModel.selectTool(.filters)
+        viewModel.setFilter("CIPhotoEffectNoir")
+
+        #expect(viewModel.editingConfigurationChangeCounter > initialCounter)
+    }
+
+    @Test
+    func frameBindingsAdvanceTheEditingConfigurationChangeCounter() {
+        let viewModel = EditorViewModel()
+        let initialCounter = viewModel.editingConfigurationChangeCounter
+        let colorBinding = viewModel.frameColorBinding()
+        let scaleBinding = viewModel.frameScaleBinding()
+
+        colorBinding.wrappedValue = .red
+        scaleBinding.wrappedValue = 0.35
+
+        #expect(viewModel.editingConfigurationChangeCounter >= initialCounter + 2)
+    }
+
+    @Test
     func handleSelectedTextBoxChangeKeepsTheTextToolInSyncWithSelection() {
         let viewModel = EditorViewModel()
 

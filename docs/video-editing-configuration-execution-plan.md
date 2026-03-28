@@ -13,6 +13,10 @@
 - Phase 8 completed
 - Phase 9 completed
 - Phase 10 completed
+- Phase 11 completed
+- Phase 12 completed
+- Phase 13 completed
+- Phase 14 completed
 
 ## Summary
 
@@ -194,6 +198,46 @@ Scope:
 - Add a host callback for explicit editor dismissal.
 - Send the freshest `VideoEditingConfiguration` available at close time.
 - Keep the export callback as the source of truth for rendered output, while letting the host preserve resume state after a cancel/close flow.
+
+### Phase 11
+
+Publish editing configuration drafts while the editor is still open.
+
+Scope:
+
+- Add a host callback for configuration changes during editing.
+- Keep publication deduplicated so the host only receives meaningful snapshot changes.
+- Update the sample host flow to store the latest draft configuration continuously, not only on export or dismiss.
+
+### Phase 12
+
+Track when the host preview is stale relative to the latest draft.
+
+Scope:
+
+- Keep the latest exported configuration separate from the latest draft configuration in the sample host.
+- Expose host state that tells the integration when the currently rendered preview is outdated.
+- Update the sample host UI to communicate that the visible result still reflects the last export until the user renders again.
+
+### Phase 13
+
+Harden the editor integration boundary for host apps.
+
+Scope:
+
+- Add an explicit `VideoEditorView.Session` type so integrations pass one cohesive input instead of loose `URL + configuration` arguments.
+- Add a `VideoEditorView.Callbacks` type so host output wiring stays grouped and easier to evolve.
+- Keep the compatibility initializer as a convenience while moving the sample host to the explicit boundary.
+
+### Phase 14
+
+Expand host-flow tests around reopen, export, and preview parity.
+
+Scope:
+
+- Cover the full sample-host cycle from initial export to reopened draft editing and refreshed export.
+- Verify that reopen always uses the latest draft configuration, not the last rendered artifact.
+- Verify that the visible host preview keeps representing the last export until a new render completes.
 
 ## Phase 1 Deliverables
 
