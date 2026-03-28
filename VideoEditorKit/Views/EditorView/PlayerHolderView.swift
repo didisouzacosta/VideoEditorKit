@@ -63,7 +63,10 @@ extension PlayerHolderView {
         Group {
             if let video = editorViewModel.currentVideo {
                 GeometryReader { proxy in
-                    let displaySize = resolvedDisplaySize(for: video, in: proxy.size)
+                    let displaySize = editorViewModel.resolvedPlayerDisplaySize(
+                        for: video,
+                        in: proxy.size
+                    )
 
                     ZStack {
                         CropView(
@@ -118,32 +121,6 @@ extension PlayerHolderView {
             .capsuleControl()
     }
 
-    private func resolvedDisplaySize(for video: Video, in containerSize: CGSize) -> CGSize {
-        let fallbackSize = CGSize(
-            width: max(containerSize.width, 1),
-            height: max(containerSize.height, 1)
-        )
-
-        let baseSize = rotatedBaseSize(for: video)
-        guard baseSize.width > 0, baseSize.height > 0 else { return fallbackSize }
-
-        return fittedSize(baseSize, in: fallbackSize)
-    }
-
-    private func fittedSize(_ size: CGSize, in bounds: CGSize) -> CGSize {
-        guard size.width > 0, size.height > 0 else { return bounds }
-        guard bounds.width > 0, bounds.height > 0 else { return size }
-
-        let widthScale = bounds.width / size.width
-        let heightScale = bounds.height / size.height
-        let scale = min(widthScale, heightScale, 1)
-
-        return CGSize(
-            width: size.width * scale,
-            height: size.height * scale
-        )
-    }
-
     private func playerLayoutID(
         for containerSize: CGSize,
         rotation: Double,
@@ -152,42 +129,22 @@ extension PlayerHolderView {
         "\(videoID.uuidString)-\(Int(containerSize.width.rounded()))-\(Int(containerSize.height.rounded()))-\(Int(rotation))"
     }
 
-    private func rotatedBaseSize(for video: Video) -> CGSize {
-        let baseSize: CGSize
-
-        if video.presentationSize.width > 0, video.presentationSize.height > 0 {
-            baseSize = video.presentationSize
-        } else {
-            baseSize = video.frameSize
-        }
-
-        guard baseSize.width > 0, baseSize.height > 0 else { return .zero }
-
-        let normalizedRotation = abs(Int(video.rotation)) % 180
-
-        if normalizedRotation == 90 {
-            return CGSize(width: baseSize.height, height: baseSize.width)
-        }
-
-        return baseSize
-    }
-
     private func syncVideoLayout(for containerSize: CGSize) {
         guard let video = editorViewModel.currentVideo else { return }
 
-        let size = resolvedDisplaySize(for: video, in: containerSize)
+        let size = editorViewModel.resolvedPlayerDisplaySize(
+            for: video,
+            in: containerSize
+        )
 
         guard size.width > 0, size.height > 0 else { return }
 
         guard editorViewModel.currentVideo?.id == video.id else { return }
 
-        if editorViewModel.currentVideo?.frameSize != size {
-            editorViewModel.currentVideo?.frameSize = size
-        }
-
-        if editorViewModel.currentVideo?.geometrySize != size {
-            editorViewModel.currentVideo?.geometrySize = size
-        }
+        editorViewModel.updateCurrentVideoLayout(
+            to: size,
+            textEditor: textEditor
+        )
     }
 
 }

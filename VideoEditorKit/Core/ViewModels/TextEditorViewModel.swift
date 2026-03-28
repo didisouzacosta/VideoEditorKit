@@ -74,6 +74,7 @@ final class TextEditorViewModel {
         var new = textBox
         new.id = UUID()
         new.offset = .init(width: new.offset.width + 10, height: new.offset.height + 10)
+        new.lastOffset = new.offset
         textBoxes.append(new)
     }
 
@@ -111,6 +112,9 @@ final class TextEditorViewModel {
 
     func load(textBoxes: [TextBox]) {
         self.textBoxes = textBoxes
+        if let selectedTextBox {
+            self.selectedTextBox = textBoxes.first(where: { $0.id == selectedTextBox.id })
+        }
     }
 
     func prepareForToolPresentation(timeRange: ClosedRange<Double>?) {

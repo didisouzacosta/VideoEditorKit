@@ -69,9 +69,9 @@ enum VideoEditingConfigurationMapper {
                         lowerBound: $0.timeRange.lowerBound,
                         upperBound: $0.timeRange.upperBound
                     ),
-                    offset: .init(
-                        x: $0.offset.width,
-                        y: $0.offset.height
+                    offset: serializedOffset(
+                        for: $0.offset,
+                        referenceSize: video.geometrySize
                     )
                 )
             },
@@ -119,29 +119,67 @@ enum VideoEditingConfigurationMapper {
             )
         }
 
-        video.textBoxes = configuration.textOverlays.map {
-            TextBox(
-                id: $0.id,
-                text: $0.text,
-                fontSize: CGFloat($0.fontSize),
+        applyTextOverlays(configuration.textOverlays, to: &video)
+    }
+
+    static func applyTextOverlays(
+        _ textOverlays: [VideoEditingConfiguration.TextOverlay],
+        to video: inout Video
+    ) {
+        video.textBoxes = textOverlays.compactMap { textOverlay in
+            guard canResolveTextOffset(textOverlay.offset, referenceSize: video.geometrySize) else {
+                return nil
+            }
+
+            let resolvedOffset = resolvedOffset(
+                from: textOverlay.offset,
+                referenceSize: video.geometrySize
+            )
+
+            return TextBox(
+                id: textOverlay.id,
+                text: textOverlay.text,
+                fontSize: CGFloat(textOverlay.fontSize),
                 lastFontSize: .zero,
                 bgColor: SerializedColorCodec.decode(
-                    $0.backgroundColorToken,
+                    textOverlay.backgroundColorToken,
                     domain: .textBackground,
                     fallback: Color(uiColor: .systemBackground)
                 ),
                 fontColor: SerializedColorCodec.decode(
-                    $0.fontColorToken,
+                    textOverlay.fontColorToken,
                     domain: .textForeground,
                     fallback: Color(uiColor: .label)
                 ),
-                timeRange: $0.timeRange.lowerBound...$0.timeRange.upperBound,
-                offset: CGSize(
-                    width: $0.offset.x,
-                    height: $0.offset.y
-                ),
-                lastOffset: .zero
+                timeRange: textOverlay.timeRange.lowerBound...textOverlay.timeRange.upperBound,
+                offset: resolvedOffset,
+                lastOffset: resolvedOffset
             )
+        }
+    }
+
+    static func rescaledTextBoxes(
+        _ textBoxes: [TextBox],
+        from oldReferenceSize: CGSize,
+        to newReferenceSize: CGSize
+    ) -> [TextBox] {
+        guard hasValidReferenceSize(oldReferenceSize), hasValidReferenceSize(newReferenceSize) else {
+            return textBoxes
+        }
+
+        return textBoxes.map { textBox in
+            var updatedTextBox = textBox
+            let normalizedOffset = serializedOffset(
+                for: textBox.offset,
+                referenceSize: oldReferenceSize
+            )
+            let resolvedTextOffset = resolvedOffset(
+                from: normalizedOffset,
+                referenceSize: newReferenceSize
+            )
+            updatedTextBox.offset = resolvedTextOffset
+            updatedTextBox.lastOffset = resolvedTextOffset
+            return updatedTextBox
         }
     }
 
@@ -178,6 +216,63 @@ enum VideoEditingConfigurationMapper {
         case .recorded:
             .recorded
         }
+    }
+
+    private static func serializedOffset(
+        for offset: CGSize,
+        referenceSize: CGSize
+    ) -> VideoEditingConfiguration.Offset {
+        guard hasValidReferenceSize(referenceSize) else {
+            return .init(
+                x: offset.width,
+                y: offset.height
+            )
+        }
+
+        return .init(
+            x: offset.width / referenceSize.width,
+            y: offset.height / referenceSize.height
+        )
+    }
+
+    private static func resolvedOffset(
+        from offset: VideoEditingConfiguration.Offset,
+        referenceSize: CGSize
+    ) -> CGSize {
+        guard isNormalizedTextOffset(offset), hasValidReferenceSize(referenceSize) else {
+            return CGSize(
+                width: offset.x,
+                height: offset.y
+            )
+        }
+
+        return CGSize(
+            width: offset.x * referenceSize.width,
+            height: offset.y * referenceSize.height
+        )
+    }
+
+    private static func canResolveTextOffset(
+        _ offset: VideoEditingConfiguration.Offset,
+        referenceSize: CGSize
+    ) -> Bool {
+        if isNormalizedTextOffset(offset) {
+            return hasValidReferenceSize(referenceSize)
+        }
+
+        return true
+    }
+
+    private static func isNormalizedTextOffset(
+        _ offset: VideoEditingConfiguration.Offset
+    ) -> Bool {
+        abs(offset.x) <= 1 && abs(offset.y) <= 1
+    }
+
+    private static func hasValidReferenceSize(
+        _ referenceSize: CGSize
+    ) -> Bool {
+        referenceSize.width > 0 && referenceSize.height > 0
     }
 
 }

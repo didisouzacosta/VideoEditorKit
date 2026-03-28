@@ -58,6 +58,7 @@ final class EditorViewModel {
     private var lastPlayerContainerSize = CGSize(width: 1, height: 220)
     private var lastThumbnailDisplayScale: CGFloat = 1
     private var pendingEditingConfiguration: VideoEditingConfiguration?
+    private var pendingTextOverlays: [VideoEditingConfiguration.TextOverlay] = []
 
     // MARK: - Public Methods
 
@@ -71,7 +72,10 @@ final class EditorViewModel {
             var video = await Video.load(from: url)
             guard !Task.isCancelled else { return }
 
-            self?.applyPendingEditingConfiguration(to: &video)
+            self?.applyPendingEditingConfiguration(
+                to: &video,
+                containerSize: containerSize
+            )
             self?.frames = video.videoFrames ?? VideoFrames()
             self?.currentVideo = video
             self?.restorePendingEditingPresentationState()
@@ -359,6 +363,49 @@ extension EditorViewModel {
         )
     }
 
+    func resolvedPlayerDisplaySize(for video: Video, in containerSize: CGSize) -> CGSize {
+        let fallbackSize = CGSize(
+            width: max(containerSize.width, 1),
+            height: max(containerSize.height, 1)
+        )
+
+        let baseSize = rotatedBaseSize(for: video)
+        guard baseSize.width > 0, baseSize.height > 0 else { return fallbackSize }
+
+        return fittedSize(baseSize, in: fallbackSize)
+    }
+
+    func updateCurrentVideoLayout(
+        to size: CGSize,
+        textEditor: TextEditorViewModel
+    ) {
+        guard var currentVideo else { return }
+
+        let previousGeometrySize = currentVideo.geometrySize
+        let didChangeFrameSize = currentVideo.frameSize != size
+        let didChangeGeometrySize = currentVideo.geometrySize != size
+
+        guard didChangeFrameSize || didChangeGeometrySize else { return }
+
+        if didChangeGeometrySize {
+            currentVideo.textBoxes = VideoEditingConfigurationMapper.rescaledTextBoxes(
+                currentVideo.textBoxes,
+                from: previousGeometrySize,
+                to: size
+            )
+        }
+
+        currentVideo.frameSize = size
+        currentVideo.geometrySize = size
+        applyPendingTextOverlaysIfNeeded(to: &currentVideo)
+
+        self.currentVideo = currentVideo
+
+        if didChangeGeometrySize {
+            textEditor.load(textBoxes: currentVideo.textBoxes)
+        }
+    }
+
     func handleThumbnailImagesChange(filtersViewModel: FiltersViewModel) {
         filtersViewModel.loadFiltersIfNeeded(from: currentVideo?.thumbnailsImages.first?.image)
     }
@@ -581,6 +628,7 @@ extension EditorViewModel {
         videoPlayer: VideoPlayerManager
     ) {
         pendingEditingConfiguration = editingConfiguration
+        pendingTextOverlays = []
         cropTab = .rotate
         selectedTools = nil
         selectedAudioTrack = .video
@@ -593,9 +641,28 @@ extension EditorViewModel {
         }
     }
 
-    func applyPendingEditingConfiguration(to video: inout Video) {
+    func applyPendingEditingConfiguration(
+        to video: inout Video,
+        containerSize: CGSize = .zero
+    ) {
         guard let pendingEditingConfiguration else { return }
-        VideoEditingConfigurationMapper.apply(pendingEditingConfiguration, to: &video)
+
+        pendingTextOverlays = pendingEditingConfiguration.textOverlays
+
+        var configurationWithoutTextOverlays = pendingEditingConfiguration
+        configurationWithoutTextOverlays.textOverlays = []
+        VideoEditingConfigurationMapper.apply(configurationWithoutTextOverlays, to: &video)
+
+        let resolvedLayoutSize = resolvedPlayerDisplaySize(
+            for: video,
+            in: containerSize
+        )
+        if resolvedLayoutSize.width > 0, resolvedLayoutSize.height > 0 {
+            video.frameSize = resolvedLayoutSize
+            video.geometrySize = resolvedLayoutSize
+        }
+
+        applyPendingTextOverlaysIfNeeded(to: &video)
     }
 
     func restorePendingEditingPresentationState() {
@@ -655,12 +722,59 @@ extension EditorViewModel {
         return max(220, proposedHeight)
     }
 
+    private func fittedSize(_ size: CGSize, in bounds: CGSize) -> CGSize {
+        guard size.width > 0, size.height > 0 else { return bounds }
+        guard bounds.width > 0, bounds.height > 0 else { return size }
+
+        let widthScale = bounds.width / size.width
+        let heightScale = bounds.height / size.height
+        let scale = min(widthScale, heightScale, 1)
+
+        return CGSize(
+            width: size.width * scale,
+            height: size.height * scale
+        )
+    }
+
+    private func rotatedBaseSize(for video: Video) -> CGSize {
+        let baseSize: CGSize
+
+        if video.presentationSize.width > 0, video.presentationSize.height > 0 {
+            baseSize = video.presentationSize
+        } else {
+            baseSize = video.frameSize
+        }
+
+        guard baseSize.width > 0, baseSize.height > 0 else { return .zero }
+
+        let normalizedRotation = abs(Int(video.rotation)) % 180
+
+        if normalizedRotation == 90 {
+            return CGSize(width: baseSize.height, height: baseSize.width)
+        }
+
+        return baseSize
+    }
+
     private func serializedCropTab() -> VideoEditingConfiguration.CropTab {
         switch cropTab {
         case .format:
             .format
         case .rotate:
             .rotate
+        }
+    }
+
+    private func applyPendingTextOverlaysIfNeeded(to video: inout Video) {
+        guard !pendingTextOverlays.isEmpty else { return }
+
+        VideoEditingConfigurationMapper.applyTextOverlays(
+            pendingTextOverlays,
+            to: &video
+        )
+
+        if video.textBoxes.count == pendingTextOverlays.count {
+            pendingTextOverlays = []
         }
     }
 

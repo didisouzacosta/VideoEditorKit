@@ -8,6 +8,7 @@
 - Host example resume flow started
 - Phase 4 completed
 - Phase 5 completed
+- Phase 6 completed
 
 ## Summary
 
@@ -137,6 +138,17 @@ Scope:
 - Make export consume the same crop configuration.
 - Add tests for crop restore and export parity.
 
+### Phase 6
+
+Normalize text overlay positions at the configuration boundary.
+
+Scope:
+
+- Serialize text offsets relative to the current preview geometry instead of raw screen points.
+- Restore normalized text offsets back into runtime coordinates during reopen.
+- Keep backward compatibility with older raw-offset configurations.
+- Rescale runtime text positions when the preview layout changes after restore.
+
 ## Phase 1 Deliverables
 
 This phase should produce:
@@ -161,14 +173,15 @@ That gives the project a safe foundation before any public API expansion.
 ## Serialization Notes
 
 - Colors should be stored as serializable tokens, preferably palette identifiers with RGBA fallback.
-- Text offsets can stay as raw serializable offsets in phase 1.
+- Text offsets should be serialized relative to `video.geometrySize`.
+- Older configurations with raw point offsets should remain restorable as a compatibility fallback.
 - The original source video URL stays outside `VideoEditingConfiguration`.
 - Recorded audio reference may be serialized inside the configuration, because it is part of the edit state.
 
 ## Risks
 
 - Reopening with a different source video than the one used to produce the configuration will lead to invalid restores.
-- Raw text offsets are resumable, but not yet layout-normalized across radically different rendering sizes.
+- Very large off-screen text offsets can still fall back to legacy raw interpretation if they exceed the normalized heuristic range.
 - Free crop remains incomplete until phases 4 and 5.
 
 ## Acceptance Criteria

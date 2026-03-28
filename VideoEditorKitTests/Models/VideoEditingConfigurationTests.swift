@@ -55,7 +55,7 @@ struct VideoEditingConfigurationTests {
                     backgroundColorToken: "palette:blue",
                     fontColorToken: "palette:label",
                     timeRange: .init(lowerBound: 2, upperBound: 5),
-                    offset: .init(x: 18, y: -12)
+                    offset: .init(x: 0.12, y: -0.08)
                 )
             ],
             presentation: .init(
@@ -96,6 +96,7 @@ struct VideoEditingConfigurationTests {
             volume: 0.4
         )
         video.setVolume(0.65)
+        video.geometrySize = CGSize(width: 240, height: 120)
         video.textBoxes = [
             TextBox(
                 text: "Hello",
@@ -151,8 +152,8 @@ struct VideoEditingConfigurationTests {
         #expect(configuration.textOverlays.count == 1)
         #expect(configuration.textOverlays[0].backgroundColorToken == "palette:blue")
         #expect(configuration.textOverlays[0].fontColorToken == "palette:label")
-        #expect(abs(configuration.textOverlays[0].offset.x - 24) < 0.0001)
-        #expect(abs(configuration.textOverlays[0].offset.y + 10) < 0.0001)
+        #expect(abs(configuration.textOverlays[0].offset.x - 0.1) < 0.0001)
+        #expect(abs(configuration.textOverlays[0].offset.y + 0.0833333333) < 0.0001)
     }
 
     @Test
@@ -198,7 +199,7 @@ struct VideoEditingConfigurationTests {
                     backgroundColorToken: "palette:red",
                     fontColorToken: "palette:background",
                     timeRange: .init(lowerBound: 3, upperBound: 6),
-                    offset: .init(x: 14, y: -6)
+                    offset: .init(x: 0.05, y: -0.0428571429)
                 )
             ],
             presentation: .init(
@@ -208,6 +209,7 @@ struct VideoEditingConfigurationTests {
         )
 
         var video = Video.mock
+        video.geometrySize = CGSize(width: 280, height: 140)
 
         VideoEditingConfigurationMapper.apply(configuration, to: &video)
 
@@ -231,8 +233,36 @@ struct VideoEditingConfigurationTests {
         #expect(video.textBoxes[0].timeRange == 3...6)
         #expect(abs(video.textBoxes[0].offset.width - 14) < 0.0001)
         #expect(abs(video.textBoxes[0].offset.height + 6) < 0.0001)
+        #expect(abs(video.textBoxes[0].lastOffset.width - 14) < 0.0001)
+        #expect(abs(video.textBoxes[0].lastOffset.height + 6) < 0.0001)
         #expect(VideoEditingConfigurationMapper.selectedAudioTrack(from: configuration) == .recorded)
         #expect(VideoEditingConfigurationMapper.cropTab(from: configuration) == .format)
+    }
+
+    @Test
+    func applySupportsLegacyRawTextOverlayOffsetsForBackwardCompatibility() {
+        let configuration = VideoEditingConfiguration(
+            textOverlays: [
+                .init(
+                    id: UUID(),
+                    text: "Legacy",
+                    fontSize: 20,
+                    backgroundColorToken: "palette:background",
+                    fontColorToken: "palette:label",
+                    timeRange: .init(lowerBound: 1, upperBound: 3),
+                    offset: .init(x: 18, y: -12)
+                )
+            ]
+        )
+
+        var video = Video.mock
+        video.geometrySize = CGSize(width: 300, height: 150)
+
+        VideoEditingConfigurationMapper.apply(configuration, to: &video)
+
+        #expect(video.textBoxes.count == 1)
+        #expect(abs(video.textBoxes[0].offset.width - 18) < 0.0001)
+        #expect(abs(video.textBoxes[0].offset.height + 12) < 0.0001)
     }
 
 }

@@ -64,6 +64,7 @@ struct TextEditorViewModelTests {
         #expect(viewModel.textBoxes.count == 1)
         #expect(viewModel.textBoxes[0].text == "Copy me")
         #expect(viewModel.textBoxes[0].offset == CGSize(width: 15, height: 17))
+        #expect(viewModel.textBoxes[0].lastOffset == CGSize(width: 15, height: 17))
         #expect(viewModel.textBoxes[0].id != textBox.id)
     }
 
@@ -189,6 +190,25 @@ struct TextEditorViewModelTests {
         viewModel.handleDragEnded(for: textBox.id, translation: CGSize(width: 5, height: -10))
         #expect(viewModel.textBoxes[0].offset == CGSize(width: 25, height: 20))
         #expect(viewModel.textBoxes[0].lastOffset == CGSize(width: 25, height: 20))
+    }
+
+    @Test
+    func loadKeepsTheSelectedTextBoxInSyncWithUpdatedContent() {
+        let viewModel = TextEditorViewModel()
+        let original = TextBox(text: "Before")
+        let updated = TextBox(
+            id: original.id,
+            text: "After",
+            offset: CGSize(width: 12, height: -8),
+            lastOffset: CGSize(width: 12, height: -8)
+        )
+        viewModel.textBoxes = [original]
+        viewModel.selectTextBox(original)
+
+        viewModel.load(textBoxes: [updated])
+
+        #expect(viewModel.selectedTextBox?.text == "After")
+        #expect(viewModel.selectedTextBox?.offset == CGSize(width: 12, height: -8))
     }
 
     @Test

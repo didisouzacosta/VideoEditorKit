@@ -401,7 +401,7 @@ struct EditorViewModelTests {
                     backgroundColorToken: "palette:orange",
                     fontColorToken: "palette:background",
                     timeRange: .init(lowerBound: 2, upperBound: 4),
-                    offset: .init(x: 10, y: -4)
+                    offset: .init(x: 0.05, y: -0.02)
                 )
             ],
             presentation: .init(
@@ -416,7 +416,10 @@ struct EditorViewModelTests {
         )
 
         var video = Video.mock
-        viewModel.applyPendingEditingConfiguration(to: &video)
+        viewModel.applyPendingEditingConfiguration(
+            to: &video,
+            containerSize: CGSize(width: 320, height: 240)
+        )
         viewModel.currentVideo = video
         viewModel.restorePendingEditingPresentationState()
 
@@ -451,6 +454,7 @@ struct EditorViewModelTests {
             contrast: 1.15,
             saturation: 0.65
         )
+        video.geometrySize = CGSize(width: 160, height: 80)
         video.audio = Audio(
             url: audioURL,
             duration: 2.5,
@@ -497,6 +501,36 @@ struct EditorViewModelTests {
         #expect(configuration?.audio.recordedClip?.url == audioURL)
         #expect(configuration?.presentation.selectedTool == .filters)
         #expect(configuration?.presentation.cropTab == .format)
+        #expect(abs((configuration?.textOverlays[0].offset.x ?? 0) - 0.1) < 0.0001)
+        #expect(abs((configuration?.textOverlays[0].offset.y ?? 0) + 0.1) < 0.0001)
+    }
+
+    @Test
+    func updateCurrentVideoLayoutRescalesTextOffsetsAndSyncsTextEditor() {
+        let viewModel = EditorViewModel()
+        let textEditor = TextEditorViewModel()
+        var video = Video.mock
+        video.geometrySize = CGSize(width: 200, height: 100)
+        video.frameSize = CGSize(width: 200, height: 100)
+        video.textBoxes = [
+            TextBox(
+                text: "Overlay",
+                offset: CGSize(width: 20, height: -10),
+                lastOffset: CGSize(width: 20, height: -10)
+            )
+        ]
+        viewModel.currentVideo = video
+        textEditor.load(textBoxes: video.textBoxes)
+
+        viewModel.updateCurrentVideoLayout(
+            to: CGSize(width: 400, height: 200),
+            textEditor: textEditor
+        )
+
+        #expect(viewModel.currentVideo?.geometrySize == CGSize(width: 400, height: 200))
+        #expect(viewModel.currentVideo?.textBoxes[0].offset == CGSize(width: 40, height: -20))
+        #expect(viewModel.currentVideo?.textBoxes[0].lastOffset == CGSize(width: 40, height: -20))
+        #expect(textEditor.textBoxes[0].offset == CGSize(width: 40, height: -20))
     }
 
 }
