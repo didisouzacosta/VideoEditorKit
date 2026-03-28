@@ -10,6 +10,9 @@
 - Phase 5 completed
 - Phase 6 completed
 - Phase 7 completed
+- Phase 8 completed
+- Phase 9 completed
+- Phase 10 completed
 
 ## Summary
 
@@ -161,6 +164,37 @@ Scope:
 - Decode older snapshots that do not include `version`.
 - Keep the migration boundary centralized in the configuration model so future schema changes have one entry point.
 
+### Phase 8
+
+Make schema evolution explicit in code.
+
+Scope:
+
+- Represent known snapshot versions as a dedicated schema enum.
+- Keep `version` as the serialized wire field for compatibility.
+- Route decode through a single migration entry point.
+- Preserve unknown future versions without forcing local reinterpretation.
+
+### Phase 9
+
+Make unknown future snapshots round-trip safely.
+
+Scope:
+
+- Preserve the original opaque payload when decoding an unknown schema version.
+- Re-encode unknown future snapshots without downgrading `version` to the local schema.
+- Avoid dropping unknown fields while still keeping known-version migrations on the typed path.
+
+### Phase 10
+
+Return the latest editing configuration when the editor closes without export.
+
+Scope:
+
+- Add a host callback for explicit editor dismissal.
+- Send the freshest `VideoEditingConfiguration` available at close time.
+- Keep the export callback as the source of truth for rendered output, while letting the host preserve resume state after a cancel/close flow.
+
 ## Phase 1 Deliverables
 
 This phase should produce:
@@ -188,6 +222,8 @@ That gives the project a safe foundation before any public API expansion.
 - Text offsets should be serialized relative to `video.geometrySize`.
 - Older configurations with raw point offsets should remain restorable as a compatibility fallback.
 - Snapshots should always encode an explicit schema version.
+- Known schema versions should be represented in code instead of spread as raw integers.
+- Unknown future snapshots should round-trip opaquely until the local app explicitly understands them.
 - The original source video URL stays outside `VideoEditingConfiguration`.
 - Recorded audio reference may be serialized inside the configuration, because it is part of the edit state.
 
@@ -195,7 +231,8 @@ That gives the project a safe foundation before any public API expansion.
 
 - Reopening with a different source video than the one used to produce the configuration will lead to invalid restores.
 - Very large off-screen text offsets can still fall back to legacy raw interpretation if they exceed the normalized heuristic range.
-- Future schema migrations still need dedicated transform rules once the payload shape actually changes.
+- Future schema migrations still need dedicated transform rules once the payload shape actually changes, even though the entry point is now centralized.
+- Unknown future snapshots can be preserved safely, but they still cannot participate in new typed behavior until the app adds a matching schema migration.
 - Free crop remains incomplete until phases 4 and 5.
 
 ## Acceptance Criteria

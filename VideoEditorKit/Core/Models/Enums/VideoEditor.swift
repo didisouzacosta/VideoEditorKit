@@ -196,6 +196,7 @@ enum VideoEditor {
 
         let naturalSize = try await videoTrack.load(.naturalSize)
         let preferredTransform = try await videoTrack.load(.preferredTransform)
+        let trackTimeRange = try await videoTrack.load(.timeRange)
         let presentationSize = resolvedPresentationSize(
             naturalSize: naturalSize,
             preferredTransform: preferredTransform
@@ -225,7 +226,8 @@ enum VideoEditor {
             naturalSize: naturalSize,
             preferredTransform: preferredTransform,
             presentationSize: presentationSize,
-            cropRect: cropRect
+            cropRect: cropRect,
+            timeRange: trackTimeRange
         )
 
         let outputURL = createTempPath()
@@ -633,7 +635,8 @@ extension VideoEditor {
         naturalSize: CGSize,
         preferredTransform: CGAffineTransform,
         presentationSize: CGSize,
-        cropRect: CGRect
+        cropRect: CGRect,
+        timeRange: CMTimeRange
     ) -> AVVideoComposition {
         var configuration = AVVideoCompositionLayerInstruction.Configuration(assetTrack: track)
         let transformedBounds = CGRect(origin: .zero, size: naturalSize)
@@ -658,7 +661,7 @@ extension VideoEditor {
         let instruction = AVVideoCompositionInstruction(
             configuration: .init(
                 layerInstructions: [AVVideoCompositionLayerInstruction(configuration: configuration)],
-                timeRange: CMTimeRange(start: .zero, duration: track.timeRange.duration)
+                timeRange: timeRange
             )
         )
 

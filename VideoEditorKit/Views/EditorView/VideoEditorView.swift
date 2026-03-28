@@ -26,6 +26,7 @@ struct VideoEditorView: View {
     private let configuration: Configuration
     private let editingConfiguration: VideoEditingConfiguration?
     private let sourceVideoURL: URL?
+    private let onDismissed: (VideoEditingConfiguration?) -> Void
     private let onExported: (ExportedVideo, VideoEditingConfiguration) -> Void
 
     // MARK: - Body
@@ -65,7 +66,7 @@ struct VideoEditorView: View {
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
                         Button(role: .cancel) {
-                            dismiss()
+                            dismissEditor()
                         }
                     }
 
@@ -141,11 +142,13 @@ struct VideoEditorView: View {
         _ sourceVideoURL: URL? = nil,
         editingConfiguration: VideoEditingConfiguration? = nil,
         configuration: Configuration = .init(),
+        onDismissed: @escaping (VideoEditingConfiguration?) -> Void = { _ in },
         onExported: @escaping (ExportedVideo, VideoEditingConfiguration) -> Void = { _, _ in }
     ) {
         self.configuration = configuration
         self.editingConfiguration = editingConfiguration
         self.sourceVideoURL = sourceVideoURL
+        self.onDismissed = onDismissed
         self.onExported = onExported
     }
 
@@ -156,6 +159,16 @@ struct VideoEditorView: View {
 
         editorViewModel.closeSelectedTool(textEditor)
         textEditor.dismissTextToolPresentation()
+    }
+
+    private func dismissEditor() {
+        let currentEditingConfiguration =
+            editorViewModel.currentEditingConfiguration(
+                currentTimelineTime: videoPlayer.currentTime
+            ) ?? editingConfiguration
+
+        onDismissed(currentEditingConfiguration)
+        dismiss()
     }
 
 }

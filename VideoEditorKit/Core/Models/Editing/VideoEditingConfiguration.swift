@@ -11,10 +11,10 @@ struct VideoEditingConfiguration: Codable, Equatable, Sendable {
 
     // MARK: - Public Properties
 
-    static let currentVersion = 2
+    static let currentSchemaVersion: SchemaVersion = .normalizedTextOverlayOffsets
     static let initial = Self()
 
-    var version = Self.currentVersion
+    var version = Self.currentSchemaVersion.rawValue
     var trim = Trim()
     var playback = Playback()
     var crop = Crop()
@@ -23,6 +23,10 @@ struct VideoEditingConfiguration: Codable, Equatable, Sendable {
     var audio = Audio()
     var textOverlays: [TextOverlay] = []
     var presentation = Presentation()
+
+    // MARK: - Private Properties
+
+    private var opaquePayload: OpaquePayload?
 
     enum CodingKeys: String, CodingKey {
         case version
@@ -36,10 +40,19 @@ struct VideoEditingConfiguration: Codable, Equatable, Sendable {
         case presentation
     }
 
+    enum SchemaVersion: Int, Codable, Equatable, Sendable {
+        case initial = 1
+        case normalizedTextOverlayOffsets = 2
+    }
+
+    var schemaVersion: SchemaVersion? {
+        SchemaVersion(rawValue: version)
+    }
+
     // MARK: - Initializer
 
     init(
-        version: Int = Self.currentVersion,
+        version: Int = Self.currentSchemaVersion.rawValue,
         trim: Trim = .init(),
         playback: Playback = .init(),
         crop: Crop = .init(),
@@ -61,11 +74,44 @@ struct VideoEditingConfiguration: Codable, Equatable, Sendable {
     }
 
     init(from decoder: any Decoder) throws {
+        let opaquePayload = try OpaquePayload(from: decoder)
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        let decodedVersion = try container.decodeIfPresent(Int.self, forKey: .version) ?? 1
+        let decodedVersion = try container.decodeIfPresent(Int.self, forKey: .version)
 
+        self = try Self(
+            decodedFrom: container,
+            version: decodedVersion ?? SchemaVersion.initial.rawValue
+        )
+        self.opaquePayload = opaquePayload
+        self = self.migratedToCurrentSchema()
+    }
+
+    func encode(to encoder: any Encoder) throws {
+        if schemaVersion == nil, let opaquePayload {
+            try opaquePayload.encode(to: encoder)
+            return
+        }
+
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(Self.currentSchemaVersion.rawValue, forKey: .version)
+        try container.encode(trim, forKey: .trim)
+        try container.encode(playback, forKey: .playback)
+        try container.encode(crop, forKey: .crop)
+        try container.encode(filter, forKey: .filter)
+        try container.encode(frame, forKey: .frame)
+        try container.encode(audio, forKey: .audio)
+        try container.encode(textOverlays, forKey: .textOverlays)
+        try container.encode(presentation, forKey: .presentation)
+    }
+
+    // MARK: - Private Initializer
+
+    private init(
+        decodedFrom container: KeyedDecodingContainer<CodingKeys>,
+        version: Int
+    ) throws {
         self.init(
-            version: max(decodedVersion, Self.currentVersion),
+            version: version,
             trim: try container.decodeIfPresent(Trim.self, forKey: .trim) ?? .init(),
             playback: try container.decodeIfPresent(Playback.self, forKey: .playback) ?? .init(),
             crop: try container.decodeIfPresent(Crop.self, forKey: .crop) ?? .init(),
@@ -77,17 +123,33 @@ struct VideoEditingConfiguration: Codable, Equatable, Sendable {
         )
     }
 
-    func encode(to encoder: any Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(Self.currentVersion, forKey: .version)
-        try container.encode(trim, forKey: .trim)
-        try container.encode(playback, forKey: .playback)
-        try container.encode(crop, forKey: .crop)
-        try container.encode(filter, forKey: .filter)
-        try container.encode(frame, forKey: .frame)
-        try container.encode(audio, forKey: .audio)
-        try container.encode(textOverlays, forKey: .textOverlays)
-        try container.encode(presentation, forKey: .presentation)
+    // MARK: - Private Methods
+
+    private func migratedToCurrentSchema() -> Self {
+        guard let schemaVersion else {
+            return preservingVersion(version)
+        }
+
+        switch schemaVersion {
+        case .initial:
+            return preservingVersion(Self.currentSchemaVersion.rawValue)
+                .clearingOpaquePayload()
+        case .normalizedTextOverlayOffsets:
+            return preservingVersion(Self.currentSchemaVersion.rawValue)
+                .clearingOpaquePayload()
+        }
+    }
+
+    private func preservingVersion(_ version: Int) -> Self {
+        var configuration = self
+        configuration.version = version
+        return configuration
+    }
+
+    private func clearingOpaquePayload() -> Self {
+        var configuration = self
+        configuration.opaquePayload = nil
+        return configuration
     }
 
 }
@@ -213,6 +275,70 @@ extension VideoEditingConfiguration {
     enum CropTab: String, Codable, Equatable, Sendable {
         case format
         case rotate
+    }
+
+}
+
+private enum OpaquePayload: Codable, Equatable, Sendable {
+
+    // MARK: - Cases
+
+    case object([String: Self])
+    case array([Self])
+    case string(String)
+    case integer(Int64)
+    case number(Double)
+    case bool(Bool)
+    case null
+
+    // MARK: - Initializer
+
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.singleValueContainer()
+
+        if container.decodeNil() {
+            self = .null
+        } else if let bool = try? container.decode(Bool.self) {
+            self = .bool(bool)
+        } else if let integer = try? container.decode(Int64.self) {
+            self = .integer(integer)
+        } else if let number = try? container.decode(Double.self) {
+            self = .number(number)
+        } else if let string = try? container.decode(String.self) {
+            self = .string(string)
+        } else if let array = try? container.decode([Self].self) {
+            self = .array(array)
+        } else if let object = try? container.decode([String: Self].self) {
+            self = .object(object)
+        } else {
+            throw DecodingError.dataCorruptedError(
+                in: container,
+                debugDescription: "Unsupported opaque JSON payload."
+            )
+        }
+    }
+
+    // MARK: - Public Methods
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.singleValueContainer()
+
+        switch self {
+        case .object(let object):
+            try container.encode(object)
+        case .array(let array):
+            try container.encode(array)
+        case .string(let string):
+            try container.encode(string)
+        case .integer(let integer):
+            try container.encode(integer)
+        case .number(let number):
+            try container.encode(number)
+        case .bool(let bool):
+            try container.encode(bool)
+        case .null:
+            try container.encodeNil()
+        }
     }
 
 }

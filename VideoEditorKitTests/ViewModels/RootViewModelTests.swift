@@ -107,6 +107,60 @@ struct RootViewModelTests {
     }
 
     @Test
+    func handleEditorDismissPersistsTheLatestEditingConfigurationWithoutClearingTheOutput() throws {
+        let viewModel = RootViewModel()
+        let sourceURL = try TestFixtures.createTemporaryFile(fileExtension: "mp4")
+        let exportedURL = try TestFixtures.createTemporaryFile(fileExtension: "mp4")
+        let exportedVideo = ExportedVideo(exportedURL, width: 1920, height: 1080, fileSize: 128)
+        let exportedConfiguration = VideoEditingConfiguration(
+            trim: .init(lowerBound: 2, upperBound: 8)
+        )
+        let dismissedConfiguration = VideoEditingConfiguration(
+            trim: .init(lowerBound: 4, upperBound: 10),
+            playback: .init(rate: 1.5, videoVolume: 0.9, currentTimelineTime: 6)
+        )
+
+        defer { FileManager.default.removeIfExists(for: sourceURL) }
+        defer { FileManager.default.removeIfExists(for: exportedURL) }
+
+        viewModel.startEditorSession(with: sourceURL)
+        viewModel.handleExportedVideo(
+            exportedVideo,
+            editingConfiguration: exportedConfiguration
+        )
+
+        viewModel.handleEditorDismiss(editingConfiguration: dismissedConfiguration)
+
+        #expect(viewModel.latestEditingConfiguration == dismissedConfiguration)
+        #expect(viewModel.editedVideo == exportedVideo)
+    }
+
+    @Test
+    func handleEditorDismissWithNilKeepsTheExistingEditingConfiguration() throws {
+        let viewModel = RootViewModel()
+        let sourceURL = try TestFixtures.createTemporaryFile(fileExtension: "mp4")
+        let exportedURL = try TestFixtures.createTemporaryFile(fileExtension: "mp4")
+        let exportedVideo = ExportedVideo(exportedURL, width: 1920, height: 1080, fileSize: 128)
+        let editingConfiguration = VideoEditingConfiguration(
+            trim: .init(lowerBound: 1, upperBound: 7)
+        )
+
+        defer { FileManager.default.removeIfExists(for: sourceURL) }
+        defer { FileManager.default.removeIfExists(for: exportedURL) }
+
+        viewModel.startEditorSession(with: sourceURL)
+        viewModel.handleExportedVideo(
+            exportedVideo,
+            editingConfiguration: editingConfiguration
+        )
+
+        viewModel.handleEditorDismiss(editingConfiguration: nil)
+
+        #expect(viewModel.latestEditingConfiguration == editingConfiguration)
+        #expect(viewModel.editedVideo == exportedVideo)
+    }
+
+    @Test
     func exportedVideoLoadCollectsMetadataNeededByTheHostPreview() async throws {
         let url = try await TestFixtures.createTemporaryVideo(size: CGSize(width: 48, height: 24))
 

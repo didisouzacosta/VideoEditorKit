@@ -54,18 +54,24 @@ struct RootView: View {
             }
             .fullScreenCover(
                 item: $bindableViewModel.editorDestination,
-                onDismiss: viewModel.handleEditorDismiss
+                onDismiss: {
+                    viewModel.handleEditorDismiss()
+                }
             ) { destination in
                 VideoEditorView(
                     destination.url,
                     editingConfiguration: destination.editingConfiguration,
-                    configuration: editorConfiguration
-                ) { exportedVideo, editingConfiguration in
-                    viewModel.handleExportedVideo(
-                        exportedVideo,
-                        editingConfiguration: editingConfiguration
-                    )
-                }
+                    configuration: editorConfiguration,
+                    onDismissed: { editingConfiguration in
+                        viewModel.handleEditorDismiss(editingConfiguration: editingConfiguration)
+                    },
+                    onExported: { exportedVideo, editingConfiguration in
+                        viewModel.handleExportedVideo(
+                            exportedVideo,
+                            editingConfiguration: editingConfiguration
+                        )
+                    }
+                )
                 .alert(
                     "Premium Tool",
                     isPresented: blockedToolAlertBinding,

@@ -87,7 +87,11 @@ final class RootViewModel {
         resultPlayer.pause()
     }
 
-    func handleEditorDismiss() {
+    func handleEditorDismiss(editingConfiguration: VideoEditingConfiguration? = nil) {
+        if let editingConfiguration {
+            latestEditingConfiguration = editingConfiguration
+        }
+
         resetPickerSelection()
     }
 

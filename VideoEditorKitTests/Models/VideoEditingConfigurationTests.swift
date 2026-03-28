@@ -67,7 +67,8 @@ struct VideoEditingConfigurationTests {
         let data = try JSONEncoder().encode(configuration)
         let decodedConfiguration = try JSONDecoder().decode(VideoEditingConfiguration.self, from: data)
 
-        #expect(decodedConfiguration.version == VideoEditingConfiguration.currentVersion)
+        #expect(decodedConfiguration.version == VideoEditingConfiguration.currentSchemaVersion.rawValue)
+        #expect(decodedConfiguration.schemaVersion == .normalizedTextOverlayOffsets)
         #expect(decodedConfiguration == configuration)
     }
 
@@ -108,7 +109,8 @@ struct VideoEditingConfigurationTests {
         let data = try #require(legacyJSON)
         let configuration = try JSONDecoder().decode(VideoEditingConfiguration.self, from: data)
 
-        #expect(configuration.version == VideoEditingConfiguration.currentVersion)
+        #expect(configuration.version == VideoEditingConfiguration.currentSchemaVersion.rawValue)
+        #expect(configuration.schemaVersion == .normalizedTextOverlayOffsets)
         #expect(configuration.trim == .init(lowerBound: 2, upperBound: 8))
         #expect(abs(Double(configuration.playback.rate) - 1.25) < 0.0001)
         #expect(configuration.textOverlays.count == 1)
@@ -122,7 +124,60 @@ struct VideoEditingConfigurationTests {
         let data = try JSONEncoder().encode(configuration)
         let json = try #require(String(data: data, encoding: .utf8))
 
-        #expect(json.contains("\"version\":\(VideoEditingConfiguration.currentVersion)"))
+        #expect(json.contains("\"version\":\(VideoEditingConfiguration.currentSchemaVersion.rawValue)"))
+    }
+
+    @Test
+    func unknownFutureVersionIsPreservedForTheDecodedValue() throws {
+        let futureJSON = """
+            {
+              "version": 99,
+              "trim": {
+                "lowerBound": 1,
+                "upperBound": 2
+              }
+            }
+            """
+            .data(using: .utf8)
+
+        let data = try #require(futureJSON)
+        let configuration = try JSONDecoder().decode(VideoEditingConfiguration.self, from: data)
+
+        #expect(configuration.version == 99)
+        #expect(configuration.schemaVersion == nil)
+    }
+
+    @Test
+    func unknownFutureVersionRoundTripsWithoutDowngradingOrDroppingUnknownFields() throws {
+        let futureJSON = """
+            {
+              "version": 99,
+              "trim": {
+                "lowerBound": 1,
+                "upperBound": 2
+              },
+              "futureField": {
+                "mode": "cinematic",
+                "passes": [
+                  1,
+                  2,
+                  3
+                ]
+              }
+            }
+            """
+            .data(using: .utf8)
+
+        let data = try #require(futureJSON)
+        let configuration = try JSONDecoder().decode(VideoEditingConfiguration.self, from: data)
+        let reencodedData = try JSONEncoder().encode(configuration)
+
+        let originalObject = try #require(JSONSerialization.jsonObject(with: data) as? NSDictionary)
+        let reencodedObject = try #require(JSONSerialization.jsonObject(with: reencodedData) as? NSDictionary)
+
+        #expect(configuration.version == 99)
+        #expect(configuration.schemaVersion == nil)
+        #expect(reencodedObject == originalObject)
     }
 
     @Test
