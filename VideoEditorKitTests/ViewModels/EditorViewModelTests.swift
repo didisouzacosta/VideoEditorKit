@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 import Testing
 
 @testable import VideoEditorKit
@@ -348,6 +349,154 @@ struct EditorViewModelTests {
         }
 
         #expect(viewModel.showVideoQualitySheet)
+    }
+
+    @Test
+    func prepareEditingConfigurationForInitialLoadSeedsPlayerAndRestoresPresentationState() throws {
+        let viewModel = EditorViewModel()
+        let videoPlayer = VideoPlayerManager()
+        let audioURL = try TestFixtures.createTemporaryAudio()
+        defer { FileManager.default.removeIfExists(for: audioURL) }
+
+        let editingConfiguration = VideoEditingConfiguration(
+            trim: .init(lowerBound: 8, upperBound: 24),
+            playback: .init(
+                rate: 1.5,
+                videoVolume: 0.55,
+                currentTimelineTime: 11
+            ),
+            crop: .init(
+                rotationDegrees: 90,
+                isMirrored: true,
+                freeformRect: .init(
+                    x: 0.15,
+                    y: 0.1,
+                    width: 0.7,
+                    height: 0.65
+                )
+            ),
+            filter: .init(
+                filterName: "CIPhotoEffectMono",
+                brightness: 0.1,
+                contrast: 1.2,
+                saturation: 0.7
+            ),
+            frame: .init(
+                scaleValue: 0.2,
+                colorToken: "palette:blue"
+            ),
+            audio: .init(
+                recordedClip: .init(
+                    url: audioURL,
+                    duration: 2,
+                    volume: 0.4
+                ),
+                selectedTrack: .recorded
+            ),
+            textOverlays: [
+                .init(
+                    id: UUID(),
+                    text: "Resume",
+                    fontSize: 24,
+                    backgroundColorToken: "palette:orange",
+                    fontColorToken: "palette:background",
+                    timeRange: .init(lowerBound: 2, upperBound: 4),
+                    offset: .init(x: 10, y: -4)
+                )
+            ],
+            presentation: .init(
+                selectedTool: .filters,
+                cropTab: .format
+            )
+        )
+
+        viewModel.prepareEditingConfigurationForInitialLoad(
+            editingConfiguration,
+            videoPlayer: videoPlayer
+        )
+
+        var video = Video.mock
+        viewModel.applyPendingEditingConfiguration(to: &video)
+        viewModel.currentVideo = video
+        viewModel.restorePendingEditingPresentationState()
+
+        #expect(abs(videoPlayer.currentTime - 11) < 0.0001)
+        #expect(viewModel.currentVideo?.rangeDuration == 8...24)
+        #expect(abs(Double(viewModel.currentVideo?.rate ?? 0) - 1.5) < 0.0001)
+        #expect(abs(Double(viewModel.currentVideo?.volume ?? 0) - 0.55) < 0.0001)
+        #expect(viewModel.currentVideo?.rotation == 90)
+        #expect(viewModel.currentVideo?.isMirror == true)
+        #expect(viewModel.currentVideo?.filterName == "CIPhotoEffectMono")
+        #expect(viewModel.currentVideo?.audio?.url == audioURL)
+        #expect(viewModel.selectedAudioTrack == .recorded)
+        #expect(viewModel.cropFreeformRect == editingConfiguration.crop.freeformRect)
+        #expect(viewModel.cropTab == .format)
+        #expect(viewModel.selectedTools == .filters)
+    }
+
+    @Test
+    func currentEditingConfigurationBuildsSnapshotFromCurrentEditorState() throws {
+        let viewModel = EditorViewModel()
+        let audioURL = try TestFixtures.createTemporaryAudio()
+        defer { FileManager.default.removeIfExists(for: audioURL) }
+
+        var video = Video.mock
+        video.rangeDuration = 4...18
+        video.updateRate(1.75)
+        video.rotation = 180
+        video.isMirror = true
+        video.setFilter("CIPhotoEffectNoir")
+        video.colorCorrection = .init(
+            brightness: 0.2,
+            contrast: 1.15,
+            saturation: 0.65
+        )
+        video.audio = Audio(
+            url: audioURL,
+            duration: 2.5,
+            volume: 0.45
+        )
+        video.textBoxes = [
+            TextBox(
+                text: "Exported",
+                fontSize: 26,
+                bgColor: Color(uiColor: .systemBlue),
+                fontColor: Color(uiColor: .systemBackground),
+                timeRange: 3...7,
+                offset: CGSize(width: 16, height: -8)
+            )
+        ]
+
+        viewModel.currentVideo = video
+        viewModel.frames = VideoFrames(
+            scaleValue: 0.3,
+            frameColor: Color(uiColor: .systemOrange)
+        )
+        viewModel.selectedAudioTrack = .recorded
+        viewModel.cropFreeformRect = .init(
+            x: 0.12,
+            y: 0.08,
+            width: 0.72,
+            height: 0.6
+        )
+        viewModel.cropTab = .format
+        viewModel.selectTool(.filters)
+
+        let configuration = viewModel.currentEditingConfiguration(currentTimelineTime: 9)
+
+        #expect(configuration?.trim.lowerBound == 4)
+        #expect(configuration?.trim.upperBound == 18)
+        #expect(abs(Double(configuration?.playback.rate ?? 0) - 1.75) < 0.0001)
+        #expect(abs(Double(configuration?.playback.currentTimelineTime ?? 0) - 9) < 0.0001)
+        #expect(configuration?.crop.rotationDegrees == 180)
+        #expect(configuration?.crop.isMirrored == true)
+        #expect(configuration?.crop.freeformRect == viewModel.cropFreeformRect)
+        #expect(configuration?.filter.filterName == "CIPhotoEffectNoir")
+        #expect(configuration?.frame.colorToken == "palette:orange")
+        #expect(configuration?.audio.selectedTrack == .recorded)
+        #expect(configuration?.audio.recordedClip?.url == audioURL)
+        #expect(configuration?.presentation.selectedTool == .filters)
+        #expect(configuration?.presentation.cropTab == .format)
     }
 
 }

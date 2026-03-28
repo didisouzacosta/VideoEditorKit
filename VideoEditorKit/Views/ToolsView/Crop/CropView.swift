@@ -9,11 +9,9 @@ import SwiftUI
 
 struct CropView<T: View>: View {
 
-    // MARK: - States
+    // MARK: - Bindings
 
-    @State private var position: CGPoint = .zero
-    @State private var size: CGSize = .zero
-    @State private var clipped: Bool = false
+    @Binding private var freeformRect: VideoEditingConfiguration.FreeformRect?
 
     // MARK: - Private Properties
 
@@ -37,38 +35,21 @@ struct CropView<T: View>: View {
                     Theme.scrim
                     Rectangle()
                         .fill(Theme.scrim.opacity(0.35))
-                        .frame(width: size.width, height: size.height)
+                        .frame(
+                            width: resolvedCropRect.size.width,
+                            height: resolvedCropRect.size.height
+                        )
                         .overlay(Rectangle().stroke(Theme.primary, lineWidth: lineWidth))
-                        .position(position)
+                        .position(
+                            x: resolvedCropRect.midX,
+                            y: resolvedCropRect.midY
+                        )
                         .gesture(
                             DragGesture()
                                 .onChanged { value in
-
-                                    let sizeWithBorder: CGSize = .init(
-                                        width: size.width + lineWidth, height: size.height + lineWidth)
-
-                                    // limit movement to min and max value
-                                    let limitedX = max(
-                                        min(value.location.x, originalSize.width - sizeWithBorder.width / 2),
-                                        sizeWithBorder.width / 2)
-                                    let limitedY = max(
-                                        min(value.location.y, originalSize.height - (sizeWithBorder.height) / 2),
-                                        sizeWithBorder.height / 2)
-
-                                    self.position = CGPoint(
-                                        x: limitedX,
-                                        y: limitedY)
+                                    updateCropRect(center: value.location)
                                 }
                         )
-                        .onTapGesture {
-                            clipped.toggle()
-                        }
-                }
-                .onAppear {
-                    updateCropState(for: originalSize)
-                }
-                .onChange(of: originalSize) { _, newValue in
-                    updateCropState(for: newValue)
                 }
             }
         }
@@ -82,10 +63,15 @@ struct CropView<T: View>: View {
 
     private let lineWidth: CGFloat = 2
 
+    private var resolvedCropRect: CGRect {
+        boundedRect(decodedRect(from: freeformRect) ?? defaultCropRect())
+    }
+
     // MARK: - Initializer
 
     init(
         _ originalSize: CGSize,
+        freeformRect: Binding<VideoEditingConfiguration.FreeformRect?>,
         rotation: Double?,
         isMirror: Bool,
         isActiveCrop: Bool,
@@ -93,6 +79,8 @@ struct CropView<T: View>: View {
         frameScale: CGFloat = 1,
         @ViewBuilder frameView: @escaping () -> T
     ) {
+        _freeformRect = freeformRect
+
         self.originalSize = originalSize
         self.rotation = rotation
         self.isMirror = isMirror
@@ -104,11 +92,83 @@ struct CropView<T: View>: View {
 
     // MARK: - Private Methods
 
-    private func updateCropState(for size: CGSize) {
-        position = .init(x: size.width / 2, y: size.height / 2)
-        self.size = .init(
-            width: max(size.width - 100, size.width * 0.55),
-            height: max(size.height - 100, size.height * 0.55)
+    private func updateCropRect(center: CGPoint) {
+        let rect = resolvedCropRect
+        let boundedCenterX = center.x.bounded(
+            lowerBound: rect.width / 2,
+            uppderBound: originalSize.width - rect.width / 2
+        )
+        let boundedCenterY = center.y.bounded(
+            lowerBound: rect.height / 2,
+            uppderBound: originalSize.height - rect.height / 2
+        )
+
+        let updatedRect = CGRect(
+            x: boundedCenterX - rect.width / 2,
+            y: boundedCenterY - rect.height / 2,
+            width: rect.width,
+            height: rect.height
+        )
+
+        freeformRect = encodedRect(updatedRect)
+    }
+
+    private func defaultCropRect() -> CGRect {
+        let defaultWidth = max(originalSize.width - 100, originalSize.width * 0.55)
+        let defaultHeight = max(originalSize.height - 100, originalSize.height * 0.55)
+        let rect = CGRect(
+            x: (originalSize.width - defaultWidth) / 2,
+            y: (originalSize.height - defaultHeight) / 2,
+            width: defaultWidth,
+            height: defaultHeight
+        )
+
+        return boundedRect(rect)
+    }
+
+    private func decodedRect(
+        from serializedRect: VideoEditingConfiguration.FreeformRect?
+    ) -> CGRect? {
+        guard let serializedRect else { return nil }
+        guard originalSize.width > 0, originalSize.height > 0 else { return nil }
+
+        return CGRect(
+            x: serializedRect.x * originalSize.width,
+            y: serializedRect.y * originalSize.height,
+            width: serializedRect.width * originalSize.width,
+            height: serializedRect.height * originalSize.height
+        )
+    }
+
+    private func encodedRect(_ rect: CGRect) -> VideoEditingConfiguration.FreeformRect? {
+        guard originalSize.width > 0, originalSize.height > 0 else { return nil }
+
+        let boundedRect = boundedRect(rect)
+        guard boundedRect.width > 0, boundedRect.height > 0 else { return nil }
+
+        return .init(
+            x: boundedRect.origin.x / originalSize.width,
+            y: boundedRect.origin.y / originalSize.height,
+            width: boundedRect.width / originalSize.width,
+            height: boundedRect.height / originalSize.height
+        )
+    }
+
+    private func boundedRect(_ rect: CGRect) -> CGRect {
+        guard originalSize.width > 0, originalSize.height > 0 else { return .zero }
+
+        let minWidth = min(originalSize.width * 0.2, originalSize.width)
+        let minHeight = min(originalSize.height * 0.2, originalSize.height)
+        let width = rect.width.bounded(lowerBound: minWidth, uppderBound: originalSize.width)
+        let height = rect.height.bounded(lowerBound: minHeight, uppderBound: originalSize.height)
+        let originX = rect.origin.x.bounded(lowerBound: 0, uppderBound: originalSize.width - width)
+        let originY = rect.origin.y.bounded(lowerBound: 0, uppderBound: originalSize.height - height)
+
+        return CGRect(
+            x: originX,
+            y: originY,
+            width: width,
+            height: height
         )
     }
 
@@ -116,13 +176,33 @@ struct CropView<T: View>: View {
 
 #Preview {
     GeometryReader { proxy in
-        CropView(.init(width: 300, height: 600), rotation: 0, isMirror: false, isActiveCrop: true) {
+        CropPreviewHost()
+            .allFrame()
+            .frame(height: proxy.size.height / 1.45, alignment: .center)
+    }
+}
+
+private struct CropPreviewHost: View {
+
+    // MARK: - States
+
+    @State private var freeformRect: VideoEditingConfiguration.FreeformRect?
+
+    // MARK: - Body
+
+    var body: some View {
+        CropView(
+            .init(width: 300, height: 600),
+            freeformRect: $freeformRect,
+            rotation: 0,
+            isMirror: false,
+            isActiveCrop: true
+        ) {
             Rectangle()
                 .fill(Color.secondary)
         }
-        .allFrame()
-        .frame(height: proxy.size.height / 1.45, alignment: .center)
     }
+
 }
 
 struct CropFrame: Shape {

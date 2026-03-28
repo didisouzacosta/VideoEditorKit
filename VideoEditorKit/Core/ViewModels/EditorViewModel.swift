@@ -24,6 +24,7 @@ final class EditorViewModel {
     var showVideoQualitySheet = false
     var showRecordView = false
     var cropTab: CropToolTab = .rotate
+    var cropFreeformRect: VideoEditingConfiguration.FreeformRect?
 
     var hasCurrentVideo: Bool {
         currentVideo != nil
@@ -56,6 +57,7 @@ final class EditorViewModel {
     private var hasLoadedSourceVideo = false
     private var lastPlayerContainerSize = CGSize(width: 1, height: 220)
     private var lastThumbnailDisplayScale: CGFloat = 1
+    private var pendingEditingConfiguration: VideoEditingConfiguration?
 
     // MARK: - Public Methods
 
@@ -66,10 +68,13 @@ final class EditorViewModel {
         lastPlayerContainerSize = containerSize
 
         loadVideoTask = Task { [weak self] in
-            let video = await Video.load(from: url)
+            var video = await Video.load(from: url)
             guard !Task.isCancelled else { return }
 
+            self?.applyPendingEditingConfiguration(to: &video)
+            self?.frames = video.videoFrames ?? VideoFrames()
             self?.currentVideo = video
+            self?.restorePendingEditingPresentationState()
             self?.loadThumbnails(
                 for: video,
                 containerSize: containerSize,
@@ -245,6 +250,12 @@ extension EditorViewModel {
         setTools()
     }
 
+    func setCropFreeformRect(_ rect: VideoEditingConfiguration.FreeformRect?) {
+        guard cropFreeformRect != rect else { return }
+        cropFreeformRect = rect
+        syncCropToolState()
+    }
+
     func setAudio(_ audio: Audio) {
         currentVideo?.audio = audio
         selectedAudioTrack = .recorded
@@ -287,6 +298,7 @@ extension EditorViewModel {
         case .crop:
             currentVideo?.rotation = 0
             currentVideo?.isMirror = false
+            cropFreeformRect = nil
             cropTab = .rotate
         case .audio:
             selectedAudioTrack = .video
@@ -337,6 +349,7 @@ extension EditorViewModel {
         videoPlayer: VideoPlayerManager
     ) {
         guard let video else { return }
+        frames = video.videoFrames ?? VideoFrames()
         filtersViewModel.sync(with: video)
         textEditor.load(textBoxes: video.textBoxes)
         videoPlayer.syncPlaybackState(with: video)
@@ -495,6 +508,7 @@ extension EditorViewModel {
 
     func setSourceVideoIfNeeded(
         _ sourceVideoURL: URL?,
+        editingConfiguration: VideoEditingConfiguration? = nil,
         availableSize: CGSize,
         videoPlayer: VideoPlayerManager
     ) {
@@ -503,6 +517,10 @@ extension EditorViewModel {
 
         guard !hasLoadedSourceVideo, let sourceVideoURL else { return }
         hasLoadedSourceVideo = true
+        prepareEditingConfigurationForInitialLoad(
+            editingConfiguration,
+            videoPlayer: videoPlayer
+        )
         videoPlayer.loadState = .loaded(sourceVideoURL)
         setNewVideo(sourceVideoURL, containerSize: containerSize)
     }
@@ -536,11 +554,74 @@ extension EditorViewModel {
         exportSheetTask = nil
     }
 
+    func currentEditingConfiguration(currentTimelineTime: Double? = nil) -> VideoEditingConfiguration? {
+        guard var currentVideo else { return nil }
+
+        currentVideo.videoFrames = frames.isActive ? frames : nil
+
+        return VideoEditingConfigurationMapper.makeConfiguration(
+            from: currentVideo,
+            freeformRect: cropFreeformRect,
+            selectedAudioTrack: selectedAudioTrack,
+            selectedTool: selectedTools,
+            cropTab: serializedCropTab(),
+            currentTimelineTime: currentTimelineTime
+        )
+    }
+
     func playerContainerSize(in availableSize: CGSize) -> CGSize {
         CGSize(
             width: max(availableSize.width - 32, 1),
             height: playerHeight(in: availableSize)
         )
+    }
+
+    func prepareEditingConfigurationForInitialLoad(
+        _ editingConfiguration: VideoEditingConfiguration?,
+        videoPlayer: VideoPlayerManager
+    ) {
+        pendingEditingConfiguration = editingConfiguration
+        cropTab = .rotate
+        selectedTools = nil
+        selectedAudioTrack = .video
+        cropFreeformRect = nil
+
+        guard let editingConfiguration else { return }
+
+        if let currentTimelineTime = editingConfiguration.playback.currentTimelineTime {
+            videoPlayer.currentTime = currentTimelineTime
+        }
+    }
+
+    func applyPendingEditingConfiguration(to video: inout Video) {
+        guard let pendingEditingConfiguration else { return }
+        VideoEditingConfigurationMapper.apply(pendingEditingConfiguration, to: &video)
+    }
+
+    func restorePendingEditingPresentationState() {
+        guard let pendingEditingConfiguration else { return }
+
+        cropTab = VideoEditingConfigurationMapper.cropTab(from: pendingEditingConfiguration)
+        cropFreeformRect = pendingEditingConfiguration.crop.freeformRect
+
+        let selectedAudioTrack = VideoEditingConfigurationMapper.selectedAudioTrack(
+            from: pendingEditingConfiguration
+        )
+        if selectedAudioTrack == .recorded, currentVideo?.audio == nil {
+            self.selectedAudioTrack = .video
+        } else {
+            self.selectedAudioTrack = selectedAudioTrack
+        }
+
+        if let selectedTool = pendingEditingConfiguration.presentation.selectedTool,
+            canSelectTool(selectedTool)
+        {
+            selectedTools = selectedTool
+        } else {
+            selectedTools = nil
+        }
+
+        self.pendingEditingConfiguration = nil
     }
 
 }
@@ -554,10 +635,33 @@ extension EditorViewModel {
         return enabledTools.contains(tool)
     }
 
+    private func syncCropToolState() {
+        guard let currentVideo else { return }
+
+        let hasRotation = abs(currentVideo.rotation.truncatingRemainder(dividingBy: 360)) > 0.001
+        let hasMirror = currentVideo.isMirror
+        let hasFreeformRect = cropFreeformRect != nil
+
+        if hasRotation || hasMirror || hasFreeformRect {
+            self.currentVideo?.appliedTool(for: .crop)
+        } else {
+            self.currentVideo?.removeTool(for: .crop)
+        }
+    }
+
     private func playerHeight(in availableSize: CGSize) -> CGFloat {
         let heightRatio = 0.40
         let proposedHeight = availableSize.height * heightRatio
         return max(220, proposedHeight)
+    }
+
+    private func serializedCropTab() -> VideoEditingConfiguration.CropTab {
+        switch cropTab {
+        case .format:
+            .format
+        case .rotate:
+            .rotate
+        }
     }
 
 }

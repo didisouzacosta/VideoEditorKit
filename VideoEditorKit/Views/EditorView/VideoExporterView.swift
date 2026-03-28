@@ -43,8 +43,17 @@ struct VideoExporterView: View {
 
     // MARK: - Initializer
 
-    init(video: Video, onExported: @escaping (ExportedVideo) -> Void) {
-        _viewModel = State(initialValue: ExporterViewModel(video))
+    init(
+        video: Video,
+        editingConfiguration: VideoEditingConfiguration,
+        onExported: @escaping (ExportedVideo) -> Void
+    ) {
+        _viewModel = State(
+            initialValue: ExporterViewModel(
+                video,
+                editingConfiguration: editingConfiguration
+            )
+        )
 
         self.onExported = onExported
     }
@@ -276,6 +285,9 @@ private struct ExportProgressSection: View {
 
 #Preview {
     NavigationStack {
-        VideoExporterView(video: Video.mock) { _ in }
+        VideoExporterView(
+            video: Video.mock,
+            editingConfiguration: .initial
+        ) { _ in }
     }
 }

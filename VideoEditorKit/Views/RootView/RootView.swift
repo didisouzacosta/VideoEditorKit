@@ -58,9 +58,13 @@ struct RootView: View {
             ) { destination in
                 VideoEditorView(
                     destination.url,
+                    editingConfiguration: destination.editingConfiguration,
                     configuration: editorConfiguration
-                ) { exportedVideo in
-                    viewModel.handleExportedVideo(exportedVideo)
+                ) { exportedVideo, editingConfiguration in
+                    viewModel.handleExportedVideo(
+                        exportedVideo,
+                        editingConfiguration: editingConfiguration
+                    )
                 }
                 .alert(
                     "Premium Tool",
@@ -183,13 +187,23 @@ extension RootView {
                     }
 
                 HStack(spacing: 12) {
+                    if viewModel.canReopenEditor {
+                        Button(action: viewModel.reopenEditor) {
+                            Label("Continue Editing", systemImage: "slider.horizontal.3")
+                                .font(.headline.weight(.semibold))
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                        }
+                        .buttonStyle(.glassProminent)
+                    }
+
                     ShareLink(item: editedVideo.url) {
                         Label("Share", systemImage: "square.and.arrow.up")
                             .font(.headline.weight(.semibold))
                             .frame(maxWidth: .infinity)
                             .padding()
                     }
-                    .buttonStyle(.glassProminent)
+                    .buttonStyle(.glass)
 
                     Button(role: .destructive, action: viewModel.clearEditedVideo) {
                         Label("Clear", systemImage: "trash")

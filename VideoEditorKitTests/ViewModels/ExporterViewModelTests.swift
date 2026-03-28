@@ -87,7 +87,7 @@ struct ExporterViewModelTests {
         let tracker = ExportRetryTracker()
         let viewModel = ExporterViewModel(
             Video.mock,
-            renderVideo: { _, _, onProgress in
+            renderVideo: { _, _, _, onProgress in
                 let renderCallCount = await tracker.recordRenderCall()
                 await onProgress?(0.23)
 
@@ -129,7 +129,7 @@ struct ExporterViewModelTests {
         let tracker = ExportRetryTracker()
         let viewModel = ExporterViewModel(
             Video.mock,
-            renderVideo: { _, _, _ in
+            renderVideo: { _, _, _, _ in
                 await tracker.recordRenderCall()
 
                 do {
@@ -166,6 +166,39 @@ struct ExporterViewModelTests {
         #expect(await tracker.exportedVideo == nil)
     }
 
+    @Test
+    func exportPassesEditingConfigurationToRenderer() async {
+        let expectedURL = URL(fileURLWithPath: "/tmp/crop-forwarded-export.mp4")
+        let editingConfiguration = VideoEditingConfiguration(
+            crop: .init(
+                rotationDegrees: 0,
+                isMirrored: false,
+                freeformRect: .init(
+                    x: 0.1,
+                    y: 0.2,
+                    width: 0.6,
+                    height: 0.5
+                )
+            )
+        )
+        let tracker = ExportConfigurationTracker()
+        let viewModel = ExporterViewModel(
+            Video.mock,
+            editingConfiguration: editingConfiguration,
+            renderVideo: { _, configuration, _, _ in
+                await tracker.record(configuration)
+                return expectedURL
+            },
+            loadExportedVideo: { url in
+                ExportedVideo(url, width: 1280, height: 720, fileSize: 256)
+            }
+        )
+
+        _ = await viewModel.export()
+
+        #expect(await tracker.editingConfiguration == editingConfiguration)
+    }
+
 }
 
 private actor ExportRetryTracker {
@@ -184,6 +217,20 @@ private actor ExportRetryTracker {
 
     func recordExportedVideo(_ video: ExportedVideo) {
         exportedVideo = video
+    }
+
+}
+
+private actor ExportConfigurationTracker {
+
+    // MARK: - Private Properties
+
+    private(set) var editingConfiguration: VideoEditingConfiguration?
+
+    // MARK: - Public Methods
+
+    func record(_ configuration: VideoEditingConfiguration) {
+        editingConfiguration = configuration
     }
 
 }

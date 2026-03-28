@@ -24,8 +24,9 @@ struct VideoEditorView: View {
     // MARK: - Private Properties
 
     private let configuration: Configuration
+    private let editingConfiguration: VideoEditingConfiguration?
     private let sourceVideoURL: URL?
-    private let onExported: (ExportedVideo) -> Void
+    private let onExported: (ExportedVideo, VideoEditingConfiguration) -> Void
 
     // MARK: - Body
 
@@ -81,6 +82,7 @@ struct VideoEditorView: View {
                     editorViewModel.setToolAvailability(configuration.tools)
                     editorViewModel.setSourceVideoIfNeeded(
                         sourceVideoURL,
+                        editingConfiguration: editingConfiguration,
                         availableSize: proxy.size,
                         videoPlayer: videoPlayer
                     )
@@ -99,9 +101,17 @@ struct VideoEditorView: View {
             initialHeight: 420
         ) {
             if let video = editorViewModel.currentVideo {
-                VideoExporterView(video: video) { exportedURL in
+                let editingConfiguration =
+                    editorViewModel.currentEditingConfiguration(
+                        currentTimelineTime: videoPlayer.currentTime
+                    ) ?? .initial
+
+                VideoExporterView(
+                    video: video,
+                    editingConfiguration: editingConfiguration
+                ) { exportedURL in
                     videoPlayer.pause()
-                    onExported(exportedURL)
+                    onExported(exportedURL, editingConfiguration)
                     dismiss()
                 }
             }
@@ -129,10 +139,12 @@ struct VideoEditorView: View {
 
     init(
         _ sourceVideoURL: URL? = nil,
+        editingConfiguration: VideoEditingConfiguration? = nil,
         configuration: Configuration = .init(),
-        onExported: @escaping (ExportedVideo) -> Void = { _ in }
+        onExported: @escaping (ExportedVideo, VideoEditingConfiguration) -> Void = { _, _ in }
     ) {
         self.configuration = configuration
+        self.editingConfiguration = editingConfiguration
         self.sourceVideoURL = sourceVideoURL
         self.onExported = onExported
     }

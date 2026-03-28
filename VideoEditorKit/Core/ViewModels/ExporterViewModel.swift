@@ -16,6 +16,7 @@ final class ExporterViewModel {
     // MARK: - Public Properties
 
     let video: Video
+    let editingConfiguration: VideoEditingConfiguration
 
     var showAlert = false
     var exportProgress: Double = .zero
@@ -108,6 +109,7 @@ final class ExporterViewModel {
     typealias RenderVideo =
         @Sendable (
             _ video: Video,
+            _ editingConfiguration: VideoEditingConfiguration,
             _ quality: VideoQuality,
             _ onProgress: VideoEditor.ProgressHandler?
         ) async throws -> URL
@@ -121,9 +123,11 @@ final class ExporterViewModel {
 
     init(
         _ video: Video,
-        renderVideo: @escaping RenderVideo = { video, quality, onProgress in
+        editingConfiguration: VideoEditingConfiguration = .initial,
+        renderVideo: @escaping RenderVideo = { video, editingConfiguration, quality, onProgress in
             try await VideoEditor.startRender(
                 video: video,
+                editingConfiguration: editingConfiguration,
                 videoQuality: quality,
                 onProgress: onProgress
             )
@@ -133,6 +137,7 @@ final class ExporterViewModel {
         }
     ) {
         self.video = video
+        self.editingConfiguration = editingConfiguration
         self.renderVideo = renderVideo
         self.loadExportedVideo = loadExportedVideo
     }
@@ -143,7 +148,7 @@ final class ExporterViewModel {
         renderState = .loading
 
         do {
-            let url = try await renderVideo(video, selectedQuality) { [weak self] progress in
+            let url = try await renderVideo(video, editingConfiguration, selectedQuality) { [weak self] progress in
                 await MainActor.run {
                     self?.exportProgress = progress.clamped(to: 0...1)
                 }

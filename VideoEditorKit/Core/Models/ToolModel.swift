@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum ToolEnum: Int, CaseIterable, Identifiable {
+enum ToolEnum: Int, CaseIterable, Identifiable, Codable, Sendable {
 
     case cut, speed, crop, audio, text, filters, corrections, frames
 

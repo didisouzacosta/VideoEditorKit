@@ -22,9 +22,14 @@ final class RootViewModel {
     var isLoading = false
     var editorDestination: EditorDestination?
     var editedVideo: ExportedVideo?
+    var latestEditingConfiguration: VideoEditingConfiguration?
 
     var shouldShowVideoPicker: Bool {
         editedVideo == nil
+    }
+
+    var canReopenEditor: Bool {
+        sessionSourceURL != nil && latestEditingConfiguration != nil
     }
 
     var editedVideoAspectRatio: CGFloat {
@@ -34,9 +39,10 @@ final class RootViewModel {
 
     private(set) var resultPlayer = AVPlayer()
 
-    struct EditorDestination: Hashable, Identifiable {
+    struct EditorDestination: Identifiable {
         let id = UUID()
         let url: URL
+        let editingConfiguration: VideoEditingConfiguration?
     }
 
     // MARK: - Private Properties
@@ -67,7 +73,7 @@ final class RootViewModel {
 
             do {
                 if let video = try await newItem.loadTransferable(type: VideoItem.self), !Task.isCancelled {
-                    prepareEditorSession(with: video.url)
+                    startEditorSession(with: video.url)
                 }
             } catch {
                 assertionFailure("Failed to load selected video: \(error.localizedDescription)")
@@ -85,11 +91,35 @@ final class RootViewModel {
         resetPickerSelection()
     }
 
-    func handleExportedVideo(_ video: ExportedVideo) {
+    func startEditorSession(with url: URL) {
+        resultPlayer.pause()
+        resultPlayer.replaceCurrentItem(with: nil)
+        cleanupFileIfNeeded(sessionSourceURL)
+        cleanupFileIfNeeded(editedVideo?.url)
+        editedVideo = nil
+        latestEditingConfiguration = nil
+        sessionSourceURL = url
+        resetPickerSelection()
+        editorDestination = .init(url: url, editingConfiguration: nil)
+    }
+
+    func handleExportedVideo(
+        _ video: ExportedVideo,
+        editingConfiguration: VideoEditingConfiguration
+    ) {
         cleanupFileIfNeeded(editedVideo?.url)
         editedVideo = video
+        latestEditingConfiguration = editingConfiguration
         resultPlayer.replaceCurrentItem(with: AVPlayerItem(url: video.url))
         resultPlayer.seek(to: .zero)
+    }
+
+    func reopenEditor() {
+        guard let sessionSourceURL else { return }
+        editorDestination = .init(
+            url: sessionSourceURL,
+            editingConfiguration: latestEditingConfiguration
+        )
     }
 
     func clearEditedVideo() {
@@ -97,20 +127,10 @@ final class RootViewModel {
         resultPlayer.replaceCurrentItem(with: nil)
         cleanupFileIfNeeded(editedVideo?.url)
         editedVideo = nil
+        latestEditingConfiguration = nil
     }
 
     // MARK: - Private Methods
-
-    private func prepareEditorSession(with url: URL) {
-        resultPlayer.pause()
-        resultPlayer.replaceCurrentItem(with: nil)
-        cleanupFileIfNeeded(sessionSourceURL)
-        cleanupFileIfNeeded(editedVideo?.url)
-        editedVideo = nil
-        sessionSourceURL = url
-        resetPickerSelection()
-        editorDestination = .init(url: url)
-    }
 
     private func resetPickerSelection() {
         selectedItem = nil

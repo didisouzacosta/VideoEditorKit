@@ -68,6 +68,10 @@ extension PlayerHolderView {
                     ZStack {
                         CropView(
                             displaySize,
+                            freeformRect: Binding(
+                                get: { editorViewModel.cropFreeformRect },
+                                set: { editorViewModel.setCropFreeformRect($0) }
+                            ),
                             rotation: editorViewModel.currentVideo?.rotation,
                             isMirror: editorViewModel.currentVideo?.isMirror ?? false,
                             isActiveCrop: editorViewModel.selectedTools == .crop

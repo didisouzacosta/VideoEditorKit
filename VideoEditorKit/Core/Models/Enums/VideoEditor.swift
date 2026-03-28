@@ -17,6 +17,7 @@ enum VideoEditor {
 
     static func startRender(
         video: Video,
+        editingConfiguration: VideoEditingConfiguration = .initial,
         videoQuality: VideoQuality,
         onProgress: ProgressHandler? = nil
     ) async throws -> URL {
@@ -26,22 +27,42 @@ enum VideoEditor {
         )
 
         let usesFilterStage = !filters.isEmpty
+        let usesCropStage = editingConfiguration.crop.freeformRect != nil
 
         do {
             let url = try await resizeAndLayerOperation(
                 video: video,
                 videoQuality: videoQuality,
-                progressRange: usesFilterStage ? 0...0.7 : 0...1,
+                progressRange: progressRange(
+                    for: .base,
+                    usesFilterStage: usesFilterStage,
+                    usesCropStage: usesCropStage
+                ),
                 onProgress: onProgress
             )
-            let finalUrl = try await applyFiltersOperations(
+
+            let filteredURL = try await applyFiltersOperations(
                 video,
                 filters: filters,
                 fromUrl: url,
-                progressRange: 0.7...1,
+                progressRange: progressRange(
+                    for: .filters,
+                    usesFilterStage: usesFilterStage,
+                    usesCropStage: usesCropStage
+                ),
                 onProgress: onProgress
             )
-            return finalUrl
+            let croppedURL = try await applyCropOperation(
+                editingConfiguration.crop.freeformRect,
+                fromUrl: filteredURL,
+                progressRange: progressRange(
+                    for: .crop,
+                    usesFilterStage: usesFilterStage,
+                    usesCropStage: usesCropStage
+                ),
+                onProgress: onProgress
+            )
+            return croppedURL
         } catch {
             throw error
         }
@@ -156,11 +177,80 @@ enum VideoEditor {
 
         return outputURL
     }
+
+    private static func applyCropOperation(
+        _ freeformRect: VideoEditingConfiguration.FreeformRect?,
+        fromUrl: URL,
+        progressRange: ClosedRange<Double>,
+        onProgress: ProgressHandler?
+    ) async throws -> URL {
+        guard let freeformRect else {
+            await reportProgress(progressRange.upperBound, via: onProgress)
+            return fromUrl
+        }
+
+        let asset = AVURLAsset(url: fromUrl)
+        guard let videoTrack = try await asset.loadTracks(withMediaType: .video).first else {
+            throw ExporterError.unknow
+        }
+
+        let naturalSize = try await videoTrack.load(.naturalSize)
+        let preferredTransform = try await videoTrack.load(.preferredTransform)
+        let presentationSize = resolvedPresentationSize(
+            naturalSize: naturalSize,
+            preferredTransform: preferredTransform
+        )
+        let cropRect = resolvedCropRect(
+            for: freeformRect,
+            in: presentationSize
+        )
+
+        guard cropRect.size != presentationSize else {
+            await reportProgress(progressRange.upperBound, via: onProgress)
+            return fromUrl
+        }
+
+        guard
+            let session = AVAssetExportSession(
+                asset: asset,
+                presetName: isSimulator ? AVAssetExportPresetPassthrough : AVAssetExportPresetHighestQuality
+            )
+        else {
+            assertionFailure("Unable to create crop export session.")
+            throw ExporterError.cannotCreateExportSession
+        }
+
+        session.videoComposition = cropVideoComposition(
+            track: videoTrack,
+            naturalSize: naturalSize,
+            preferredTransform: preferredTransform,
+            presentationSize: presentationSize,
+            cropRect: cropRect
+        )
+
+        let outputURL = createTempPath()
+
+        try await export(
+            session,
+            to: outputURL,
+            as: .mp4,
+            progressRange: progressRange,
+            onProgress: onProgress
+        )
+
+        return outputURL
+    }
 }
 
 extension VideoEditor {
 
     // MARK: - Private Properties
+
+    private enum RenderStage {
+        case base
+        case filters
+        case crop
+    }
 
     private static var isSimulator: Bool {
         #if targetEnvironment(simulator)
@@ -230,6 +320,48 @@ extension VideoEditor {
         )
 
         return evenPixelSize(for: fittedSize)
+    }
+
+    static func resolvedCropRect(
+        for freeformRect: VideoEditingConfiguration.FreeformRect,
+        in presentationSize: CGSize
+    ) -> CGRect {
+        guard presentationSize.width > 0, presentationSize.height > 0 else {
+            return CGRect(origin: .zero, size: evenPixelSize(for: CGSize(width: 2, height: 2)))
+        }
+
+        let fullRect = CGRect(origin: .zero, size: presentationSize)
+        let rawRect = CGRect(
+            x: freeformRect.x.clamped(to: 0...1) * presentationSize.width,
+            y: freeformRect.y.clamped(to: 0...1) * presentationSize.height,
+            width: freeformRect.width.clamped(to: 0...1) * presentationSize.width,
+            height: freeformRect.height.clamped(to: 0...1) * presentationSize.height
+        )
+        let intersection = rawRect.intersection(fullRect)
+
+        guard !intersection.isNull, !intersection.isEmpty else {
+            return CGRect(origin: .zero, size: evenPixelSize(for: presentationSize))
+        }
+
+        let width = max(round(intersection.width / 2) * 2, 2)
+        let height = max(round(intersection.height / 2) * 2, 2)
+        let boundedWidth = min(width, presentationSize.width)
+        let boundedHeight = min(height, presentationSize.height)
+        let originX = min(
+            max(round(intersection.minX), 0),
+            max(presentationSize.width - boundedWidth, 0)
+        )
+        let originY = min(
+            max(round(intersection.minY), 0),
+            max(presentationSize.height - boundedHeight, 0)
+        )
+
+        return CGRect(
+            x: originX,
+            y: originY,
+            width: boundedWidth,
+            height: boundedHeight
+        )
     }
 
     private static func exportSession(
@@ -427,6 +559,29 @@ extension VideoEditor {
         return timeRange
     }
 
+    private static func progressRange(
+        for stage: RenderStage,
+        usesFilterStage: Bool,
+        usesCropStage: Bool
+    ) -> ClosedRange<Double> {
+        switch (usesFilterStage, usesCropStage, stage) {
+        case (false, false, .base):
+            0...1
+        case (true, false, .base), (false, true, .base):
+            0...0.7
+        case (false, true, .crop), (true, false, .filters):
+            0.7...1
+        case (true, true, .base):
+            0...0.55
+        case (true, true, .filters):
+            0.55...0.8
+        case (true, true, .crop):
+            0.8...1
+        default:
+            1...1
+        }
+    }
+
     private static func videoCompositionInstructionForTrackWithSizeAndTime(
         preferredTransform: CGAffineTransform,
         naturalSize: CGSize,
@@ -471,6 +626,49 @@ extension VideoEditor {
         configuration.setTransform(finalTransform, at: .zero)
 
         return AVVideoCompositionLayerInstruction(configuration: configuration)
+    }
+
+    private static func cropVideoComposition(
+        track: AVAssetTrack,
+        naturalSize: CGSize,
+        preferredTransform: CGAffineTransform,
+        presentationSize: CGSize,
+        cropRect: CGRect
+    ) -> AVVideoComposition {
+        var configuration = AVVideoCompositionLayerInstruction.Configuration(assetTrack: track)
+        let transformedBounds = CGRect(origin: .zero, size: naturalSize)
+            .applying(preferredTransform)
+            .standardized
+        let normalizedTransform = preferredTransform.concatenating(
+            CGAffineTransform(
+                translationX: -transformedBounds.minX,
+                y: -transformedBounds.minY
+            )
+        )
+        let cropTransform = CGAffineTransform(
+            translationX: -cropRect.minX,
+            y: -cropRect.minY
+        )
+
+        configuration.setTransform(
+            normalizedTransform.concatenating(cropTransform),
+            at: .zero
+        )
+
+        let instruction = AVVideoCompositionInstruction(
+            configuration: .init(
+                layerInstructions: [AVVideoCompositionLayerInstruction(configuration: configuration)],
+                timeRange: CMTimeRange(start: .zero, duration: track.timeRange.duration)
+            )
+        )
+
+        return AVVideoComposition(
+            configuration: .init(
+                frameDuration: CMTime(value: 1, timescale: 30),
+                instructions: [instruction],
+                renderSize: evenPixelSize(for: cropRect.size)
+            )
+        )
     }
 
     private static func createTempPath() -> URL {
