@@ -9,6 +9,7 @@
 - Phase 4 completed
 - Phase 5 completed
 - Phase 6 completed
+- Phase 7 completed
 
 ## Summary
 
@@ -149,6 +150,17 @@ Scope:
 - Keep backward compatibility with older raw-offset configurations.
 - Rescale runtime text positions when the preview layout changes after restore.
 
+### Phase 7
+
+Version the configuration contract explicitly.
+
+Scope:
+
+- Add a `version` field to `VideoEditingConfiguration`.
+- Encode snapshots with the current schema version.
+- Decode older snapshots that do not include `version`.
+- Keep the migration boundary centralized in the configuration model so future schema changes have one entry point.
+
 ## Phase 1 Deliverables
 
 This phase should produce:
@@ -175,6 +187,7 @@ That gives the project a safe foundation before any public API expansion.
 - Colors should be stored as serializable tokens, preferably palette identifiers with RGBA fallback.
 - Text offsets should be serialized relative to `video.geometrySize`.
 - Older configurations with raw point offsets should remain restorable as a compatibility fallback.
+- Snapshots should always encode an explicit schema version.
 - The original source video URL stays outside `VideoEditingConfiguration`.
 - Recorded audio reference may be serialized inside the configuration, because it is part of the edit state.
 
@@ -182,6 +195,7 @@ That gives the project a safe foundation before any public API expansion.
 
 - Reopening with a different source video than the one used to produce the configuration will lead to invalid restores.
 - Very large off-screen text offsets can still fall back to legacy raw interpretation if they exceed the normalized heuristic range.
+- Future schema migrations still need dedicated transform rules once the payload shape actually changes.
 - Free crop remains incomplete until phases 4 and 5.
 
 ## Acceptance Criteria

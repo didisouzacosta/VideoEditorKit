@@ -11,8 +11,10 @@ struct VideoEditingConfiguration: Codable, Equatable, Sendable {
 
     // MARK: - Public Properties
 
+    static let currentVersion = 2
     static let initial = Self()
 
+    var version = Self.currentVersion
     var trim = Trim()
     var playback = Playback()
     var crop = Crop()
@@ -21,6 +23,72 @@ struct VideoEditingConfiguration: Codable, Equatable, Sendable {
     var audio = Audio()
     var textOverlays: [TextOverlay] = []
     var presentation = Presentation()
+
+    enum CodingKeys: String, CodingKey {
+        case version
+        case trim
+        case playback
+        case crop
+        case filter
+        case frame
+        case audio
+        case textOverlays
+        case presentation
+    }
+
+    // MARK: - Initializer
+
+    init(
+        version: Int = Self.currentVersion,
+        trim: Trim = .init(),
+        playback: Playback = .init(),
+        crop: Crop = .init(),
+        filter: Filter = .init(),
+        frame: Frame = .init(),
+        audio: Audio = .init(),
+        textOverlays: [TextOverlay] = [],
+        presentation: Presentation = .init()
+    ) {
+        self.version = version
+        self.trim = trim
+        self.playback = playback
+        self.crop = crop
+        self.filter = filter
+        self.frame = frame
+        self.audio = audio
+        self.textOverlays = textOverlays
+        self.presentation = presentation
+    }
+
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let decodedVersion = try container.decodeIfPresent(Int.self, forKey: .version) ?? 1
+
+        self.init(
+            version: max(decodedVersion, Self.currentVersion),
+            trim: try container.decodeIfPresent(Trim.self, forKey: .trim) ?? .init(),
+            playback: try container.decodeIfPresent(Playback.self, forKey: .playback) ?? .init(),
+            crop: try container.decodeIfPresent(Crop.self, forKey: .crop) ?? .init(),
+            filter: try container.decodeIfPresent(Filter.self, forKey: .filter) ?? .init(),
+            frame: try container.decodeIfPresent(Frame.self, forKey: .frame) ?? .init(),
+            audio: try container.decodeIfPresent(Audio.self, forKey: .audio) ?? .init(),
+            textOverlays: try container.decodeIfPresent([TextOverlay].self, forKey: .textOverlays) ?? [],
+            presentation: try container.decodeIfPresent(Presentation.self, forKey: .presentation) ?? .init()
+        )
+    }
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(Self.currentVersion, forKey: .version)
+        try container.encode(trim, forKey: .trim)
+        try container.encode(playback, forKey: .playback)
+        try container.encode(crop, forKey: .crop)
+        try container.encode(filter, forKey: .filter)
+        try container.encode(frame, forKey: .frame)
+        try container.encode(audio, forKey: .audio)
+        try container.encode(textOverlays, forKey: .textOverlays)
+        try container.encode(presentation, forKey: .presentation)
+    }
 
 }
 

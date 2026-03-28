@@ -67,7 +67,62 @@ struct VideoEditingConfigurationTests {
         let data = try JSONEncoder().encode(configuration)
         let decodedConfiguration = try JSONDecoder().decode(VideoEditingConfiguration.self, from: data)
 
+        #expect(decodedConfiguration.version == VideoEditingConfiguration.currentVersion)
         #expect(decodedConfiguration == configuration)
+    }
+
+    @Test
+    func decodeMigratesLegacySnapshotWithoutVersionToCurrentSchemaVersion() throws {
+        let legacyJSON = """
+            {
+              "trim": {
+                "lowerBound": 2,
+                "upperBound": 8
+              },
+              "playback": {
+                "rate": 1.25,
+                "videoVolume": 0.5,
+                "currentTimelineTime": 3
+              },
+              "textOverlays": [
+                {
+                  "id": "11111111-2222-3333-4444-555555555555",
+                  "text": "Legacy",
+                  "fontSize": 22,
+                  "backgroundColorToken": "palette:background",
+                  "fontColorToken": "palette:label",
+                  "timeRange": {
+                    "lowerBound": 1,
+                    "upperBound": 4
+                  },
+                  "offset": {
+                    "x": 18,
+                    "y": -12
+                  }
+                }
+              ]
+            }
+            """
+            .data(using: .utf8)
+
+        let data = try #require(legacyJSON)
+        let configuration = try JSONDecoder().decode(VideoEditingConfiguration.self, from: data)
+
+        #expect(configuration.version == VideoEditingConfiguration.currentVersion)
+        #expect(configuration.trim == .init(lowerBound: 2, upperBound: 8))
+        #expect(abs(Double(configuration.playback.rate) - 1.25) < 0.0001)
+        #expect(configuration.textOverlays.count == 1)
+        #expect(configuration.textOverlays[0].offset == .init(x: 18, y: -12))
+    }
+
+    @Test
+    func encodeAlwaysWritesTheCurrentSchemaVersion() throws {
+        let configuration = VideoEditingConfiguration(version: 1)
+
+        let data = try JSONEncoder().encode(configuration)
+        let json = try #require(String(data: data, encoding: .utf8))
+
+        #expect(json.contains("\"version\":\(VideoEditingConfiguration.currentVersion)"))
     }
 
     @Test
