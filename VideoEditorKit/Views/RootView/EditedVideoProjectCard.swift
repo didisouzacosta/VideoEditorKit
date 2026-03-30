@@ -42,7 +42,6 @@ struct EditedVideoProjectCard: View {
                 .stroke(Theme.outline, lineWidth: 1)
         }
         .contentShape(cardShape)
-        .aspectRatio(1, contentMode: .fit)
     }
 
     // MARK: - Private Properties
@@ -80,23 +79,12 @@ struct EditedVideoProjectCard: View {
     @ViewBuilder
     private var thumbnailContent: some View {
         if let resolvedThumbnailImage {
-            Image(uiImage: resolvedThumbnailImage)
-                .resizable()
-                .scaledToFill()
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .clipped()
-        } else {
-            ZStack {
-                LinearGradient(
-                    colors: [Theme.secondary.opacity(0.18), Theme.accent.opacity(0.28)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-
-                Image(systemName: "play.rectangle.fill")
-                    .font(.system(size: 34, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.9))
-            }
+            Rectangle()
+                .overlay {
+                    Image(uiImage: resolvedThumbnailImage)
+                        .resizable()
+                        .scaledToFill()
+                }
         }
     }
 

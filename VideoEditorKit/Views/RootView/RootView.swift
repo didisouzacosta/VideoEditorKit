@@ -166,6 +166,13 @@ extension RootView {
         12
     }
 
+    private var editedProjectsGridColumns: [GridItem] {
+        Array(
+            repeating: GridItem(.flexible(minimum: 0, maximum: .infinity), spacing: editedProjectsGridSpacing),
+            count: editedProjectsGridColumnCount
+        )
+    }
+
     @ViewBuilder
     private var heroSection: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -236,32 +243,26 @@ extension RootView {
             if availableProjects.isEmpty {
                 emptyProjectsCard
             } else {
-                GeometryReader { geometry in
-                    let itemSide = editedProjectsGridItemSide(for: geometry.size.width)
-
-                    LazyVGrid(
-                        columns: editedProjectsGridColumns(with: itemSide),
-                        alignment: .leading,
-                        spacing: editedProjectsGridSpacing
-                    ) {
-                        ForEach(availableProjects) { project in
-                            EditedVideoProjectCard(
-                                project: project,
-                                onOpen: {
-                                    openProject(project)
-                                },
-                                onEdit: {
-                                    openProject(project)
-                                },
-                                onDelete: {
-                                    deleteProject(project)
-                                }
-                            )
-                            .frame(width: itemSide, height: itemSide)
-                        }
+                LazyVGrid(
+                    columns: editedProjectsGridColumns,
+                    alignment: .leading,
+                    spacing: editedProjectsGridSpacing
+                ) {
+                    ForEach(availableProjects) { project in
+                        EditedVideoProjectCard(
+                            project: project,
+                            onOpen: {
+                                openProject(project)
+                            },
+                            onEdit: {
+                                openProject(project)
+                            },
+                            onDelete: {
+                                deleteProject(project)
+                            }
+                        )
                     }
                 }
-                .frame(height: editedProjectsGridHeight)
             }
         }
     }
@@ -279,25 +280,6 @@ extension RootView {
         }
         .padding(24)
         .card()
-    }
-
-    private var editedProjectsGridHeight: CGFloat {
-        let rowCount = ceil(CGFloat(availableProjects.count) / CGFloat(editedProjectsGridColumnCount))
-        let itemSide = editedProjectsGridItemSide(for: UIScreen.main.bounds.width - 32)
-
-        return (rowCount * itemSide) + (max(0, rowCount - 1) * editedProjectsGridSpacing)
-    }
-
-    private func editedProjectsGridColumns(with itemSide: CGFloat) -> [GridItem] {
-        Array(
-            repeating: GridItem(.fixed(itemSide), spacing: editedProjectsGridSpacing),
-            count: editedProjectsGridColumnCount
-        )
-    }
-
-    private func editedProjectsGridItemSide(for availableWidth: CGFloat) -> CGFloat {
-        let totalSpacing = CGFloat(editedProjectsGridColumnCount - 1) * editedProjectsGridSpacing
-        return floor((availableWidth - totalSpacing) / CGFloat(editedProjectsGridColumnCount))
     }
 
     private func openProject(_ project: EditedVideoProject) {
