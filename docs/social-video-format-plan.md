@@ -3,8 +3,8 @@
 ## Status
 
 - Planning documented
-- Phase 1 in progress
-- Phase 2 pending
+- Phase 1 completed
+- Phase 2 completed
 - Phase 3 pending
 - Phase 4 pending
 - Phase 5 pending

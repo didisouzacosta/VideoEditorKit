@@ -154,6 +154,7 @@ struct EditorViewModelTests {
         #expect(viewModel.currentVideo?.isAppliedTool(for: .crop) == true)
         #expect(viewModel.shouldShowCropOverlay)
         #expect(viewModel.isCropFormatSelected(.vertical9x16))
+        #expect(viewModel.socialVideoDestination == .instagramReels)
     }
 
     @Test
@@ -171,6 +172,23 @@ struct EditorViewModelTests {
         #expect(viewModel.shouldShowCropOverlay == false)
         #expect(viewModel.currentVideo?.isAppliedTool(for: .crop) == false)
         #expect(viewModel.isCropFormatSelected(.original))
+        #expect(viewModel.socialVideoDestination == nil)
+    }
+
+    @Test
+    func selectingSocialVideoDestinationUpdatesIntentWithoutDependingOnGeometryInference() {
+        let viewModel = EditorViewModel()
+        var video = Video.mock
+        video.presentationSize = CGSize(width: 1080, height: 1920)
+        viewModel.currentVideo = video
+        viewModel.selectTool(.crop)
+
+        viewModel.selectSocialVideoDestination(.youtubeShorts)
+
+        #expect(viewModel.cropTab == .format)
+        #expect(viewModel.socialVideoDestination == .youtubeShorts)
+        #expect(viewModel.isCropFormatSelected(.vertical9x16))
+        #expect(viewModel.isSocialVideoDestinationSelected(.youtubeShorts))
     }
 
     @Test
@@ -469,7 +487,8 @@ struct EditorViewModelTests {
             ],
             presentation: .init(
                 selectedTool: .filters,
-                cropTab: .format
+                cropTab: .format,
+                socialVideoDestination: .tikTok
             )
         )
 
@@ -497,6 +516,7 @@ struct EditorViewModelTests {
         #expect(viewModel.selectedAudioTrack == .recorded)
         #expect(viewModel.cropFreeformRect == editingConfiguration.crop.freeformRect)
         #expect(viewModel.cropTab == .format)
+        #expect(viewModel.socialVideoDestination == .tikTok)
         #expect(viewModel.selectedTools == .filters)
         #expect(viewModel.currentVideo?.isAppliedTool(for: .cut) == true)
         #expect(viewModel.currentVideo?.isAppliedTool(for: .speed) == true)
@@ -554,6 +574,7 @@ struct EditorViewModelTests {
             height: 0.6
         )
         viewModel.cropTab = .format
+        viewModel.socialVideoDestination = .youtubeShorts
         viewModel.selectTool(.filters)
 
         let configuration = viewModel.currentEditingConfiguration(currentTimelineTime: 9)
@@ -571,6 +592,7 @@ struct EditorViewModelTests {
         #expect(configuration?.audio.recordedClip?.url == audioURL)
         #expect(configuration?.presentation.selectedTool == .filters)
         #expect(configuration?.presentation.cropTab == .format)
+        #expect(configuration?.presentation.socialVideoDestination == .youtubeShorts)
         #expect(abs((configuration?.textOverlays[0].offset.x ?? 0) - 0.1) < 0.0001)
         #expect(abs((configuration?.textOverlays[0].offset.y ?? 0) + 0.1) < 0.0001)
     }

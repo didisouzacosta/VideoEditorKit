@@ -79,6 +79,10 @@ extension CropToolView {
                     cropFormatButton(preset)
                 }
             }
+
+            if editorVM.shouldShowSocialVideoDestinationPicker {
+                socialVideoDestinationSection
+            }
         }
     }
 
@@ -145,6 +149,46 @@ extension CropToolView {
             )
         }
         .buttonStyle(.plain)
+    }
+
+    private var socialVideoDestinationSection: some View {
+        VStack(spacing: 10) {
+            Text("Destination")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Theme.secondary)
+
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 8) {
+                    socialVideoDestinationButtons
+                }
+
+                VStack(spacing: 8) {
+                    socialVideoDestinationButtons
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var socialVideoDestinationButtons: some View {
+        ForEach(VideoEditingConfiguration.SocialVideoDestination.allCases, id: \.self) {
+            destination in
+            Button {
+                editorVM.selectSocialVideoDestination(destination)
+            } label: {
+                Text(destination.shortTitle)
+                    .font(.caption.weight(.semibold))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .capsuleControl(
+                        prominent: editorVM.isSocialVideoDestinationSelected(destination),
+                        tint: editorVM.isSocialVideoDestinationSelected(destination)
+                            ? Theme.accent : Theme.secondary
+                    )
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(destination.title)
+        }
     }
 
     private func cropFormatPreview(

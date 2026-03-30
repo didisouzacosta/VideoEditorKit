@@ -60,7 +60,8 @@ struct VideoEditingConfigurationTests {
             ],
             presentation: .init(
                 selectedTool: .filters,
-                cropTab: .rotate
+                cropTab: .rotate,
+                socialVideoDestination: .tikTok
             )
         )
 
@@ -229,6 +230,7 @@ struct VideoEditingConfigurationTests {
             selectedAudioTrack: .recorded,
             selectedTool: .filters,
             cropTab: .rotate,
+            socialVideoDestination: .youtubeShorts,
             currentTimelineTime: 7
         )
 
@@ -259,6 +261,7 @@ struct VideoEditingConfigurationTests {
         #expect(configuration.audio.selectedTrack == .recorded)
         #expect(configuration.presentation.selectedTool == .filters)
         #expect(configuration.presentation.cropTab == .rotate)
+        #expect(configuration.presentation.socialVideoDestination == .youtubeShorts)
         #expect(configuration.textOverlays.count == 1)
         #expect(configuration.textOverlays[0].backgroundColorToken == "palette:blue")
         #expect(configuration.textOverlays[0].fontColorToken == "palette:label")
@@ -314,7 +317,8 @@ struct VideoEditingConfigurationTests {
             ],
             presentation: .init(
                 selectedTool: .text,
-                cropTab: .format
+                cropTab: .format,
+                socialVideoDestination: .instagramReels
             )
         )
 

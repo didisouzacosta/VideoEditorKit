@@ -264,6 +264,7 @@ extension VideoEditingConfiguration {
 
         var selectedTool: ToolEnum?
         var cropTab: CropTab = .rotate
+        var socialVideoDestination: SocialVideoDestination?
 
     }
 
@@ -275,6 +276,36 @@ extension VideoEditingConfiguration {
     enum CropTab: String, Codable, Equatable, Sendable {
         case format
         case rotate
+    }
+
+    enum SocialVideoDestination: String, Codable, CaseIterable, Equatable, Sendable {
+        case instagramReels
+        case tikTok
+        case youtubeShorts
+
+        // MARK: - Public Properties
+
+        var title: String {
+            switch self {
+            case .instagramReels:
+                "Instagram Reels"
+            case .tikTok:
+                "TikTok"
+            case .youtubeShorts:
+                "YouTube Shorts"
+            }
+        }
+
+        var shortTitle: String {
+            switch self {
+            case .instagramReels:
+                "Instagram"
+            case .tikTok:
+                "TikTok"
+            case .youtubeShorts:
+                "Shorts"
+            }
+        }
     }
 
 }

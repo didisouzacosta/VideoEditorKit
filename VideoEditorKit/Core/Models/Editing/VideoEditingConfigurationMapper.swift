@@ -19,6 +19,7 @@ enum VideoEditingConfigurationMapper {
         selectedAudioTrack: EditorViewModel.AudioTrackSelection = .video,
         selectedTool: ToolEnum? = nil,
         cropTab: VideoEditingConfiguration.CropTab = .rotate,
+        socialVideoDestination: VideoEditingConfiguration.SocialVideoDestination? = nil,
         currentTimelineTime: Double? = nil
     ) -> VideoEditingConfiguration {
         VideoEditingConfiguration(
@@ -77,7 +78,8 @@ enum VideoEditingConfigurationMapper {
             },
             presentation: .init(
                 selectedTool: selectedTool,
-                cropTab: cropTab
+                cropTab: cropTab,
+                socialVideoDestination: socialVideoDestination
             )
         )
     }
