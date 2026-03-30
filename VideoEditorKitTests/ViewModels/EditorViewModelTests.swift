@@ -173,6 +173,8 @@ struct EditorViewModelTests {
         #expect(viewModel.currentVideo?.isAppliedTool(for: .crop) == false)
         #expect(viewModel.isCropFormatSelected(.original))
         #expect(viewModel.socialVideoDestination == nil)
+        #expect(viewModel.selectedCropPresetBadgeTitle() == "Original")
+        #expect(viewModel.selectedCropPresetBadgeDimension() == "1920x1080")
     }
 
     @Test
@@ -189,6 +191,9 @@ struct EditorViewModelTests {
         #expect(viewModel.socialVideoDestination == .youtubeShorts)
         #expect(viewModel.isCropFormatSelected(.vertical9x16))
         #expect(viewModel.isSocialVideoDestinationSelected(.youtubeShorts))
+        #expect(viewModel.selectedCropPreset() == .vertical9x16)
+        #expect(viewModel.selectedCropPresetBadgeTitle() == "YouTube Shorts")
+        #expect(viewModel.selectedCropPresetBadgeDimension() == "9:16")
     }
 
     @Test

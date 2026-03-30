@@ -47,7 +47,6 @@ final class EditorViewModel {
 
     var shouldShowCropOverlay: Bool {
         selectedTools == .crop
-            && cropTab == .format
             && cropFreeformRect != nil
     }
 
@@ -202,6 +201,24 @@ extension EditorViewModel {
         }
     }
 
+    private func resolvedSourceSizeForBadge() -> CGSize {
+        if let presentationSize = currentVideo?.presentationSize,
+            presentationSize.width > 0,
+            presentationSize.height > 0
+        {
+            return presentationSize
+        }
+
+        if let geometrySize = currentVideo?.geometrySize,
+            geometrySize.width > 0,
+            geometrySize.height > 0
+        {
+            return geometrySize
+        }
+
+        return .zero
+    }
+
 }
 
 extension EditorViewModel {
@@ -280,12 +297,6 @@ extension EditorViewModel {
     func toggleMirror() {
         currentVideo?.isMirror.toggle()
         setTools()
-        markEditingConfigurationChanged()
-    }
-
-    func selectCropTab(_ tab: CropToolTab) {
-        guard cropTab != tab else { return }
-        cropTab = tab
         markEditingConfigurationChanged()
     }
 
@@ -580,10 +591,6 @@ extension EditorViewModel {
         setCorrections(corrections)
     }
 
-    func isCropTabSelected(_ tab: CropToolTab) -> Bool {
-        cropTab == tab
-    }
-
     func isCropFormatSelected(_ preset: VideoCropFormatPreset) -> Bool {
         if preset == .vertical9x16, socialVideoDestination != nil {
             return true
@@ -598,6 +605,39 @@ extension EditorViewModel {
         }
 
         return preset.matches(cropFreeformRect, in: referenceSize)
+    }
+
+    func selectedCropPreset() -> VideoCropFormatPreset {
+        if isCropFormatSelected(.vertical9x16) {
+            return .vertical9x16
+        }
+
+        return .original
+    }
+
+    func shouldShowCropPresetBadge() -> Bool {
+        selectedTools == .crop
+    }
+
+    func selectedCropPresetBadgeTitle() -> String {
+        if let socialVideoDestination {
+            return socialVideoDestination.title
+        }
+
+        return selectedCropPreset().title
+    }
+
+    func selectedCropPresetBadgeDimension() -> String {
+        let preset = selectedCropPreset()
+
+        switch preset {
+        case .original:
+            let sourceSize = resolvedSourceSizeForBadge()
+            guard sourceSize.width > 0, sourceSize.height > 0 else { return preset.dimensionTitle }
+            return "\(Int(sourceSize.width.rounded()))x\(Int(sourceSize.height.rounded()))"
+        case .vertical9x16:
+            return preset.dimensionTitle
+        }
     }
 
     func isSocialVideoDestinationSelected(

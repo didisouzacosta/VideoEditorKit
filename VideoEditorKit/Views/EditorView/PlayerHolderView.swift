@@ -94,6 +94,11 @@ extension PlayerHolderView {
                         }
                         .frame(width: displaySize.width, height: displaySize.height)
                         .clipShape(.rect(cornerRadius: 4))
+
+                        if editorViewModel.shouldShowCropPresetBadge() {
+                            cropPresetBadge
+                                .padding(.bottom, 12)
+                        }
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .clipped()
@@ -119,6 +124,20 @@ extension PlayerHolderView {
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
             .capsuleControl()
+    }
+
+    private var cropPresetBadge: some View {
+        Text(
+            "\(editorViewModel.selectedCropPresetBadgeTitle()) • \(editorViewModel.selectedCropPresetBadgeDimension())"
+        )
+        .font(.caption2.weight(.bold))
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .capsuleControl(
+            prominent: true,
+            tint: .black.opacity(0.82)
+        )
+        .foregroundStyle(.white)
     }
 
     private func playerLayoutID(

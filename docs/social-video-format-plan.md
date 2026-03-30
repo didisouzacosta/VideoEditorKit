@@ -65,7 +65,7 @@ The safe-area layer can come later without invalidating the crop model.
 
 ## Current Code Reality
 
-- The crop tab already exists, but the `format` branch is empty in [CropToolView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorKit/Views/ToolsView/Crop/CropToolView.swift).
+- The editor now exposes preset-first crop controls in [CropToolView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorKit/Views/ToolsView/Crop/CropToolView.swift).
 - The preview already uses `CropView` driven by `cropFreeformRect` in [PlayerHolderView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorKit/Views/EditorView/PlayerHolderView.swift).
 - Crop state is already serializable via `VideoEditingConfiguration.Crop.freeformRect` in [VideoEditingConfiguration.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorKit/Core/Models/Editing/VideoEditingConfiguration.swift).
 - Export already consumes `freeformRect` in the crop stage in [VideoEditor.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorKit/Core/Models/Enums/VideoEditor.swift).
@@ -91,8 +91,8 @@ The `9:16` card should communicate its intended targets:
 
 - Selecting `Original` clears `freeformRect`.
 - Selecting `9:16` creates the largest centered `9:16` crop that fits inside the current video.
-- While `9:16` is active, the preview shows the crop frame and the user can drag to reposition it.
-- The crop frame should not appear in the rotate tab.
+- While `9:16` is active, the preview shows the crop frame with a preset badge and a black outside overlay.
+- The user can drag to reposition, pinch to resize, and double tap to return to the full preset frame.
 
 ### Why not safe areas yet
 
@@ -131,6 +131,10 @@ Scope:
 
 - add explicit destination metadata such as `instagramReels`, `tiktok`, and `youtubeShorts`
 - keep it separate from the raw crop rect so the UI can reopen with the same destination selected even when the crop is full-frame
+- rename the crop tool surface to `Presets`
+- simplify the sheet to preset-first actions only
+- show the active preset badge in the preview
+- add black crop-outside overlay plus pinch and double-tap interactions for preset framing
 
 ### Phase 3
 

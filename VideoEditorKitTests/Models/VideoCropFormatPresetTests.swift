@@ -64,4 +64,55 @@ struct VideoCropFormatPresetTests {
         )
     }
 
+    @Test
+    func resizingPresetRectWithPinchOutZoomsInWhileKeepingThePresetAspectRatio() throws {
+        let referenceSize = CGSize(width: 1920, height: 1080)
+        let initialRect = try #require(
+            VideoCropFormatPreset.vertical9x16.makeFreeformRect(
+                for: referenceSize
+            )
+        )
+
+        let resizedRect = try #require(
+            VideoCropFormatPreset.resizedRect(
+                matching: initialRect,
+                in: referenceSize,
+                magnification: 1.5
+            )
+        )
+
+        #expect(resizedRect.width < initialRect.width)
+        #expect(resizedRect.height < initialRect.height)
+        #expect(
+            VideoCropFormatPreset.vertical9x16.matches(
+                resizedRect,
+                in: referenceSize
+            )
+        )
+    }
+
+    @Test
+    func resettingPresetRectRestoresTheFullPresetCanvas() throws {
+        let referenceSize = CGSize(width: 1920, height: 1080)
+        let initialRect = try #require(
+            VideoCropFormatPreset.vertical9x16.makeFreeformRect(
+                for: referenceSize
+            )
+        )
+        let resizedRect = try #require(
+            VideoCropFormatPreset.resizedRect(
+                matching: initialRect,
+                in: referenceSize,
+                magnification: 1.6
+            )
+        )
+
+        let resetRect = VideoCropFormatPreset.resetRect(
+            matching: resizedRect,
+            in: referenceSize
+        )
+
+        #expect(resetRect == initialRect)
+    }
+
 }

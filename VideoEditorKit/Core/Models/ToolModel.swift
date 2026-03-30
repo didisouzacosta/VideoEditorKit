@@ -23,7 +23,7 @@ enum ToolEnum: Int, CaseIterable, Identifiable, Codable, Sendable {
         switch self {
         case .cut: "Cut"
         case .speed: "Speed"
-        case .crop: "Crop"
+        case .crop: "Presets"
         case .audio: "Audio"
         case .text: "Text"
         case .filters: "Filters"
@@ -36,7 +36,7 @@ enum ToolEnum: Int, CaseIterable, Identifiable, Codable, Sendable {
         switch self {
         case .cut: "scissors"
         case .speed: "timer"
-        case .crop: "crop"
+        case .crop: "aspectratio"
         case .audio: "waveform"
         case .text: "t.square.fill"
         case .filters: "camera.filters"

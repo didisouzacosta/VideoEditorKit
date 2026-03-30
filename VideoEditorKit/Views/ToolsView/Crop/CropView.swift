@@ -13,6 +13,10 @@ struct CropView<T: View>: View {
 
     @Binding private var freeformRect: VideoEditingConfiguration.FreeformRect?
 
+    // MARK: - States
+
+    @State private var pinchStartRect: VideoEditingConfiguration.FreeformRect?
+
     // MARK: - Private Properties
 
     private let originalSize: CGSize
@@ -31,26 +35,7 @@ struct CropView<T: View>: View {
             frameView()
 
             if isActiveCrop {
-                ZStack {
-                    Theme.scrim
-                    Rectangle()
-                        .fill(Theme.scrim.opacity(0.35))
-                        .frame(
-                            width: resolvedCropRect.size.width,
-                            height: resolvedCropRect.size.height
-                        )
-                        .overlay(Rectangle().stroke(Theme.primary, lineWidth: lineWidth))
-                        .position(
-                            x: resolvedCropRect.midX,
-                            y: resolvedCropRect.midY
-                        )
-                        .gesture(
-                            DragGesture()
-                                .onChanged { value in
-                                    updateCropRect(center: value.location)
-                                }
-                        )
-                }
+                cropOverlay
             }
         }
         .frame(width: originalSize.width, height: originalSize.height)
@@ -62,9 +47,52 @@ struct CropView<T: View>: View {
     // MARK: - Private Properties
 
     private let lineWidth: CGFloat = 2
+    private let cropCornerRadius: CGFloat = 12
 
     private var resolvedCropRect: CGRect {
         boundedRect(decodedRect(from: freeformRect) ?? defaultCropRect())
+    }
+
+    private var cropOverlay: some View {
+        ZStack {
+            CropOverlayShape(
+                cropRect: resolvedCropRect,
+                cornerRadius: cropCornerRadius
+            )
+            .fill(.black.opacity(0.72), style: FillStyle(eoFill: true))
+
+            RoundedRectangle(cornerRadius: cropCornerRadius, style: .continuous)
+                .stroke(Theme.primary, lineWidth: lineWidth)
+                .frame(
+                    width: resolvedCropRect.width,
+                    height: resolvedCropRect.height
+                )
+                .position(
+                    x: resolvedCropRect.midX,
+                    y: resolvedCropRect.midY
+                )
+        }
+        .contentShape(Rectangle())
+        .gesture(cropGesture)
+        .onTapGesture(count: 2) {
+            resetCropRectToPresetFullFrame()
+        }
+    }
+
+    private var cropGesture: some Gesture {
+        SimultaneousGesture(
+            DragGesture()
+                .onChanged { value in
+                    updateCropRect(center: value.location)
+                },
+            MagnificationGesture()
+                .onChanged { value in
+                    updateCropRectScale(value)
+                }
+                .onEnded { _ in
+                    pinchStartRect = nil
+                }
+        )
     }
 
     // MARK: - Initializer
@@ -111,6 +139,27 @@ struct CropView<T: View>: View {
         )
 
         freeformRect = encodedRect(updatedRect)
+    }
+
+    private func updateCropRectScale(_ value: CGFloat) {
+        guard value.isFinite, value > 0 else { return }
+
+        if pinchStartRect == nil {
+            pinchStartRect = freeformRect ?? encodedRect(defaultCropRect())
+        }
+
+        freeformRect = VideoCropFormatPreset.resizedRect(
+            matching: pinchStartRect,
+            in: originalSize,
+            magnification: value
+        )
+    }
+
+    private func resetCropRectToPresetFullFrame() {
+        freeformRect = VideoCropFormatPreset.resetRect(
+            matching: freeformRect,
+            in: originalSize
+        )
     }
 
     private func defaultCropRect() -> CGRect {
@@ -170,6 +219,27 @@ struct CropView<T: View>: View {
             width: width,
             height: height
         )
+    }
+
+}
+
+private struct CropOverlayShape: Shape {
+
+    // MARK: - Private Properties
+
+    let cropRect: CGRect
+    let cornerRadius: CGFloat
+
+    // MARK: - Public Methods
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.addRect(rect)
+        path.addRoundedRect(
+            in: cropRect,
+            cornerSize: CGSize(width: cornerRadius, height: cornerRadius)
+        )
+        return path
     }
 
 }

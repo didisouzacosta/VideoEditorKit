@@ -42,6 +42,15 @@ enum VideoCropFormatPreset: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
+    var dimensionTitle: String {
+        switch self {
+        case .original:
+            "Source"
+        case .vertical9x16:
+            "9:16"
+        }
+    }
+
     var aspectRatio: CGFloat? {
         switch self {
         case .original:
@@ -95,6 +104,88 @@ enum VideoCropFormatPreset: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
+    static func resetRect(
+        matching freeformRect: VideoEditingConfiguration.FreeformRect?,
+        in referenceSize: CGSize
+    ) -> VideoEditingConfiguration.FreeformRect? {
+        guard
+            let aspectRatio = resolvedAspectRatio(
+                from: freeformRect,
+                in: referenceSize
+            )
+        else { return nil }
+
+        return encodedRect(
+            resolvedCropRect(
+                aspectRatio: aspectRatio,
+                in: referenceSize
+            ),
+            in: referenceSize
+        )
+    }
+
+    static func resizedRect(
+        matching freeformRect: VideoEditingConfiguration.FreeformRect?,
+        in referenceSize: CGSize,
+        magnification: CGFloat
+    ) -> VideoEditingConfiguration.FreeformRect? {
+        guard magnification.isFinite, magnification > 0 else { return freeformRect }
+        guard
+            let currentRect = decodedRect(
+                from: freeformRect,
+                in: referenceSize
+            ),
+            let aspectRatio = resolvedAspectRatio(
+                from: freeformRect,
+                in: referenceSize
+            )
+        else { return freeformRect }
+
+        let maximumRect = resolvedCropRect(
+            aspectRatio: aspectRatio,
+            in: referenceSize
+        )
+        guard maximumRect.width > 0, maximumRect.height > 0 else { return freeformRect }
+
+        let minimumWidth = max(maximumRect.width * 0.25, referenceSize.width * 0.18)
+        let minimumHeight = max(maximumRect.height * 0.25, referenceSize.height * 0.18)
+
+        var width = currentRect.width / magnification
+        var height = width / aspectRatio
+
+        if height < minimumHeight {
+            height = minimumHeight
+            width = height * aspectRatio
+        }
+
+        if width < minimumWidth {
+            width = minimumWidth
+            height = width / aspectRatio
+        }
+
+        if width > maximumRect.width {
+            width = maximumRect.width
+            height = width / aspectRatio
+        }
+
+        if height > maximumRect.height {
+            height = maximumRect.height
+            width = height * aspectRatio
+        }
+
+        let centeredRect = CGRect(
+            x: currentRect.midX - width / 2,
+            y: currentRect.midY - height / 2,
+            width: width,
+            height: height
+        )
+
+        return encodedRect(
+            boundedRect(centeredRect, in: referenceSize),
+            in: referenceSize
+        )
+    }
+
     // MARK: - Private Methods
 
     private static func resolvedCropRect(
@@ -121,6 +212,71 @@ enum VideoCropFormatPreset: String, CaseIterable, Identifiable, Sendable {
         return CGRect(
             x: 0,
             y: (referenceSize.height - height) / 2,
+            width: width,
+            height: height
+        )
+    }
+
+    private static func decodedRect(
+        from freeformRect: VideoEditingConfiguration.FreeformRect?,
+        in referenceSize: CGSize
+    ) -> CGRect? {
+        guard let freeformRect else { return nil }
+        guard referenceSize.width > 0, referenceSize.height > 0 else { return nil }
+
+        return CGRect(
+            x: freeformRect.x * referenceSize.width,
+            y: freeformRect.y * referenceSize.height,
+            width: freeformRect.width * referenceSize.width,
+            height: freeformRect.height * referenceSize.height
+        )
+    }
+
+    private static func encodedRect(
+        _ rect: CGRect,
+        in referenceSize: CGSize
+    ) -> VideoEditingConfiguration.FreeformRect? {
+        guard referenceSize.width > 0, referenceSize.height > 0 else { return nil }
+
+        return .init(
+            x: rect.origin.x / referenceSize.width,
+            y: rect.origin.y / referenceSize.height,
+            width: rect.size.width / referenceSize.width,
+            height: rect.size.height / referenceSize.height
+        )
+    }
+
+    private static func resolvedAspectRatio(
+        from freeformRect: VideoEditingConfiguration.FreeformRect?,
+        in referenceSize: CGSize
+    ) -> CGFloat? {
+        guard
+            let currentRect = decodedRect(
+                from: freeformRect,
+                in: referenceSize
+            ),
+            currentRect.width > 0,
+            currentRect.height > 0
+        else { return nil }
+
+        return currentRect.width / currentRect.height
+    }
+
+    private static func boundedRect(
+        _ rect: CGRect,
+        in referenceSize: CGSize
+    ) -> CGRect {
+        let width = min(rect.width, referenceSize.width)
+        let height = min(rect.height, referenceSize.height)
+
+        let minX = max(0, rect.origin.x)
+        let minY = max(0, rect.origin.y)
+        let maxX = min(referenceSize.width - width, minX)
+        let maxY = min(referenceSize.height - height, minY)
+
+        return CGRect(
+            x: maxX,
+            y: maxY,
             width: width,
             height: height
         )

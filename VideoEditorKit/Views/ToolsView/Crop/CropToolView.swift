@@ -17,17 +17,7 @@ struct CropToolView: View {
     // MARK: - Body
 
     var body: some View {
-        VStack(spacing: 28) {
-            tabButtons
-            Group {
-                switch editorVM.cropTab {
-                case .format:
-                    formatSection
-                case .rotate:
-                    rotateSection
-                }
-            }
-        }
+        formatSection
     }
 
     // MARK: - Initializer
@@ -42,34 +32,9 @@ extension CropToolView {
 
     // MARK: - Private Properties
 
-    private var rotateSection: some View {
-        return HStack(spacing: 20) {
-            Button {
-                editorVM.rotate()
-            } label: {
-                Image(systemName: "arrow.triangle.2.circlepath")
-                    .font(.headline.weight(.semibold))
-                    .frame(width: 44, height: 44)
-                    .circleControl(tint: Theme.secondary)
-            }
-
-            Button {
-                editorVM.toggleMirror()
-            } label: {
-                Image(systemName: "arrow.left.and.right.righttriangle.left.righttriangle.right.fill")
-                    .font(.headline.weight(.semibold))
-                    .frame(width: 44, height: 44)
-                    .circleControl(
-                        prominent: editorVM.isMirrorEnabled,
-                        tint: editorVM.isMirrorEnabled ? Theme.accent : Theme.secondary
-                    )
-            }
-        }
-    }
-
     private var formatSection: some View {
         VStack(spacing: 16) {
-            Text("Choose a canvas and drag the preview to reposition the video.")
+            Text("Choose a preset, drag to reposition, pinch to resize, and double tap to go back to full.")
                 .font(.footnote.weight(.medium))
                 .foregroundStyle(Theme.secondary)
                 .multilineTextAlignment(.center)
@@ -82,25 +47,6 @@ extension CropToolView {
 
             if editorVM.shouldShowSocialVideoDestinationPicker {
                 socialVideoDestinationSection
-            }
-        }
-    }
-
-    private var tabButtons: some View {
-        HStack(spacing: 12) {
-            ForEach(EditorViewModel.CropToolTab.allCases, id: \.self) { tab in
-                Button {
-                    editorVM.selectCropTab(tab)
-                } label: {
-                    Text(tab.rawValue.capitalized)
-                        .font(.subheadline.weight(.semibold))
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
-                        .capsuleControl(
-                            prominent: editorVM.isCropTabSelected(tab),
-                            tint: editorVM.isCropTabSelected(tab) ? Theme.accent : Theme.secondary
-                        )
-                }
             }
         }
     }
