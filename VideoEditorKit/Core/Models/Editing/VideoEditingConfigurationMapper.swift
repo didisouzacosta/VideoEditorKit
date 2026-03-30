@@ -120,6 +120,10 @@ enum VideoEditingConfigurationMapper {
         }
 
         applyTextOverlays(configuration.textOverlays, to: &video)
+        video.toolsApplied = restoredToolsApplied(
+            from: configuration,
+            video: video
+        )
     }
 
     static func applyTextOverlays(
@@ -273,6 +277,55 @@ enum VideoEditingConfigurationMapper {
         _ referenceSize: CGSize
     ) -> Bool {
         referenceSize.width > 0 && referenceSize.height > 0
+    }
+
+    private static func restoredToolsApplied(
+        from configuration: VideoEditingConfiguration,
+        video: Video
+    ) -> [Int] {
+        var restoredTools = [ToolEnum]()
+
+        let isTrimmed =
+            video.rangeDuration.lowerBound > 0
+            || abs(video.rangeDuration.upperBound - video.originalDuration) > 0.001
+        if isTrimmed {
+            restoredTools.append(.cut)
+        }
+
+        if abs(video.rate - 1.0) > 0.001 {
+            restoredTools.append(.speed)
+        }
+
+        let hasRotation = abs(video.rotation.truncatingRemainder(dividingBy: 360)) > 0.001
+        let hasMirror = video.isMirror
+        let hasFreeformRect = configuration.crop.freeformRect != nil
+        if hasRotation || hasMirror || hasFreeformRect {
+            restoredTools.append(.crop)
+        }
+
+        let hasRecordedAudio = video.audio != nil
+        let hasAdjustedVideoVolume = abs(video.volume - 1.0) > 0.001
+        if hasRecordedAudio || hasAdjustedVideoVolume {
+            restoredTools.append(.audio)
+        }
+
+        if !video.textBoxes.isEmpty {
+            restoredTools.append(.text)
+        }
+
+        if video.filterName != nil {
+            restoredTools.append(.filters)
+        }
+
+        if !video.colorCorrection.isIdentity {
+            restoredTools.append(.corrections)
+        }
+
+        if video.videoFrames?.isActive == true {
+            restoredTools.append(.frames)
+        }
+
+        return restoredTools.map(\.rawValue)
     }
 
 }

@@ -460,6 +460,13 @@ struct EditorViewModelTests {
         #expect(viewModel.cropFreeformRect == editingConfiguration.crop.freeformRect)
         #expect(viewModel.cropTab == .format)
         #expect(viewModel.selectedTools == .filters)
+        #expect(viewModel.currentVideo?.isAppliedTool(for: .cut) == true)
+        #expect(viewModel.currentVideo?.isAppliedTool(for: .speed) == true)
+        #expect(viewModel.currentVideo?.isAppliedTool(for: .crop) == true)
+        #expect(viewModel.currentVideo?.isAppliedTool(for: .audio) == true)
+        #expect(viewModel.currentVideo?.isAppliedTool(for: .filters) == true)
+        #expect(viewModel.currentVideo?.isAppliedTool(for: .corrections) == true)
+        #expect(viewModel.currentVideo?.isAppliedTool(for: .frames) == true)
     }
 
     @Test

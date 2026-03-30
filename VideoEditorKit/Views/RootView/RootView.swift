@@ -5,17 +5,30 @@
 //  Created by Adriano Souza Costa on 23.03.2026.
 //
 
-import AVKit
 import PhotosUI
+import SwiftData
 import SwiftUI
 
 @MainActor
 struct RootView: View {
 
+    // MARK: - Environments
+
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+
     // MARK: - States
 
     @State private var viewModel = RootViewModel()
+    @State private var selectedItem: PhotosPickerItem?
+    @State private var itemLoadTask: Task<Void, Never>?
     @State private var blockedTool: ToolEnum?
+    @State private var persistenceErrorMessage: String?
+
+    // MARK: - Private Properties
+
+    @Query(sort: \EditedVideoProject.updatedAt, order: .reverse)
+    private var persistedProjects: [EditedVideoProject]
 
     // MARK: - Body
 
@@ -28,29 +41,34 @@ struct RootView: View {
                     .ignoresSafeArea()
 
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 24) {
                         heroSection
 
-                        if viewModel.shouldShowVideoPicker {
-                            selectVideoCard(
-                                $bindableViewModel.selectedItem,
-                                isLoading: viewModel.isLoading
-                            )
-                            .transition(.blurReplace)
-                        }
+                        selectVideoCard(
+                            $selectedItem,
+                            isLoading: viewModel.isLoading
+                        )
 
-                        resultSection
-                            .transition(.blurReplace)
+                        editedProjectsSection
                     }
-                    .animation(.default, value: viewModel.shouldShowVideoPicker)
                 }
-                .defaultScrollAnchor(.center)
                 .scrollIndicators(.hidden)
                 .contentMargins(16)
             }
-            .onDisappear(perform: viewModel.handleViewDisappear)
-            .onChange(of: viewModel.selectedItem) { _, newItem in
-                viewModel.loadSelectedItem(newItem)
+            .onDisappear(perform: handleViewDisappear)
+            .onChange(of: selectedItem) { _, newItem in
+                itemLoadTask?.cancel()
+                itemLoadTask = Task {
+                    await loadSelectedItem(newItem)
+                }
+            }
+            .alert(
+                "Unable to Save Project",
+                isPresented: persistenceAlertBinding
+            ) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(persistenceErrorMessage ?? "")
             }
             .fullScreenCover(
                 item: $bindableViewModel.editorDestination,
@@ -106,36 +124,61 @@ extension RootView {
         )
     }
 
-    private var editorCallbacks: VideoEditorView.Callbacks {
-        .init(
-            onEditingConfigurationChanged: { editingConfiguration in
-                viewModel.handleEditingConfigurationChanged(editingConfiguration)
-            },
-            onDismissed: { editingConfiguration in
-                viewModel.handleEditorDismiss(editingConfiguration: editingConfiguration)
-            },
-            onExported: { exportedVideo, editingConfiguration in
-                viewModel.handleExportedVideo(
-                    exportedVideo,
-                    editingConfiguration: editingConfiguration
-                )
+    private var persistenceAlertBinding: Binding<Bool> {
+        Binding(
+            get: { persistenceErrorMessage != nil },
+            set: { isPresented in
+                if !isPresented {
+                    persistenceErrorMessage = nil
+                }
             }
         )
+    }
+
+    private var editorCallbacks: VideoEditorView.Callbacks {
+        .init(
+            onEditingConfigurationChanged: { _ in },
+            onDismissed: { _ in },
+            onExported: { exportedVideo, editingConfiguration in
+                Task {
+                    await persistProject(
+                        exportedVideo,
+                        editingConfiguration: editingConfiguration
+                    )
+                }
+            }
+        )
+    }
+
+    private var availableProjects: [EditedVideoProject] {
+        persistedProjects.filter(\.hasRequiredMedia)
+    }
+
+    private var projectsStore: EditedVideoProjectsStore {
+        EditedVideoProjectsStore(modelContext: modelContext)
+    }
+
+    private var editedProjectsGridColumnCount: Int {
+        horizontalSizeClass == .compact ? 3 : 4
+    }
+
+    private var editedProjectsGridSpacing: CGFloat {
+        12
     }
 
     @ViewBuilder
     private var heroSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Edit a clip with the iOS 26 visual language.")
+            Text("Edit, export, and revisit your clips.")
                 .font(.largeTitle.bold())
 
             Text(
-                "Pick a video from your gallery, edit it, and get the rendered result back on this screen."
+                "Choose a video from Photos, export it, and keep both the original media and the rendered output saved for future edits."
             )
             .font(.title3.weight(.semibold))
 
             Text(
-                "This screen now works as an example integration. It exposes one tool, keeps premium tools visible as locked, and shows the exported output here."
+                "The home screen now behaves like the host app shell: it owns persistence, shows your exported projects in a grid, and reopens the editor with the original file plus the last saved editing configuration."
             )
             .font(.subheadline)
             .foregroundStyle(Theme.secondary)
@@ -184,63 +227,154 @@ extension RootView {
     }
 
     @ViewBuilder
-    private var resultSection: some View {
-        if let editedVideo = viewModel.editedVideo {
-            VStack(alignment: .leading, spacing: 16) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Edited Result")
-                        .font(.headline)
-
-                    if viewModel.hasUnrenderedChanges {
-                        Text(
-                            "This preview still shows the last export. Re-export the latest draft to refresh it."
-                        )
-                        .font(.subheadline)
-                        .foregroundStyle(Theme.secondary)
-                    }
-                }
+    private var editedProjectsSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Edited Videos")
+                .font(.headline)
                 .padding(.horizontal)
 
-                PlayerView(viewModel.resultPlayer, showControls: true)
-                    .aspectRatio(viewModel.editedVideoAspectRatio, contentMode: .fit)
-                    .background(.black, in: .rect(cornerRadius: 28))
-                    .clipShape(.rect(cornerRadius: 28))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 28)
-                            .stroke(Theme.outline, lineWidth: 1)
-                    }
+            if availableProjects.isEmpty {
+                emptyProjectsCard
+            } else {
+                GeometryReader { geometry in
+                    let itemSide = editedProjectsGridItemSide(for: geometry.size.width)
 
-                HStack(spacing: 12) {
-                    if viewModel.canReopenEditor {
-                        Button(action: viewModel.reopenEditor) {
-                            Label(
-                                viewModel.hasUnrenderedChanges ? "Resume Draft" : "Continue Editing",
-                                systemImage: "slider.horizontal.3"
+                    LazyVGrid(
+                        columns: editedProjectsGridColumns(with: itemSide),
+                        alignment: .leading,
+                        spacing: editedProjectsGridSpacing
+                    ) {
+                        ForEach(availableProjects) { project in
+                            EditedVideoProjectCard(
+                                project: project,
+                                onOpen: {
+                                    openProject(project)
+                                },
+                                onEdit: {
+                                    openProject(project)
+                                },
+                                onDelete: {
+                                    deleteProject(project)
+                                }
                             )
-                            .font(.headline.weight(.semibold))
-                            .frame(maxWidth: .infinity)
-                            .padding()
+                            .frame(width: itemSide, height: itemSide)
                         }
-                        .buttonStyle(.glassProminent)
                     }
-
-                    ShareLink(item: editedVideo.url) {
-                        Label("Share", systemImage: "square.and.arrow.up")
-                            .font(.headline.weight(.semibold))
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                    }
-                    .buttonStyle(.glass)
-
-                    Button(role: .destructive, action: viewModel.clearEditedVideo) {
-                        Label("Clear", systemImage: "trash")
-                            .font(.headline.weight(.semibold))
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                    }
-                    .buttonStyle(.glass)
                 }
+                .frame(height: editedProjectsGridHeight)
             }
+        }
+    }
+
+    private var emptyProjectsCard: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("No exported videos yet")
+                .font(.headline)
+
+            Text(
+                "Export your first clip and it will appear here with its thumbnail, duration tag, and saved editing configuration."
+            )
+            .font(.subheadline)
+            .foregroundStyle(Theme.secondary)
+        }
+        .padding(24)
+        .card()
+    }
+
+    private var editedProjectsGridHeight: CGFloat {
+        let rowCount = ceil(CGFloat(availableProjects.count) / CGFloat(editedProjectsGridColumnCount))
+        let itemSide = editedProjectsGridItemSide(for: UIScreen.main.bounds.width - 32)
+
+        return (rowCount * itemSide) + (max(0, rowCount - 1) * editedProjectsGridSpacing)
+    }
+
+    private func editedProjectsGridColumns(with itemSide: CGFloat) -> [GridItem] {
+        Array(
+            repeating: GridItem(.fixed(itemSide), spacing: editedProjectsGridSpacing),
+            count: editedProjectsGridColumnCount
+        )
+    }
+
+    private func editedProjectsGridItemSide(for availableWidth: CGFloat) -> CGFloat {
+        let totalSpacing = CGFloat(editedProjectsGridColumnCount - 1) * editedProjectsGridSpacing
+        return floor((availableWidth - totalSpacing) / CGFloat(editedProjectsGridColumnCount))
+    }
+
+    private func openProject(_ project: EditedVideoProject) {
+        guard project.hasOriginalVideo else {
+            persistenceErrorMessage = "The original video for this project is no longer available."
+            return
+        }
+
+        viewModel.startEditorSession(
+            with: project.originalVideoURL,
+            projectID: project.id,
+            editingConfiguration: project.editingConfiguration
+        )
+    }
+
+    private func deleteProject(_ project: EditedVideoProject) {
+        do {
+            try projectsStore.deleteProject(project)
+        } catch {
+            persistenceErrorMessage = error.localizedDescription
+        }
+    }
+
+    private func handleViewDisappear() {
+        itemLoadTask?.cancel()
+        itemLoadTask = nil
+        viewModel.handleViewDisappear()
+    }
+
+    private func loadSelectedItem(_ newItem: PhotosPickerItem?) async {
+        guard let newItem else {
+            viewModel.isLoading = false
+            return
+        }
+
+        viewModel.isLoading = true
+
+        defer {
+            viewModel.isLoading = false
+            itemLoadTask = nil
+        }
+
+        do {
+            if let video = try await newItem.loadTransferable(type: VideoItem.self), !Task.isCancelled {
+                viewModel.startEditorSession(with: video.url)
+                selectedItem = nil
+            }
+        } catch {
+            assertionFailure("Failed to load selected video: \(error.localizedDescription)")
+            selectedItem = nil
+        }
+    }
+
+    private func persistProject(
+        _ exportedVideo: ExportedVideo,
+        editingConfiguration: VideoEditingConfiguration
+    ) async {
+        guard let originalVideoURL = viewModel.currentSourceVideoURL else {
+            persistenceErrorMessage = "The original video for this editing session could not be resolved."
+            return
+        }
+
+        do {
+            let project = try await projectsStore.saveProject(
+                projectID: viewModel.currentProjectID,
+                originalVideoURL: originalVideoURL,
+                exportedVideo: exportedVideo,
+                editingConfiguration: editingConfiguration
+            )
+
+            viewModel.handlePersistedProjectSave(
+                projectID: project.id,
+                originalVideoURL: project.originalVideoURL
+            )
+            selectedItem = nil
+        } catch {
+            persistenceErrorMessage = error.localizedDescription
         }
     }
 
@@ -248,4 +382,5 @@ extension RootView {
 
 #Preview {
     RootView()
+        .modelContainer(for: EditedVideoProject.self, inMemory: true)
 }

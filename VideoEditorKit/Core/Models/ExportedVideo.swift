@@ -16,6 +16,7 @@ struct ExportedVideo: Equatable, Sendable {
     let url: URL
     let width: CGFloat
     let height: CGFloat
+    let duration: Double
     let fileSize: Int64
 
     var aspectRatio: CGFloat {
@@ -29,11 +30,13 @@ struct ExportedVideo: Equatable, Sendable {
         _ url: URL,
         width: CGFloat,
         height: CGFloat,
+        duration: Double,
         fileSize: Int64
     ) {
         self.url = url
         self.width = width
         self.height = height
+        self.duration = duration
         self.fileSize = fileSize
     }
 
@@ -42,12 +45,14 @@ struct ExportedVideo: Equatable, Sendable {
     static func load(from url: URL) async -> ExportedVideo {
         let asset = AVURLAsset(url: url)
         let presentationSize = await asset.presentationSize() ?? .zero
+        let duration = (try? await asset.load(.duration).seconds) ?? .zero
         let fileSize = resolvedFileSize(for: url)
 
         return ExportedVideo(
             url,
             width: max(presentationSize.width, 0),
             height: max(presentationSize.height, 0),
+            duration: max(duration, 0),
             fileSize: max(fileSize, 0)
         )
     }

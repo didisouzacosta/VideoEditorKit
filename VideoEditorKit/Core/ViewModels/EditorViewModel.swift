@@ -25,6 +25,7 @@ final class EditorViewModel {
     var showRecordView = false
     var cropTab: CropToolTab = .rotate
     var cropFreeformRect: VideoEditingConfiguration.FreeformRect?
+    private(set) var editingConfigurationChangeCounter = 0
 
     var hasCurrentVideo: Bool {
         currentVideo != nil
@@ -84,14 +85,20 @@ final class EditorViewModel {
                 containerSize: containerSize,
                 displayScale: self?.lastThumbnailDisplayScale ?? 1
             )
+            self?.markEditingConfigurationChanged()
         }
     }
 
     func setToolAvailability(_ tools: [ToolAvailability]) {
         enabledTools = Set(tools.filter(\.isEnabled).map(\.tool))
+        let previousSelection = selectedTools
 
         if let selectedTools, !canSelectTool(selectedTools) {
             self.selectedTools = nil
+        }
+
+        if previousSelection != selectedTools {
+            markEditingConfigurationChanged()
         }
     }
 
@@ -197,26 +204,31 @@ extension EditorViewModel {
         } else {
             removeTool()
         }
+        markEditingConfigurationChanged()
     }
 
     func setText(_ textBox: [TextBox]) {
         currentVideo?.textBoxes = textBox
         setTools()
+        markEditingConfigurationChanged()
     }
 
     func setFrames() {
         currentVideo?.videoFrames = frames
         setTools()
+        markEditingConfigurationChanged()
     }
 
     func setCorrections(_ correction: ColorCorrection) {
         currentVideo?.colorCorrection = correction
         setTools()
+        markEditingConfigurationChanged()
     }
 
     func updateRate(rate: Float) {
         currentVideo?.updateRate(rate)
         setTools()
+        markEditingConfigurationChanged()
     }
 
     func setCut() {
@@ -231,39 +243,47 @@ extension EditorViewModel {
         } else {
             currentVideo?.removeTool(for: .cut)
         }
+
+        markEditingConfigurationChanged()
     }
 
     func resetCut() {
         currentVideo?.resetRangeDuration()
         currentVideo?.removeTool(for: .cut)
+        markEditingConfigurationChanged()
     }
 
     func rotate() {
         currentVideo?.rotate()
         setTools()
+        markEditingConfigurationChanged()
     }
 
     func setRotation(_ rotation: Double) {
         guard currentVideo?.rotation != rotation else { return }
         currentVideo?.rotation = rotation
         setTools()
+        markEditingConfigurationChanged()
     }
 
     func toggleMirror() {
         currentVideo?.isMirror.toggle()
         setTools()
+        markEditingConfigurationChanged()
     }
 
     func setCropFreeformRect(_ rect: VideoEditingConfiguration.FreeformRect?) {
         guard cropFreeformRect != rect else { return }
         cropFreeformRect = rect
         syncCropToolState()
+        markEditingConfigurationChanged()
     }
 
     func setAudio(_ audio: Audio) {
         currentVideo?.audio = audio
         selectedAudioTrack = .recorded
         setTools()
+        markEditingConfigurationChanged()
     }
 
     func setTools() {
@@ -282,6 +302,7 @@ extension EditorViewModel {
         currentVideo?.audio = nil
         selectedAudioTrack = .video
         removeTool()
+        markEditingConfigurationChanged()
     }
 
     func reset(
@@ -330,15 +351,19 @@ extension EditorViewModel {
             currentVideo?.videoFrames = nil
         }
 
+        markEditingConfigurationChanged()
+
         Task { @MainActor [weak self] in
             try? await Task.sleep(for: .milliseconds(100))
             self?.currentVideo?.removeTool(for: tool)
+            self?.markEditingConfigurationChanged()
         }
     }
 
     func selectTool(_ tool: ToolEnum) {
         guard canSelectTool(tool) else { return }
         selectedTools = tool
+        markEditingConfigurationChanged()
     }
 
     func closeSelectedTool(_ textEditor: TextEditorViewModel) {
@@ -404,6 +429,8 @@ extension EditorViewModel {
         if didChangeGeometrySize {
             textEditor.load(textBoxes: currentVideo.textBoxes)
         }
+
+        markEditingConfigurationChanged()
     }
 
     func handleThumbnailImagesChange(filtersViewModel: FiltersViewModel) {
@@ -417,12 +444,18 @@ extension EditorViewModel {
             }
         } else if selectedTools == .text {
             selectedTools = nil
+            markEditingConfigurationChanged()
         }
     }
 
     func handleSelectedToolChange(_ tool: ToolEnum?, textEditor: TextEditorViewModel) {
+        let previousSelection = selectedTools
+
         guard tool == nil || canSelectTool(tool) else {
             selectedTools = nil
+            if previousSelection != selectedTools {
+                markEditingConfigurationChanged()
+            }
             return
         }
 
@@ -436,6 +469,10 @@ extension EditorViewModel {
 
         if tool == nil {
             setText(textEditor.textBoxes)
+        }
+
+        if previousSelection != tool {
+            markEditingConfigurationChanged()
         }
     }
 
@@ -481,12 +518,20 @@ extension EditorViewModel {
     }
 
     func selectAudioTrack(_ track: AudioTrackSelection) {
+        let previousTrack = selectedAudioTrack
+
         if track == .recorded, !hasRecordedAudioTrack {
             selectedAudioTrack = .video
+            if previousTrack != selectedAudioTrack {
+                markEditingConfigurationChanged()
+            }
             return
         }
 
         selectedAudioTrack = track
+        if previousTrack != track {
+            markEditingConfigurationChanged()
+        }
     }
 
     func audioTrackSelectionBinding() -> Binding<AudioTrackSelection> {
@@ -509,6 +554,7 @@ extension EditorViewModel {
 
         videoPlayer.setVolume(selectedAudioTrack == .video, value: value)
         syncAudioToolState()
+        markEditingConfigurationChanged()
     }
 
     func selectedTrackVolume() -> Float {
@@ -542,14 +588,20 @@ extension EditorViewModel {
     func frameColorBinding() -> Binding<Color> {
         Binding(
             get: { self.frames.frameColor },
-            set: { self.frames.frameColor = $0 }
+            set: {
+                self.frames.frameColor = $0
+                self.markEditingConfigurationChanged()
+            }
         )
     }
 
     func frameScaleBinding() -> Binding<Double> {
         Binding(
             get: { self.frames.scaleValue },
-            set: { self.frames.scaleValue = $0 }
+            set: {
+                self.frames.scaleValue = $0
+                self.markEditingConfigurationChanged()
+            }
         )
     }
 
@@ -582,6 +634,7 @@ extension EditorViewModel {
     func presentExporter() {
         exportSheetTask?.cancel()
         selectedTools = nil
+        markEditingConfigurationChanged()
         exportSheetTask = Task { @MainActor [self] in
             defer { exportSheetTask = nil }
 
@@ -776,6 +829,10 @@ extension EditorViewModel {
         if video.textBoxes.count == pendingTextOverlays.count {
             pendingTextOverlays = []
         }
+    }
+
+    private func markEditingConfigurationChanged() {
+        editingConfigurationChangeCounter += 1
     }
 
 }

@@ -32,6 +32,7 @@ struct ExporterViewModelTests {
             URL(fileURLWithPath: "/tmp/exported.mp4"),
             width: 1920,
             height: 1080,
+            duration: 12,
             fileSize: 512
         )
 
@@ -83,7 +84,13 @@ struct ExporterViewModelTests {
     @Test
     func failedExportCanBeRetriedWithoutRecreatingTheViewModel() async {
         let expectedURL = URL(fileURLWithPath: "/tmp/retried-export.mp4")
-        let expectedVideo = ExportedVideo(expectedURL, width: 1280, height: 720, fileSize: 1024)
+        let expectedVideo = ExportedVideo(
+            expectedURL,
+            width: 1280,
+            height: 720,
+            duration: 10,
+            fileSize: 1024
+        )
         let tracker = ExportRetryTracker()
         let viewModel = ExporterViewModel(
             Video.mock,
@@ -190,7 +197,13 @@ struct ExporterViewModelTests {
                 return expectedURL
             },
             loadExportedVideo: { url in
-                ExportedVideo(url, width: 1280, height: 720, fileSize: 256)
+                ExportedVideo(
+                    url,
+                    width: 1280,
+                    height: 720,
+                    duration: 8,
+                    fileSize: 256
+                )
             }
         )
 
