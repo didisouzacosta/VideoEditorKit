@@ -6,7 +6,7 @@
 - Phase 1 completed
 - Phase 2 completed
 - Phase 3 completed
-- Phase 4 pending
+- Phase 4 completed
 - Phase 5 pending
 
 ## Summary
@@ -94,11 +94,15 @@ The `9:16` card should communicate its intended targets:
 - While `9:16` is active, the preview shows the crop frame with a preset badge and a black outside overlay.
 - The user can drag to reposition, pinch to resize, and double tap to return to the full preset frame.
 
-### Why not safe areas yet
+### Safe areas in Phase 4
 
-Safe-area overlays are useful, but they are product polish, not the core framing capability.
+Safe-area overlays now sit on top of the shared `9:16` preset as preview-only platform guidance.
 
-The first release should make framing possible before it tries to model platform chrome overlays.
+The current product behavior is:
+
+- the active destination can show platform-specific safe-area guides
+- the guides help protect content from platform chrome and action rails
+- the guides are intentionally excluded from exported media
 
 ## Phase Plan
 
@@ -154,6 +158,7 @@ Scope:
 
 - show optional safe-area guides for Instagram Reels, TikTok, and YouTube Shorts
 - keep guides out of the exported media
+- persist whether the user left the guide visibility on or off
 
 ### Phase 5
 

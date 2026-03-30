@@ -77,7 +77,9 @@ extension PlayerHolderView {
                             ),
                             rotation: editorViewModel.currentVideo?.rotation,
                             isMirror: editorViewModel.currentVideo?.isMirror ?? false,
-                            isActiveCrop: editorViewModel.shouldShowCropOverlay
+                            isActiveCrop: editorViewModel.shouldShowCropOverlay,
+                            socialVideoSafeAreaGuide: editorViewModel.socialVideoDestination?.safeAreaGuide,
+                            showsSocialVideoSafeAreaGuide: editorViewModel.shouldShowSocialVideoSafeAreaGuide
                         ) {
                             ZStack {
                                 editorViewModel.frames.frameColor

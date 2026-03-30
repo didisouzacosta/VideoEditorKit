@@ -23,6 +23,8 @@ struct CropView<T: View>: View {
     private let rotation: Double?
     private let isMirror: Bool
     private let isActiveCrop: Bool
+    private let socialVideoSafeAreaGuide: SocialVideoSafeAreaGuide?
+    private let showsSocialVideoSafeAreaGuide: Bool
     private let setFrameScale: Bool
     private let frameScale: CGFloat
     @ViewBuilder
@@ -60,6 +62,18 @@ struct CropView<T: View>: View {
                 cornerRadius: cropCornerRadius
             )
             .fill(.black.opacity(0.72), style: FillStyle(eoFill: true))
+
+            if let socialVideoSafeAreaGuide, showsSocialVideoSafeAreaGuide {
+                CropSafeAreaOverlay(
+                    guide: socialVideoSafeAreaGuide,
+                    cropSize: resolvedCropRect.size,
+                    cornerRadius: cropCornerRadius
+                )
+                .position(
+                    x: resolvedCropRect.midX,
+                    y: resolvedCropRect.midY
+                )
+            }
 
             RoundedRectangle(cornerRadius: cropCornerRadius, style: .continuous)
                 .stroke(Theme.primary, lineWidth: lineWidth)
@@ -103,6 +117,8 @@ struct CropView<T: View>: View {
         rotation: Double?,
         isMirror: Bool,
         isActiveCrop: Bool,
+        socialVideoSafeAreaGuide: SocialVideoSafeAreaGuide? = nil,
+        showsSocialVideoSafeAreaGuide: Bool = false,
         setFrameScale: Bool = false,
         frameScale: CGFloat = 1,
         @ViewBuilder frameView: @escaping () -> T
@@ -113,6 +129,8 @@ struct CropView<T: View>: View {
         self.rotation = rotation
         self.isMirror = isMirror
         self.isActiveCrop = isActiveCrop
+        self.socialVideoSafeAreaGuide = socialVideoSafeAreaGuide
+        self.showsSocialVideoSafeAreaGuide = showsSocialVideoSafeAreaGuide
         self.setFrameScale = setFrameScale
         self.frameScale = frameScale
         self.frameView = frameView
@@ -240,6 +258,113 @@ private struct CropOverlayShape: Shape {
             cornerSize: CGSize(width: cornerRadius, height: cornerRadius)
         )
         return path
+    }
+
+}
+
+private struct CropSafeAreaOverlay: View {
+
+    // MARK: - Private Properties
+
+    private let guide: SocialVideoSafeAreaGuide
+    private let cropSize: CGSize
+    private let cornerRadius: CGFloat
+
+    // MARK: - Body
+
+    var body: some View {
+        ZStack {
+            ForEach(guide.overlayRegions(in: localCanvas)) { region in
+                regionView(region)
+            }
+
+            RoundedRectangle(cornerRadius: max(cornerRadius - 3, 8), style: .continuous)
+                .stroke(style: StrokeStyle(lineWidth: 1.5, dash: [8, 6]))
+                .foregroundStyle(.white.opacity(0.9))
+                .frame(
+                    width: safeRect.width,
+                    height: safeRect.height
+                )
+                .position(
+                    x: safeRect.midX,
+                    y: safeRect.midY
+                )
+        }
+        .frame(width: cropSize.width, height: cropSize.height)
+        .clipShape(.rect(cornerRadius: cornerRadius))
+        .allowsHitTesting(false)
+    }
+
+    // MARK: - Initializer
+
+    init(
+        guide: SocialVideoSafeAreaGuide,
+        cropSize: CGSize,
+        cornerRadius: CGFloat
+    ) {
+        self.guide = guide
+        self.cropSize = cropSize
+        self.cornerRadius = cornerRadius
+    }
+
+    // MARK: - Private Properties
+
+    private var localCanvas: CGRect {
+        CGRect(origin: .zero, size: cropSize)
+    }
+
+    private var safeRect: CGRect {
+        guide.safeRect(in: localCanvas)
+    }
+
+    // MARK: - Private Methods
+
+    @ViewBuilder
+    private func regionView(_ region: SocialVideoSafeAreaGuide.Region) -> some View {
+        Rectangle()
+            .fill(color(for: region.role).opacity(0.18))
+            .frame(
+                width: region.rect.width,
+                height: region.rect.height
+            )
+            .position(
+                x: region.rect.midX,
+                y: region.rect.midY
+            )
+            .overlay(alignment: alignment(for: region.role)) {
+                Text(region.title)
+                    .font(.caption2.weight(.bold))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 5)
+                    .capsuleControl(
+                        prominent: true,
+                        tint: color(for: region.role).opacity(0.9)
+                    )
+                    .foregroundStyle(.white)
+                    .padding(8)
+            }
+    }
+
+    private func color(for role: SocialVideoSafeAreaGuide.Region.Role) -> Color {
+        switch role {
+        case .top:
+            Color.orange
+        case .bottom:
+            Color.pink
+        case .trailing:
+            Color.cyan
+        }
+    }
+
+    private func alignment(for role: SocialVideoSafeAreaGuide.Region.Role) -> Alignment {
+        switch role {
+        case .top:
+            .topLeading
+        case .bottom:
+            .bottomLeading
+        case .trailing:
+            .topTrailing
+        }
     }
 
 }

@@ -265,6 +265,54 @@ extension VideoEditingConfiguration {
         var selectedTool: ToolEnum?
         var cropTab: CropTab = .rotate
         var socialVideoDestination: SocialVideoDestination?
+        var showsSafeAreaGuides = false
+
+        // MARK: - Private Properties
+
+        private enum CodingKeys: String, CodingKey {
+            case selectedTool
+            case cropTab
+            case socialVideoDestination
+            case showsSafeAreaGuides
+        }
+
+        // MARK: - Initializer
+
+        init(
+            _ selectedTool: ToolEnum? = nil,
+            cropTab: CropTab = .rotate,
+            socialVideoDestination: SocialVideoDestination? = nil,
+            showsSafeAreaGuides: Bool = false
+        ) {
+            self.selectedTool = selectedTool
+            self.cropTab = cropTab
+            self.socialVideoDestination = socialVideoDestination
+            self.showsSafeAreaGuides = showsSafeAreaGuides
+        }
+
+        // MARK: - Public Methods
+
+        init(from decoder: any Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+
+            selectedTool = try container.decodeIfPresent(ToolEnum.self, forKey: .selectedTool)
+            cropTab = try container.decodeIfPresent(CropTab.self, forKey: .cropTab) ?? .rotate
+            socialVideoDestination = try container.decodeIfPresent(
+                SocialVideoDestination.self,
+                forKey: .socialVideoDestination
+            )
+            showsSafeAreaGuides =
+                try container.decodeIfPresent(Bool.self, forKey: .showsSafeAreaGuides)
+                ?? (socialVideoDestination != nil)
+        }
+
+        func encode(to encoder: any Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encodeIfPresent(selectedTool, forKey: .selectedTool)
+            try container.encode(cropTab, forKey: .cropTab)
+            try container.encodeIfPresent(socialVideoDestination, forKey: .socialVideoDestination)
+            try container.encode(showsSafeAreaGuides, forKey: .showsSafeAreaGuides)
+        }
 
     }
 

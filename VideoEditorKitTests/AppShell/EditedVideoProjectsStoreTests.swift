@@ -28,7 +28,7 @@ struct EditedVideoProjectsStoreTests {
                 ),
                 selectedTrack: .recorded
             ),
-            presentation: .init(selectedTool: .audio, cropTab: .rotate)
+            presentation: .init(.audio, cropTab: .rotate)
         )
 
         defer { FileManager.default.removeIfExists(for: originalVideoURL) }

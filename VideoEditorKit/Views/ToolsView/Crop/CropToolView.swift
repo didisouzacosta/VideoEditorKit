@@ -47,6 +47,7 @@ extension CropToolView {
 
             if editorVM.shouldShowSocialVideoDestinationPicker {
                 socialVideoDestinationSection
+                safeAreaGuideSection
             }
         }
     }
@@ -113,6 +114,46 @@ extension CropToolView {
                 }
             }
         }
+    }
+
+    private var safeAreaGuideSection: some View {
+        VStack(spacing: 8) {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Safe Area Guides")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Theme.primary)
+
+                    Text("Preview only. These guides are not exported.")
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(Theme.secondary)
+                }
+
+                Spacer(minLength: 12)
+
+                Button {
+                    editorVM.toggleSocialVideoSafeAreaGuides()
+                } label: {
+                    Label(
+                        editorVM.showsSocialVideoSafeAreaGuides ? "On" : "Off",
+                        systemImage: editorVM.showsSocialVideoSafeAreaGuides ? "eye.fill" : "eye.slash"
+                    )
+                    .font(.caption.weight(.semibold))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .capsuleControl(
+                        prominent: editorVM.showsSocialVideoSafeAreaGuides,
+                        tint: editorVM.showsSocialVideoSafeAreaGuides ? Theme.accent : Theme.secondary
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(14)
+        .card(
+            cornerRadius: 20,
+            tint: Theme.secondary
+        )
     }
 
     @ViewBuilder

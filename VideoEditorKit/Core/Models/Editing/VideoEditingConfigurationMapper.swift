@@ -20,6 +20,7 @@ enum VideoEditingConfigurationMapper {
         selectedTool: ToolEnum? = nil,
         cropTab: VideoEditingConfiguration.CropTab = .rotate,
         socialVideoDestination: VideoEditingConfiguration.SocialVideoDestination? = nil,
+        showsSafeAreaGuides: Bool = false,
         currentTimelineTime: Double? = nil
     ) -> VideoEditingConfiguration {
         VideoEditingConfiguration(
@@ -77,9 +78,10 @@ enum VideoEditingConfigurationMapper {
                 )
             },
             presentation: .init(
-                selectedTool: selectedTool,
+                selectedTool,
                 cropTab: cropTab,
-                socialVideoDestination: socialVideoDestination
+                socialVideoDestination: socialVideoDestination,
+                showsSafeAreaGuides: showsSafeAreaGuides
             )
         )
     }

@@ -59,9 +59,10 @@ struct VideoEditingConfigurationTests {
                 )
             ],
             presentation: .init(
-                selectedTool: .filters,
+                .filters,
                 cropTab: .rotate,
-                socialVideoDestination: .tikTok
+                socialVideoDestination: .tikTok,
+                showsSafeAreaGuides: true
             )
         )
 
@@ -71,6 +72,7 @@ struct VideoEditingConfigurationTests {
         #expect(decodedConfiguration.version == VideoEditingConfiguration.currentSchemaVersion.rawValue)
         #expect(decodedConfiguration.schemaVersion == .normalizedTextOverlayOffsets)
         #expect(decodedConfiguration == configuration)
+        #expect(decodedConfiguration.presentation.showsSafeAreaGuides)
     }
 
     @Test
@@ -231,6 +233,7 @@ struct VideoEditingConfigurationTests {
             selectedTool: .filters,
             cropTab: .rotate,
             socialVideoDestination: .youtubeShorts,
+            showsSafeAreaGuides: true,
             currentTimelineTime: 7
         )
 
@@ -262,6 +265,7 @@ struct VideoEditingConfigurationTests {
         #expect(configuration.presentation.selectedTool == .filters)
         #expect(configuration.presentation.cropTab == .rotate)
         #expect(configuration.presentation.socialVideoDestination == .youtubeShorts)
+        #expect(configuration.presentation.showsSafeAreaGuides)
         #expect(configuration.textOverlays.count == 1)
         #expect(configuration.textOverlays[0].backgroundColorToken == "palette:blue")
         #expect(configuration.textOverlays[0].fontColorToken == "palette:label")
@@ -316,9 +320,10 @@ struct VideoEditingConfigurationTests {
                 )
             ],
             presentation: .init(
-                selectedTool: .text,
+                .text,
                 cropTab: .format,
-                socialVideoDestination: .instagramReels
+                socialVideoDestination: .instagramReels,
+                showsSafeAreaGuides: true
             )
         )
 
@@ -359,6 +364,26 @@ struct VideoEditingConfigurationTests {
         #expect(video.isAppliedTool(for: .frames))
         #expect(VideoEditingConfigurationMapper.selectedAudioTrack(from: configuration) == .recorded)
         #expect(VideoEditingConfigurationMapper.cropTab(from: configuration) == .format)
+    }
+
+    @Test
+    func decodeMissingSafeAreaGuidesDefaultsToVisibleForSavedSocialDestinations() throws {
+        let json = """
+            {
+              "version": 2,
+              "presentation": {
+                "cropTab": "format",
+                "socialVideoDestination": "tikTok"
+              }
+            }
+            """
+            .data(using: .utf8)
+
+        let data = try #require(json)
+        let configuration = try JSONDecoder().decode(VideoEditingConfiguration.self, from: data)
+
+        #expect(configuration.presentation.socialVideoDestination == .tikTok)
+        #expect(configuration.presentation.showsSafeAreaGuides)
     }
 
     @Test

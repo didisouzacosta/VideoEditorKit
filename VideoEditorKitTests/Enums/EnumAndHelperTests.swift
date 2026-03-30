@@ -347,6 +347,7 @@ struct VideoEditorGeometryTests {
                 )
             ),
             presentation: .init(
+                nil,
                 socialVideoDestination: .instagramReels
             )
         )
@@ -371,6 +372,7 @@ struct VideoEditorGeometryTests {
                 )
             ),
             presentation: .init(
+                nil,
                 socialVideoDestination: .tikTok
             )
         )
@@ -396,6 +398,7 @@ struct VideoEditorGeometryTests {
                 )
             ),
             presentation: .init(
+                nil,
                 socialVideoDestination: .youtubeShorts
             )
         )
@@ -421,6 +424,7 @@ struct VideoEditorGeometryTests {
                 )
             ),
             presentation: .init(
+                nil,
                 socialVideoDestination: .youtubeShorts
             )
         )

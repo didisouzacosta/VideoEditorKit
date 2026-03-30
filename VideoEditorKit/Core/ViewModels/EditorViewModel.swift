@@ -26,6 +26,7 @@ final class EditorViewModel {
     var cropTab: CropToolTab = .rotate
     var cropFreeformRect: VideoEditingConfiguration.FreeformRect?
     var socialVideoDestination: VideoEditingConfiguration.SocialVideoDestination?
+    var showsSocialVideoSafeAreaGuides = false
     private(set) var editingConfigurationChangeCounter = 0
 
     var hasCurrentVideo: Bool {
@@ -52,6 +53,12 @@ final class EditorViewModel {
 
     var shouldShowSocialVideoDestinationPicker: Bool {
         isCropFormatSelected(.vertical9x16)
+    }
+
+    var shouldShowSocialVideoSafeAreaGuide: Bool {
+        shouldShowCropOverlay
+            && socialVideoDestination != nil
+            && showsSocialVideoSafeAreaGuides
     }
 
     enum CropToolTab: String, CaseIterable {
@@ -311,16 +318,22 @@ extension EditorViewModel {
         let previousCropTab = cropTab
         let previousCropRect = cropFreeformRect
         let previousSocialVideoDestination = socialVideoDestination
+        let previousShowsSocialVideoSafeAreaGuides = showsSocialVideoSafeAreaGuides
         let nextCropRect: VideoEditingConfiguration.FreeformRect?
 
         switch preset {
         case .original:
             nextCropRect = nil
             socialVideoDestination = nil
+            showsSocialVideoSafeAreaGuides = false
         case .vertical9x16:
             guard let referenceSize = currentCropReferenceSize() else { return }
             nextCropRect = preset.makeFreeformRect(for: referenceSize)
+            let hadSocialDestination = socialVideoDestination != nil
             socialVideoDestination = socialVideoDestination ?? .instagramReels
+            if !hadSocialDestination {
+                showsSocialVideoSafeAreaGuides = true
+            }
         }
 
         cropTab = .format
@@ -331,6 +344,7 @@ extension EditorViewModel {
             previousCropTab != cropTab
                 || previousCropRect != cropFreeformRect
                 || previousSocialVideoDestination != socialVideoDestination
+                || previousShowsSocialVideoSafeAreaGuides != showsSocialVideoSafeAreaGuides
         else { return }
 
         markEditingConfigurationChanged()
@@ -342,22 +356,34 @@ extension EditorViewModel {
         let previousCropTab = cropTab
         let previousCropRect = cropFreeformRect
         let previousSocialVideoDestination = socialVideoDestination
+        let previousShowsSocialVideoSafeAreaGuides = showsSocialVideoSafeAreaGuides
 
         guard let referenceSize = currentCropReferenceSize() else { return }
 
+        let hadSocialDestination = socialVideoDestination != nil
         cropTab = .format
         socialVideoDestination = destination
         cropFreeformRect = VideoCropFormatPreset.vertical9x16.makeFreeformRect(
             for: referenceSize
         )
+        if !hadSocialDestination {
+            showsSocialVideoSafeAreaGuides = true
+        }
         syncCropToolState()
 
         guard
             previousCropTab != cropTab
                 || previousCropRect != cropFreeformRect
                 || previousSocialVideoDestination != socialVideoDestination
+                || previousShowsSocialVideoSafeAreaGuides != showsSocialVideoSafeAreaGuides
         else { return }
 
+        markEditingConfigurationChanged()
+    }
+
+    func toggleSocialVideoSafeAreaGuides() {
+        guard socialVideoDestination != nil else { return }
+        showsSocialVideoSafeAreaGuides.toggle()
         markEditingConfigurationChanged()
     }
 
@@ -408,6 +434,7 @@ extension EditorViewModel {
             cropFreeformRect = nil
             cropTab = .rotate
             socialVideoDestination = nil
+            showsSocialVideoSafeAreaGuides = false
         case .audio:
             selectedAudioTrack = .video
             if currentVideo?.audio != nil {
@@ -800,6 +827,7 @@ extension EditorViewModel {
             selectedTool: selectedTools,
             cropTab: serializedCropTab(),
             socialVideoDestination: socialVideoDestination,
+            showsSafeAreaGuides: showsSocialVideoSafeAreaGuides,
             currentTimelineTime: currentTimelineTime
         )
     }
@@ -822,6 +850,7 @@ extension EditorViewModel {
         selectedAudioTrack = .video
         cropFreeformRect = nil
         socialVideoDestination = nil
+        showsSocialVideoSafeAreaGuides = false
 
         guard let editingConfiguration else { return }
 
@@ -860,6 +889,7 @@ extension EditorViewModel {
         cropTab = VideoEditingConfigurationMapper.cropTab(from: pendingEditingConfiguration)
         cropFreeformRect = pendingEditingConfiguration.crop.freeformRect
         socialVideoDestination = pendingEditingConfiguration.presentation.socialVideoDestination
+        showsSocialVideoSafeAreaGuides = pendingEditingConfiguration.presentation.showsSafeAreaGuides
 
         let selectedAudioTrack = VideoEditingConfigurationMapper.selectedAudioTrack(
             from: pendingEditingConfiguration
