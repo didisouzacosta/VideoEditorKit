@@ -326,13 +326,22 @@ extension EditorViewModel {
             nextCropRect = nil
             socialVideoDestination = nil
             showsSocialVideoSafeAreaGuides = false
-        case .vertical9x16:
+        case .vertical9x16,
+            .square1x1,
+            .portrait4x5,
+            .landscape16x9:
             guard let referenceSize = currentCropReferenceSize() else { return }
             nextCropRect = preset.makeFreeformRect(for: referenceSize)
-            let hadSocialDestination = socialVideoDestination != nil
-            socialVideoDestination = socialVideoDestination ?? .instagramReels
-            if !hadSocialDestination {
-                showsSocialVideoSafeAreaGuides = true
+
+            if preset.isSocialVideoPreset {
+                let hadSocialDestination = socialVideoDestination != nil
+                socialVideoDestination = socialVideoDestination ?? .instagramReels
+                if !hadSocialDestination {
+                    showsSocialVideoSafeAreaGuides = true
+                }
+            } else {
+                socialVideoDestination = nil
+                showsSocialVideoSafeAreaGuides = false
             }
         }
 
@@ -635,8 +644,10 @@ extension EditorViewModel {
     }
 
     func selectedCropPreset() -> VideoCropFormatPreset {
-        if isCropFormatSelected(.vertical9x16) {
-            return .vertical9x16
+        for preset in VideoCropFormatPreset.editorPresets where preset != .original {
+            if isCropFormatSelected(preset) {
+                return preset
+            }
         }
 
         return .original
@@ -662,7 +673,10 @@ extension EditorViewModel {
             let sourceSize = resolvedSourceSizeForBadge()
             guard sourceSize.width > 0, sourceSize.height > 0 else { return preset.dimensionTitle }
             return "\(Int(sourceSize.width.rounded()))x\(Int(sourceSize.height.rounded()))"
-        case .vertical9x16:
+        case .vertical9x16,
+            .square1x1,
+            .portrait4x5,
+            .landscape16x9:
             return preset.dimensionTitle
         }
     }

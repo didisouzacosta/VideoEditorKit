@@ -14,11 +14,11 @@ enum VideoCropFormatPreset: String, CaseIterable, Identifiable, Sendable {
 
     case original
     case vertical9x16
+    case square1x1
+    case portrait4x5
+    case landscape16x9
 
-    static let phaseOnePresets: [Self] = [
-        .original,
-        .vertical9x16,
-    ]
+    static let editorPresets = Self.allCases
 
     var id: String {
         rawValue
@@ -30,6 +30,12 @@ enum VideoCropFormatPreset: String, CaseIterable, Identifiable, Sendable {
             "Original"
         case .vertical9x16:
             "9:16"
+        case .square1x1:
+            "1:1"
+        case .portrait4x5:
+            "4:5"
+        case .landscape16x9:
+            "16:9"
         }
     }
 
@@ -39,6 +45,12 @@ enum VideoCropFormatPreset: String, CaseIterable, Identifiable, Sendable {
             "Keeps the imported framing"
         case .vertical9x16:
             "Instagram Reels, TikTok, Shorts"
+        case .square1x1:
+            "Square posts and covers"
+        case .portrait4x5:
+            "Portrait feed posts"
+        case .landscape16x9:
+            "Landscape players and embeds"
         }
     }
 
@@ -48,6 +60,12 @@ enum VideoCropFormatPreset: String, CaseIterable, Identifiable, Sendable {
             "Source"
         case .vertical9x16:
             "9:16"
+        case .square1x1:
+            "1:1"
+        case .portrait4x5:
+            "4:5"
+        case .landscape16x9:
+            "16:9"
         }
     }
 
@@ -57,6 +75,21 @@ enum VideoCropFormatPreset: String, CaseIterable, Identifiable, Sendable {
             nil
         case .vertical9x16:
             9.0 / 16.0
+        case .square1x1:
+            1
+        case .portrait4x5:
+            4.0 / 5.0
+        case .landscape16x9:
+            16.0 / 9.0
+        }
+    }
+
+    var isSocialVideoPreset: Bool {
+        switch self {
+        case .vertical9x16:
+            true
+        case .original, .square1x1, .portrait4x5, .landscape16x9:
+            false
         }
     }
 
@@ -90,7 +123,10 @@ enum VideoCropFormatPreset: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .original:
             return freeformRect == nil
-        case .vertical9x16:
+        case .vertical9x16,
+            .square1x1,
+            .portrait4x5,
+            .landscape16x9:
             guard let aspectRatio else { return false }
             guard let freeformRect else { return false }
             guard referenceSize.width > 0, referenceSize.height > 0 else { return false }

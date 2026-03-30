@@ -39,8 +39,14 @@ extension CropToolView {
                 .foregroundStyle(Theme.secondary)
                 .multilineTextAlignment(.center)
 
-            HStack(spacing: 12) {
-                ForEach(VideoCropFormatPreset.phaseOnePresets) { preset in
+            LazyVGrid(
+                columns: [
+                    GridItem(.flexible(), spacing: 12),
+                    GridItem(.flexible(), spacing: 12),
+                ],
+                spacing: 12
+            ) {
+                ForEach(VideoCropFormatPreset.editorPresets) { preset in
                     cropFormatButton(preset)
                 }
             }
@@ -63,7 +69,7 @@ extension CropToolView {
                     cropFormatPreview(preset, isSelected: isSelected)
                     Spacer(minLength: 12)
 
-                    if preset == .vertical9x16 {
+                    if preset.isSocialVideoPreset {
                         Text("Social")
                             .font(.caption2.weight(.bold))
                             .padding(.horizontal, 8)
@@ -208,6 +214,12 @@ extension CropToolView {
             CGSize(width: 34, height: 22)
         case .vertical9x16:
             CGSize(width: 24, height: 42)
+        case .square1x1:
+            CGSize(width: 34, height: 34)
+        case .portrait4x5:
+            CGSize(width: 30, height: 38)
+        case .landscape16x9:
+            CGSize(width: 40, height: 22)
         }
     }
 

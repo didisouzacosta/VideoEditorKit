@@ -201,6 +201,28 @@ struct EditorViewModelTests {
     }
 
     @Test
+    func selectingPortraitPresetClearsSocialDestinationAndUpdatesTheBadge() throws {
+        let viewModel = EditorViewModel()
+        var video = Video.mock
+        video.presentationSize = CGSize(width: 1920, height: 1080)
+        viewModel.currentVideo = video
+        viewModel.selectTool(.crop)
+        viewModel.selectSocialVideoDestination(.instagramReels)
+
+        viewModel.selectCropFormat(.portrait4x5)
+
+        let cropRect = try #require(viewModel.cropFreeformRect)
+        #expect(abs(cropRect.x - 0.275) < 0.0001)
+        #expect(abs(cropRect.width - 0.45) < 0.0001)
+        #expect(viewModel.socialVideoDestination == nil)
+        #expect(viewModel.showsSocialVideoSafeAreaGuides == false)
+        #expect(viewModel.shouldShowSocialVideoDestinationPicker == false)
+        #expect(viewModel.selectedCropPreset() == .portrait4x5)
+        #expect(viewModel.selectedCropPresetBadgeTitle() == "4:5")
+        #expect(viewModel.selectedCropPresetBadgeDimension() == "4:5")
+    }
+
+    @Test
     func setAudioSwitchesToRecordedTrackAndMarksAudioTool() throws {
         let viewModel = EditorViewModel()
         let audioURL = try TestFixtures.createTemporaryAudio()
@@ -625,6 +647,46 @@ struct EditorViewModelTests {
         #expect(viewModel.showsSocialVideoSafeAreaGuides == false)
         #expect(viewModel.shouldShowSocialVideoSafeAreaGuide == false)
         #expect(viewModel.isCropFormatSelected(.vertical9x16))
+    }
+
+    @Test
+    func restoredNonSocialPresetGeometryMapsBackToThePresetLibrary() throws {
+        let viewModel = EditorViewModel()
+        let cropRect = try #require(
+            VideoCropFormatPreset.square1x1.makeFreeformRect(
+                for: CGSize(width: 1920, height: 1080)
+            )
+        )
+        let editingConfiguration = VideoEditingConfiguration(
+            crop: .init(
+                freeformRect: cropRect
+            ),
+            presentation: .init(
+                .crop,
+                cropTab: .format
+            )
+        )
+        let videoPlayer = VideoPlayerManager()
+
+        viewModel.prepareEditingConfigurationForInitialLoad(
+            editingConfiguration,
+            videoPlayer: videoPlayer
+        )
+
+        var video = Video.mock
+        video.presentationSize = CGSize(width: 1920, height: 1080)
+        viewModel.applyPendingEditingConfiguration(
+            to: &video,
+            containerSize: CGSize(width: 320, height: 240)
+        )
+        viewModel.currentVideo = video
+        viewModel.restorePendingEditingPresentationState()
+
+        #expect(viewModel.selectedCropPreset() == .square1x1)
+        #expect(viewModel.selectedCropPresetBadgeTitle() == "1:1")
+        #expect(viewModel.selectedCropPresetBadgeDimension() == "1:1")
+        #expect(viewModel.socialVideoDestination == nil)
+        #expect(viewModel.shouldShowSocialVideoDestinationPicker == false)
     }
 
     @Test

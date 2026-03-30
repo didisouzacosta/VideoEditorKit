@@ -7,7 +7,7 @@
 - Phase 2 completed
 - Phase 3 completed
 - Phase 4 completed
-- Phase 5 pending
+- Phase 5 completed
 
 ## Summary
 
@@ -170,6 +170,12 @@ Scope:
 - add `4:5`
 - add `16:9`
 - keep tests around crop geometry and format restore behavior
+
+Completed outcome:
+
+- the preset picker now exposes `Original`, `9:16`, `1:1`, `4:5`, and `16:9`
+- non-social presets clear social destination intent and safe-area guides
+- preset restore continues to infer the active format from persisted crop geometry
 
 ## Testing Notes
 

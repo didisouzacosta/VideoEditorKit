@@ -65,6 +65,52 @@ struct VideoCropFormatPresetTests {
     }
 
     @Test
+    func squarePresetCreatesCentered1x1CropForLandscapeVideo() throws {
+        let cropRect = try #require(
+            VideoCropFormatPreset.square1x1.makeFreeformRect(
+                for: CGSize(width: 1920, height: 1080)
+            )
+        )
+
+        #expect(abs(cropRect.x - 0.21875) < 0.0001)
+        #expect(abs(cropRect.y - 0) < 0.0001)
+        #expect(abs(cropRect.width - 0.5625) < 0.0001)
+        #expect(abs(cropRect.height - 1) < 0.0001)
+    }
+
+    @Test
+    func portraitPresetCreatesCentered4x5CropForLandscapeVideo() throws {
+        let cropRect = try #require(
+            VideoCropFormatPreset.portrait4x5.makeFreeformRect(
+                for: CGSize(width: 1920, height: 1080)
+            )
+        )
+
+        #expect(abs(cropRect.x - 0.275) < 0.0001)
+        #expect(abs(cropRect.y - 0) < 0.0001)
+        #expect(abs(cropRect.width - 0.45) < 0.0001)
+        #expect(abs(cropRect.height - 1) < 0.0001)
+    }
+
+    @Test
+    func landscapePresetMatchesFullFrameOnNativeLandscapeVideo() {
+        let referenceSize = CGSize(width: 1920, height: 1080)
+        let cropRect = VideoEditingConfiguration.FreeformRect(
+            x: 0,
+            y: 0,
+            width: 1,
+            height: 1
+        )
+
+        #expect(
+            VideoCropFormatPreset.landscape16x9.matches(
+                cropRect,
+                in: referenceSize
+            )
+        )
+    }
+
+    @Test
     func resizingPresetRectWithPinchOutZoomsInWhileKeepingThePresetAspectRatio() throws {
         let referenceSize = CGSize(width: 1920, height: 1080)
         let initialRect = try #require(
