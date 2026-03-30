@@ -20,33 +20,28 @@ struct EditedVideoProjectCard: View {
     // MARK: - Body
 
     var body: some View {
-        GeometryReader { geometry in
-            let side = min(geometry.size.width, geometry.size.height)
-
-            ZStack(alignment: .topTrailing) {
-                Button(action: onOpen) {
-                    ZStack(alignment: .bottomTrailing) {
-                        thumbnailContent
-                            .frame(width: side, height: side)
-
-                        durationBadge
-                            .padding(6)
-                    }
-                    .frame(width: side, height: side)
+        Button(action: onOpen) {
+            thumbnailContent
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .overlay(alignment: .bottomTrailing) {
+                    durationBadge
+                        .padding(6)
+                        .allowsHitTesting(false)
                 }
-                .buttonStyle(.plain)
-
-                menuButton
-                    .padding(6)
-            }
-            .frame(width: side, height: side)
-            .background(.black)
-            .clipShape(cardShape)
-            .overlay {
-                cardShape
-                    .stroke(Theme.outline, lineWidth: 1)
-            }
         }
+        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(.black)
+        .clipShape(cardShape)
+        .overlay(alignment: .topTrailing) {
+            menuButton
+                .padding(6)
+        }
+        .overlay {
+            cardShape
+                .stroke(Theme.outline, lineWidth: 1)
+        }
+        .contentShape(cardShape)
         .aspectRatio(1, contentMode: .fit)
     }
 
@@ -78,6 +73,8 @@ struct EditedVideoProjectCard: View {
                 .frame(width: 28, height: 28)
                 .background(.regularMaterial, in: Circle())
         }
+        .frame(width: 40, height: 40)
+        .contentShape(Rectangle())
     }
 
     @ViewBuilder
@@ -86,6 +83,7 @@ struct EditedVideoProjectCard: View {
             Image(uiImage: resolvedThumbnailImage)
                 .resizable()
                 .scaledToFill()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .clipped()
         } else {
             ZStack {
