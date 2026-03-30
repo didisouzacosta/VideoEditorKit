@@ -1,0 +1,173 @@
+# Social Video Format Plan
+
+## Status
+
+- Planning documented
+- Phase 1 in progress
+- Phase 2 pending
+- Phase 3 pending
+- Phase 4 pending
+- Phase 5 pending
+
+## Summary
+
+The editor should support destination-oriented framing for short-form social platforms without introducing a separate rendering pipeline per platform.
+
+For V1, the product decision is:
+
+- keep a single crop model based on `VideoEditingConfiguration.Crop.freeformRect`
+- expose a `9:16` format preset in the editor
+- let the user reposition the video inside that fixed canvas during editing
+- reuse the existing crop export stage instead of adding a new export-only transform
+
+This keeps the first rollout small, useful, and aligned with the current architecture.
+
+## Platform Baseline
+
+Checked on 30 March 2026.
+
+- Instagram Reels:
+  - official accessible guidance points to fullscreen vertical delivery
+  - product baseline for the editor should be `9:16`
+- TikTok:
+  - official ads specs recommend `9:16` vertical and accept `1:1` and `16:9`
+  - official minimum for vertical is `540 x 960`
+- YouTube Shorts:
+  - official upload guidance accepts square or vertical
+  - product baseline for the editor should be `9:16`
+
+Recommended canvas for the app:
+
+- `1080 x 1920` for vertical social export targets
+
+Note:
+
+- `1080 x 1920` is the app baseline we should optimize around for V1.
+- Not every official help page exposes exact pixel guidance in the same place, so this should be treated as a product/export target derived from `9:16`, not as a hard platform contract for every surface.
+
+## Why A Shared 9:16 Preset
+
+Instagram Reels, TikTok, and YouTube Shorts all converge on the same practical editing canvas for mobile-first short video:
+
+- portrait full screen
+- `9:16`
+
+That means the editor does not need three different crop engines.
+
+For the current app, the better split is:
+
+- crop preset:
+  - shared `9:16`
+- platform-specific guidance:
+  - safe-area overlays and destination labeling
+
+The safe-area layer can come later without invalidating the crop model.
+
+## Current Code Reality
+
+- The crop tab already exists, but the `format` branch is empty in [CropToolView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorKit/Views/ToolsView/Crop/CropToolView.swift).
+- The preview already uses `CropView` driven by `cropFreeformRect` in [PlayerHolderView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorKit/Views/EditorView/PlayerHolderView.swift).
+- Crop state is already serializable via `VideoEditingConfiguration.Crop.freeformRect` in [VideoEditingConfiguration.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorKit/Core/Models/Editing/VideoEditingConfiguration.swift).
+- Export already consumes `freeformRect` in the crop stage in [VideoEditor.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorKit/Core/Models/Enums/VideoEditor.swift).
+
+Because of that, the first implementation can be built on top of the current model instead of introducing new persistence immediately.
+
+## UX Direction
+
+### Format tab
+
+The crop tool should expose:
+
+- `Original`
+- `9:16`
+
+The `9:16` card should communicate its intended targets:
+
+- Instagram Reels
+- TikTok
+- YouTube Shorts
+
+### Preview behavior
+
+- Selecting `Original` clears `freeformRect`.
+- Selecting `9:16` creates the largest centered `9:16` crop that fits inside the current video.
+- While `9:16` is active, the preview shows the crop frame and the user can drag to reposition it.
+- The crop frame should not appear in the rotate tab.
+
+### Why not safe areas yet
+
+Safe-area overlays are useful, but they are product polish, not the core framing capability.
+
+The first release should make framing possible before it tries to model platform chrome overlays.
+
+## Phase Plan
+
+### Phase 1
+
+Add the first destination-ready vertical format preset.
+
+Scope:
+
+- document the social-format plan
+- add a pure crop preset model for `Original` and `9:16`
+- add tests for preset geometry
+- implement the `format` tab UI
+- apply the preset by writing `cropFreeformRect`
+- allow repositioning through the existing crop drag behavior
+- hide the crop overlay when the selected crop tab is not `format`
+
+Out of scope:
+
+- no new schema fields for destination/platform
+- no safe-area overlays
+- no export resolution changes
+- no extra presets such as `1:1`, `4:5`, or `16:9`
+
+### Phase 2
+
+Persist destination intent separately from geometry.
+
+Scope:
+
+- add explicit destination metadata such as `instagramReels`, `tiktok`, and `youtubeShorts`
+- keep it separate from the raw crop rect so the UI can reopen with the same destination selected even when the crop is full-frame
+
+### Phase 3
+
+Support export-friendly vertical output sizing.
+
+Scope:
+
+- add portrait-aware output sizes to `VideoQuality`
+- make the export pipeline choose vertical render sizes when the active format target is portrait
+
+### Phase 4
+
+Add platform-specific overlays.
+
+Scope:
+
+- show optional safe-area guides for Instagram Reels, TikTok, and YouTube Shorts
+- keep guides out of the exported media
+
+### Phase 5
+
+Expand the preset library.
+
+Scope:
+
+- add `1:1`
+- add `4:5`
+- add `16:9`
+- keep tests around crop geometry and format restore behavior
+
+## Testing Notes
+
+Every new preset should be backed by pure geometry tests before expanding the UI surface.
+
+For the first phase, the most important assertions are:
+
+- `Original` clears the crop rect
+- `9:16` creates the expected centered crop for landscape video
+- `9:16` still matches full-frame on already-vertical video
+- selecting the preset updates editor state and tool activation correctly

@@ -136,6 +136,44 @@ struct EditorViewModelTests {
     }
 
     @Test
+    func selectingVerticalCropFormatCreatesACentered9x16Rect() throws {
+        let viewModel = EditorViewModel()
+        var video = Video.mock
+        video.presentationSize = CGSize(width: 1920, height: 1080)
+        viewModel.currentVideo = video
+        viewModel.selectTool(.crop)
+
+        viewModel.selectCropFormat(.vertical9x16)
+
+        let cropRect = try #require(viewModel.cropFreeformRect)
+        #expect(viewModel.cropTab == .format)
+        #expect(abs(cropRect.x - 0.341796875) < 0.0001)
+        #expect(abs(cropRect.width - 0.31640625) < 0.0001)
+        #expect(abs(cropRect.y - 0) < 0.0001)
+        #expect(abs(cropRect.height - 1) < 0.0001)
+        #expect(viewModel.currentVideo?.isAppliedTool(for: .crop) == true)
+        #expect(viewModel.shouldShowCropOverlay)
+        #expect(viewModel.isCropFormatSelected(.vertical9x16))
+    }
+
+    @Test
+    func selectingOriginalCropFormatClearsThePresetRect() {
+        let viewModel = EditorViewModel()
+        var video = Video.mock
+        video.presentationSize = CGSize(width: 1920, height: 1080)
+        viewModel.currentVideo = video
+        viewModel.selectTool(.crop)
+        viewModel.selectCropFormat(.vertical9x16)
+
+        viewModel.selectCropFormat(.original)
+
+        #expect(viewModel.cropFreeformRect == nil)
+        #expect(viewModel.shouldShowCropOverlay == false)
+        #expect(viewModel.currentVideo?.isAppliedTool(for: .crop) == false)
+        #expect(viewModel.isCropFormatSelected(.original))
+    }
+
+    @Test
     func setAudioSwitchesToRecordedTrackAndMarksAudioTool() throws {
         let viewModel = EditorViewModel()
         let audioURL = try TestFixtures.createTemporaryAudio()

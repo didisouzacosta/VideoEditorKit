@@ -77,7 +77,7 @@ extension PlayerHolderView {
                             ),
                             rotation: editorViewModel.currentVideo?.rotation,
                             isMirror: editorViewModel.currentVideo?.isMirror ?? false,
-                            isActiveCrop: editorViewModel.selectedTools == .crop
+                            isActiveCrop: editorViewModel.shouldShowCropOverlay
                         ) {
                             ZStack {
                                 editorViewModel.frames.frameColor

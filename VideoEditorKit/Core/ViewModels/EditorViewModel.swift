@@ -44,6 +44,12 @@ final class EditorViewModel {
         set { setRotation(newValue) }
     }
 
+    var shouldShowCropOverlay: Bool {
+        selectedTools == .crop
+            && cropTab == .format
+            && cropFreeformRect != nil
+    }
+
     enum CropToolTab: String, CaseIterable {
         case format, rotate
     }
@@ -272,10 +278,37 @@ extension EditorViewModel {
         markEditingConfigurationChanged()
     }
 
+    func selectCropTab(_ tab: CropToolTab) {
+        guard cropTab != tab else { return }
+        cropTab = tab
+        markEditingConfigurationChanged()
+    }
+
     func setCropFreeformRect(_ rect: VideoEditingConfiguration.FreeformRect?) {
         guard cropFreeformRect != rect else { return }
         cropFreeformRect = rect
         syncCropToolState()
+        markEditingConfigurationChanged()
+    }
+
+    func selectCropFormat(_ preset: VideoCropFormatPreset) {
+        let previousCropTab = cropTab
+        let previousCropRect = cropFreeformRect
+        let nextCropRect: VideoEditingConfiguration.FreeformRect?
+
+        switch preset {
+        case .original:
+            nextCropRect = nil
+        case .vertical9x16:
+            guard let referenceSize = currentCropReferenceSize() else { return }
+            nextCropRect = preset.makeFreeformRect(for: referenceSize)
+        }
+
+        cropTab = .format
+        cropFreeformRect = nextCropRect
+        syncCropToolState()
+
+        guard previousCropTab != cropTab || previousCropRect != cropFreeformRect else { return }
         markEditingConfigurationChanged()
     }
 
@@ -510,6 +543,14 @@ extension EditorViewModel {
 
     func isCropTabSelected(_ tab: CropToolTab) -> Bool {
         cropTab == tab
+    }
+
+    func isCropFormatSelected(_ preset: VideoCropFormatPreset) -> Bool {
+        guard let referenceSize = currentCropReferenceSize() else {
+            return preset == .original && cropFreeformRect == nil
+        }
+
+        return preset.matches(cropFreeformRect, in: referenceSize)
     }
 
     func removeAudio(using videoPlayer: VideoPlayerManager) {
@@ -767,6 +808,30 @@ extension EditorViewModel {
         } else {
             self.currentVideo?.removeTool(for: .crop)
         }
+    }
+
+    private func currentCropReferenceSize() -> CGSize? {
+        guard let currentVideo else { return nil }
+
+        let resolvedSize = rotatedBaseSize(for: currentVideo)
+        if resolvedSize.width > 0, resolvedSize.height > 0 {
+            return resolvedSize
+        }
+
+        if currentVideo.geometrySize.width > 0, currentVideo.geometrySize.height > 0 {
+            return currentVideo.geometrySize
+        }
+
+        if currentVideo.frameSize.width > 0, currentVideo.frameSize.height > 0 {
+            return currentVideo.frameSize
+        }
+
+        let fittedPreviewSize = resolvedPlayerDisplaySize(
+            for: currentVideo,
+            in: lastPlayerContainerSize
+        )
+        guard fittedPreviewSize.width > 0, fittedPreviewSize.height > 0 else { return nil }
+        return fittedPreviewSize
     }
 
     private func playerHeight(in availableSize: CGSize) -> CGFloat {
