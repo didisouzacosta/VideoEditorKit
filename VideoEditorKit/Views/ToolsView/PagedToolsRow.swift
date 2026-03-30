@@ -49,10 +49,7 @@ struct PagedToolsRow: View {
                         }
                         .scrollTargetLayout()
                     }
-                    .padding(.vertical, Layout.verticalContentPadding)
                 }
-                .defaultScrollAnchor(.center)
-                .contentMargins(.horizontal, Layout.horizontalInset, for: .scrollContent)
                 .scrollClipDisabled()
                 .scrollIndicators(.hidden)
                 .scrollPosition(id: $currentPageID)
@@ -150,7 +147,7 @@ extension PagedToolsRow {
         static let previewWidth: CGFloat = 28
         static let horizontalInset: CGFloat = 0
         static let rowHeight: CGFloat = 97
-        static let verticalContentPadding: CGFloat = 6
+        static let verticalContentPadding: CGFloat = 8
         static let indicatorSize: CGFloat = 6
         static let activeIndicatorWidth: CGFloat = 18
 

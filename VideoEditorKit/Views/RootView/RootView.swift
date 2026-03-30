@@ -113,11 +113,7 @@ extension RootView {
 
     private var editorConfiguration: VideoEditorView.Configuration {
         .init(
-            tools: [
-                .enabled(.speed),
-                .blocked(.audio),
-                .blocked(.filters),
-            ],
+            tools: ToolAvailability.enabled(ToolEnum.all.filter { $0 != .frames }),
             onBlockedToolTap: { tool in
                 blockedTool = tool
             }
@@ -261,6 +257,7 @@ extension RootView {
                                 deleteProject(project)
                             }
                         )
+                        .aspectRatio(1, contentMode: .fit)
                     }
                 }
             }
