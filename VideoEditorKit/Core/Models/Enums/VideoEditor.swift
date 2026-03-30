@@ -32,6 +32,7 @@ enum VideoEditor {
         do {
             let url = try await resizeAndLayerOperation(
                 video: video,
+                editingConfiguration: editingConfiguration,
                 videoQuality: videoQuality,
                 progressRange: progressRange(
                     for: .base,
@@ -54,6 +55,8 @@ enum VideoEditor {
             )
             let croppedURL = try await applyCropOperation(
                 editingConfiguration.crop.freeformRect,
+                editingConfiguration: editingConfiguration,
+                videoQuality: videoQuality,
                 fromUrl: filteredURL,
                 progressRange: progressRange(
                     for: .crop,
@@ -70,6 +73,7 @@ enum VideoEditor {
 
     private static func resizeAndLayerOperation(
         video: Video,
+        editingConfiguration: VideoEditingConfiguration,
         videoQuality: VideoQuality,
         progressRange: ClosedRange<Double>,
         onProgress: ProgressHandler?
@@ -92,9 +96,10 @@ enum VideoEditor {
             naturalSize: naturalSize,
             preferredTransform: videoTrackPreferredTransform
         )
-        let outputSize = resolvedRenderSize(
+        let outputSize = resolvedBaseRenderSize(
             for: presentationSize,
-            constrainedTo: videoQuality.size
+            editingConfiguration: editingConfiguration,
+            videoQuality: videoQuality
         )
 
         let layerInstruction = videoCompositionInstructionForTrackWithSizeAndTime(
@@ -180,6 +185,8 @@ enum VideoEditor {
 
     private static func applyCropOperation(
         _ freeformRect: VideoEditingConfiguration.FreeformRect?,
+        editingConfiguration: VideoEditingConfiguration,
+        videoQuality: VideoQuality,
         fromUrl: URL,
         progressRange: ClosedRange<Double>,
         onProgress: ProgressHandler?
@@ -205,8 +212,14 @@ enum VideoEditor {
             for: freeformRect,
             in: presentationSize
         )
+        let outputSize = resolvedCropRenderSize(
+            for: presentationSize,
+            cropRect: cropRect,
+            editingConfiguration: editingConfiguration,
+            videoQuality: videoQuality
+        )
 
-        guard cropRect.size != presentationSize else {
+        guard cropRect.size != presentationSize || outputSize != evenPixelSize(for: presentationSize) else {
             await reportProgress(progressRange.upperBound, via: onProgress)
             return fromUrl
         }
@@ -225,8 +238,8 @@ enum VideoEditor {
             track: videoTrack,
             naturalSize: naturalSize,
             preferredTransform: preferredTransform,
-            presentationSize: presentationSize,
             cropRect: cropRect,
+            renderSize: outputSize,
             timeRange: trackTimeRange
         )
 
@@ -324,6 +337,42 @@ extension VideoEditor {
         return evenPixelSize(for: fittedSize)
     }
 
+    static func resolvedBaseRenderSize(
+        for sourceSize: CGSize,
+        editingConfiguration: VideoEditingConfiguration,
+        videoQuality: VideoQuality
+    ) -> CGSize {
+        let layout = resolvedBaseRenderLayout(
+            for: sourceSize,
+            editingConfiguration: editingConfiguration
+        )
+
+        return resolvedRenderSize(
+            for: sourceSize,
+            constrainedTo: videoQuality.size(for: layout)
+        )
+    }
+
+    static func resolvedOutputRenderSize(
+        for sourceSize: CGSize,
+        editingConfiguration: VideoEditingConfiguration,
+        videoQuality: VideoQuality
+    ) -> CGSize {
+        let layout = resolvedOutputRenderLayout(
+            for: sourceSize,
+            editingConfiguration: editingConfiguration
+        )
+
+        if layout == .portrait {
+            return videoQuality.size(for: layout)
+        }
+
+        return resolvedRenderSize(
+            for: sourceSize,
+            constrainedTo: videoQuality.size(for: layout)
+        )
+    }
+
     static func resolvedCropRect(
         for freeformRect: VideoEditingConfiguration.FreeformRect,
         in presentationSize: CGSize
@@ -364,6 +413,34 @@ extension VideoEditor {
             width: boundedWidth,
             height: boundedHeight
         )
+    }
+
+    static func resolvedOutputRenderLayout(
+        for sourceSize: CGSize,
+        editingConfiguration: VideoEditingConfiguration
+    ) -> VideoQuality.RenderLayout {
+        if editingConfiguration.presentation.socialVideoDestination != nil {
+            return .portrait
+        }
+
+        guard sourceSize.width > 0, sourceSize.height > 0 else {
+            return .landscape
+        }
+
+        guard let freeformRect = editingConfiguration.crop.freeformRect else {
+            return .landscape
+        }
+
+        let cropRect = resolvedCropRect(
+            for: freeformRect,
+            in: sourceSize
+        )
+
+        guard cropRect.width > 0, cropRect.height > 0 else {
+            return .landscape
+        }
+
+        return cropRect.height > cropRect.width ? .portrait : .landscape
     }
 
     private static func exportSession(
@@ -634,8 +711,8 @@ extension VideoEditor {
         track: AVAssetTrack,
         naturalSize: CGSize,
         preferredTransform: CGAffineTransform,
-        presentationSize: CGSize,
         cropRect: CGRect,
+        renderSize: CGSize,
         timeRange: CMTimeRange
     ) -> AVVideoComposition {
         var configuration = AVVideoCompositionLayerInstruction.Configuration(assetTrack: track)
@@ -652,9 +729,13 @@ extension VideoEditor {
             translationX: -cropRect.minX,
             y: -cropRect.minY
         )
+        let widthScale = renderSize.width / max(cropRect.width, 1)
+        let heightScale = renderSize.height / max(cropRect.height, 1)
 
         configuration.setTransform(
-            normalizedTransform.concatenating(cropTransform),
+            normalizedTransform
+                .concatenating(cropTransform)
+                .concatenating(CGAffineTransform(scaleX: widthScale, y: heightScale)),
             at: .zero
         )
 
@@ -669,9 +750,56 @@ extension VideoEditor {
             configuration: .init(
                 frameDuration: CMTime(value: 1, timescale: 30),
                 instructions: [instruction],
-                renderSize: evenPixelSize(for: cropRect.size)
+                renderSize: renderSize
             )
         )
+    }
+
+    private static func resolvedBaseRenderLayout(
+        for sourceSize: CGSize,
+        editingConfiguration: VideoEditingConfiguration
+    ) -> VideoQuality.RenderLayout {
+        let outputLayout = resolvedOutputRenderLayout(
+            for: sourceSize,
+            editingConfiguration: editingConfiguration
+        )
+
+        guard outputLayout == .portrait else {
+            return .landscape
+        }
+
+        guard let freeformRect = editingConfiguration.crop.freeformRect else {
+            return .portrait
+        }
+
+        return isFullFrameCrop(freeformRect) ? .portrait : .landscape
+    }
+
+    private static func resolvedCropRenderSize(
+        for sourceSize: CGSize,
+        cropRect: CGRect,
+        editingConfiguration: VideoEditingConfiguration,
+        videoQuality: VideoQuality
+    ) -> CGSize {
+        let outputLayout = resolvedOutputRenderLayout(
+            for: sourceSize,
+            editingConfiguration: editingConfiguration
+        )
+
+        guard outputLayout == .portrait else {
+            return evenPixelSize(for: cropRect.size)
+        }
+
+        return videoQuality.size(for: outputLayout)
+    }
+
+    private static func isFullFrameCrop(
+        _ freeformRect: VideoEditingConfiguration.FreeformRect
+    ) -> Bool {
+        abs(freeformRect.x) < 0.0001
+            && abs(freeformRect.y) < 0.0001
+            && abs(freeformRect.width - 1) < 0.0001
+            && abs(freeformRect.height - 1) < 0.0001
     }
 
     private static func createTempPath() -> URL {

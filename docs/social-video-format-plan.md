@@ -5,7 +5,7 @@
 - Planning documented
 - Phase 1 completed
 - Phase 2 completed
-- Phase 3 pending
+- Phase 3 completed
 - Phase 4 pending
 - Phase 5 pending
 
@@ -144,6 +144,7 @@ Scope:
 
 - add portrait-aware output sizes to `VideoQuality`
 - make the export pipeline choose vertical render sizes when the active format target is portrait
+- keep the base render stage source-compatible for non-full-frame crops, then scale the final crop stage to the portrait target size
 
 ### Phase 4
 

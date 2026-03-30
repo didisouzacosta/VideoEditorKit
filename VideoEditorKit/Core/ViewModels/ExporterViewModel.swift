@@ -205,7 +205,15 @@ final class ExporterViewModel {
     }
 
     func estimatedVideoSizeText(for quality: VideoQuality) -> String? {
-        guard let value = quality.calculateVideoSize(duration: video.totalDuration) else { return nil }
+        let renderSize = VideoEditor.resolvedOutputRenderSize(
+            for: video.presentationSize,
+            editingConfiguration: editingConfiguration,
+            videoQuality: quality
+        )
+        guard let value = quality.calculateVideoSize(duration: video.totalDuration, renderSize: renderSize) else {
+            return nil
+        }
+
         return "\(value.formatted(.number.precision(.fractionLength(1))))Mb"
     }
 

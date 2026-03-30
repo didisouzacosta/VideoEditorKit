@@ -13,6 +13,11 @@ enum VideoQuality: Int, CaseIterable {
 
     case low, medium, high
 
+    enum RenderLayout: Sendable {
+        case landscape
+        case portrait
+    }
+
     var exportPresetName: String {
         switch self {
         case .low:
@@ -46,6 +51,10 @@ enum VideoQuality: Int, CaseIterable {
         }
     }
 
+    var portraitSize: CGSize {
+        CGSize(width: size.height, height: size.width)
+    }
+
     var frameRate: Double {
         switch self {
         case .low, .medium: return 30
@@ -62,16 +71,43 @@ enum VideoQuality: Int, CaseIterable {
     }
 
     var megaBytesPerSecond: Double {
-        let totalPixels = self.size.width * self.size.height
+        megaBytesPerSecond(for: .landscape)
+    }
+
+    // MARK: - Public Methods
+
+    func size(for layout: RenderLayout) -> CGSize {
+        switch layout {
+        case .landscape:
+            size
+        case .portrait:
+            portraitSize
+        }
+    }
+
+    func megaBytesPerSecond(for layout: RenderLayout) -> Double {
+        megaBytesPerSecond(for: size(for: layout))
+    }
+
+    func megaBytesPerSecond(for renderSize: CGSize) -> Double {
+        let totalPixels = renderSize.width * renderSize.height
         let bitsPerSecond = bitrate * Double(totalPixels)
         let bytesPerSecond = bitsPerSecond / 8.0  // Convert to bytes
 
         return bytesPerSecond / (1024 * 1024)
     }
 
-    // MARK: - Public Methods
+    func calculateVideoSize(
+        duration: Double,
+        layout: RenderLayout = .landscape
+    ) -> Double? {
+        duration * megaBytesPerSecond(for: layout)
+    }
 
-    func calculateVideoSize(duration: Double) -> Double? {
-        duration * megaBytesPerSecond
+    func calculateVideoSize(
+        duration: Double,
+        renderSize: CGSize
+    ) -> Double? {
+        duration * megaBytesPerSecond(for: renderSize)
     }
 }

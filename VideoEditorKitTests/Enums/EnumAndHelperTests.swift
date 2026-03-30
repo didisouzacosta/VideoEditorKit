@@ -131,6 +131,9 @@ struct VideoQualityTests {
         #expect(VideoQuality.low.size == CGSize(width: 854, height: 480))
         #expect(VideoQuality.medium.size == CGSize(width: 1280, height: 720))
         #expect(VideoQuality.high.size == CGSize(width: 1920, height: 1080))
+        #expect(VideoQuality.low.portraitSize == CGSize(width: 480, height: 854))
+        #expect(VideoQuality.medium.portraitSize == CGSize(width: 720, height: 1280))
+        #expect(VideoQuality.high.portraitSize == CGSize(width: 1080, height: 1920))
 
         #expect(VideoQuality.low.frameRate == 30)
         #expect(VideoQuality.medium.frameRate == 30)
@@ -145,9 +148,20 @@ struct VideoQualityTests {
     func calculateVideoSizeUsesTheMegaBytesPerSecondEstimate() {
         let duration = 12.5
         let estimatedSize = VideoQuality.medium.calculateVideoSize(duration: duration)
+        let portraitEstimatedSize = VideoQuality.medium.calculateVideoSize(
+            duration: duration,
+            layout: .portrait
+        )
 
         #expect(estimatedSize != nil)
         #expect(abs((estimatedSize ?? 0) - (VideoQuality.medium.megaBytesPerSecond * duration)) < 0.0001)
+        #expect(portraitEstimatedSize != nil)
+        #expect(
+            abs(
+                (portraitEstimatedSize ?? 0)
+                    - (VideoQuality.medium.megaBytesPerSecond(for: .portrait) * duration)
+            ) < 0.0001
+        )
     }
 
 }
@@ -319,6 +333,105 @@ struct VideoEditorGeometryTests {
         )
 
         #expect(renderSize == CGSize(width: 406, height: 720))
+    }
+
+    @Test
+    func resolvedOutputRenderLayoutUsesSocialDestinationForPortraitExports() {
+        let configuration = VideoEditingConfiguration(
+            crop: .init(
+                freeformRect: .init(
+                    x: 0,
+                    y: 0,
+                    width: 1,
+                    height: 1
+                )
+            ),
+            presentation: .init(
+                socialVideoDestination: .instagramReels
+            )
+        )
+
+        let layout = VideoEditor.resolvedOutputRenderLayout(
+            for: CGSize(width: 1080, height: 1920),
+            editingConfiguration: configuration
+        )
+
+        #expect(layout == .portrait)
+    }
+
+    @Test
+    func resolvedBaseRenderSizeUsesPortraitCanvasForFullFrameVerticalPreset() {
+        let configuration = VideoEditingConfiguration(
+            crop: .init(
+                freeformRect: .init(
+                    x: 0,
+                    y: 0,
+                    width: 1,
+                    height: 1
+                )
+            ),
+            presentation: .init(
+                socialVideoDestination: .tikTok
+            )
+        )
+
+        let renderSize = VideoEditor.resolvedBaseRenderSize(
+            for: CGSize(width: 1080, height: 1920),
+            editingConfiguration: configuration,
+            videoQuality: .medium
+        )
+
+        #expect(renderSize == CGSize(width: 720, height: 1280))
+    }
+
+    @Test
+    func resolvedBaseRenderSizeKeepsSourceAspectForLandscapeClipsBeforePortraitCrop() {
+        let configuration = VideoEditingConfiguration(
+            crop: .init(
+                freeformRect: .init(
+                    x: 0.341796875,
+                    y: 0,
+                    width: 0.31640625,
+                    height: 1
+                )
+            ),
+            presentation: .init(
+                socialVideoDestination: .youtubeShorts
+            )
+        )
+
+        let renderSize = VideoEditor.resolvedBaseRenderSize(
+            for: CGSize(width: 1920, height: 1080),
+            editingConfiguration: configuration,
+            videoQuality: .medium
+        )
+
+        #expect(renderSize == CGSize(width: 1280, height: 720))
+    }
+
+    @Test
+    func resolvedOutputRenderSizeScalesPortraitCropUpToPortraitQualityBounds() {
+        let configuration = VideoEditingConfiguration(
+            crop: .init(
+                freeformRect: .init(
+                    x: 0.341796875,
+                    y: 0,
+                    width: 0.31640625,
+                    height: 1
+                )
+            ),
+            presentation: .init(
+                socialVideoDestination: .youtubeShorts
+            )
+        )
+
+        let renderSize = VideoEditor.resolvedOutputRenderSize(
+            for: CGSize(width: 1920, height: 1080),
+            editingConfiguration: configuration,
+            videoQuality: .medium
+        )
+
+        #expect(renderSize == CGSize(width: 720, height: 1280))
     }
 
 }
