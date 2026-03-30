@@ -38,8 +38,7 @@ enum VideoEditingConfigurationMapper {
                 isMirrored: video.isMirror,
                 freeformRect: freeformRect
             ),
-            filter: .init(
-                filterName: video.filterName,
+            corrections: .init(
                 brightness: video.colorCorrection.brightness,
                 contrast: video.colorCorrection.contrast,
                 saturation: video.colorCorrection.saturation
@@ -47,7 +46,7 @@ enum VideoEditingConfigurationMapper {
             frame: .init(
                 scaleValue: video.videoFrames?.scaleValue ?? 0,
                 colorToken: video.videoFrames.map {
-                    SerializedColorCodec.encode($0.frameColor, domain: .frame)
+                    SerializedColorCodec.encode($0.frameColor)
                 }
             ),
             audio: .init(
@@ -60,23 +59,6 @@ enum VideoEditingConfigurationMapper {
                 },
                 selectedTrack: mapSelectedTrack(selectedAudioTrack)
             ),
-            textOverlays: video.textBoxes.map {
-                .init(
-                    id: $0.id,
-                    text: $0.text,
-                    fontSize: Double($0.fontSize),
-                    backgroundColorToken: SerializedColorCodec.encode($0.bgColor, domain: .textBackground),
-                    fontColorToken: SerializedColorCodec.encode($0.fontColor, domain: .textForeground),
-                    timeRange: .init(
-                        lowerBound: $0.timeRange.lowerBound,
-                        upperBound: $0.timeRange.upperBound
-                    ),
-                    offset: serializedOffset(
-                        for: $0.offset,
-                        referenceSize: video.geometrySize
-                    )
-                )
-            },
             presentation: .init(
                 selectedTool,
                 cropTab: cropTab,
@@ -95,11 +77,10 @@ enum VideoEditingConfigurationMapper {
         video.setVolume(configuration.playback.videoVolume)
         video.rotation = configuration.crop.rotationDegrees
         video.isMirror = configuration.crop.isMirrored
-        video.filterName = configuration.filter.filterName
         video.colorCorrection = ColorCorrection(
-            brightness: configuration.filter.brightness,
-            contrast: configuration.filter.contrast,
-            saturation: configuration.filter.saturation
+            brightness: configuration.corrections.brightness,
+            contrast: configuration.corrections.contrast,
+            saturation: configuration.corrections.saturation
         )
 
         if configuration.frame.scaleValue > 0 {
@@ -107,7 +88,6 @@ enum VideoEditingConfigurationMapper {
                 scaleValue: configuration.frame.scaleValue,
                 frameColor: SerializedColorCodec.decode(
                     configuration.frame.colorToken,
-                    domain: .frame,
                     fallback: Color(uiColor: .systemBackground)
                 )
             )
@@ -123,72 +103,10 @@ enum VideoEditingConfigurationMapper {
             )
         }
 
-        applyTextOverlays(configuration.textOverlays, to: &video)
         video.toolsApplied = restoredToolsApplied(
             from: configuration,
             video: video
         )
-    }
-
-    static func applyTextOverlays(
-        _ textOverlays: [VideoEditingConfiguration.TextOverlay],
-        to video: inout Video
-    ) {
-        video.textBoxes = textOverlays.compactMap { textOverlay in
-            guard canResolveTextOffset(textOverlay.offset, referenceSize: video.geometrySize) else {
-                return nil
-            }
-
-            let resolvedOffset = resolvedOffset(
-                from: textOverlay.offset,
-                referenceSize: video.geometrySize
-            )
-
-            return TextBox(
-                id: textOverlay.id,
-                text: textOverlay.text,
-                fontSize: CGFloat(textOverlay.fontSize),
-                lastFontSize: .zero,
-                bgColor: SerializedColorCodec.decode(
-                    textOverlay.backgroundColorToken,
-                    domain: .textBackground,
-                    fallback: Color(uiColor: .systemBackground)
-                ),
-                fontColor: SerializedColorCodec.decode(
-                    textOverlay.fontColorToken,
-                    domain: .textForeground,
-                    fallback: Color(uiColor: .label)
-                ),
-                timeRange: textOverlay.timeRange.lowerBound...textOverlay.timeRange.upperBound,
-                offset: resolvedOffset,
-                lastOffset: resolvedOffset
-            )
-        }
-    }
-
-    static func rescaledTextBoxes(
-        _ textBoxes: [TextBox],
-        from oldReferenceSize: CGSize,
-        to newReferenceSize: CGSize
-    ) -> [TextBox] {
-        guard hasValidReferenceSize(oldReferenceSize), hasValidReferenceSize(newReferenceSize) else {
-            return textBoxes
-        }
-
-        return textBoxes.map { textBox in
-            var updatedTextBox = textBox
-            let normalizedOffset = serializedOffset(
-                for: textBox.offset,
-                referenceSize: oldReferenceSize
-            )
-            let resolvedTextOffset = resolvedOffset(
-                from: normalizedOffset,
-                referenceSize: newReferenceSize
-            )
-            updatedTextBox.offset = resolvedTextOffset
-            updatedTextBox.lastOffset = resolvedTextOffset
-            return updatedTextBox
-        }
     }
 
     static func selectedAudioTrack(
@@ -226,63 +144,6 @@ enum VideoEditingConfigurationMapper {
         }
     }
 
-    private static func serializedOffset(
-        for offset: CGSize,
-        referenceSize: CGSize
-    ) -> VideoEditingConfiguration.Offset {
-        guard hasValidReferenceSize(referenceSize) else {
-            return .init(
-                x: offset.width,
-                y: offset.height
-            )
-        }
-
-        return .init(
-            x: offset.width / referenceSize.width,
-            y: offset.height / referenceSize.height
-        )
-    }
-
-    private static func resolvedOffset(
-        from offset: VideoEditingConfiguration.Offset,
-        referenceSize: CGSize
-    ) -> CGSize {
-        guard isNormalizedTextOffset(offset), hasValidReferenceSize(referenceSize) else {
-            return CGSize(
-                width: offset.x,
-                height: offset.y
-            )
-        }
-
-        return CGSize(
-            width: offset.x * referenceSize.width,
-            height: offset.y * referenceSize.height
-        )
-    }
-
-    private static func canResolveTextOffset(
-        _ offset: VideoEditingConfiguration.Offset,
-        referenceSize: CGSize
-    ) -> Bool {
-        if isNormalizedTextOffset(offset) {
-            return hasValidReferenceSize(referenceSize)
-        }
-
-        return true
-    }
-
-    private static func isNormalizedTextOffset(
-        _ offset: VideoEditingConfiguration.Offset
-    ) -> Bool {
-        abs(offset.x) <= 1 && abs(offset.y) <= 1
-    }
-
-    private static func hasValidReferenceSize(
-        _ referenceSize: CGSize
-    ) -> Bool {
-        referenceSize.width > 0 && referenceSize.height > 0
-    }
-
     private static func restoredToolsApplied(
         from configuration: VideoEditingConfiguration,
         video: Video
@@ -313,14 +174,6 @@ enum VideoEditingConfigurationMapper {
             restoredTools.append(.audio)
         }
 
-        if !video.textBoxes.isEmpty {
-            restoredTools.append(.text)
-        }
-
-        if video.filterName != nil {
-            restoredTools.append(.filters)
-        }
-
         if !video.colorCorrection.isIdentity {
             restoredTools.append(.corrections)
         }
@@ -339,10 +192,9 @@ private enum SerializedColorCodec {
     // MARK: - Public Methods
 
     static func encode(
-        _ color: Color,
-        domain: Domain
+        _ color: Color
     ) -> String {
-        if let paletteToken = paletteToken(for: color, domain: domain) {
+        if let paletteToken = paletteToken(for: color) {
             return "palette:\(paletteToken)"
         }
 
@@ -351,14 +203,13 @@ private enum SerializedColorCodec {
 
     static func decode(
         _ token: String?,
-        domain: Domain,
         fallback: Color
     ) -> Color {
         guard let token else { return fallback }
 
         if token.hasPrefix("palette:") {
             let paletteID = String(token.dropFirst("palette:".count))
-            return paletteColor(for: paletteID, domain: domain) ?? fallback
+            return paletteColor(for: paletteID) ?? fallback
         }
 
         if token.hasPrefix("rgba:") {
@@ -372,17 +223,15 @@ private enum SerializedColorCodec {
     // MARK: - Private Methods
 
     private static func paletteToken(
-        for color: Color,
-        domain: Domain
+        for color: Color
     ) -> String? {
-        domain.options.first(where: { SystemColorPalette.matches($0.color, color) })?.id
+        SystemColorPalette.frameColors.first(where: { SystemColorPalette.matches($0.color, color) })?.id
     }
 
     private static func paletteColor(
-        for paletteID: String,
-        domain: Domain
+        for paletteID: String
     ) -> Color? {
-        domain.options.first(where: { $0.id == paletteID })?.color
+        SystemColorPalette.frameColors.first(where: { $0.id == paletteID })?.color
     }
 
     private static func rgbaHex(
@@ -439,27 +288,6 @@ private enum SerializedColorCodec {
                 alpha: alpha
             )
         )
-    }
-
-}
-
-extension SerializedColorCodec {
-
-    fileprivate enum Domain {
-        case textBackground
-        case textForeground
-        case frame
-
-        var options: [SystemColorOption] {
-            switch self {
-            case .textBackground:
-                SystemColorPalette.textBackgrounds
-            case .textForeground:
-                SystemColorPalette.textForegrounds
-            case .frame:
-                SystemColorPalette.frameColors
-            }
-        }
     }
 
 }

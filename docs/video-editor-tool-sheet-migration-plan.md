@@ -118,7 +118,7 @@ Scope:
 ## Risks
 
 - Native sheet dismissal can bypass current inline-close assumptions if dismiss handling is not centralized.
-- Horizontal scroll interactions in `FiltersView` and `TextToolsView` may feel different inside a draggable native sheet.
+- Tool-specific interactions may feel different inside a draggable native sheet, especially for horizontally interactive controls.
 - `isFullScreen` is used in sizing logic during `onAppear`, so initial state seeding must happen before the first render cycle that loads the source video.
 
 ## Acceptance Criteria

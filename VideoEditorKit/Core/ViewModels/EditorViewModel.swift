@@ -6,7 +6,6 @@
 //
 
 import AVKit
-import CoreImage
 import Foundation
 import Observation
 import SwiftUI
@@ -47,22 +46,36 @@ final class EditorViewModel {
     }
 
     var shouldShowCropOverlay: Bool {
+        cropFreeformRect != nil
+    }
+
+    var isCropOverlayInteractive: Bool {
         selectedTools == .crop
             && cropFreeformRect != nil
     }
 
     var shouldShowSocialVideoDestinationPicker: Bool {
-        isCropFormatSelected(.vertical9x16)
+        false
     }
 
     var shouldShowSocialVideoSafeAreaGuide: Bool {
         shouldShowCropOverlay
-            && socialVideoDestination != nil
-            && showsSocialVideoSafeAreaGuides
+            && selectedCropPreset() == .vertical9x16
+    }
+
+    var shouldUseCropPresetSpotlight: Bool {
+        selectedCropPreset() != .original
+            && cropFreeformRect != nil
+    }
+
+    var activeSocialVideoSafeAreaGuide: SocialVideoSafeAreaGuide? {
+        guard shouldShowSocialVideoSafeAreaGuide else { return nil }
+        return .socialVideo
     }
 
     enum CropToolTab: String, CaseIterable {
-        case format, rotate
+        case format
+        case rotate
     }
 
     // MARK: - Private Properties
@@ -76,7 +89,6 @@ final class EditorViewModel {
     private var lastPlayerContainerSize = CGSize(width: 1, height: 220)
     private var lastThumbnailDisplayScale: CGFloat = 1
     private var pendingEditingConfiguration: VideoEditingConfiguration?
-    private var pendingTextOverlays: [VideoEditingConfiguration.TextOverlay] = []
 
     // MARK: - Public Methods
 
@@ -159,7 +171,6 @@ extension EditorViewModel {
         lastThumbnailDisplayScale = displayScale
 
         guard let video = currentVideo else { return }
-
         guard containerSize.width > 0, containerSize.height > 0 else { return }
 
         let expectedCount = video.thumbnailCount(for: containerSize)
@@ -232,22 +243,6 @@ extension EditorViewModel {
 
     // MARK: - Public Methods
 
-    func setFilter(_ filter: String?) {
-        currentVideo?.setFilter(filter)
-        if filter != nil {
-            setTools()
-        } else {
-            removeTool()
-        }
-        markEditingConfigurationChanged()
-    }
-
-    func setText(_ textBox: [TextBox]) {
-        currentVideo?.textBoxes = textBox
-        setTools()
-        markEditingConfigurationChanged()
-    }
-
     func setFrames() {
         currentVideo?.videoFrames = frames
         setTools()
@@ -255,8 +250,16 @@ extension EditorViewModel {
     }
 
     func setCorrections(_ correction: ColorCorrection) {
-        currentVideo?.colorCorrection = correction
-        setTools()
+        guard var currentVideo else { return }
+
+        currentVideo.colorCorrection = correction
+        if correction.isIdentity {
+            currentVideo.removeTool(for: .corrections)
+        } else {
+            currentVideo.appliedTool(for: .corrections)
+        }
+
+        self.currentVideo = currentVideo
         markEditingConfigurationChanged()
     }
 
@@ -392,7 +395,7 @@ extension EditorViewModel {
 
     func toggleSocialVideoSafeAreaGuides() {
         guard socialVideoDestination != nil else { return }
-        showsSocialVideoSafeAreaGuides.toggle()
+        showsSocialVideoSafeAreaGuides = true
         markEditingConfigurationChanged()
     }
 
@@ -410,7 +413,7 @@ extension EditorViewModel {
 
     func removeTool() {
         guard let selectedTools else { return }
-        self.currentVideo?.removeTool(for: selectedTools)
+        currentVideo?.removeTool(for: selectedTools)
     }
 
     func removeAudio() {
@@ -424,7 +427,6 @@ extension EditorViewModel {
 
     func reset(
         _ tool: ToolEnum,
-        textEditor: TextEditorViewModel,
         videoPlayer: VideoPlayerManager
     ) {
         switch tool {
@@ -453,18 +455,9 @@ extension EditorViewModel {
 
             currentVideo?.setVolume(1.0)
             videoPlayer.setVolume(true, value: 1.0)
-        case .text:
-            textEditor.cancelTextEditor()
-            textEditor.selectedTextBox = nil
-            textEditor.load(textBoxes: [])
-            currentVideo?.textBoxes = []
-        case .filters:
-            currentVideo?.setFilter(nil)
-            videoPlayer.removeFilter()
         case .corrections:
-            currentVideo?.colorCorrection = ColorCorrection()
-            let mainFilter = currentVideo?.filterName.flatMap(CIFilter.init(name:))
-            videoPlayer.setFilters(mainFilter: mainFilter, colorCorrection: ColorCorrection())
+            currentVideo?.colorCorrection = .init()
+            videoPlayer.clearColorCorrection()
         case .frames:
             frames.reset()
             currentVideo?.videoFrames = nil
@@ -485,26 +478,19 @@ extension EditorViewModel {
         markEditingConfigurationChanged()
     }
 
-    func closeSelectedTool(_ textEditor: TextEditorViewModel) {
+    func closeSelectedTool() {
         selectedTools = nil
-        setText(textEditor.textBoxes)
+        markEditingConfigurationChanged()
     }
 
     func handleCurrentVideoChange(
         _ video: Video?,
-        filtersViewModel: FiltersViewModel,
-        textEditor: TextEditorViewModel,
         videoPlayer: VideoPlayerManager
     ) {
         guard let video else { return }
         frames = video.videoFrames ?? VideoFrames()
-        filtersViewModel.sync(with: video)
-        textEditor.load(textBoxes: video.textBoxes)
         videoPlayer.syncPlaybackState(with: video)
-        videoPlayer.setFilters(
-            mainFilter: video.filterName.flatMap(CIFilter.init(name:)),
-            colorCorrection: video.colorCorrection
-        )
+        videoPlayer.setColorCorrection(video.colorCorrection)
     }
 
     func resolvedPlayerDisplaySize(for video: Video, in containerSize: CGSize) -> CGSize {
@@ -520,79 +506,20 @@ extension EditorViewModel {
     }
 
     func updateCurrentVideoLayout(
-        to size: CGSize,
-        textEditor: TextEditorViewModel
+        to size: CGSize
     ) {
         guard var currentVideo else { return }
 
-        let previousGeometrySize = currentVideo.geometrySize
         let didChangeFrameSize = currentVideo.frameSize != size
         let didChangeGeometrySize = currentVideo.geometrySize != size
 
         guard didChangeFrameSize || didChangeGeometrySize else { return }
 
-        if didChangeGeometrySize {
-            currentVideo.textBoxes = VideoEditingConfigurationMapper.rescaledTextBoxes(
-                currentVideo.textBoxes,
-                from: previousGeometrySize,
-                to: size
-            )
-        }
-
         currentVideo.frameSize = size
         currentVideo.geometrySize = size
-        applyPendingTextOverlaysIfNeeded(to: &currentVideo)
 
         self.currentVideo = currentVideo
-
-        if didChangeGeometrySize {
-            textEditor.load(textBoxes: currentVideo.textBoxes)
-        }
-
         markEditingConfigurationChanged()
-    }
-
-    func handleThumbnailImagesChange(filtersViewModel: FiltersViewModel) {
-        filtersViewModel.loadFiltersIfNeeded(from: currentVideo?.thumbnailsImages.first?.image)
-    }
-
-    func handleSelectedTextBoxChange(_ box: TextBox?) {
-        if box != nil {
-            if selectedTools != .text {
-                selectTool(.text)
-            }
-        } else if selectedTools == .text {
-            selectedTools = nil
-            markEditingConfigurationChanged()
-        }
-    }
-
-    func handleSelectedToolChange(_ tool: ToolEnum?, textEditor: TextEditorViewModel) {
-        let previousSelection = selectedTools
-
-        guard tool == nil || canSelectTool(tool) else {
-            selectedTools = nil
-            if previousSelection != selectedTools {
-                markEditingConfigurationChanged()
-            }
-            return
-        }
-
-        if tool != .text {
-            textEditor.dismissTextToolPresentation()
-        }
-
-        if tool == .text {
-            textEditor.prepareForToolPresentation(timeRange: currentVideo?.rangeDuration)
-        }
-
-        if tool == nil {
-            setText(textEditor.textBoxes)
-        }
-
-        if previousSelection != tool {
-            markEditingConfigurationChanged()
-        }
     }
 
     func handleRateChange(_ rate: Float, videoPlayer: VideoPlayerManager) {
@@ -604,26 +531,8 @@ extension EditorViewModel {
         }
     }
 
-    func handleFilterChange(
-        _ filterName: String?,
-        filtersViewModel: FiltersViewModel,
-        videoPlayer: VideoPlayerManager
-    ) {
-        if let filterName {
-            videoPlayer.setFilters(
-                mainFilter: CIFilter(name: filterName),
-                colorCorrection: filtersViewModel.colorCorrection
-            )
-        } else {
-            videoPlayer.removeFilter()
-        }
-
-        setFilter(filterName)
-    }
-
     func handleCorrectionsChange(_ corrections: ColorCorrection, videoPlayer: VideoPlayerManager) {
-        let mainFilter = currentVideo?.filterName.flatMap(CIFilter.init(name:))
-        videoPlayer.setFilters(mainFilter: mainFilter, colorCorrection: corrections)
+        videoPlayer.setColorCorrection(corrections)
         setCorrections(corrections)
     }
 
@@ -654,12 +563,12 @@ extension EditorViewModel {
     }
 
     func shouldShowCropPresetBadge() -> Bool {
-        selectedTools == .crop
+        selectedCropPreset() != .original
     }
 
     func selectedCropPresetBadgeTitle() -> String {
-        if let socialVideoDestination {
-            return socialVideoDestination.title
+        if selectedCropPreset() == .vertical9x16 {
+            return "Social"
         }
 
         return selectedCropPreset().title
@@ -780,6 +689,13 @@ extension EditorViewModel {
         )
     }
 
+    func colorCorrectionBinding(videoPlayer: VideoPlayerManager) -> Binding<ColorCorrection> {
+        Binding(
+            get: { self.currentVideo?.colorCorrection ?? .init() },
+            set: { self.handleCorrectionsChange($0, videoPlayer: videoPlayer) }
+        )
+    }
+
     func setSourceVideoIfNeeded(
         _ sourceVideoURL: URL?,
         editingConfiguration: VideoEditingConfiguration? = nil,
@@ -858,7 +774,6 @@ extension EditorViewModel {
         videoPlayer: VideoPlayerManager
     ) {
         pendingEditingConfiguration = editingConfiguration
-        pendingTextOverlays = []
         cropTab = .rotate
         selectedTools = nil
         selectedAudioTrack = .video
@@ -879,11 +794,7 @@ extension EditorViewModel {
     ) {
         guard let pendingEditingConfiguration else { return }
 
-        pendingTextOverlays = pendingEditingConfiguration.textOverlays
-
-        var configurationWithoutTextOverlays = pendingEditingConfiguration
-        configurationWithoutTextOverlays.textOverlays = []
-        VideoEditingConfigurationMapper.apply(configurationWithoutTextOverlays, to: &video)
+        VideoEditingConfigurationMapper.apply(pendingEditingConfiguration, to: &video)
 
         let resolvedLayoutSize = resolvedPlayerDisplaySize(
             for: video,
@@ -893,8 +804,6 @@ extension EditorViewModel {
             video.frameSize = resolvedLayoutSize
             video.geometrySize = resolvedLayoutSize
         }
-
-        applyPendingTextOverlaysIfNeeded(to: &video)
     }
 
     func restorePendingEditingPresentationState() {
@@ -1020,19 +929,6 @@ extension EditorViewModel {
             .format
         case .rotate:
             .rotate
-        }
-    }
-
-    private func applyPendingTextOverlaysIfNeeded(to video: inout Video) {
-        guard !pendingTextOverlays.isEmpty else { return }
-
-        VideoEditingConfigurationMapper.applyTextOverlays(
-            pendingTextOverlays,
-            to: &video
-        )
-
-        if video.textBoxes.count == pendingTextOverlays.count {
-            pendingTextOverlays = []
         }
     }
 

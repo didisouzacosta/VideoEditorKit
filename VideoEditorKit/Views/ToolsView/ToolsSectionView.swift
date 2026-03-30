@@ -11,15 +11,10 @@ import SwiftUI
 @MainActor
 struct ToolsSectionView: View {
 
-    // MARK: - States
-
-    @State private var filtersVM = FiltersViewModel()
-
     // MARK: - Private Properties
 
     private let videoPlayer: VideoPlayerManager
     private let editorViewModel: EditorViewModel
-    private let textEditor: TextEditorViewModel
     private let configuration: VideoEditorView.Configuration
 
     // MARK: - Body
@@ -39,19 +34,8 @@ struct ToolsSectionView: View {
             }
             editorViewModel.handleCurrentVideoChange(
                 newValue,
-                filtersViewModel: filtersVM,
-                textEditor: textEditor,
                 videoPlayer: videoPlayer
             )
-        }
-        .onChange(of: editorViewModel.currentVideo?.thumbnailsImages.count ?? 0) { _, _ in
-            editorViewModel.handleThumbnailImagesChange(filtersViewModel: filtersVM)
-        }
-        .onChange(of: textEditor.selectedTextBox) { _, box in
-            editorViewModel.handleSelectedTextBoxChange(box)
-        }
-        .onChange(of: editorViewModel.selectedTools) { _, newValue in
-            handleSelectedToolChange(newValue)
         }
     }
 
@@ -60,12 +44,10 @@ struct ToolsSectionView: View {
     init(
         _ videoPlayer: VideoPlayerManager,
         editorVM: EditorViewModel,
-        textEditor: TextEditorViewModel,
         configuration: VideoEditorView.Configuration
     ) {
         self.videoPlayer = videoPlayer
         self.editorViewModel = editorVM
-        self.textEditor = textEditor
         self.configuration = configuration
     }
 
@@ -74,39 +56,59 @@ struct ToolsSectionView: View {
 extension ToolsSectionView {
 
     fileprivate func toolSheet(_ tool: ToolEnum) -> some View {
-        VStack(spacing: 16) {
-            if let video = editorViewModel.currentVideo {
-                toolContent(tool, video)
-            }
-        }
-        .safeAreaPadding()
-        .navigationTitle(tool.title)
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-                Button("Close") {
-                    editorViewModel.closeSelectedTool(textEditor)
+        Group {
+            VStack(spacing: 16) {
+                if let video = editorViewModel.currentVideo {
+                    toolContent(tool, video)
                 }
             }
-
-            ToolbarItem(placement: .topBarTrailing) {
-                Button("Reset") {
-                    if tool == .corrections {
-                        filtersVM.colorCorrection = ColorCorrection()
+            .safeAreaPadding()
+            .navigationTitle(tool.title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close") {
+                        editorViewModel.closeSelectedTool()
                     }
-
-                    editorViewModel.reset(
-                        tool,
-                        textEditor: textEditor,
-                        videoPlayer: videoPlayer
-                    )
                 }
-                .disabled(!canReset(tool))
+
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Reset") {
+                        editorViewModel.reset(
+                            tool,
+                            videoPlayer: videoPlayer
+                        )
+                    }
+                    .disabled(!canReset(tool))
+                }
             }
+            .presentationDragIndicator(.visible)
+            .presentationContentInteraction(contentInteraction(for: tool))
+            .presentationCornerRadius(32)
         }
-        .presentationDragIndicator(.visible)
-        .presentationContentInteraction(contentInteraction(for: tool))
-        .presentationCornerRadius(32)
+        .modifier(
+            CropBackgroundInteractionModifier(
+                isEnabled: tool == .crop
+            )
+        )
+    }
+
+}
+
+private struct CropBackgroundInteractionModifier: ViewModifier {
+
+    // MARK: - Public Properties
+
+    let isEnabled: Bool
+
+    // MARK: - Public Methods
+
+    func body(content: Content) -> some View {
+        if isEnabled {
+            content.presentationBackgroundInteraction(.enabled)
+        } else {
+            content
+        }
     }
 
 }
@@ -117,7 +119,7 @@ extension ToolsSectionView {
 
     private func initialSheetHeight(for tool: ToolEnum) -> CGFloat {
         switch tool {
-        case .audio, .filters, .text:
+        case .audio:
             220
         case .speed:
             260
@@ -134,7 +136,7 @@ extension ToolsSectionView {
         switch tool {
         case .audio:
             .resizes
-        case .speed, .crop, .text, .filters, .corrections, .frames, .cut:
+        case .speed, .crop, .corrections, .frames, .cut:
             .scrolls
         }
     }
@@ -152,17 +154,13 @@ extension ToolsSectionView {
                 if let newValue {
                     editorViewModel.selectTool(newValue)
                 } else {
-                    editorViewModel.closeSelectedTool(textEditor)
+                    editorViewModel.closeSelectedTool()
                 }
             }
         )
     }
 
     // MARK: - Private Methods
-
-    private func handleSelectedToolChange(_ tool: ToolEnum?) {
-        editorViewModel.handleSelectedToolChange(tool, textEditor: textEditor)
-    }
 
     private func handleToolTap(_ toolAvailability: ToolAvailability) {
         guard !toolAvailability.isBlocked else {
@@ -186,18 +184,8 @@ extension ToolsSectionView {
             CropToolView(editorViewModel)
         case .audio:
             VideoAudioToolView(videoPlayer, editorVM: editorViewModel)
-        case .text:
-            TextToolsView(video, editor: textEditor)
-        case .filters:
-            VideoFiltersToolView(video.filterName, viewModel: filtersVM) { filterName in
-                editorViewModel.handleFilterChange(
-                    filterName,
-                    filtersViewModel: filtersVM,
-                    videoPlayer: videoPlayer
-                )
-            }
         case .corrections:
-            VideoCorrectionsToolView($filtersVM.colorCorrection) { corrections in
+            VideoCorrectionsToolView(editorViewModel.colorCorrectionBinding(videoPlayer: videoPlayer)) { corrections in
                 editorViewModel.handleCorrectionsChange(corrections, videoPlayer: videoPlayer)
             }
         case .frames:

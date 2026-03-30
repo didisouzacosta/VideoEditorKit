@@ -9,7 +9,12 @@ import Foundation
 
 enum ToolEnum: Int, CaseIterable, Identifiable, Codable, Sendable {
 
-    case cut, speed, crop, audio, text, filters, corrections, frames
+    case cut = 0
+    case speed = 1
+    case crop = 2
+    case audio = 3
+    case corrections = 6
+    case frames = 7
 
     var id: Int {
         rawValue
@@ -25,8 +30,6 @@ enum ToolEnum: Int, CaseIterable, Identifiable, Codable, Sendable {
         case .speed: "Speed"
         case .crop: "Presets"
         case .audio: "Audio"
-        case .text: "Text"
-        case .filters: "Filters"
         case .corrections: "Corrections"
         case .frames: "Frames"
         }
@@ -38,8 +41,6 @@ enum ToolEnum: Int, CaseIterable, Identifiable, Codable, Sendable {
         case .speed: "timer"
         case .crop: "aspectratio"
         case .audio: "waveform"
-        case .text: "t.square.fill"
-        case .filters: "camera.filters"
         case .corrections: "circle.righthalf.filled"
         case .frames: "person.crop.artframe"
         }

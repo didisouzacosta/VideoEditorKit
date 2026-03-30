@@ -11,38 +11,38 @@ struct VideoEditingConfiguration: Codable, Equatable, Sendable {
 
     // MARK: - Public Properties
 
-    static let currentSchemaVersion: SchemaVersion = .normalizedTextOverlayOffsets
+    static let currentSchemaVersion: SchemaVersion = .current
     static let initial = Self()
 
     var version = Self.currentSchemaVersion.rawValue
     var trim = Trim()
     var playback = Playback()
     var crop = Crop()
-    var filter = Filter()
+    var corrections = Corrections()
     var frame = Frame()
     var audio = Audio()
-    var textOverlays: [TextOverlay] = []
     var presentation = Presentation()
 
     // MARK: - Private Properties
 
     private var opaquePayload: OpaquePayload?
 
-    enum CodingKeys: String, CodingKey {
+    private enum CodingKeys: String, CodingKey {
         case version
         case trim
         case playback
         case crop
-        case filter
+        case corrections
         case frame
         case audio
-        case textOverlays
         case presentation
+        case legacyCorrectionsContainer = "filter"
     }
 
     enum SchemaVersion: Int, Codable, Equatable, Sendable {
         case initial = 1
-        case normalizedTextOverlayOffsets = 2
+        case legacyNormalizedLayout = 2
+        case current = 3
     }
 
     var schemaVersion: SchemaVersion? {
@@ -56,20 +56,18 @@ struct VideoEditingConfiguration: Codable, Equatable, Sendable {
         trim: Trim = .init(),
         playback: Playback = .init(),
         crop: Crop = .init(),
-        filter: Filter = .init(),
+        corrections: Corrections = .init(),
         frame: Frame = .init(),
         audio: Audio = .init(),
-        textOverlays: [TextOverlay] = [],
         presentation: Presentation = .init()
     ) {
         self.version = version
         self.trim = trim
         self.playback = playback
         self.crop = crop
-        self.filter = filter
+        self.corrections = corrections
         self.frame = frame
         self.audio = audio
-        self.textOverlays = textOverlays
         self.presentation = presentation
     }
 
@@ -97,10 +95,9 @@ struct VideoEditingConfiguration: Codable, Equatable, Sendable {
         try container.encode(trim, forKey: .trim)
         try container.encode(playback, forKey: .playback)
         try container.encode(crop, forKey: .crop)
-        try container.encode(filter, forKey: .filter)
+        try container.encode(corrections, forKey: .corrections)
         try container.encode(frame, forKey: .frame)
         try container.encode(audio, forKey: .audio)
-        try container.encode(textOverlays, forKey: .textOverlays)
         try container.encode(presentation, forKey: .presentation)
     }
 
@@ -110,15 +107,22 @@ struct VideoEditingConfiguration: Codable, Equatable, Sendable {
         decodedFrom container: KeyedDecodingContainer<CodingKeys>,
         version: Int
     ) throws {
+        let decodedCorrections =
+            try container.decodeIfPresent(Corrections.self, forKey: .corrections)
+            ?? container.decodeIfPresent(
+                LegacyCorrectionsContainer.self,
+                forKey: .legacyCorrectionsContainer
+            )?.asCorrections
+            ?? .init()
+
         self.init(
             version: version,
             trim: try container.decodeIfPresent(Trim.self, forKey: .trim) ?? .init(),
             playback: try container.decodeIfPresent(Playback.self, forKey: .playback) ?? .init(),
             crop: try container.decodeIfPresent(Crop.self, forKey: .crop) ?? .init(),
-            filter: try container.decodeIfPresent(Filter.self, forKey: .filter) ?? .init(),
+            corrections: decodedCorrections,
             frame: try container.decodeIfPresent(Frame.self, forKey: .frame) ?? .init(),
             audio: try container.decodeIfPresent(Audio.self, forKey: .audio) ?? .init(),
-            textOverlays: try container.decodeIfPresent([TextOverlay].self, forKey: .textOverlays) ?? [],
             presentation: try container.decodeIfPresent(Presentation.self, forKey: .presentation) ?? .init()
         )
     }
@@ -131,10 +135,9 @@ struct VideoEditingConfiguration: Codable, Equatable, Sendable {
         }
 
         switch schemaVersion {
-        case .initial:
-            return preservingVersion(Self.currentSchemaVersion.rawValue)
-                .clearingOpaquePayload()
-        case .normalizedTextOverlayOffsets:
+        case .initial,
+            .legacyNormalizedLayout,
+            .current:
             return preservingVersion(Self.currentSchemaVersion.rawValue)
                 .clearingOpaquePayload()
         }
@@ -196,11 +199,10 @@ extension VideoEditingConfiguration {
 
     }
 
-    struct Filter: Codable, Equatable, Sendable {
+    struct Corrections: Codable, Equatable, Sendable {
 
         // MARK: - Public Properties
 
-        var filterName: String?
         var brightness: Double = 0
         var contrast: Double = 0
         var saturation: Double = 0
@@ -232,29 +234,6 @@ extension VideoEditingConfiguration {
         var url: URL
         var duration: Double
         var volume: Float = 1
-
-    }
-
-    struct TextOverlay: Codable, Equatable, Sendable {
-
-        // MARK: - Public Properties
-
-        var id: UUID
-        var text: String
-        var fontSize: Double
-        var backgroundColorToken: String
-        var fontColorToken: String
-        var timeRange: Trim
-        var offset: Offset
-
-    }
-
-    struct Offset: Codable, Equatable, Sendable {
-
-        // MARK: - Public Properties
-
-        var x: Double
-        var y: Double
 
     }
 
@@ -295,7 +274,12 @@ extension VideoEditingConfiguration {
         init(from decoder: any Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
 
-            selectedTool = try container.decodeIfPresent(ToolEnum.self, forKey: .selectedTool)
+            if let selectedToolRawValue = try container.decodeIfPresent(Int.self, forKey: .selectedTool) {
+                selectedTool = ToolEnum(rawValue: selectedToolRawValue)
+            } else {
+                selectedTool = nil
+            }
+
             cropTab = try container.decodeIfPresent(CropTab.self, forKey: .cropTab) ?? .rotate
             socialVideoDestination = try container.decodeIfPresent(
                 SocialVideoDestination.self,
@@ -308,7 +292,7 @@ extension VideoEditingConfiguration {
 
         func encode(to encoder: any Encoder) throws {
             var container = encoder.container(keyedBy: CodingKeys.self)
-            try container.encodeIfPresent(selectedTool, forKey: .selectedTool)
+            try container.encodeIfPresent(selectedTool?.rawValue, forKey: .selectedTool)
             try container.encode(cropTab, forKey: .cropTab)
             try container.encodeIfPresent(socialVideoDestination, forKey: .socialVideoDestination)
             try container.encode(showsSafeAreaGuides, forKey: .showsSafeAreaGuides)
@@ -354,6 +338,28 @@ extension VideoEditingConfiguration {
                 "Shorts"
             }
         }
+    }
+
+}
+
+extension VideoEditingConfiguration {
+
+    fileprivate struct LegacyCorrectionsContainer: Codable, Equatable, Sendable {
+
+        // MARK: - Public Properties
+
+        var brightness: Double = 0
+        var contrast: Double = 0
+        var saturation: Double = 0
+
+        var asCorrections: Corrections {
+            .init(
+                brightness: brightness,
+                contrast: contrast,
+                saturation: saturation
+            )
+        }
+
     }
 
 }

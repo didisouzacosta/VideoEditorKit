@@ -19,8 +19,6 @@ struct ToolEnumTests {
                 .speed,
                 .crop,
                 .audio,
-                .text,
-                .filters,
                 .corrections,
                 .frames,
             ]
@@ -32,10 +30,8 @@ struct ToolEnumTests {
         let expectations: [(tool: ToolEnum, title: String, image: String)] = [
             (.cut, "Cut", "scissors"),
             (.speed, "Speed", "timer"),
-            (.crop, "Crop", "crop"),
+            (.crop, "Presets", "aspectratio"),
             (.audio, "Audio", "waveform"),
-            (.text, "Text", "t.square.fill"),
-            (.filters, "Filters", "camera.filters"),
             (.corrections, "Corrections", "circle.righthalf.filled"),
             (.frames, "Frames", "person.crop.artframe"),
         ]
@@ -56,12 +52,12 @@ struct VideoEditorConfigurationTests {
 
     @Test
     func toolAvailabilityHelpersProduceTheExpectedAccessStates() {
-        let visibleTools = ToolAvailability.enabled([.speed, .text])
-        let blockedTool = ToolAvailability.blocked(.filters)
+        let visibleTools = ToolAvailability.enabled([.speed, .corrections])
+        let blockedTool = ToolAvailability.blocked(.frames)
 
-        #expect(visibleTools.map(\.tool) == [.speed, .text])
+        #expect(visibleTools.map(\.tool) == [.speed, .corrections])
         #expect(visibleTools.allSatisfy { $0.isEnabled })
-        #expect(blockedTool.tool == .filters)
+        #expect(blockedTool.tool == .frames)
         #expect(blockedTool.isBlocked)
     }
 
@@ -78,16 +74,16 @@ struct VideoEditorConfigurationTests {
     func customConfigurationPreservesTheProvidedOrderAndAccessState() {
         let configuration = VideoEditorView.Configuration(
             tools: [
-                .enabled(.filters),
+                .enabled(.corrections),
                 .blocked(.speed),
-                .enabled(.text),
+                .enabled(.frames),
             ]
         )
 
-        #expect(configuration.tools.map(\.tool) == [.filters, .speed, .text])
-        #expect(configuration.isVisible(.filters))
-        #expect(configuration.isEnabled(.filters))
-        #expect(configuration.availability(for: .filters)?.isBlocked == false)
+        #expect(configuration.tools.map(\.tool) == [.corrections, .speed, .frames])
+        #expect(configuration.isVisible(.corrections))
+        #expect(configuration.isEnabled(.corrections))
+        #expect(configuration.availability(for: .corrections)?.isBlocked == false)
         #expect(configuration.isBlocked(.speed))
         #expect(configuration.availability(for: .speed)?.isBlocked == true)
         #expect(configuration.isVisible(.audio) == false)
@@ -166,20 +162,20 @@ struct VideoQualityTests {
 
 }
 
-@Suite("FilterHelperTests")
-struct FilterHelperTests {
+@Suite("ColorCorrectionHelperTests")
+struct ColorCorrectionHelperTests {
 
     // MARK: - Public Methods
 
     @Test
-    func createColorFilterBuildsAColorControlsFilterWithCurrentCorrectionRules() throws {
+    func createColorCorrectionFilterBuildsAColorControlsFilterWithCurrentCorrectionRules() throws {
         let correction = ColorCorrection(
             brightness: 0.15,
             contrast: 0.35,
             saturation: 0.8
         )
 
-        let filter = try #require(Helpers.createColorFilter(correction))
+        let filter = try #require(Helpers.createColorCorrectionFilter(correction))
 
         #expect(filter.name == "CIColorControls")
         #expect((filter.value(forKey: CorrectionType.brightness.key) as? NSNumber)?.doubleValue == 0.15)
@@ -188,15 +184,13 @@ struct FilterHelperTests {
     }
 
     @Test
-    func createFiltersCombinesMainFilterAndColorCorrectionInOrder() {
-        let mainFilter = CIFilter.photoEffectNoir()
+    func createColorCorrectionFiltersProducesASingleStagePipeline() {
         let correction = ColorCorrection(brightness: 0.1, contrast: 0.2, saturation: 0.3)
 
-        let filters = Helpers.createFilters(mainFilter, colorCorrection: correction)
+        let filters = Helpers.createColorCorrectionFilters(colorCorrection: correction)
 
-        #expect(filters.count == 2)
-        #expect(filters[0].name == mainFilter.name)
-        #expect(filters[1].name == "CIColorControls")
+        #expect(filters.count == 1)
+        #expect(filters[0].name == "CIColorControls")
     }
 
     @Test
@@ -271,19 +265,6 @@ struct MathAndRatioTests {
         #expect((-2.0).clamped(to: 1...5) == 1)
         #expect(270.0.nextAngle() == 0)
         #expect((-90.0).nextAngle() == 0)
-    }
-
-    @Test
-    func convertSizeUsesTheLargerFrameRatioAndCurrentOffsetRule() {
-        let converted = VideoEditor.convertSize(
-            CGSize(width: 20, height: 10),
-            fromFrame: CGSize(width: 100, height: 50),
-            toFrame: CGSize(width: 200, height: 200)
-        )
-
-        #expect(abs(converted.ratio - 4) < 0.0001)
-        #expect(abs(converted.size.width - 180) < 0.0001)
-        #expect(abs(converted.size.height - 60) < 0.0001)
     }
 
 }

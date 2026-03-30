@@ -20,11 +20,10 @@ The key design choice is to introduce a dedicated Codable session snapshot inste
   - speed via `rate`
   - rotate via `rotation`
   - mirror via `isMirror`
-  - filter via `filterName`
   - color correction via `colorCorrection`
   - frame via `videoFrames`
-  - text overlays via `textBoxes`
   - recorded audio and video volume via `audio` and `volume`
+  - crop/preset geometry via `freeformRect`
 - Some of that state is not directly serializable today because the models contain runtime-only types such as:
   - `AVAsset`
   - `Color`
@@ -72,10 +71,9 @@ struct VideoEditingSnapshot: Codable, Equatable, Sendable {
     var trim: TrimSnapshot
     var playback: PlaybackSnapshot
     var crop: CropSnapshot
-    var filter: FilterSnapshot
+    var corrections: CorrectionsSnapshot
     var frame: FrameSnapshot
     var audio: AudioSnapshot
-    var textOverlays: [TextOverlaySnapshot]
     var ui: EditorUISnapshot
 }
 ```
@@ -149,18 +147,17 @@ struct NormalizedCropRect: Codable, Equatable, Sendable {
 
 `freeCrop` is intentionally optional because the app does not model or export free crop yet. The rollout should still define the field now so the format does not need a breaking redesign when free crop becomes real state.
 
-### `FilterSnapshot`
+### `CorrectionsSnapshot`
 
 ```swift
-struct FilterSnapshot: Codable, Equatable, Sendable {
-    var filterName: String?
+struct CorrectionsSnapshot: Codable, Equatable, Sendable {
     var brightness: Double
     var contrast: Double
     var saturation: Double
 }
 ```
 
-Maps from `Video.filterName` and `Video.colorCorrection`.
+Maps from `Video.colorCorrection`.
 
 ### `FrameSnapshot`
 
@@ -200,27 +197,6 @@ This covers:
 - recorded audio volume
 - which track was selected in the UI when the editor was closed
 
-### `TextOverlaySnapshot`
-
-```swift
-struct TextOverlaySnapshot: Codable, Equatable, Sendable {
-    var id: UUID
-    var text: String
-    var fontSize: Double
-    var backgroundColorHexRGBA: String
-    var fontColorHexRGBA: String
-    var timeRange: TrimSnapshot
-    var normalizedOffset: NormalizedPoint
-}
-
-struct NormalizedPoint: Codable, Equatable, Sendable {
-    var x: Double
-    var y: Double
-}
-```
-
-The offset should be normalized against a known editor coordinate space instead of storing raw pixel offsets only. That makes restoration more stable across layout changes and device sizes.
-
 ### `EditorUISnapshot`
 
 ```swift
@@ -234,13 +210,12 @@ This is optional from a business perspective, but it helps the host reopen the e
 
 ## Why A Dedicated DTO Layer
 
-Do not make `Video`, `Audio`, and `TextBox` directly Codable as the first step.
+Do not make `Video` and `Audio` directly Codable as the first step.
 
 Reasons:
 
 - `Video` contains `AVAsset`, thumbnails, and geometry derived from layout.
 - `Audio` exposes a computed `asset`.
-- `TextBox` stores `Color` and raw `CGSize`.
 - The runtime model should stay free to evolve for playback and rendering concerns.
 
 Instead, add explicit mappers:
@@ -288,8 +263,6 @@ Avoid using `Caches` for resumable sessions because the OS may purge it.
 4. `EditorViewModel` loads the source asset as it does today.
 5. After the runtime `Video` is created, apply `snapshot` onto it through a mapper.
 6. Sync dependent view models and managers:
-   - `FiltersViewModel`
-   - `TextEditorViewModel`
    - `VideoPlayerManager`
 7. Restore optional UI state such as selected tool, crop tab, and current playback position.
 
@@ -302,11 +275,10 @@ Recommended trigger points:
 - trim changed
 - rate changed
 - rotation or mirror changed
-- filter changed
 - corrections changed
 - frame changed
-- text save or text delete
 - audio recorded, removed, or volume changed
+- crop/preset changed
 - editor dismissal
 - app backgrounding while the editor is open
 
@@ -386,10 +358,7 @@ Scope:
 
 - `VideoEditorKit/Views/EditorView/VideoEditorView.swift`
 - `VideoEditorKit/Core/ViewModels/EditorViewModel.swift`
-- `VideoEditorKit/Core/ViewModels/TextEditorViewModel.swift`
-- `VideoEditorKit/Core/ViewModels/FiltersViewModel.swift`
 - `VideoEditorKit/Core/Models/Video.swift`
-- `VideoEditorKit/Core/Models/TextBox.swift`
 - `VideoEditorKit/Core/Models/AudioModel.swift`
 - `VideoEditorKit/Views/ToolsView/Crop/CropView.swift`
 - `VideoEditorKit/Views/RootView/RootView.swift`
@@ -402,9 +371,9 @@ Add characterization and round-trip tests before wiring the full feature:
 
 1. Snapshot encode/decode round-trip preserves values.
 2. Runtime video to snapshot mapping preserves editable state.
-3. Snapshot to runtime video restoration restores trim, speed, rotation, mirror, filters, corrections, frame, text, and audio metadata.
+3. Snapshot to runtime video restoration restores trim, speed, rotation, mirror, crop, corrections, frame, and audio metadata.
 4. Color conversion is stable for supported editor colors.
-5. Normalized text offsets restore predictably across at least two container sizes.
+5. Normalized crop geometry restores predictably across at least two container sizes.
 6. Legacy URL-only initializer still opens the editor with a default snapshot.
 7. Session update callbacks are debounced and emit the latest state.
 

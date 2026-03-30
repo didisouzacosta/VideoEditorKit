@@ -19,7 +19,6 @@ struct PlayerHolderView: View {
 
     private let editorViewModel: EditorViewModel
     private let videoPlayer: VideoPlayerManager
-    private let textEditor: TextEditorViewModel
 
     // MARK: - Body
 
@@ -45,12 +44,10 @@ struct PlayerHolderView: View {
 
     init(
         _ editorViewModel: EditorViewModel,
-        videoPlayer: VideoPlayerManager,
-        textEditor: TextEditorViewModel
+        videoPlayer: VideoPlayerManager
     ) {
         self.editorViewModel = editorViewModel
         self.videoPlayer = videoPlayer
-        self.textEditor = textEditor
     }
 
 }
@@ -67,43 +64,66 @@ extension PlayerHolderView {
                         for: video,
                         in: proxy.size
                     )
+                    let spotlightMode = editorViewModel.shouldUseCropPresetSpotlight
 
-                    ZStack {
-                        CropView(
-                            displaySize,
-                            freeformRect: Binding(
-                                get: { editorViewModel.cropFreeformRect },
-                                set: { editorViewModel.setCropFreeformRect($0) }
-                            ),
-                            rotation: editorViewModel.currentVideo?.rotation,
-                            isMirror: editorViewModel.currentVideo?.isMirror ?? false,
-                            isActiveCrop: editorViewModel.shouldShowCropOverlay,
-                            socialVideoSafeAreaGuide: editorViewModel.socialVideoDestination?.safeAreaGuide,
-                            showsSocialVideoSafeAreaGuide: editorViewModel.shouldShowSocialVideoSafeAreaGuide
-                        ) {
-                            ZStack {
-                                editorViewModel.frames.frameColor
-
-                                ZStack {
-                                    PlayerView(videoPlayer.videoPlayer)
-                                    TextOverlayView(
-                                        videoPlayer.currentTime,
-                                        viewModel: textEditor
-                                    )
-                                }
-                                .scaleEffect(editorViewModel.frames.scale)
+                    VStack(spacing: editorViewModel.shouldShowCropPresetBadge() ? 10 : 0) {
+                        ZStack {
+                            if spotlightMode {
+                                presetSpotlightBackdrop(displaySize)
+                                    .allowsHitTesting(false)
                             }
+
+                            CropView(
+                                displaySize,
+                                freeformRect: Binding(
+                                    get: { editorViewModel.cropFreeformRect },
+                                    set: { editorViewModel.setCropFreeformRect($0) }
+                                ),
+                                rotation: editorViewModel.currentVideo?.rotation,
+                                isMirror: editorViewModel.currentVideo?.isMirror ?? false,
+                                showsCropOverlay: editorViewModel.shouldShowCropOverlay,
+                                isInteractiveCrop: editorViewModel.isCropOverlayInteractive,
+                                socialVideoSafeAreaGuide: editorViewModel.activeSocialVideoSafeAreaGuide,
+                                showsSocialVideoSafeAreaGuide: editorViewModel.shouldShowSocialVideoSafeAreaGuide
+                            ) {
+                                ZStack {
+                                    editorViewModel.frames.frameColor
+
+                                    PlayerView(videoPlayer.videoPlayer)
+                                        .allFrame()
+                                        .scaleEffect(editorViewModel.frames.scale)
+                                }
+                            }
+                            .frame(width: displaySize.width, height: displaySize.height)
+                            .background {
+                                if spotlightMode {
+                                    RoundedRectangle(cornerRadius: 28, style: .continuous)
+                                        .fill(.white.opacity(0.08))
+                                        .blur(radius: 18)
+                                }
+                            }
+                            .clipShape(
+                                .rect(cornerRadius: spotlightMode ? 28 : 4)
+                            )
+                            .overlay {
+                                if spotlightMode {
+                                    RoundedRectangle(cornerRadius: 28, style: .continuous)
+                                        .strokeBorder(.white.opacity(0.12), lineWidth: 1)
+                                }
+                            }
+                            .shadow(
+                                color: .black.opacity(spotlightMode ? 0.18 : 0),
+                                radius: spotlightMode ? 28 : 0,
+                                y: spotlightMode ? 18 : 0
+                            )
                         }
-                        .frame(width: displaySize.width, height: displaySize.height)
-                        .clipShape(.rect(cornerRadius: 4))
 
                         if editorViewModel.shouldShowCropPresetBadge() {
                             cropPresetBadge
-                                .padding(.bottom, 12)
+                                .allowsHitTesting(false)
                         }
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .clipped()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
                     .task(
                         id: playerLayoutID(
                             for: proxy.size,
@@ -142,6 +162,30 @@ extension PlayerHolderView {
         .foregroundStyle(.white)
     }
 
+    @ViewBuilder
+    private func presetSpotlightBackdrop(_ spotlightSize: CGSize) -> some View {
+        RoundedRectangle(cornerRadius: 24, style: .continuous)
+            .fill(
+                LinearGradient(
+                    colors: [
+                        .white.opacity(0.08),
+                        .white.opacity(0.02),
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
+            .frame(
+                width: spotlightSize.width,
+                height: spotlightSize.height
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .strokeBorder(Theme.accent.opacity(0.16), lineWidth: 1)
+            }
+            .shadow(color: .black.opacity(0.08), radius: 18, y: 10)
+    }
+
     private func playerLayoutID(
         for containerSize: CGSize,
         rotation: Double,
@@ -159,12 +203,10 @@ extension PlayerHolderView {
         )
 
         guard size.width > 0, size.height > 0 else { return }
-
         guard editorViewModel.currentVideo?.id == video.id else { return }
 
         editorViewModel.updateCurrentVideoLayout(
-            to: size,
-            textEditor: textEditor
+            to: size
         )
     }
 
@@ -182,7 +224,6 @@ struct PlayerControl: View {
     private let editorViewModel: EditorViewModel
     private let videoPlayer: VideoPlayerManager
     private let recorderManager: AudioRecorderManager
-    private let textEditor: TextEditorViewModel
 
     // MARK: - Body
 
@@ -198,13 +239,11 @@ struct PlayerControl: View {
     init(
         _ editorViewModel: EditorViewModel,
         videoPlayer: VideoPlayerManager,
-        recorderManager: AudioRecorderManager,
-        textEditor: TextEditorViewModel
+        recorderManager: AudioRecorderManager
     ) {
         self.editorViewModel = editorViewModel
         self.videoPlayer = videoPlayer
         self.recorderManager = recorderManager
-        self.textEditor = textEditor
     }
 
     // MARK: - Private Methods

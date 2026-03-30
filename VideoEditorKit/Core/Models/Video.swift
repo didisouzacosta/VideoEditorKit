@@ -25,10 +25,8 @@ struct Video: Identifiable, @unchecked Sendable {
     var geometrySize: CGSize = .zero
     var isMirror: Bool = false
     var toolsApplied = [Int]()
-    var filterName: String? = nil
     var colorCorrection = ColorCorrection()
     var videoFrames: VideoFrames? = nil
-    var textBoxes: [TextBox] = []
     var audio: Audio?
     var volume: Float = 1.0
     var hasRecordedAudio: Bool {
@@ -179,10 +177,6 @@ struct Video: Identifiable, @unchecked Sendable {
         if isAppliedTool(for: tool) {
             toolsApplied.removeAll(where: { $0 == tool.rawValue })
         }
-    }
-
-    mutating func setFilter(_ filter: String?) {
-        filterName = filter
     }
 
     func timelineTimePreservingSourcePosition(_ timelineTime: Double, fromRate previousRate: Float)

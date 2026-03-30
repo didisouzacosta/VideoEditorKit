@@ -74,20 +74,20 @@ struct VideoModelTests {
     func appliedToolAddsOnlyOnce() {
         var video = Video.mock
 
-        video.appliedTool(for: .text)
-        video.appliedTool(for: .text)
+        video.appliedTool(for: .corrections)
+        video.appliedTool(for: .corrections)
 
-        #expect(video.toolsApplied == [ToolEnum.text.rawValue])
+        #expect(video.toolsApplied == [ToolEnum.corrections.rawValue])
     }
 
     @Test
     func removeToolClearsPreviouslyAppliedTool() {
         var video = Video.mock
-        video.appliedTool(for: .filters)
+        video.appliedTool(for: .frames)
 
-        video.removeTool(for: .filters)
+        video.removeTool(for: .frames)
 
-        #expect(video.isAppliedTool(for: .filters) == false)
+        #expect(video.isAppliedTool(for: .frames) == false)
         #expect(video.toolsApplied.isEmpty)
     }
 

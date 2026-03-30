@@ -8,7 +8,7 @@ O nome do target continua `VideoEditorKit`, mas a base atual implementa um edito
 
 - importação de vídeo via `PhotosPicker`
 - persistência local com `CoreData`
-- edição de corte, velocidade, rotação/espelho, áudio, texto, filtros, correções e moldura
+- edição de corte, velocidade, presets sociais/crop, áudio, correções e moldura
 - exportação assíncrona para arquivo `.mp4`
 
 O código ainda não segue a arquitetura alvo descrita em `AGENTS.md` e no `CLAUDE.md` antigo. Não existem hoje `Core/`, `LayoutEngine`, `PlayerEngine`, `ExportEngine` ou snapshots codáveis separados.
@@ -38,15 +38,15 @@ Build settings atuais:
 
 ```text
 VideoEditorKit/
-  Models/        — modelos de domínio leves (`Video`, `TextBox`, `Audio`, `VideoQuality`)
+  Models/        — modelos de domínio leves (`Video`, `Audio`, `VideoQuality`)
   ViewModels/    — estado observável da UI (`RootViewModel`, `EditorViewModel`, etc.)
-  Service/       — player, câmera, gravador de áudio, Core Data
+  Service/       — player, câmera, gravador de áudio e persistência
   Views/         — telas e componentes SwiftUI do editor
-  Utils/         — helpers de exportação, filtros, extensões e utilitários
+  Utils/         — helpers de exportação, extensões e utilitários
   VideoEditorKitApp.swift
 
 VideoEditorKitTests/
-  — testes unitários pontuais para formatação, texto e modelo `Video`
+  — testes unitários pontuais para formatação, timeline, crop, persistência e modelo `Video`
 ```
 
 Não há separação atual entre camada de domínio pura, engines testáveis e UI fina. A maior parte da lógica está distribuída entre `ViewModels`, `Service` e `Utils/Helpers/VideoEditor.swift`.
@@ -74,11 +74,10 @@ Não há separação atual entre camada de domínio pura, engines testáveis e U
   - velocidade
   - rotação
   - espelho
-  - filtro
   - correções
   - moldura
-  - textos
   - áudio gravado
+  - presets/crop serializado
 
 ### 4. Edição
 
@@ -87,8 +86,7 @@ Não há separação atual entre camada de domínio pura, engines testáveis e U
   - player/preview
   - controles de timeline
   - grade de ferramentas ou bottom sheet da ferramenta ativa
-- `VideoPlayerManager` controla reprodução, scrub, filtros de preview e player de áudio adicional.
-- `TextEditorViewModel` mantém seleção e edição de overlays de texto.
+- `VideoPlayerManager` controla reprodução, scrub, correções de preview e player de áudio adicional.
 
 ### 5. Persistência
 
@@ -128,9 +126,9 @@ Não há separação atual entre camada de domínio pura, engines testáveis e U
 - O estado persistido e exportado hoje cobre:
   - rotação em passos de 90 graus
   - espelhamento horizontal
-- Existe uma `CropView` com retângulo de crop visual e drag.
-- Esse crop visual **não** é salvo no modelo e **não** participa do export atual.
-- A aba `format` em `CropSheetView` está vazia.
+- presets visuais como `9:16`, `1:1`, `4:5` e `16:9`
+- A `CropView` mostra o frame exportável, overlay escurecido e safe area social.
+- O export já consome o `freeformRect` salvo no snapshot para os presets.
 
 ### Áudio
 
@@ -144,31 +142,6 @@ Não há separação atual entre camada de domínio pura, engines testáveis e U
   - áudio original do vídeo com `video.volume`
   - um único áudio adicional com `audio.volume`
 
-### Texto
-
-- `TextEditorView` cria e edita `TextBox`.
-- Cada texto possui:
-  - conteúdo
-  - `fontSize`
-  - cor de fundo
-  - cor da fonte
-  - `timeRange`
-  - `offset`
-- O preview permite:
-  - selecionar
-  - mover
-  - aumentar/reduzir fonte com pinça
-  - duplicar
-  - remover
-- `saveTapped()` remove textos vazios ou só com whitespace.
-- O export desenha textos via `CATextLayer` com animações simples de entrada/saída.
-
-### Filtros
-
-- `FiltersViewModel` gera previews dos filtros a partir da primeira thumbnail.
-- O preview usa `AVVideoComposition` com `CoreImage`.
-- O export aplica filtros em uma segunda etapa após a composição base.
-
 ### Correções de cor
 
 - Ajustes disponíveis:
@@ -176,7 +149,7 @@ Não há separação atual entre camada de domínio pura, engines testáveis e U
   - contraste
   - saturação
 - São convertidos em um `CIColorControls`.
-- Preview e export usam a mesma combinação de filtros gerada em `Helpers.createFilters`.
+- Preview e export usam o mesmo estágio de correção de cor baseado em `CIColorControls`.
 
 ### Moldura / frame
 
@@ -207,7 +180,7 @@ Não há separação atual entre camada de domínio pura, engines testáveis e U
 O pipeline real fica em `Utils/Helpers/VideoEditor.swift` e ocorre em duas etapas:
 
 1. `resizeAndLayerOperation`
-2. `applyFiltersOperations`
+2. `applyCorrectionsOperation`
 
 ### Etapa 1: composição base
 
@@ -218,12 +191,12 @@ O pipeline real fica em `Utils/Helpers/VideoEditor.swift` e ocorre em duas etapa
 - aplica espelho
 - define resolução final conforme `VideoQuality`
 - adiciona fundo de moldura
-- renderiza textos com `CATextLayer`
+- respeita o crop/preset salvo no snapshot
 
-### Etapa 2: filtros
+### Etapa 2: correções
 
 - abre o arquivo gerado na etapa 1
-- aplica filtro principal + correção de cor com `AVVideoComposition`
+- aplica correção de cor com `AVVideoComposition`
 - exporta novamente para um `temp_video.mp4`
 
 ### Qualidades disponíveis
@@ -250,22 +223,11 @@ Salva:
 - velocidade
 - rotação
 - espelho
-- filtro
 - brilho / contraste / saturação
 - ferramentas aplicadas em CSV
 - cor e escala da moldura
 - relação com áudio
-- relação com textos
-
-### `TextBoxEntity`
-
-Salva:
-
-- texto
-- cores em hexadecimal
-- tamanho da fonte
-- intervalo de tempo
-- offset X/Y
+- snapshot serializado de edição (`VideoEditingConfiguration`)
 
 ### `AudioEntity`
 
@@ -288,10 +250,9 @@ Situação atual:
 
 - corte: parcialmente alinhado
 - velocidade: alinhada entre player e export
-- filtro/correção: mesma ideia de pipeline, mas preview e export usam caminhos diferentes
+- correção: preview e export usam o mesmo estágio conceitual, mas ainda por caminhos diferentes
 - moldura: alinhada conceitualmente
-- texto: preview e export compartilham o mesmo modelo, mas a conversão de coordenadas é manual
-- crop livre: preview visual existe, export não usa esse crop
+- crop/preset: já participa do snapshot e do export, mas a geometria ainda exige cuidado ao mexer no preview
 
 Conclusão prática: **não assumir `Preview = Export` como verdade absoluta no estado atual**.
 
@@ -303,8 +264,6 @@ O código atual já usa `@Observable` em boa parte do estado de UI:
 
 - `RootViewModel`
 - `EditorViewModel`
-- `TextEditorViewModel`
-- `FiltersViewModel`
 - `ExporterViewModel`
 - `VideoPlayerManager`
 - `AudioRecorderManager`
@@ -316,7 +275,7 @@ Ao mesmo tempo, ainda existem características de transição:
 - uso de `GeometryReader`
 - uso de `UIScreen.main.bounds` em extensão de `View`
 - uso de `String(format:)`
-- bridges UIKit relevantes para texto, player, câmera e share sheet
+- bridges UIKit relevantes para player, câmera e share sheet
 
 Ou seja: o projeto está mais próximo de um **app SwiftUI com MVVM + services** do que da arquitetura final orientada a engines puras descrita em `AGENTS.md`.
 
@@ -337,26 +296,27 @@ Cobertura atual:
 
 - `EditorViewModelTests`
 - `PlaybackTimeMappingTests`
-- `TextEditorViewModelTests`
 - `TimelineMetricsTests`
 - `TimeIntervalFormattingTests`
 - `VideoModelTests`
+- `VideoEditingConfigurationTests`
+- `VideoCropPreviewLayoutTests`
+- `SocialVideoSafeAreaGuideTests`
 
 Os testes cobrem apenas partes pequenas do comportamento:
 
-- trim de whitespace em texto
-- remoção/cópia de `TextBox`
 - formatação de tempo
 - atualização de velocidade em `Video`
 - rotação cíclica
 - marcação de ferramentas aplicadas
+- persistência resumível
+- presets e preview de crop
 
 Não há hoje testes unitários para:
 
 - exportação
 - player
 - Core Data
-- filtros
 - correções
 - áudio
 - persistência completa de projeto
@@ -370,7 +330,6 @@ Não há hoje testes unitários para:
 - `VideoEditorKit/Views/EditorView/MainEditorView.swift`
 - `VideoEditorKit/ViewModels/EditorViewModel.swift`
 - `VideoEditorKit/Service/Player/VideoPlayerManager.swift`
-- `VideoEditorKit/ViewModels/TextEditorViewModel.swift`
 - `VideoEditorKit/Service/CoreData/ProjectEntity+Ext.swift`
 - `VideoEditorKit/Utils/Helpers/VideoEditor.swift`
 

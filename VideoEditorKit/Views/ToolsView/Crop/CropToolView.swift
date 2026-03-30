@@ -34,7 +34,7 @@ extension CropToolView {
 
     private var formatSection: some View {
         VStack(spacing: 16) {
-            Text("Choose a preset, drag to reposition, pinch to resize, and double tap to go back to full.")
+            Text("Choose a preset. Drag the video to reposition, pinch to resize, and double tap to go back to full.")
                 .font(.footnote.weight(.medium))
                 .foregroundStyle(Theme.secondary)
                 .multilineTextAlignment(.center)
@@ -49,11 +49,6 @@ extension CropToolView {
                 ForEach(VideoCropFormatPreset.editorPresets) { preset in
                     cropFormatButton(preset)
                 }
-            }
-
-            if editorVM.shouldShowSocialVideoDestinationPicker {
-                socialVideoDestinationSection
-                safeAreaGuideSection
             }
         }
     }
@@ -102,86 +97,6 @@ extension CropToolView {
             )
         }
         .buttonStyle(.plain)
-    }
-
-    private var socialVideoDestinationSection: some View {
-        VStack(spacing: 10) {
-            Text("Destination")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(Theme.secondary)
-
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 8) {
-                    socialVideoDestinationButtons
-                }
-
-                VStack(spacing: 8) {
-                    socialVideoDestinationButtons
-                }
-            }
-        }
-    }
-
-    private var safeAreaGuideSection: some View {
-        VStack(spacing: 8) {
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Safe Area Guides")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(Theme.primary)
-
-                    Text("Preview only. These guides are not exported.")
-                        .font(.caption2.weight(.medium))
-                        .foregroundStyle(Theme.secondary)
-                }
-
-                Spacer(minLength: 12)
-
-                Button {
-                    editorVM.toggleSocialVideoSafeAreaGuides()
-                } label: {
-                    Label(
-                        editorVM.showsSocialVideoSafeAreaGuides ? "On" : "Off",
-                        systemImage: editorVM.showsSocialVideoSafeAreaGuides ? "eye.fill" : "eye.slash"
-                    )
-                    .font(.caption.weight(.semibold))
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .capsuleControl(
-                        prominent: editorVM.showsSocialVideoSafeAreaGuides,
-                        tint: editorVM.showsSocialVideoSafeAreaGuides ? Theme.accent : Theme.secondary
-                    )
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(14)
-        .card(
-            cornerRadius: 20,
-            tint: Theme.secondary
-        )
-    }
-
-    @ViewBuilder
-    private var socialVideoDestinationButtons: some View {
-        ForEach(VideoEditingConfiguration.SocialVideoDestination.allCases, id: \.self) {
-            destination in
-            Button {
-                editorVM.selectSocialVideoDestination(destination)
-            } label: {
-                Text(destination.shortTitle)
-                    .font(.caption.weight(.semibold))
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .capsuleControl(
-                        prominent: editorVM.isSocialVideoDestinationSelected(destination),
-                        tint: editorVM.isSocialVideoDestinationSelected(destination)
-                            ? Theme.accent : Theme.secondary
-                    )
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(destination.title)
-        }
     }
 
     private func cropFormatPreview(

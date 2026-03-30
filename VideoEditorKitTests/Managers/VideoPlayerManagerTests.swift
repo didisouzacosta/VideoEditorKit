@@ -226,17 +226,16 @@ struct VideoPlayerManagerTests {
     }
 
     @Test
-    func filterControlsAreSafeToCallForLoadedItems() async throws {
+    func colorCorrectionControlsAreSafeToCallForLoadedItems() async throws {
         let manager = VideoPlayerManager()
         let videoURL = try await TestFixtures.createTemporaryVideo()
         defer { FileManager.default.removeIfExists(for: videoURL) }
 
         manager.loadState = .loaded(videoURL)
-        manager.setFilters(
-            mainFilter: CIFilter.photoEffectMono(),
-            colorCorrection: ColorCorrection(brightness: 0.1, contrast: 0.2, saturation: 0.3)
+        manager.setColorCorrection(
+            ColorCorrection(brightness: 0.1, contrast: 0.2, saturation: 0.3)
         )
-        manager.removeFilter()
+        manager.clearColorCorrection()
 
         #expect((manager.videoPlayer.currentItem?.asset as? AVURLAsset)?.url == videoURL)
     }

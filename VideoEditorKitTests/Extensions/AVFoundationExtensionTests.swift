@@ -53,14 +53,10 @@ struct AVAssetExtensionTests {
         defer { FileManager.default.removeIfExists(for: url) }
 
         let asset = AVURLAsset(url: url)
-        let singleFilterComposition = try await asset.setFilter(CIFilter.photoEffectMono())
-        let chainedComposition = try await asset.setFilters([
-            CIFilter.photoEffectNoir(),
-            CIFilter.sepiaTone(),
+        let chainedComposition = try await asset.makeVideoComposition(applying: [
+            try #require(Helpers.createColorCorrectionFilter(.init(brightness: 0.2)))
         ])
 
-        #expect(singleFilterComposition.renderSize.width > 0)
-        #expect(singleFilterComposition.renderSize.height > 0)
         #expect(chainedComposition.renderSize.width > 0)
         #expect(chainedComposition.renderSize.height > 0)
     }

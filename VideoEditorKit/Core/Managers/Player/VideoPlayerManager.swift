@@ -80,22 +80,19 @@ final class VideoPlayerManager {
     private var endPlaybackObserver: NSObjectProtocol?
 
     @ObservationIgnored
-    private var filterCompositionTask: Task<Void, Never>?
+    private var correctionCompositionTask: Task<Void, Never>?
 
     @ObservationIgnored
     private var pendingPlaybackTask: Task<Void, Never>?
 
     @ObservationIgnored
-    private var previewMainFilterName: String?
-
-    @ObservationIgnored
     private var previewColorCorrection = ColorCorrection()
 
     @ObservationIgnored
-    private var appliedFilterSignature: String?
+    private var appliedCorrectionSignature: String?
 
     @ObservationIgnored
-    private var appliedFilterItemID: ObjectIdentifier?
+    private var appliedCorrectionItemID: ObjectIdentifier?
 
     @ObservationIgnored
     private var loadedVideoURL: URL?
@@ -259,8 +256,8 @@ final class VideoPlayerManager {
             }
 
             startStatusSubscriptions()
-            appliedFilterItemID = nil
-            applyCurrentFilterComposition()
+            appliedCorrectionItemID = nil
+            applyCurrentColorCorrectionComposition()
         case .failed, .loading, .unknown:
             break
         }
@@ -454,8 +451,8 @@ final class VideoPlayerManager {
         removeEndPlaybackObserver()
         statusCancellable?.cancel()
         statusCancellable = nil
-        filterCompositionTask?.cancel()
-        filterCompositionTask = nil
+        correctionCompositionTask?.cancel()
+        correctionCompositionTask = nil
     }
 
     private func resolvedCurrentTime(from playbackTime: Double) -> Double {
@@ -521,78 +518,75 @@ extension VideoPlayerManager {
 
     // MARK: - Public Methods
 
-    func setFilters(mainFilter: CIFilter?, colorCorrection: ColorCorrection?) {
-        previewMainFilterName = mainFilter?.name
+    func setColorCorrection(_ colorCorrection: ColorCorrection?) {
         previewColorCorrection = colorCorrection ?? .init()
 
-        applyCurrentFilterComposition()
+        applyCurrentColorCorrectionComposition()
     }
 
-    func removeFilter() {
-        previewMainFilterName = nil
-        applyCurrentFilterComposition()
+    func clearColorCorrection() {
+        previewColorCorrection = .init()
+        applyCurrentColorCorrectionComposition()
     }
 
     // MARK: - Private Methods
 
-    private func applyCurrentFilterComposition() {
-        filterCompositionTask?.cancel()
+    private func applyCurrentColorCorrectionComposition() {
+        correctionCompositionTask?.cancel()
 
         guard let currentItem = videoPlayer.currentItem else {
-            appliedFilterSignature = nil
-            appliedFilterItemID = nil
+            appliedCorrectionSignature = nil
+            appliedCorrectionItemID = nil
             return
         }
 
         let currentItemID = ObjectIdentifier(currentItem)
-        let signature = currentFilterSignature()
+        let signature = currentColorCorrectionSignature()
 
         if signature == nil {
-            guard appliedFilterSignature != nil || appliedFilterItemID != currentItemID else {
+            guard appliedCorrectionSignature != nil || appliedCorrectionItemID != currentItemID else {
                 return
             }
 
             pause()
             currentItem.videoComposition = nil
-            appliedFilterSignature = nil
-            appliedFilterItemID = currentItemID
+            appliedCorrectionSignature = nil
+            appliedCorrectionItemID = currentItemID
             return
         }
 
-        guard appliedFilterSignature != signature || appliedFilterItemID != currentItemID else {
+        guard appliedCorrectionSignature != signature || appliedCorrectionItemID != currentItemID else {
             return
         }
 
-        let filters = Helpers.createFilters(
-            previewMainFilterName.flatMap(CIFilter.init(name:)),
+        let filters = Helpers.createColorCorrectionFilters(
             colorCorrection: previewColorCorrection.isIdentity ? nil : previewColorCorrection
         )
 
         guard !filters.isEmpty else {
             currentItem.videoComposition = nil
-            appliedFilterSignature = nil
-            appliedFilterItemID = currentItemID
+            appliedCorrectionSignature = nil
+            appliedCorrectionItemID = currentItemID
             return
         }
 
         pause()
 
-        filterCompositionTask = Task { [weak self] in
-            guard let composition = try? await currentItem.asset.setFilters(filters) else { return }
+        correctionCompositionTask = Task { [weak self] in
+            guard let composition = try? await currentItem.asset.makeVideoComposition(applying: filters) else { return }
             await MainActor.run {
                 guard let self, self.videoPlayer.currentItem === currentItem else { return }
                 currentItem.videoComposition = composition
-                self.appliedFilterSignature = signature
-                self.appliedFilterItemID = currentItemID
+                self.appliedCorrectionSignature = signature
+                self.appliedCorrectionItemID = currentItemID
             }
         }
     }
 
-    private func currentFilterSignature() -> String? {
-        guard previewMainFilterName != nil || !previewColorCorrection.isIdentity else { return nil }
+    private func currentColorCorrectionSignature() -> String? {
+        guard !previewColorCorrection.isIdentity else { return nil }
 
         return [
-            previewMainFilterName ?? "none",
             String(previewColorCorrection.brightness),
             String(previewColorCorrection.contrast),
             String(previewColorCorrection.saturation),
@@ -606,33 +600,7 @@ extension AVAsset {
 
     // MARK: - Public Methods
 
-    func setFilter(_ filter: CIFilter) async throws -> AVVideoComposition {
-        try await withCheckedThrowingContinuation { continuation in
-            AVVideoComposition.videoComposition(
-                with: self,
-                applyingCIFiltersWithHandler: { request in
-                    filter.setValue(request.sourceImage, forKey: kCIInputImageKey)
-
-                    guard let output = filter.outputImage else {
-                        request.finish(with: request.sourceImage, context: nil)
-                        return
-                    }
-
-                    request.finish(with: output, context: nil)
-                },
-                completionHandler: { composition, error in
-                    if let error {
-                        continuation.resume(throwing: error)
-                    } else if let composition {
-                        continuation.resume(returning: composition)
-                    } else {
-                        continuation.resume(throwing: VideoCompositionError.creationFailed)
-                    }
-                })
-        }
-    }
-
-    func setFilters(_ filters: [CIFilter]) async throws -> AVVideoComposition {
+    func makeVideoComposition(applying filters: [CIFilter]) async throws -> AVVideoComposition {
         try await withCheckedThrowingContinuation { continuation in
             AVVideoComposition.videoComposition(
                 with: self,

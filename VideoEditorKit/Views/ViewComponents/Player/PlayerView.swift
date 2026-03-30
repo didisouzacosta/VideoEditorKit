@@ -18,12 +18,18 @@ struct PlayerView: UIViewControllerRepresentable {
 
     private let player: AVPlayer
     private let showControls: Bool
+    private let videoGravity: AVLayerVideoGravity
 
     // MARK: - Initializer
 
-    init(_ player: AVPlayer, showControls: Bool = false) {
+    init(
+        _ player: AVPlayer,
+        showControls: Bool = false,
+        videoGravity: AVLayerVideoGravity = .resizeAspect
+    ) {
         self.player = player
         self.showControls = showControls
+        self.videoGravity = videoGravity
     }
 
     // MARK: - Public Methods
@@ -32,12 +38,18 @@ struct PlayerView: UIViewControllerRepresentable {
         let view = AVPlayerViewController()
         view.player = player
         view.showsPlaybackControls = showControls
-        view.videoGravity = .resizeAspect
+        view.videoGravity = videoGravity
+        view.view.backgroundColor = .clear
+        view.view.isUserInteractionEnabled = showControls
         return view
     }
 
     func updateUIViewController(_ uiViewController: AVPlayerViewController, context: Context) {
         uiViewController.player = player
+        uiViewController.showsPlaybackControls = showControls
+        uiViewController.videoGravity = videoGravity
+        uiViewController.view.backgroundColor = .clear
+        uiViewController.view.isUserInteractionEnabled = showControls
     }
 
 }

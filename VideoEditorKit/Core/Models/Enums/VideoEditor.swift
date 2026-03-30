@@ -21,12 +21,11 @@ enum VideoEditor {
         videoQuality: VideoQuality,
         onProgress: ProgressHandler? = nil
     ) async throws -> URL {
-        let filters = Helpers.createFilters(
-            CIFilter(name: video.filterName ?? ""),
+        let corrections = Helpers.createColorCorrectionFilters(
             colorCorrection: video.colorCorrection
         )
 
-        let usesFilterStage = !filters.isEmpty
+        let usesCorrectionsStage = !corrections.isEmpty
         let usesCropStage = editingConfiguration.crop.freeformRect != nil
 
         do {
@@ -36,19 +35,18 @@ enum VideoEditor {
                 videoQuality: videoQuality,
                 progressRange: progressRange(
                     for: .base,
-                    usesFilterStage: usesFilterStage,
+                    usesCorrectionsStage: usesCorrectionsStage,
                     usesCropStage: usesCropStage
                 ),
                 onProgress: onProgress
             )
 
-            let filteredURL = try await applyFiltersOperations(
-                video,
-                filters: filters,
+            let correctedURL = try await applyCorrectionsOperation(
+                corrections,
                 fromUrl: url,
                 progressRange: progressRange(
-                    for: .filters,
-                    usesFilterStage: usesFilterStage,
+                    for: .corrections,
+                    usesCorrectionsStage: usesCorrectionsStage,
                     usesCropStage: usesCropStage
                 ),
                 onProgress: onProgress
@@ -57,10 +55,10 @@ enum VideoEditor {
                 editingConfiguration.crop.freeformRect,
                 editingConfiguration: editingConfiguration,
                 videoQuality: videoQuality,
-                fromUrl: filteredURL,
+                fromUrl: correctedURL,
                 progressRange: progressRange(
                     for: .crop,
-                    usesFilterStage: usesFilterStage,
+                    usesCorrectionsStage: usesCorrectionsStage,
                     usesCropStage: usesCropStage
                 ),
                 onProgress: onProgress
@@ -144,20 +142,19 @@ enum VideoEditor {
         return outputURL
     }
 
-    private static func applyFiltersOperations(
-        _ video: Video,
-        filters: [CIFilter],
+    private static func applyCorrectionsOperation(
+        _ corrections: [CIFilter],
         fromUrl: URL,
         progressRange: ClosedRange<Double>,
         onProgress: ProgressHandler?
     ) async throws -> URL {
-        if filters.isEmpty {
+        if corrections.isEmpty {
             await reportProgress(progressRange.upperBound, via: onProgress)
             return fromUrl
         }
 
         let asset = AVURLAsset(url: fromUrl)
-        let composition = try await asset.setFilters(filters)
+        let composition = try await asset.makeVideoComposition(applying: corrections)
         let outputURL = createTempPath()
 
         guard
@@ -166,7 +163,7 @@ enum VideoEditor {
                 presetName: isSimulator ? AVAssetExportPresetPassthrough : AVAssetExportPresetHighestQuality
             )
         else {
-            assertionFailure("Unable to create filter export session.")
+            assertionFailure("Unable to create color correction export session.")
             throw ExporterError.cannotCreateExportSession
         }
 
@@ -263,7 +260,7 @@ extension VideoEditor {
 
     private enum RenderStage {
         case base
-        case filters
+        case corrections
         case crop
     }
 
@@ -276,21 +273,6 @@ extension VideoEditor {
     }
 
     // MARK: - Public Methods
-
-    static func convertSize(_ size: CGSize, fromFrame frameSize1: CGSize, toFrame frameSize2: CGSize)
-        -> (size: CGSize, ratio: Double)
-    {
-        let widthRatio = frameSize2.width / frameSize1.width
-        let heightRatio = frameSize2.height / frameSize1.height
-        let ratio = max(widthRatio, heightRatio)
-        let newSizeWidth = size.width * ratio
-        let newSizeHeight = size.height * ratio
-        let newSize = CGSize(
-            width: (frameSize2.width / 2) + newSizeWidth, height: (frameSize2.height / 2) + -newSizeHeight
-        )
-
-        return (CGSize(width: newSize.width, height: newSize.height), ratio)
-    }
 
     static func resolvedPresentationSize(
         naturalSize: CGSize,
@@ -468,10 +450,7 @@ extension VideoEditor {
         video: Video,
         size: CGSize
     ) -> AVVideoCompositionCoreAnimationTool? {
-        let hasFrame = videoFrame != nil
-        let hasText = !video.textBoxes.isEmpty
-
-        guard hasFrame || hasText else { return nil }
+        guard let videoFrame else { return nil }
 
         let videoLayer = CALayer()
         videoLayer.frame = CGRect(origin: .zero, size: size)
@@ -479,35 +458,21 @@ extension VideoEditor {
         let outputLayer = CALayer()
         outputLayer.frame = CGRect(origin: .zero, size: size)
 
-        if let videoFrame {
-            let scale = videoFrame.scale
-            let scaleSize = CGSize(width: size.width * scale, height: size.height * scale)
-            let centerPoint = CGPoint(
-                x: (size.width - scaleSize.width) / 2,
-                y: (size.height - scaleSize.height) / 2
-            )
+        let scale = videoFrame.scale
+        let scaleSize = CGSize(width: size.width * scale, height: size.height * scale)
+        let centerPoint = CGPoint(
+            x: (size.width - scaleSize.width) / 2,
+            y: (size.height - scaleSize.height) / 2
+        )
 
-            let bgLayer = CALayer()
-            bgLayer.frame = CGRect(origin: .zero, size: size)
-            bgLayer.backgroundColor = UIColor(videoFrame.frameColor).cgColor
-            outputLayer.addSublayer(bgLayer)
+        let bgLayer = CALayer()
+        bgLayer.frame = CGRect(origin: .zero, size: size)
+        bgLayer.backgroundColor = UIColor(videoFrame.frameColor).cgColor
+        outputLayer.addSublayer(bgLayer)
 
-            videoLayer.frame = CGRect(origin: centerPoint, size: scaleSize)
-        }
+        videoLayer.frame = CGRect(origin: centerPoint, size: scaleSize)
 
         outputLayer.addSublayer(videoLayer)
-
-        if hasText {
-            for text in video.textBoxes {
-                let position = convertSize(text.offset, fromFrame: video.geometrySize, toFrame: size)
-                let textLayer = createTextLayer(
-                    with: text, size: size, position: position.size, ratio: position.ratio,
-                    duration: video.timelineDuration,
-                    rate: video.rate
-                )
-                outputLayer.addSublayer(textLayer)
-            }
-        }
 
         return AVVideoCompositionCoreAnimationTool(
             configuration: .init(
@@ -640,19 +605,19 @@ extension VideoEditor {
 
     private static func progressRange(
         for stage: RenderStage,
-        usesFilterStage: Bool,
+        usesCorrectionsStage: Bool,
         usesCropStage: Bool
     ) -> ClosedRange<Double> {
-        switch (usesFilterStage, usesCropStage, stage) {
+        switch (usesCorrectionsStage, usesCropStage, stage) {
         case (false, false, .base):
             0...1
         case (true, false, .base), (false, true, .base):
             0...0.7
-        case (false, true, .crop), (true, false, .filters):
+        case (false, true, .crop), (true, false, .corrections):
             0.7...1
         case (true, true, .base):
             0...0.55
-        case (true, true, .filters):
+        case (true, true, .corrections):
             0.55...0.8
         case (true, true, .crop):
             0.8...1
@@ -807,67 +772,6 @@ extension VideoEditor {
         let tempURL = URL.temporaryDirectory.appending(path: fileName)
         FileManager.default.removeIfExists(for: tempURL)
         return tempURL
-    }
-
-    private static func createTextLayer(
-        with model: TextBox,
-        size: CGSize,
-        position: CGSize,
-        ratio: Double,
-        duration: Double,
-        rate: Float
-    ) -> CATextLayer {
-        let textLayer = CATextLayer()
-        textLayer.string = model.text
-        textLayer.font = UIFont.systemFont(ofSize: 18, weight: .medium)
-        textLayer.fontSize = model.fontSize * ratio
-        textLayer.alignmentMode = .center
-        textLayer.foregroundColor = UIColor(model.fontColor).cgColor
-        let size = textLayer.preferredFrameSize()
-        textLayer.frame = CGRect(
-            x: position.width, y: position.height, width: size.width, height: size.height)
-        textLayer.backgroundColor = UIColor(model.bgColor).cgColor
-
-        addAnimation(to: textLayer, with: model.timeRange, duration: duration, rate: rate)
-
-        return textLayer
-    }
-
-    private static func addAnimation(
-        to textLayer: CATextLayer,
-        with timeRange: ClosedRange<Double>,
-        duration: Double,
-        rate: Float
-    ) {
-        let resolvedRate = rate.isFinite && rate > 0 ? Double(rate) : 1
-        let scaledTimeRange = PlaybackTimeMapping.scaledTimelineRange(
-            sourceRange: timeRange,
-            rate: rate,
-            originalDuration: max(timeRange.upperBound, duration * resolvedRate)
-        )
-
-        if scaledTimeRange.lowerBound > 0 {
-            let appearance = CABasicAnimation(keyPath: "opacity")
-            appearance.fromValue = 0
-            appearance.toValue = 1
-            appearance.duration = 0.05
-            appearance.beginTime = scaledTimeRange.lowerBound
-            appearance.fillMode = .forwards
-            appearance.isRemovedOnCompletion = false
-            textLayer.add(appearance, forKey: "Appearance")
-            textLayer.opacity = 0
-        }
-
-        if scaledTimeRange.upperBound < duration {
-            let disappearance = CABasicAnimation(keyPath: "opacity")
-            disappearance.fromValue = 1
-            disappearance.toValue = 0
-            disappearance.beginTime = scaledTimeRange.upperBound
-            disappearance.duration = 0.05
-            disappearance.fillMode = .forwards
-            disappearance.isRemovedOnCompletion = false
-            textLayer.add(disappearance, forKey: "Disappearance")
-        }
     }
 
     private static func evenPixelSize(for size: CGSize) -> CGSize {

@@ -27,6 +27,9 @@ struct FramesToolView: View {
                 title: "Frame color",
                 options: SystemColorPalette.frameColors
             )
+            .onChange(of: selectedColor) { _, _ in
+                onChange()
+            }
 
             VStack(spacing: 12) {
                 Text("Frame Scale")

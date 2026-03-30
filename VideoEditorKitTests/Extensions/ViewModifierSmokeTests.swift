@@ -42,8 +42,8 @@ struct ViewModifierSmokeTests {
     func blockedToolButtonsStillRenderInsideAHostingController() {
         assertRenders(
             ToolButtonView(
-                "Filters",
-                image: "camera.filters",
+                "Corrections",
+                image: "circle.righthalf.filled",
                 isChange: false,
                 isBlocked: true
             ) {}

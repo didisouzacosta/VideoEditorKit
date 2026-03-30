@@ -50,6 +50,12 @@ struct SocialVideoSafeAreaGuide: Equatable, Sendable {
         leadingInsetRatio: 0.05,
         trailingInsetRatio: 0.14
     )
+    static let socialVideo = Self(
+        topInsetRatio: 0.12,
+        bottomInsetRatio: 0.20,
+        leadingInsetRatio: 0.12,
+        trailingInsetRatio: 0.12
+    )
 
     let topInsetRatio: CGFloat
     let bottomInsetRatio: CGFloat

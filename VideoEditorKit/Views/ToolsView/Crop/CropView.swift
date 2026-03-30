@@ -15,6 +15,7 @@ struct CropView<T: View>: View {
 
     // MARK: - States
 
+    @State private var dragStartRect: VideoEditingConfiguration.FreeformRect?
     @State private var pinchStartRect: VideoEditingConfiguration.FreeformRect?
 
     // MARK: - Private Properties
@@ -22,7 +23,8 @@ struct CropView<T: View>: View {
     private let originalSize: CGSize
     private let rotation: Double?
     private let isMirror: Bool
-    private let isActiveCrop: Bool
+    private let showsCropOverlay: Bool
+    private let isInteractiveCrop: Bool
     private let socialVideoSafeAreaGuide: SocialVideoSafeAreaGuide?
     private let showsSocialVideoSafeAreaGuide: Bool
     private let setFrameScale: Bool
@@ -33,17 +35,60 @@ struct CropView<T: View>: View {
     // MARK: - Body
 
     var body: some View {
-        ZStack {
-            frameView()
+        interactivePreview {
+            ZStack {
+                transformedFrameView
 
-            if isActiveCrop {
-                cropOverlay
+                if showsCropOverlay {
+                    cropOverlay
+                }
             }
+            .frame(width: resolvedViewportSize.width, height: resolvedViewportSize.height)
+            .rotationEffect(.degrees(rotation ?? 0))
+            .rotation3DEffect(.degrees(isMirror ? 180 : 0), axis: (x: 0, y: 1, z: 0))
         }
-        .frame(width: originalSize.width, height: originalSize.height)
-        .border(isActiveCrop ? Theme.primary : .clear)
-        .rotationEffect(.degrees(rotation ?? 0))
-        .rotation3DEffect(.degrees(isMirror ? 180 : 0), axis: (x: 0, y: 1, z: 0))
+    }
+
+    // MARK: - Private Properties
+
+    @ViewBuilder
+    private func interactivePreview<Content: View>(
+        @ViewBuilder _ content: () -> Content
+    ) -> some View {
+        if isInteractiveCrop {
+            content()
+                .contentShape(Rectangle())
+                .gesture(cropGesture)
+                .onTapGesture(count: 2) {
+                    resetCropRectToPresetFullFrame()
+                }
+        } else {
+            content()
+        }
+    }
+
+    private var cropOverlay: some View {
+        standardOverlayContent
+            .allowsHitTesting(false)
+    }
+
+    private var cropGesture: some Gesture {
+        SimultaneousGesture(
+            DragGesture()
+                .onChanged { value in
+                    updateCropRect(translation: value.translation)
+                }
+                .onEnded { _ in
+                    dragStartRect = nil
+                },
+            MagnificationGesture()
+                .onChanged { value in
+                    updateCropRectScale(value)
+                }
+                .onEnded { _ in
+                    pinchStartRect = nil
+                }
+        )
     }
 
     // MARK: - Private Properties
@@ -51,11 +96,49 @@ struct CropView<T: View>: View {
     private let lineWidth: CGFloat = 2
     private let cropCornerRadius: CGFloat = 12
 
-    private var resolvedCropRect: CGRect {
-        boundedRect(decodedRect(from: freeformRect) ?? defaultCropRect())
+    private var previewLayout: VideoCropPreviewLayout? {
+        VideoCropPreviewLayout(
+            freeformRect: freeformRect,
+            in: originalSize
+        )
     }
 
-    private var cropOverlay: some View {
+    private var resolvedViewportSize: CGSize {
+        originalSize
+    }
+
+    private var resolvedCropRect: CGRect {
+        if let previewLayout {
+            return previewLayout.viewportRect
+        }
+
+        return boundedRect(decodedRect(from: freeformRect) ?? defaultCropRect())
+    }
+
+    private var contentScale: CGFloat {
+        previewLayout?.contentScale ?? 1
+    }
+
+    private var contentOffset: CGSize {
+        previewLayout?.contentOffset ?? .zero
+    }
+
+    private var transformedFrameView: some View {
+        ZStack(alignment: .topLeading) {
+            frameView()
+                .frame(width: originalSize.width, height: originalSize.height)
+                .scaleEffect(
+                    x: contentScale,
+                    y: contentScale,
+                    anchor: .topLeading
+                )
+                .offset(contentOffset)
+        }
+        .frame(width: originalSize.width, height: originalSize.height)
+        .allowsHitTesting(false)
+    }
+
+    private var standardOverlayContent: some View {
         ZStack {
             CropOverlayShape(
                 cropRect: resolvedCropRect,
@@ -67,7 +150,10 @@ struct CropView<T: View>: View {
                 CropSafeAreaOverlay(
                     guide: socialVideoSafeAreaGuide,
                     cropSize: resolvedCropRect.size,
-                    cornerRadius: cropCornerRadius
+                    cornerRadius: cropCornerRadius,
+                    showsRegionLabels: false,
+                    overlayOpacity: 0.12,
+                    safeRectOpacity: 0.48
                 )
                 .position(
                     x: resolvedCropRect.midX,
@@ -86,27 +172,6 @@ struct CropView<T: View>: View {
                     y: resolvedCropRect.midY
                 )
         }
-        .contentShape(Rectangle())
-        .gesture(cropGesture)
-        .onTapGesture(count: 2) {
-            resetCropRectToPresetFullFrame()
-        }
-    }
-
-    private var cropGesture: some Gesture {
-        SimultaneousGesture(
-            DragGesture()
-                .onChanged { value in
-                    updateCropRect(center: value.location)
-                },
-            MagnificationGesture()
-                .onChanged { value in
-                    updateCropRectScale(value)
-                }
-                .onEnded { _ in
-                    pinchStartRect = nil
-                }
-        )
     }
 
     // MARK: - Initializer
@@ -116,7 +181,8 @@ struct CropView<T: View>: View {
         freeformRect: Binding<VideoEditingConfiguration.FreeformRect?>,
         rotation: Double?,
         isMirror: Bool,
-        isActiveCrop: Bool,
+        showsCropOverlay: Bool,
+        isInteractiveCrop: Bool,
         socialVideoSafeAreaGuide: SocialVideoSafeAreaGuide? = nil,
         showsSocialVideoSafeAreaGuide: Bool = false,
         setFrameScale: Bool = false,
@@ -128,7 +194,8 @@ struct CropView<T: View>: View {
         self.originalSize = originalSize
         self.rotation = rotation
         self.isMirror = isMirror
-        self.isActiveCrop = isActiveCrop
+        self.showsCropOverlay = showsCropOverlay
+        self.isInteractiveCrop = isInteractiveCrop
         self.socialVideoSafeAreaGuide = socialVideoSafeAreaGuide
         self.showsSocialVideoSafeAreaGuide = showsSocialVideoSafeAreaGuide
         self.setFrameScale = setFrameScale
@@ -138,22 +205,28 @@ struct CropView<T: View>: View {
 
     // MARK: - Private Methods
 
-    private func updateCropRect(center: CGPoint) {
-        let rect = resolvedCropRect
-        let boundedCenterX = center.x.bounded(
-            lowerBound: rect.width / 2,
-            uppderBound: originalSize.width - rect.width / 2
-        )
-        let boundedCenterY = center.y.bounded(
-            lowerBound: rect.height / 2,
-            uppderBound: originalSize.height - rect.height / 2
-        )
+    private func updateCropRect(translation: CGSize) {
+        if dragStartRect == nil {
+            dragStartRect = freeformRect ?? encodedRect(defaultCropRect())
+        }
 
+        guard
+            let dragStartRect,
+            let startRect = decodedRect(from: dragStartRect)
+        else { return }
+
+        let dragLayout = VideoCropPreviewLayout(
+            freeformRect: dragStartRect,
+            in: originalSize
+        )
+        let sourceTranslation = dragLayout?.sourceTranslation(for: translation) ?? translation
+        let deltaX = sourceTranslation.width
+        let deltaY = sourceTranslation.height
         let updatedRect = CGRect(
-            x: boundedCenterX - rect.width / 2,
-            y: boundedCenterY - rect.height / 2,
-            width: rect.width,
-            height: rect.height
+            x: startRect.origin.x + deltaX,
+            y: startRect.origin.y + deltaY,
+            width: startRect.width,
+            height: startRect.height
         )
 
         freeformRect = encodedRect(updatedRect)
@@ -269,6 +342,9 @@ private struct CropSafeAreaOverlay: View {
     private let guide: SocialVideoSafeAreaGuide
     private let cropSize: CGSize
     private let cornerRadius: CGFloat
+    private let showsRegionLabels: Bool
+    private let overlayOpacity: CGFloat
+    private let safeRectOpacity: CGFloat
 
     // MARK: - Body
 
@@ -280,7 +356,7 @@ private struct CropSafeAreaOverlay: View {
 
             RoundedRectangle(cornerRadius: max(cornerRadius - 3, 8), style: .continuous)
                 .stroke(style: StrokeStyle(lineWidth: 1.5, dash: [8, 6]))
-                .foregroundStyle(.white.opacity(0.9))
+                .foregroundStyle(.white.opacity(safeRectOpacity))
                 .frame(
                     width: safeRect.width,
                     height: safeRect.height
@@ -300,11 +376,17 @@ private struct CropSafeAreaOverlay: View {
     init(
         guide: SocialVideoSafeAreaGuide,
         cropSize: CGSize,
-        cornerRadius: CGFloat
+        cornerRadius: CGFloat,
+        showsRegionLabels: Bool = true,
+        overlayOpacity: CGFloat = 0.22,
+        safeRectOpacity: CGFloat = 0.9
     ) {
         self.guide = guide
         self.cropSize = cropSize
         self.cornerRadius = cornerRadius
+        self.showsRegionLabels = showsRegionLabels
+        self.overlayOpacity = overlayOpacity
+        self.safeRectOpacity = safeRectOpacity
     }
 
     // MARK: - Private Properties
@@ -322,7 +404,7 @@ private struct CropSafeAreaOverlay: View {
     @ViewBuilder
     private func regionView(_ region: SocialVideoSafeAreaGuide.Region) -> some View {
         Rectangle()
-            .fill(color(for: region.role).opacity(0.18))
+            .fill(color(for: region.role).opacity(overlayOpacity))
             .frame(
                 width: region.rect.width,
                 height: region.rect.height
@@ -332,16 +414,18 @@ private struct CropSafeAreaOverlay: View {
                 y: region.rect.midY
             )
             .overlay(alignment: alignment(for: region.role)) {
-                Text(region.title)
-                    .font(.caption2.weight(.bold))
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 5)
-                    .capsuleControl(
-                        prominent: true,
-                        tint: color(for: region.role).opacity(0.9)
-                    )
-                    .foregroundStyle(.white)
-                    .padding(8)
+                if showsRegionLabels {
+                    Text(region.title)
+                        .font(.caption.weight(.bold))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .capsuleControl(
+                            prominent: true,
+                            tint: color(for: region.role).opacity(0.9)
+                        )
+                        .foregroundStyle(.white)
+                        .padding(10)
+                }
             }
     }
 
@@ -391,7 +475,8 @@ private struct CropPreviewHost: View {
             freeformRect: $freeformRect,
             rotation: 0,
             isMirror: false,
-            isActiveCrop: true
+            showsCropOverlay: true,
+            isInteractiveCrop: true
         ) {
             Rectangle()
                 .fill(Color.secondary)

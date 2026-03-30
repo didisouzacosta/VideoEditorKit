@@ -49,4 +49,13 @@ struct SocialVideoSafeAreaGuideTests {
         )
     }
 
+    @Test
+    func socialGuideKeepsTheSafeRectCentered() {
+        let canvas = CGRect(x: 0, y: 0, width: 100, height: 200)
+
+        let safeRect = SocialVideoSafeAreaGuide.socialVideo.safeRect(in: canvas)
+
+        #expect(safeRect == CGRect(x: 12, y: 24, width: 76, height: 136))
+    }
+
 }

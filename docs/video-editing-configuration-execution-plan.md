@@ -60,14 +60,11 @@ The exported file is an output artifact, not the source of truth for reopening t
 - speed
 - rotation
 - mirror
-- filter
+- crop presets / freeform crop
 - color corrections
 - frame
 - additional audio reference and volumes
-- text overlays
 - lightweight presentation state useful for resume continuity
-
-Free crop should be represented as optional future-facing state, but full restore/export parity should stay out of scope until crop leaves local `View` state.
 
 ## Phase Plan
 
@@ -78,7 +75,7 @@ Create the serializable configuration contract and the first mapping layer.
 Scope:
 
 - Add `VideoEditingConfiguration` as a Codable model.
-- Add nested serializable value types for trim, playback, crop, filter, frame, audio, text, and presentation.
+- Add nested serializable value types for trim, playback, crop, corrections, frame, audio, and presentation.
 - Add a mapper from runtime editor state to configuration.
 - Add a mapper from configuration back to runtime `Video`.
 - Add tests for encode/decode and mapping round-trips.
@@ -148,14 +145,14 @@ Scope:
 
 ### Phase 6
 
-Normalize text overlay positions at the configuration boundary.
+Normalize crop geometry at the configuration boundary.
 
 Scope:
 
-- Serialize text offsets relative to the current preview geometry instead of raw screen points.
-- Restore normalized text offsets back into runtime coordinates during reopen.
-- Keep backward compatibility with older raw-offset configurations.
-- Rescale runtime text positions when the preview layout changes after restore.
+- Serialize crop geometry relative to the current preview layout instead of raw screen points.
+- Restore normalized crop geometry during reopen.
+- Keep backward compatibility with older snapshots when possible.
+- Recompute preview layout when the container size changes after restore.
 
 ### Phase 7
 
@@ -254,17 +251,17 @@ That gives the project a safe foundation before any public API expansion.
 - `Video.rangeDuration` -> trim
 - `Video.rate` and `Video.volume` -> playback
 - `Video.rotation` and `Video.isMirror` -> crop transform state
-- `Video.filterName` and `Video.colorCorrection` -> filter state
+- `VideoEditingConfiguration.FreeformRect` -> crop geometry
+- `Video.colorCorrection` -> correction state
 - `Video.videoFrames` -> frame state
 - `Video.audio` plus selected track -> audio state
-- `Video.textBoxes` -> text overlay state
 - selected tool and crop tab -> presentation state
 
 ## Serialization Notes
 
 - Colors should be stored as serializable tokens, preferably palette identifiers with RGBA fallback.
-- Text offsets should be serialized relative to `video.geometrySize`.
-- Older configurations with raw point offsets should remain restorable as a compatibility fallback.
+- Crop geometry should be serialized relative to `video.geometrySize`.
+- Older configurations with legacy crop payloads should remain restorable as a compatibility fallback.
 - Snapshots should always encode an explicit schema version.
 - Known schema versions should be represented in code instead of spread as raw integers.
 - Unknown future snapshots should round-trip opaquely until the local app explicitly understands them.

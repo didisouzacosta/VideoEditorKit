@@ -4,6 +4,7 @@
 //
 //  Created by Adriano Souza Costa on 23.03.2026.
 //
+
 import AVKit
 import SwiftUI
 
@@ -20,7 +21,6 @@ struct VideoEditorView: View {
     @State private var audioRecorder = AudioRecorderManager()
     @State private var videoPlayer = VideoPlayerManager()
     @State private var lastPublishedEditingConfiguration: VideoEditingConfiguration?
-    @State private var textEditor = TextEditorViewModel()
 
     // MARK: - Private Properties
 
@@ -35,26 +35,24 @@ struct VideoEditorView: View {
 
         NavigationStack {
             GeometryReader { proxy in
-                VStack(spacing: 32) {
+                VStack(spacing: editorViewModel.shouldUseCropPresetSpotlight ? 20 : 32) {
                     PlayerHolderView(
                         editorViewModel,
-                        videoPlayer: videoPlayer,
-                        textEditor: textEditor
+                        videoPlayer: videoPlayer
                     )
+                    .layoutPriority(editorViewModel.shouldUseCropPresetSpotlight ? 1 : 0)
                     .disabled(isEditingLocked)
 
                     PlayerControl(
                         editorViewModel,
                         videoPlayer: videoPlayer,
-                        recorderManager: audioRecorder,
-                        textEditor: textEditor
+                        recorderManager: audioRecorder
                     )
 
                     if !videoPlayer.isPlaying {
                         ToolsSectionView(
                             videoPlayer,
                             editorVM: editorViewModel,
-                            textEditor: textEditor,
                             configuration: configuration
                         )
                         .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -90,12 +88,6 @@ struct VideoEditorView: View {
             }
         }
         .onDisappear(perform: editorViewModel.cancelDeferredTasks)
-        .blur(radius: textEditor.editorBlurRadius)
-        .overlay {
-            if textEditor.isPresentingEditor {
-                TextEditorView(textEditor, onSave: editorViewModel.setText)
-            }
-        }
         .dynamicHeightSheet(
             isPresented: $bindableEditorViewModel.showVideoQualitySheet,
             initialHeight: 420
@@ -176,9 +168,7 @@ struct VideoEditorView: View {
 
     private func handlePlaybackLockChange(_ isPlaying: Bool) {
         guard isPlaying else { return }
-
-        editorViewModel.closeSelectedTool(textEditor)
-        textEditor.dismissTextToolPresentation()
+        editorViewModel.closeSelectedTool()
     }
 
     private func dismissEditor() {
@@ -259,7 +249,10 @@ extension VideoEditorView {
         }
 
         let tools: [ToolAvailability]
-        let onBlockedToolTap: ((ToolEnum) -> Void)?
+
+        // MARK: - Private Properties
+
+        private let onBlockedToolTap: ((ToolEnum) -> Void)?
 
         var visibleTools: [ToolEnum] {
             tools.map(\.tool)
@@ -285,12 +278,12 @@ extension VideoEditorView {
             availability(for: tool) != nil
         }
 
-        func isEnabled(_ tool: ToolEnum) -> Bool {
-            availability(for: tool)?.isEnabled == true
-        }
-
         func isBlocked(_ tool: ToolEnum) -> Bool {
             availability(for: tool)?.isBlocked == true
+        }
+
+        func isEnabled(_ tool: ToolEnum) -> Bool {
+            availability(for: tool)?.isEnabled == true
         }
 
         func notifyBlockedToolTap(for tool: ToolEnum) {
@@ -299,10 +292,4 @@ extension VideoEditorView {
 
     }
 
-}
-
-#Preview {
-    NavigationStack {
-        VideoEditorView()
-    }
 }
