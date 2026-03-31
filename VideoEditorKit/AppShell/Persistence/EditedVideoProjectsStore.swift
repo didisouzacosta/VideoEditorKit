@@ -79,7 +79,9 @@ struct EditedVideoProjectsStore {
             editingConfiguration,
             in: projectDirectoryURL
         )
-        let thumbnailData = await makeThumbnailData(from: persistedExportedURL)
+        let thumbnailData = await makeThumbnailData(
+            fromExportedVideoAt: persistedExportedURL
+        )
 
         resolvedProject.updatedAt = now
         resolvedProject.displayName = originalVideoURL.deletingPathExtension().lastPathComponent
@@ -207,16 +209,25 @@ struct EditedVideoProjectsStore {
         return destinationURL
     }
 
-    private func makeThumbnailData(from url: URL) async -> Data? {
+    private func makeThumbnailData(
+        fromExportedVideoAt url: URL
+    ) async -> Data? {
         let asset = AVURLAsset(url: url)
         let duration = (try? await asset.load(.duration).seconds) ?? .zero
-        let timestamp = min(max(duration * 0.2, 0), max(duration - 0.05, 0))
+        let timestamp = Self.resolvedThumbnailTimestamp(for: duration)
         let image = await asset.generateImage(
             at: timestamp,
             maximumSize: CGSize(width: 720, height: 720)
         )
 
         return image?.jpegData(compressionQuality: 0.85)
+    }
+
+    static func resolvedThumbnailTimestamp(
+        for duration: Double
+    ) -> Double {
+        guard duration.isFinite, duration >= 0 else { return 0 }
+        return 0
     }
 
     private func cleanupTransientMediaIfNeeded(

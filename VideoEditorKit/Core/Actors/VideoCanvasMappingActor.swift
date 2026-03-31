@@ -69,7 +69,7 @@ actor VideoCanvasMappingActor {
                 width: exportMapping.orientedSourceSize.width * previewScale,
                 height: exportMapping.orientedSourceSize.height * previewScale
             ),
-            contentScale: exportMapping.aspectFillScale * request.snapshot.transform.zoom,
+            contentScale: exportMapping.aspectFillScale,
             contentCenter: CGPoint(
                 x: previewCanvasSize.width / 2 + normalizedOffset.x * previewCanvasSize.width,
                 y: previewCanvasSize.height / 2 + normalizedOffset.y * previewCanvasSize.height

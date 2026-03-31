@@ -77,6 +77,7 @@ struct EditedVideoProjectsStoreTests {
             exportedVideo: firstExportedVideo,
             editingConfiguration: .initial
         )
+        let firstThumbnailData = firstProject.thumbnailData
         let updatedTrim = VideoEditingConfiguration(
             trim: .init(lowerBound: 2, upperBound: 6)
         )
@@ -93,6 +94,8 @@ struct EditedVideoProjectsStoreTests {
         #expect(projects.count == 1)
         #expect(updatedProject.editingConfiguration?.trim == updatedTrim.trim)
         #expect(updatedProject.fileSize == secondExportedVideo.fileSize)
+        #expect(updatedProject.thumbnailData != nil)
+        #expect(updatedProject.thumbnailData != firstThumbnailData)
     }
 
     @Test
@@ -120,6 +123,13 @@ struct EditedVideoProjectsStoreTests {
 
         #expect(remainingProjects.isEmpty)
         #expect(FileManager.default.fileExists(atPath: directoryURL.path()) == false)
+    }
+
+    @Test
+    func thumbnailTimestampAlwaysUsesTheFirstFrame() {
+        #expect(EditedVideoProjectsStore.resolvedThumbnailTimestamp(for: 0) == 0)
+        #expect(EditedVideoProjectsStore.resolvedThumbnailTimestamp(for: 3.5) == 0)
+        #expect(EditedVideoProjectsStore.resolvedThumbnailTimestamp(for: 120) == 0)
     }
 
     // MARK: - Private Methods

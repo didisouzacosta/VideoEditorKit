@@ -1,3 +1,4 @@
+import AVFoundation
 import CoreGraphics
 import Testing
 
@@ -163,6 +164,26 @@ struct VideoEditorTests {
         )
 
         #expect(layout == .landscape)
+    }
+
+    @Test
+    func resolvedExportPresetNameUsesARealRenderPresetForVideoCompositionOnSimulator() {
+        let presetName = VideoEditor.resolvedExportPresetName(
+            appliesVideoComposition: true,
+            isSimulatorEnvironment: true
+        )
+
+        #expect(presetName == AVAssetExportPresetHighestQuality)
+    }
+
+    @Test
+    func resolvedExportPresetNameKeepsPassthroughAvailableOnlyWithoutRenderingStages() {
+        let presetName = VideoEditor.resolvedExportPresetName(
+            appliesVideoComposition: false,
+            isSimulatorEnvironment: true
+        )
+
+        #expect(presetName == AVAssetExportPresetPassthrough)
     }
 
 }

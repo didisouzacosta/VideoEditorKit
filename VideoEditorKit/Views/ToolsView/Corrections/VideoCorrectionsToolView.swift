@@ -13,6 +13,10 @@ struct VideoCorrectionsToolView: View {
 
     @Binding private var correction: ColorCorrection
 
+    // MARK: - States
+
+    @State private var draftCorrection: ColorCorrection
+
     // MARK: - Private Properties
 
     private let onChange: (ColorCorrection) -> Void
@@ -24,18 +28,27 @@ struct VideoCorrectionsToolView: View {
             correctionSlider(
                 title: CorrectionType.brightness.rawValue,
                 systemImage: "sun.max",
-                value: $correction.brightness
+                value: draftBinding(\.brightness)
             )
             correctionSlider(
                 title: CorrectionType.contrast.rawValue,
                 systemImage: "circle.lefthalf.filled",
-                value: $correction.contrast
+                value: draftBinding(\.contrast)
             )
             correctionSlider(
                 title: CorrectionType.saturation.rawValue,
                 systemImage: "drop",
-                value: $correction.saturation
+                value: draftBinding(\.saturation)
             )
+        }
+        .onChange(of: correction) { _, newValue in
+            guard newValue != draftCorrection else { return }
+            draftCorrection = newValue
+        }
+        .onChange(of: draftCorrection) { _, newValue in
+            guard newValue != correction else { return }
+            correction = newValue
+            onChange(newValue)
         }
     }
 
@@ -46,6 +59,7 @@ struct VideoCorrectionsToolView: View {
         onChange: @escaping (ColorCorrection) -> Void
     ) {
         _correction = correction
+        _draftCorrection = State(initialValue: correction.wrappedValue)
 
         self.onChange = onChange
     }
@@ -64,16 +78,21 @@ extension VideoCorrectionsToolView {
         HStack {
             Image(systemName: systemImage)
                 .accessibilityLabel(title)
-            Slider(value: value, in: -1...1) { change in
-                if !change {
-                    onChange(correction)
-                }
-            }
-            .tint(Theme.accent)
+            Slider(value: value, in: -1...1)
+                .tint(Theme.accent)
             Text(value.wrappedValue, format: .number.precision(.fractionLength(1)))
                 .monospacedDigit()
         }
         .font(.caption)
+    }
+
+    private func draftBinding(
+        _ keyPath: WritableKeyPath<ColorCorrection, Double>
+    ) -> Binding<Double> {
+        Binding(
+            get: { draftCorrection[keyPath: keyPath] },
+            set: { draftCorrection[keyPath: keyPath] = $0 }
+        )
     }
 
 }

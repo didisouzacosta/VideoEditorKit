@@ -95,6 +95,22 @@ struct EditorViewModelTests {
     }
 
     @Test
+    func colorCorrectionBindingMutatesTheCurrentVideoImmediately() {
+        let viewModel = EditorViewModel()
+        viewModel.currentVideo = Video.mock
+        let binding = viewModel.colorCorrectionBinding()
+        let correction = ColorCorrection(
+            brightness: 0.2,
+            contrast: -0.1,
+            saturation: 0.35
+        )
+
+        binding.wrappedValue = correction
+
+        #expect(viewModel.currentVideo?.colorCorrection == correction)
+    }
+
+    @Test
     func setCutTracksWhetherTheVideoIsCurrentlyTrimmed() {
         let viewModel = EditorViewModel()
         var video = Video.mock
@@ -420,6 +436,42 @@ struct EditorViewModelTests {
         #expect(viewModel.canvasEditorState.preset == .social(platform: .tiktok))
         #expect(viewModel.canvasEditorState.showsSafeAreaOverlay)
         #expect(viewModel.canvasEditorState.transform == .identity)
+    }
+
+    @Test
+    func restorePendingEditingPresentationStateRestoresPersistedCanvasSnapshotVerbatim() async {
+        let viewModel = EditorViewModel()
+        var video = Video.mock
+        video.presentationSize = CGSize(width: 1920, height: 1080)
+        viewModel.currentVideo = video
+
+        let persistedSnapshot = VideoCanvasSnapshot(
+            preset: .facebookPost,
+            freeCanvasSize: CGSize(width: 1080, height: 1350),
+            transform: .init(
+                normalizedOffset: CGPoint(x: 0.14, y: -0.09),
+                zoom: 1.6,
+                rotationRadians: 0.22
+            ),
+            showsSafeAreaOverlay: false
+        )
+
+        viewModel.prepareEditingConfigurationForInitialLoad(
+            VideoEditingConfiguration(
+                canvas: .init(snapshot: persistedSnapshot),
+                presentation: .init(
+                    socialVideoDestination: .instagramReels,
+                    showsSafeAreaGuides: true
+                )
+            ),
+            videoPlayer: VideoPlayerManager()
+        )
+
+        await viewModel.restorePendingEditingPresentationState()
+
+        #expect(viewModel.canvasEditorState.snapshot() == persistedSnapshot)
+        #expect(viewModel.socialVideoDestination == .instagramReels)
+        #expect(viewModel.showsSafeAreaOverlay == true)
     }
 
     @Test

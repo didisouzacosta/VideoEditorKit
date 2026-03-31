@@ -550,6 +550,7 @@ extension VideoPlayerManager {
 
             pause()
             currentItem.videoComposition = nil
+            refreshCurrentVideoFrame()
             appliedCorrectionSignature = nil
             appliedCorrectionItemID = currentItemID
             return
@@ -565,6 +566,7 @@ extension VideoPlayerManager {
 
         guard !filters.isEmpty else {
             currentItem.videoComposition = nil
+            refreshCurrentVideoFrame()
             appliedCorrectionSignature = nil
             appliedCorrectionItemID = currentItemID
             return
@@ -577,10 +579,21 @@ extension VideoPlayerManager {
             await MainActor.run {
                 guard let self, self.videoPlayer.currentItem === currentItem else { return }
                 currentItem.videoComposition = composition
+                self.refreshCurrentVideoFrame()
                 self.appliedCorrectionSignature = signature
                 self.appliedCorrectionItemID = currentItemID
             }
         }
+    }
+
+    private func refreshCurrentVideoFrame() {
+        let currentPlaybackTime = videoPlayer.currentTime().seconds
+        let resolvedTime =
+            currentPlaybackTime.isFinite
+            ? currentPlaybackTime
+            : sourceTime(forTimelineTime: currentTime)
+
+        seek(resolvedTime, player: videoPlayer)
     }
 
     private func currentColorCorrectionSignature() -> String? {

@@ -240,6 +240,28 @@ struct VideoPlayerManagerTests {
         #expect((manager.videoPlayer.currentItem?.asset as? AVURLAsset)?.url == videoURL)
     }
 
+    @Test
+    func setColorCorrectionAppliesPreviewCompositionToTheCurrentItem() async throws {
+        let manager = VideoPlayerManager()
+        let videoURL = try await TestFixtures.createTemporaryVideo()
+        defer { FileManager.default.removeIfExists(for: videoURL) }
+
+        manager.loadState = .loaded(videoURL)
+        manager.setColorCorrection(
+            ColorCorrection(brightness: 0.1, contrast: 0.2, saturation: 0.3)
+        )
+
+        for _ in 0..<50 where manager.videoPlayer.currentItem?.videoComposition == nil {
+            try? await Task.sleep(for: .milliseconds(20))
+        }
+
+        #expect(manager.videoPlayer.currentItem?.videoComposition != nil)
+
+        manager.clearColorCorrection()
+
+        #expect(manager.videoPlayer.currentItem?.videoComposition == nil)
+    }
+
 }
 
 private func seek(player: AVPlayer, to seconds: Double) async {

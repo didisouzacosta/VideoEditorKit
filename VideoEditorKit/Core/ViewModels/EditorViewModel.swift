@@ -597,11 +597,6 @@ extension EditorViewModel {
         }
     }
 
-    func handleCorrectionsChange(_ corrections: ColorCorrection, videoPlayer: VideoPlayerManager) {
-        videoPlayer.setColorCorrection(corrections)
-        setCorrections(corrections)
-    }
-
     func isCropFormatSelected(_ preset: VideoCropFormatPreset) -> Bool {
         let canvasPreset = selectedCropPresetFromCanvas()
         if canvasPreset != .original {
@@ -757,10 +752,10 @@ extension EditorViewModel {
         )
     }
 
-    func colorCorrectionBinding(videoPlayer: VideoPlayerManager) -> Binding<ColorCorrection> {
+    func colorCorrectionBinding() -> Binding<ColorCorrection> {
         Binding(
             get: { self.currentVideo?.colorCorrection ?? .init() },
-            set: { self.handleCorrectionsChange($0, videoPlayer: videoPlayer) }
+            set: { self.setCorrections($0) }
         )
     }
 

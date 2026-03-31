@@ -66,4 +66,34 @@ struct VideoCanvasMappingActorTests {
         #expect(mapping.totalRotationRadians > 1.8)
     }
 
+    @Test
+    func previewLayoutUsesTheSameZoomedScaleAsTheExportMapping() async {
+        let actor = VideoCanvasMappingActor()
+        let request = await actor.makeRenderRequest(
+            source: VideoCanvasSourceDescriptor(
+                naturalSize: CGSize(width: 1920, height: 1080),
+                preferredTransform: .identity,
+                userRotationDegrees: 0,
+                isMirrored: false
+            ),
+            snapshot: VideoCanvasSnapshot(
+                preset: .facebookPost,
+                transform: .init(
+                    normalizedOffset: CGPoint(x: 0.12, y: -0.08),
+                    zoom: 1.5,
+                    rotationRadians: 0.18
+                ),
+                showsSafeAreaOverlay: false
+            )
+        )
+
+        let layout = await actor.makePreviewLayout(
+            request: request,
+            availableSize: CGSize(width: 320, height: 400)
+        )
+        let mapping = await actor.makeExportMapping(request: request)
+
+        #expect(abs(layout.contentScale - mapping.aspectFillScale) < 0.0001)
+    }
+
 }

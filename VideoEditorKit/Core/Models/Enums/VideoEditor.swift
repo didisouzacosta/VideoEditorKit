@@ -158,7 +158,10 @@ enum VideoEditor {
         guard
             let session = AVAssetExportSession(
                 asset: asset,
-                presetName: isSimulator ? AVAssetExportPresetPassthrough : AVAssetExportPresetHighestQuality
+                presetName: resolvedExportPresetName(
+                    appliesVideoComposition: true,
+                    isSimulatorEnvironment: isSimulator
+                )
             )
         else {
             assertionFailure("Unable to create color correction export session.")
@@ -215,7 +218,10 @@ enum VideoEditor {
         guard
             let session = AVAssetExportSession(
                 asset: asset,
-                presetName: isSimulator ? AVAssetExportPresetPassthrough : AVAssetExportPresetHighestQuality
+                presetName: resolvedExportPresetName(
+                    appliesVideoComposition: true,
+                    isSimulatorEnvironment: isSimulator
+                )
             )
         else {
             assertionFailure("Unable to create crop export session.")
@@ -426,6 +432,20 @@ extension VideoEditor {
         return cropRect.height > cropRect.width ? .portrait : .landscape
     }
 
+    static func resolvedExportPresetName(
+        appliesVideoComposition: Bool,
+        isSimulatorEnvironment: Bool
+    ) -> String {
+        guard isSimulatorEnvironment else {
+            return AVAssetExportPresetHighestQuality
+        }
+
+        // `passthrough` ignores videoComposition, which would drop preset/canvas and correction renders.
+        return appliesVideoComposition
+            ? AVAssetExportPresetHighestQuality
+            : AVAssetExportPresetPassthrough
+    }
+
     private static func requiresCanvasStage(
         _ editingConfiguration: VideoEditingConfiguration
     ) -> Bool {
@@ -586,7 +606,10 @@ extension VideoEditor {
         guard
             let export = AVAssetExportSession(
                 asset: composition,
-                presetName: isSimulator ? AVAssetExportPresetPassthrough : AVAssetExportPresetHighestQuality
+                presetName: resolvedExportPresetName(
+                    appliesVideoComposition: true,
+                    isSimulatorEnvironment: isSimulator
+                )
             )
         else {
             assertionFailure("Unable to create composition export session.")

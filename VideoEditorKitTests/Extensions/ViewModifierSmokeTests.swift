@@ -51,6 +51,30 @@ struct ViewModifierSmokeTests {
     }
 
     @Test
+    func editedVideoProjectCardRendersInsideAHostingController() {
+        assertRenders(
+            EditedVideoProjectCard(
+                project: .init(
+                    createdAt: .now,
+                    updatedAt: .now,
+                    displayName: "Shared Clip",
+                    originalVideoFileName: "original.mp4",
+                    exportedVideoFileName: "exported.mp4",
+                    editingConfigurationData: (try? JSONEncoder().encode(VideoEditingConfiguration.initial)) ?? Data(),
+                    thumbnailData: nil,
+                    duration: 12,
+                    width: 1080,
+                    height: 1920,
+                    fileSize: 1_024
+                ),
+                onOpen: {},
+                onEdit: {},
+                onDelete: {}
+            )
+        )
+    }
+
+    @Test
     func cropViewRendersPresetClippingModeInsideAHostingController() {
         assertRenders(
             CropView(
