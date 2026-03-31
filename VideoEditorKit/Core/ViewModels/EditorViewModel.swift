@@ -53,18 +53,18 @@ final class EditorViewModel {
         selectedCropPreset() != .original
     }
 
-    var shouldShowSafeAreaOverlay: Bool {
-        showsSafeAreaOverlay
-            && resolvedSafeAreaPlatform() != nil
-    }
-
     var shouldUseCropPresetSpotlight: Bool {
         selectedCropPreset() != .original
     }
 
-    var activeSafeAreaPlatform: SocialPlatform? {
+    var shouldShowSafeAreaOverlay: Bool {
+        showsSafeAreaOverlay
+            && resolvedSafeAreaGuideProfile() != nil
+    }
+
+    var activeSafeAreaGuideProfile: SafeAreaGuideProfile? {
         guard showsSafeAreaOverlay else { return nil }
-        return resolvedSafeAreaPlatform()
+        return resolvedSafeAreaGuideProfile()
     }
 
     // MARK: - Private Properties
@@ -120,8 +120,6 @@ final class EditorViewModel {
             markEditingConfigurationChanged()
         }
     }
-
-    // MARK: - Private Methods
 
     deinit {
         loadVideoTask?.cancel()
@@ -339,14 +337,12 @@ extension EditorViewModel {
             nextCropRect = preset.makeFreeformRect(for: referenceSize)
 
             if preset.isSocialVideoPreset {
-                let hadSocialDestination = socialVideoDestination != nil
-                socialVideoDestination = socialVideoDestination ?? .instagramReels
-                if !hadSocialDestination {
+                let hadSafeAreaGuide = resolvedSafeAreaGuideProfile() != nil
+                socialVideoDestination = nil
+                if !hadSafeAreaGuide {
                     showsSafeAreaOverlay = true
                 }
-                canvasEditorState.preset = .social(
-                    platform: socialVideoDestination?.socialPlatform ?? .instagram
-                )
+                canvasEditorState.preset = .story
             } else {
                 socialVideoDestination = nil
                 showsSafeAreaOverlay = false
@@ -409,7 +405,7 @@ extension EditorViewModel {
     }
 
     func toggleSafeAreaOverlay() {
-        guard socialVideoDestination != nil else { return }
+        guard resolvedSafeAreaGuideProfile() != nil else { return }
         showsSafeAreaOverlay.toggle()
         canvasEditorState.showsSafeAreaOverlay = shouldRenderSafeAreaOverlay(
             for: canvasEditorState.preset
@@ -531,14 +527,6 @@ extension EditorViewModel {
         let referenceSize = resolvedCropReferenceSize(for: video)
         let contentSize = fittedSize(referenceSize, in: fallbackSize)
 
-        guard shouldUseCropPresetSpotlight else {
-            return .init(
-                referenceSize: referenceSize,
-                contentSize: contentSize,
-                viewportSize: contentSize
-            )
-        }
-
         guard
             let aspectRatio = activeCropViewportAspectRatio(
                 in: referenceSize
@@ -599,6 +587,7 @@ extension EditorViewModel {
 
     func isCropFormatSelected(_ preset: VideoCropFormatPreset) -> Bool {
         let canvasPreset = selectedCropPresetFromCanvas()
+
         if canvasPreset != .original {
             return canvasPreset == preset
         }
@@ -1133,23 +1122,24 @@ extension EditorViewModel {
     private func shouldRenderSafeAreaOverlay(
         for preset: VideoCanvasPreset
     ) -> Bool {
-        showsSafeAreaOverlay && resolvedSafeAreaPlatform(for: preset) != nil
+        showsSafeAreaOverlay && resolvedSafeAreaGuideProfile(for: preset) != nil
     }
 
-    private func resolvedSafeAreaPlatform() -> SocialPlatform? {
-        resolvedSafeAreaPlatform(for: canvasEditorState.preset)
+    private func resolvedSafeAreaGuideProfile() -> SafeAreaGuideProfile? {
+        resolvedSafeAreaGuideProfile(for: canvasEditorState.preset)
     }
 
-    private func resolvedSafeAreaPlatform(
+    private func resolvedSafeAreaGuideProfile(
         for preset: VideoCanvasPreset
-    ) -> SocialPlatform? {
+    ) -> SafeAreaGuideProfile? {
         switch preset {
         case .social(let platform):
-            platform
+            .platform(platform)
+        case .story:
+            .universalSocial
         case .original,
             .free,
             .custom,
-            .story,
             .facebookPost:
             nil
         }
@@ -1178,14 +1168,14 @@ extension EditorViewModel {
         }
 
         let mappingActor = VideoCanvasMappingActor()
-        let resolvedPreset = await mappingActor.resolvePreset(
+        let resolvedPreset = mappingActor.resolvePreset(
             snapshot.preset,
             naturalSize: referenceSize,
             freeCanvasSize: snapshot.freeCanvasSize
         )
 
         snapshot.freeCanvasSize = resolvedPreset.exportSize
-        snapshot.transform = await mappingActor.snapshotTransform(
+        snapshot.transform = mappingActor.snapshotTransform(
             fromLegacyFreeformRect: configuration.crop.freeformRect,
             referenceSize: referenceSize,
             exportSize: resolvedPreset.exportSize

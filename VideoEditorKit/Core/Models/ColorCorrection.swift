@@ -40,4 +40,15 @@ struct ColorCorrection: Equatable, Sendable {
             && abs(saturation) <= 0.001
     }
 
+    // MARK: - Public Methods
+
+    func updating(
+        _ keyPath: WritableKeyPath<Self, Double>,
+        to newValue: Double
+    ) -> Self {
+        var updatedCorrection = self
+        updatedCorrection[keyPath: keyPath] = newValue
+        return updatedCorrection
+    }
+
 }

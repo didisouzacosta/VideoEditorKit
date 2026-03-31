@@ -262,6 +262,65 @@ struct VideoPlayerManagerTests {
         #expect(manager.videoPlayer.currentItem?.videoComposition == nil)
     }
 
+    @Test
+    func rapidColorCorrectionChangesAreGroupedIntoASinglePreviewCompositionBuild() async throws {
+        let compositionRecorder = CompositionBuildRecorder()
+        let manager = VideoPlayerManager(
+            VideoPlayerManagerDependencies(
+                colorCorrectionDebounceDuration: .milliseconds(60),
+                sleep: {
+                    try await ContinuousClock().sleep(for: $0)
+                },
+                makeVideoComposition: { asset, filters in
+                    await compositionRecorder.recordBuild()
+                    return try await asset.makeVideoComposition(applying: filters)
+                }
+            )
+        )
+        let videoURL = try await TestFixtures.createTemporaryVideo()
+        defer { FileManager.default.removeIfExists(for: videoURL) }
+
+        manager.loadState = .loaded(videoURL)
+        manager.setColorCorrection(ColorCorrection(brightness: 0.1))
+        manager.setColorCorrection(ColorCorrection(brightness: 0.2))
+        manager.setColorCorrection(ColorCorrection(brightness: 0.3))
+
+        for _ in 0..<60 where manager.videoPlayer.currentItem?.videoComposition == nil {
+            try? await Task.sleep(for: .milliseconds(20))
+        }
+
+        #expect(await compositionRecorder.buildCount() == 1)
+        #expect(manager.videoPlayer.currentItem?.videoComposition != nil)
+    }
+
+    @Test
+    func clearingColorCorrectionBeforeTheDebounceWindowSkipsThePreviewCompositionBuild() async throws {
+        let compositionRecorder = CompositionBuildRecorder()
+        let manager = VideoPlayerManager(
+            VideoPlayerManagerDependencies(
+                colorCorrectionDebounceDuration: .milliseconds(80),
+                sleep: {
+                    try await ContinuousClock().sleep(for: $0)
+                },
+                makeVideoComposition: { asset, filters in
+                    await compositionRecorder.recordBuild()
+                    return try await asset.makeVideoComposition(applying: filters)
+                }
+            )
+        )
+        let videoURL = try await TestFixtures.createTemporaryVideo()
+        defer { FileManager.default.removeIfExists(for: videoURL) }
+
+        manager.loadState = .loaded(videoURL)
+        manager.setColorCorrection(ColorCorrection(brightness: 0.2))
+        manager.clearColorCorrection()
+
+        try? await Task.sleep(for: .milliseconds(160))
+
+        #expect(await compositionRecorder.buildCount() == 0)
+        #expect(manager.videoPlayer.currentItem?.videoComposition == nil)
+    }
+
 }
 
 private func seek(player: AVPlayer, to seconds: Double) async {
@@ -274,4 +333,22 @@ private func seek(player: AVPlayer, to seconds: Double) async {
             continuation.resume()
         }
     }
+}
+
+private actor CompositionBuildRecorder {
+
+    // MARK: - Private Properties
+
+    private var builds = 0
+
+    // MARK: - Public Methods
+
+    func recordBuild() {
+        builds += 1
+    }
+
+    func buildCount() -> Int {
+        builds
+    }
+
 }

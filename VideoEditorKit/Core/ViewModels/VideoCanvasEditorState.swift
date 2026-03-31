@@ -53,8 +53,8 @@ final class VideoCanvasEditorState {
 
     func makeRenderRequest(
         source: VideoCanvasSourceDescriptor
-    ) async -> VideoCanvasRenderRequest {
-        await mappingActor.makeRenderRequest(
+    ) -> VideoCanvasRenderRequest {
+        mappingActor.makeRenderRequest(
             source: source,
             snapshot: snapshot()
         )
@@ -63,9 +63,9 @@ final class VideoCanvasEditorState {
     func previewLayout(
         source: VideoCanvasSourceDescriptor,
         availableSize: CGSize
-    ) async -> VideoCanvasLayout {
-        let request = await makeRenderRequest(source: source)
-        return await mappingActor.makePreviewLayout(
+    ) -> VideoCanvasLayout {
+        let request = makeRenderRequest(source: source)
+        return mappingActor.makePreviewLayout(
             request: request,
             availableSize: availableSize
         )
@@ -73,17 +73,17 @@ final class VideoCanvasEditorState {
 
     func exportMapping(
         source: VideoCanvasSourceDescriptor
-    ) async -> VideoCanvasExportMapping {
-        let request = await makeRenderRequest(source: source)
-        return await mappingActor.makeExportMapping(request: request)
+    ) -> VideoCanvasExportMapping {
+        let request = makeRenderRequest(source: source)
+        return mappingActor.makeExportMapping(request: request)
     }
 
     func dragTransform(
         from baseline: VideoCanvasTransform,
         translation: CGSize,
         previewCanvasSize: CGSize
-    ) async -> VideoCanvasTransform {
-        await mappingActor.dragTransform(
+    ) -> VideoCanvasTransform {
+        mappingActor.dragTransform(
             from: baseline,
             translation: translation,
             previewCanvasSize: previewCanvasSize
@@ -93,8 +93,8 @@ final class VideoCanvasEditorState {
     func magnifiedTransform(
         from baseline: VideoCanvasTransform,
         magnification: CGFloat
-    ) async -> VideoCanvasTransform {
-        await mappingActor.magnifiedTransform(
+    ) -> VideoCanvasTransform {
+        mappingActor.magnifiedTransform(
             from: baseline,
             magnification: magnification
         )
@@ -103,8 +103,8 @@ final class VideoCanvasEditorState {
     func rotatedTransform(
         from baseline: VideoCanvasTransform,
         rotation: Angle
-    ) async -> VideoCanvasTransform {
-        await mappingActor.rotatedTransform(
+    ) -> VideoCanvasTransform {
+        mappingActor.rotatedTransform(
             from: baseline,
             rotation: rotation
         )
@@ -113,8 +113,8 @@ final class VideoCanvasEditorState {
     func snapshotTransform(
         fromLegacyFreeformRect freeformRect: VideoEditingConfiguration.FreeformRect?,
         referenceSize: CGSize
-    ) async -> VideoCanvasTransform {
-        let request = await makeRenderRequest(
+    ) -> VideoCanvasTransform {
+        let request = makeRenderRequest(
             source: .init(
                 naturalSize: referenceSize,
                 preferredTransform: .identity,
@@ -123,7 +123,7 @@ final class VideoCanvasEditorState {
             )
         )
 
-        return await mappingActor.snapshotTransform(
+        return mappingActor.snapshotTransform(
             fromLegacyFreeformRect: freeformRect,
             referenceSize: referenceSize,
             exportSize: request.resolvedPreset.exportSize

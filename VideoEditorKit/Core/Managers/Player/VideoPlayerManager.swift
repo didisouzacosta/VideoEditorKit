@@ -13,6 +13,26 @@ import Observation
 import PhotosUI
 import SwiftUI
 
+struct VideoPlayerManagerDependencies: Sendable {
+
+    // MARK: - Public Properties
+
+    let colorCorrectionDebounceDuration: Duration
+    let sleep: @Sendable (Duration) async throws -> Void
+    let makeVideoComposition: @Sendable (AVAsset, [CIFilter]) async throws -> AVVideoComposition
+
+    static let live = Self(
+        colorCorrectionDebounceDuration: .milliseconds(60),
+        sleep: {
+            try await ContinuousClock().sleep(for: $0)
+        },
+        makeVideoComposition: { asset, filters in
+            try await asset.makeVideoComposition(applying: filters)
+        }
+    )
+
+}
+
 @MainActor
 @Observable
 final class VideoPlayerManager {
@@ -83,6 +103,9 @@ final class VideoPlayerManager {
     private var correctionCompositionTask: Task<Void, Never>?
 
     @ObservationIgnored
+    private var scheduledCorrectionCompositionTask: Task<Void, Never>?
+
+    @ObservationIgnored
     private var pendingPlaybackTask: Task<Void, Never>?
 
     @ObservationIgnored
@@ -100,7 +123,17 @@ final class VideoPlayerManager {
     @ObservationIgnored
     private var loadedAudioURL: URL?
 
+    @ObservationIgnored
+    private var correctionCompositionGeneration = 0
+
     private let playbackRestartTolerance = 0.05
+    private let dependencies: VideoPlayerManagerDependencies
+
+    // MARK: - Initializer
+
+    init(_ dependencies: VideoPlayerManagerDependencies = .live) {
+        self.dependencies = dependencies
+    }
 
     // MARK: - Public Methods
 
@@ -447,6 +480,8 @@ final class VideoPlayerManager {
     private func cleanupObservers() {
         pendingPlaybackTask?.cancel()
         pendingPlaybackTask = nil
+        scheduledCorrectionCompositionTask?.cancel()
+        scheduledCorrectionCompositionTask = nil
         removeTimeObserver()
         removeEndPlaybackObserver()
         statusCancellable?.cancel()
@@ -519,19 +554,58 @@ extension VideoPlayerManager {
     // MARK: - Public Methods
 
     func setColorCorrection(_ colorCorrection: ColorCorrection?) {
-        previewColorCorrection = colorCorrection ?? .init()
+        let resolvedCorrection = colorCorrection ?? .init()
+        guard previewColorCorrection != resolvedCorrection else { return }
 
-        applyCurrentColorCorrectionComposition()
+        previewColorCorrection = resolvedCorrection
+
+        guard videoPlayer.currentItem != nil else { return }
+
+        scheduleColorCorrectionCompositionUpdate()
     }
 
     func clearColorCorrection() {
+        guard !previewColorCorrection.isIdentity || scheduledCorrectionCompositionTask != nil else { return }
+
         previewColorCorrection = .init()
         applyCurrentColorCorrectionComposition()
     }
 
     // MARK: - Private Methods
 
+    private func scheduleColorCorrectionCompositionUpdate() {
+        scheduledCorrectionCompositionTask?.cancel()
+        correctionCompositionGeneration += 1
+
+        let generation = correctionCompositionGeneration
+        let debounceDuration = dependencies.colorCorrectionDebounceDuration
+
+        guard debounceDuration > .zero else {
+            applyCurrentColorCorrectionComposition()
+            return
+        }
+
+        scheduledCorrectionCompositionTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+
+            do {
+                try await self.dependencies.sleep(debounceDuration)
+            } catch {
+                return
+            }
+
+            guard !Task.isCancelled, self.correctionCompositionGeneration == generation else { return }
+
+            self.applyCurrentColorCorrectionComposition()
+
+            guard self.correctionCompositionGeneration == generation else { return }
+            self.scheduledCorrectionCompositionTask = nil
+        }
+    }
+
     private func applyCurrentColorCorrectionComposition() {
+        scheduledCorrectionCompositionTask?.cancel()
+        scheduledCorrectionCompositionTask = nil
         correctionCompositionTask?.cancel()
 
         guard let currentItem = videoPlayer.currentItem else {
@@ -575,9 +649,15 @@ extension VideoPlayerManager {
         pause()
 
         correctionCompositionTask = Task { [weak self] in
-            guard let composition = try? await currentItem.asset.makeVideoComposition(applying: filters) else { return }
+            guard
+                let self,
+                let composition = try? await self.dependencies.makeVideoComposition(currentItem.asset, filters)
+            else {
+                return
+            }
+
             await MainActor.run {
-                guard let self, self.videoPlayer.currentItem === currentItem else { return }
+                guard self.videoPlayer.currentItem === currentItem else { return }
                 currentItem.videoComposition = composition
                 self.refreshCurrentVideoFrame()
                 self.appliedCorrectionSignature = signature

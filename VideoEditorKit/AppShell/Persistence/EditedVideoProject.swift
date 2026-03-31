@@ -16,7 +16,7 @@ final class EditedVideoProject {
     @Attribute(.unique) var id: UUID
     @Attribute(.externalStorage) var editingConfigurationData: Data
     @Attribute(.externalStorage) var thumbnailData: Data?
-    
+
     var createdAt: Date
     var updatedAt: Date
     var displayName: String

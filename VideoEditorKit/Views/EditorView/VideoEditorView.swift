@@ -35,12 +35,12 @@ struct VideoEditorView: View {
 
         NavigationStack {
             GeometryReader { proxy in
-                VStack(spacing: editorViewModel.shouldUseCropPresetSpotlight ? 20 : 32) {
+                VStack(spacing: 32) {
                     PlayerHolderView(
                         editorViewModel,
                         videoPlayer: videoPlayer
                     )
-                    .layoutPriority(editorViewModel.shouldUseCropPresetSpotlight ? 1 : 0)
+                    .layoutPriority(1)
                     .disabled(isEditingLocked)
 
                     PlayerControl(

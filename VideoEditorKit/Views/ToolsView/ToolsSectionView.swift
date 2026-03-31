@@ -183,7 +183,7 @@ extension ToolsSectionView {
         case .audio:
             VideoAudioToolView(videoPlayer, editorVM: editorViewModel)
         case .corrections:
-            VideoCorrectionsToolView(editorViewModel.colorCorrectionBinding()) { corrections in
+            VideoCorrectionsToolView(editorViewModel.exportVideo?.colorCorrection ?? .init()) { corrections in
                 videoPlayer.setColorCorrection(corrections)
             }
         case .cut:

@@ -46,7 +46,7 @@ struct VideoSpeedToolView: View {
     // MARK: - Initializer
 
     init(_ value: Double = 1, isChangeState: Bool?, onEditingChanged: @escaping (Float) -> Void) {
-        _value = State(initialValue: value)
+        _value = .init(initialValue: value)
 
         self.isChangeState = isChangeState
         self.onEditingChanged = onEditingChanged

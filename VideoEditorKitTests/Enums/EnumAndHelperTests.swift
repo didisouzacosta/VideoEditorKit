@@ -201,6 +201,21 @@ struct ColorCorrectionHelperTests {
         #expect(ColorCorrection(brightness: 0.002).isIdentity == false)
     }
 
+    @Test
+    func updatingChangesOnlyTheRequestedCorrectionChannel() {
+        let correction = ColorCorrection(
+            brightness: 0.15,
+            contrast: 0.35,
+            saturation: 0.8
+        )
+
+        let updatedCorrection = correction.updating(\.contrast, to: -0.25)
+
+        #expect(abs(updatedCorrection.brightness - 0.15) < 0.0001)
+        #expect(abs(updatedCorrection.contrast + 0.25) < 0.0001)
+        #expect(abs(updatedCorrection.saturation - 0.8) < 0.0001)
+    }
+
 }
 
 @Suite("PaletteAndThemeTests")

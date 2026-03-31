@@ -211,7 +211,7 @@ enum VideoEditor {
             editingConfiguration: editingConfiguration
         )
         let mappingActor = VideoCanvasMappingActor()
-        let exportMapping = await mappingActor.makeExportMapping(
+        let exportMapping = mappingActor.makeExportMapping(
             request: renderRequest
         )
 
@@ -494,7 +494,7 @@ extension VideoEditor {
             mappingActor: mappingActor
         )
 
-        return await mappingActor.makeRenderRequest(
+        return mappingActor.makeRenderRequest(
             source: VideoCanvasSourceDescriptor(
                 naturalSize: naturalSize,
                 preferredTransform: preferredTransform,
@@ -519,7 +519,7 @@ extension VideoEditor {
             for: sourcePresentationSize,
             editingConfiguration: editingConfiguration
         )
-        let resolvedPreset = await mappingActor.resolvePreset(
+        let resolvedPreset = mappingActor.resolvePreset(
             preset,
             naturalSize: sourcePresentationSize,
             freeCanvasSize: storedSnapshot.freeCanvasSize
@@ -532,7 +532,7 @@ extension VideoEditor {
             showsSafeAreaOverlay: editingConfiguration.presentation.showsSafeAreaGuides
         )
 
-        snapshot.transform = await mappingActor.snapshotTransform(
+        snapshot.transform = mappingActor.snapshotTransform(
             fromLegacyFreeformRect: editingConfiguration.crop.freeformRect,
             referenceSize: sourcePresentationSize,
             exportSize: resolvedPreset.exportSize

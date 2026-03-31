@@ -8,7 +8,7 @@
 import Foundation
 
 enum LoadState: Identifiable, Equatable {
-    
+
     case unknown, loading
     case loaded(URL)
     case failed
@@ -21,5 +21,5 @@ enum LoadState: Identifiable, Equatable {
         case .failed: 3
         }
     }
-    
+
 }

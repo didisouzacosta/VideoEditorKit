@@ -60,13 +60,11 @@ extension PlayerHolderView {
         Group {
             if let video = editorViewModel.currentVideo {
                 GeometryReader { proxy in
-                    let spotlightMode = editorViewModel.shouldUseCropPresetSpotlight
-
                     VideoCanvasPreviewView(
                         editorViewModel.canvasEditorState,
                         source: editorViewModel.videoCanvasSource(for: video),
                         isInteractive: editorViewModel.isCropOverlayInteractive,
-                        cornerRadius: spotlightMode ? 28 : 4,
+                        cornerRadius: 16,
                         onSnapshotChange: { _ in
                             editorViewModel.handleCanvasPreviewChange()
                         }
@@ -80,35 +78,30 @@ extension PlayerHolderView {
                         }
                     } overlay: {
                         ZStack(alignment: .bottom) {
-                            if let platform = editorViewModel.activeSafeAreaPlatform {
+                            if let profile = editorViewModel.activeSafeAreaGuideProfile {
                                 SafeAreaOverlayView(
-                                    platform: platform,
-                                    cornerRadius: spotlightMode ? 28 : 4
+                                    profile: profile,
+                                    cornerRadius: 16
                                 )
                             }
 
                             if editorViewModel.shouldShowCropPresetBadge() {
                                 cropPresetBadge
-                                    .padding(.bottom, spotlightMode ? 16 : 12)
+                                    .padding(.bottom, 16)
                             }
                         }
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-                    .shadow(
-                        color: .black.opacity(spotlightMode ? 0.18 : 0),
-                        radius: spotlightMode ? 28 : 0,
-                        y: spotlightMode ? 18 : 0
-                    )
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
                     .task(
                         id: playerLayoutID(
                             for: proxy.size,
                             rotation: video.rotation,
                             videoID: video.id,
-                            changeCounter: editorViewModel.editingConfigurationChangeCounter
+                            canvasPreset: editorViewModel.canvasEditorState.preset,
+                            freeCanvasSize: editorViewModel.canvasEditorState.freeCanvasSize
                         )
                     ) {
-                        await syncVideoLayout(for: proxy.size)
+                        syncVideoLayout(for: proxy.size)
                     }
                 }
             }
@@ -143,15 +136,16 @@ extension PlayerHolderView {
         for containerSize: CGSize,
         rotation: Double,
         videoID: UUID,
-        changeCounter: Int
+        canvasPreset: VideoCanvasPreset,
+        freeCanvasSize: CGSize
     ) -> String {
-        "\(videoID.uuidString)-\(Int(containerSize.width.rounded()))-\(Int(containerSize.height.rounded()))-\(Int(rotation))-\(changeCounter)"
+        "\(videoID.uuidString)-\(Int(containerSize.width.rounded()))-\(Int(containerSize.height.rounded()))-\(Int(rotation))-\(String(describing: canvasPreset))-\(Int(freeCanvasSize.width.rounded()))-\(Int(freeCanvasSize.height.rounded()))"
     }
 
-    private func syncVideoLayout(for containerSize: CGSize) async {
+    private func syncVideoLayout(for containerSize: CGSize) {
         guard let video = editorViewModel.currentVideo else { return }
 
-        let size = await editorViewModel.canvasEditorState.previewLayout(
+        let size = editorViewModel.canvasEditorState.previewLayout(
             source: editorViewModel.videoCanvasSource(for: video),
             availableSize: containerSize
         ).previewCanvasSize

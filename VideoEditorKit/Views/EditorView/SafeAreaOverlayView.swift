@@ -35,12 +35,15 @@ struct SafeAreaOverlayView: View {
 
     // MARK: - Private Properties
 
+    private let profile: SafeAreaGuideProfile?
     private let platform: SocialPlatform?
     private let insets: SafeAreaInsets?
     private let cornerRadius: CGFloat
 
     private var resolvedInsets: SafeAreaInsets? {
-        insets ?? platform?.safeAreaInsets
+        insets
+            ?? profile?.safeAreaInsets
+            ?? platform?.safeAreaInsets
     }
 
     // MARK: - Initializer
@@ -49,7 +52,18 @@ struct SafeAreaOverlayView: View {
         platform: SocialPlatform?,
         cornerRadius: CGFloat
     ) {
+        self.profile = platform.map(SafeAreaGuideProfile.platform)
         self.platform = platform
+        self.insets = nil
+        self.cornerRadius = cornerRadius
+    }
+
+    init(
+        profile: SafeAreaGuideProfile?,
+        cornerRadius: CGFloat
+    ) {
+        self.profile = profile
+        self.platform = nil
         self.insets = nil
         self.cornerRadius = cornerRadius
     }
@@ -58,6 +72,7 @@ struct SafeAreaOverlayView: View {
         insets: SafeAreaInsets,
         cornerRadius: CGFloat
     ) {
+        self.profile = nil
         self.platform = nil
         self.insets = insets
         self.cornerRadius = cornerRadius

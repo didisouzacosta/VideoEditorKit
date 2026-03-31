@@ -11,11 +11,7 @@ struct VideoCorrectionsToolView: View {
 
     // MARK: - Bindings
 
-    @Binding private var correction: ColorCorrection
-
-    // MARK: - States
-
-    @State private var draftCorrection: ColorCorrection
+    @State private var correction: ColorCorrection
 
     // MARK: - Private Properties
 
@@ -28,26 +24,20 @@ struct VideoCorrectionsToolView: View {
             correctionSlider(
                 title: CorrectionType.brightness.rawValue,
                 systemImage: "sun.max",
-                value: draftBinding(\.brightness)
+                value: $correction.brightness
             )
             correctionSlider(
                 title: CorrectionType.contrast.rawValue,
                 systemImage: "circle.lefthalf.filled",
-                value: draftBinding(\.contrast)
+                value: $correction.contrast
             )
             correctionSlider(
                 title: CorrectionType.saturation.rawValue,
                 systemImage: "drop",
-                value: draftBinding(\.saturation)
+                value: $correction.saturation
             )
         }
         .onChange(of: correction) { _, newValue in
-            guard newValue != draftCorrection else { return }
-            draftCorrection = newValue
-        }
-        .onChange(of: draftCorrection) { _, newValue in
-            guard newValue != correction else { return }
-            correction = newValue
             onChange(newValue)
         }
     }
@@ -55,12 +45,10 @@ struct VideoCorrectionsToolView: View {
     // MARK: - Initializer
 
     init(
-        _ correction: Binding<ColorCorrection>,
+        _ correction: ColorCorrection,
         onChange: @escaping (ColorCorrection) -> Void
     ) {
-        _correction = correction
-        _draftCorrection = State(initialValue: correction.wrappedValue)
-
+        _correction = .init(initialValue: correction)
         self.onChange = onChange
     }
 
@@ -86,17 +74,9 @@ extension VideoCorrectionsToolView {
         .font(.caption)
     }
 
-    private func draftBinding(
-        _ keyPath: WritableKeyPath<ColorCorrection, Double>
-    ) -> Binding<Double> {
-        Binding(
-            get: { draftCorrection[keyPath: keyPath] },
-            set: { draftCorrection[keyPath: keyPath] = $0 }
-        )
-    }
-
 }
 
 #Preview {
-    VideoCorrectionsToolView(.constant(Video.mock.colorCorrection), onChange: { _ in })
+    let colorCorrection = Video.mock.colorCorrection
+    VideoCorrectionsToolView(colorCorrection, onChange: { _ in })
 }

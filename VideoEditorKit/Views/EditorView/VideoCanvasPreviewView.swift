@@ -16,11 +16,10 @@ struct VideoCanvasPreviewView<Content: View, Overlay: View>: View {
 
     // MARK: - States
 
-    @State private var layout: VideoCanvasLayout?
-    @State private var availableSize: CGSize = .zero
     @State private var dragBaselineTransform: VideoCanvasTransform?
     @State private var magnificationBaselineTransform: VideoCanvasTransform?
     @State private var rotationBaselineTransform: VideoCanvasTransform?
+    @State private var hasPendingInteractiveChange = false
 
     // MARK: - Public Properties
 
@@ -37,16 +36,17 @@ struct VideoCanvasPreviewView<Content: View, Overlay: View>: View {
 
     var body: some View {
         GeometryReader { proxy in
+            let layout = editorState.previewLayout(
+                source: source,
+                availableSize: proxy.size
+            )
+
             ZStack {
-                if let layout {
+                if layout.previewCanvasSize.width > 0, layout.previewCanvasSize.height > 0 {
                     canvasView(layout)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-            .task(id: taskKey(for: proxy.size)) {
-                availableSize = proxy.size
-                await refreshLayout(for: proxy.size)
-            }
         }
     }
 
@@ -83,10 +83,6 @@ struct VideoCanvasPreviewView<Content: View, Overlay: View>: View {
             guard isInteractive else { return }
             editorState.resetTransform()
             onSnapshotChange(editorState.snapshot())
-
-            Task { @MainActor in
-                await refreshLayout(for: availableSize)
-            }
         }
 
         if isInteractive {
@@ -94,14 +90,6 @@ struct VideoCanvasPreviewView<Content: View, Overlay: View>: View {
         } else {
             canvas
         }
-    }
-
-    private func taskKey(for size: CGSize) -> PreviewTaskKey {
-        PreviewTaskKey(
-            source: source,
-            snapshot: editorState.snapshot(),
-            availableSize: size
-        )
     }
 
     // MARK: - Initializer
@@ -158,6 +146,7 @@ struct VideoCanvasPreviewView<Content: View, Overlay: View>: View {
                     }
                     .onEnded { _ in
                         dragBaselineTransform = nil
+                        commitInteractiveChangesIfNeeded()
                     },
                 MagnificationGesture()
                     .onChanged { value in
@@ -165,6 +154,7 @@ struct VideoCanvasPreviewView<Content: View, Overlay: View>: View {
                     }
                     .onEnded { _ in
                         magnificationBaselineTransform = nil
+                        commitInteractiveChangesIfNeeded()
                     }
             ),
             RotationGesture()
@@ -173,6 +163,7 @@ struct VideoCanvasPreviewView<Content: View, Overlay: View>: View {
                 }
                 .onEnded { _ in
                     rotationBaselineTransform = nil
+                    commitInteractiveChangesIfNeeded()
                 }
         )
     }
@@ -186,15 +177,12 @@ struct VideoCanvasPreviewView<Content: View, Overlay: View>: View {
             dragBaselineTransform = baseline
         }
 
-        Task { @MainActor in
-            editorState.transform = await editorState.dragTransform(
-                from: baseline,
-                translation: translation,
-                previewCanvasSize: previewCanvasSize
-            )
-            onSnapshotChange(editorState.snapshot())
-            await refreshLayout(for: availableSize)
-        }
+        editorState.transform = editorState.dragTransform(
+            from: baseline,
+            translation: translation,
+            previewCanvasSize: previewCanvasSize
+        )
+        hasPendingInteractiveChange = true
     }
 
     private func updateMagnification(
@@ -205,14 +193,11 @@ struct VideoCanvasPreviewView<Content: View, Overlay: View>: View {
             magnificationBaselineTransform = baseline
         }
 
-        Task { @MainActor in
-            editorState.transform = await editorState.magnifiedTransform(
-                from: baseline,
-                magnification: magnification
-            )
-            onSnapshotChange(editorState.snapshot())
-            await refreshLayout(for: availableSize)
-        }
+        editorState.transform = editorState.magnifiedTransform(
+            from: baseline,
+            magnification: magnification
+        )
+        hasPendingInteractiveChange = true
     }
 
     private func updateRotation(
@@ -223,33 +208,23 @@ struct VideoCanvasPreviewView<Content: View, Overlay: View>: View {
             rotationBaselineTransform = baseline
         }
 
-        Task { @MainActor in
-            editorState.transform = await editorState.rotatedTransform(
-                from: baseline,
-                rotation: rotation
-            )
-            onSnapshotChange(editorState.snapshot())
-            await refreshLayout(for: availableSize)
-        }
-    }
-
-    private func refreshLayout(
-        for size: CGSize
-    ) async {
-        layout = await editorState.previewLayout(
-            source: source,
-            availableSize: size
+        editorState.transform = editorState.rotatedTransform(
+            from: baseline,
+            rotation: rotation
         )
+        hasPendingInteractiveChange = true
     }
 
-}
+    private func commitInteractiveChangesIfNeeded() {
+        let isInteractionActive =
+            dragBaselineTransform != nil
+            || magnificationBaselineTransform != nil
+            || rotationBaselineTransform != nil
 
-private struct PreviewTaskKey: Equatable {
+        guard hasPendingInteractiveChange, isInteractionActive == false else { return }
 
-    // MARK: - Public Properties
-
-    let source: VideoCanvasSourceDescriptor
-    let snapshot: VideoCanvasSnapshot
-    let availableSize: CGSize
+        hasPendingInteractiveChange = false
+        onSnapshotChange(editorState.snapshot())
+    }
 
 }

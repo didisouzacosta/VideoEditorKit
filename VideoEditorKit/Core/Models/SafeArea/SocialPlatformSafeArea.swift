@@ -122,6 +122,21 @@ struct SafeAreaInsets: Equatable, Sendable {
         )
     }
 
+    static func intersection(
+        of insetsCollection: [Self]
+    ) -> Self? {
+        guard let firstInsets = insetsCollection.first else { return nil }
+
+        return insetsCollection.dropFirst().reduce(firstInsets) { current, next in
+            Self(
+                top: max(current.top, next.top),
+                bottom: max(current.bottom, next.bottom),
+                left: max(current.left, next.left),
+                right: max(current.right, next.right)
+            )
+        }
+    }
+
     // MARK: - Private Methods
 
     private func normalized() -> Self {
@@ -136,6 +151,28 @@ struct SafeAreaInsets: Equatable, Sendable {
             left: min(clampedLeft, 1 - clampedRight),
             right: min(clampedRight, 1 - clampedLeft)
         )
+    }
+
+}
+
+enum SafeAreaGuideProfile: Equatable, Sendable {
+
+    // MARK: - Cases
+
+    case universalSocial
+    case platform(SocialPlatform)
+
+    // MARK: - Public Properties
+
+    var safeAreaInsets: SafeAreaInsets? {
+        switch self {
+        case .universalSocial:
+            SafeAreaInsets.intersection(
+                of: SocialPlatform.allCases.compactMap(\.safeAreaInsets)
+            )
+        case .platform(let platform):
+            platform.safeAreaInsets
+        }
     }
 
 }
@@ -181,16 +218,16 @@ enum SocialPlatform: String, Codable, CaseIterable, Equatable, Sendable {
         switch self {
         case .instagram:
             SafeAreaInsets(
-                top: 240 / 1920,
-                bottom: 240 / 1920,
+                top: 250 / 1920,
+                bottom: 250 / 1920,
                 left: 0,
                 right: 0
             )
         case .tiktok:
             SafeAreaInsets(
-                top: 128 / 1920,
-                bottom: 320 / 1920,
-                left: 60 / 1080,
+                top: 240 / 1920,
+                bottom: 660 / 1920,
+                left: 120 / 1080,
                 right: 120 / 1080
             )
         case .youtubeShorts:

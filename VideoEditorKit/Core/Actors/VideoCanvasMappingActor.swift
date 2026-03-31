@@ -9,7 +9,7 @@ import CoreGraphics
 import Foundation
 import SwiftUI
 
-actor VideoCanvasMappingActor {
+struct VideoCanvasMappingActor {
 
     // MARK: - Public Methods
 

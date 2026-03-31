@@ -30,9 +30,9 @@ struct SocialPlatformSafeAreaTests {
     @Test
     func guideLayoutCreatesAdaptiveUnsafeRegionsAroundTheSafeFrame() {
         let insets = SafeAreaInsets(
-            top: 128 / 1920,
-            bottom: 320 / 1920,
-            left: 60 / 1080,
+            top: 240 / 1920,
+            bottom: 660 / 1920,
+            left: 120 / 1080,
             right: 120 / 1080
         )
 
@@ -42,24 +42,24 @@ struct SocialPlatformSafeAreaTests {
 
         expect(
             guideLayout.safeFrame,
-            equals: CGRect(x: 60, y: 128, width: 900, height: 1472)
+            equals: CGRect(x: 120, y: 240, width: 840, height: 1020)
         )
         #expect(guideLayout.unsafeRegions.map(\.role) == [.top, .bottom, .left, .right])
         expect(
             guideLayout.unsafeRegions[0].rect,
-            equals: CGRect(x: 0, y: 0, width: 1080, height: 128)
+            equals: CGRect(x: 0, y: 0, width: 1080, height: 240)
         )
         expect(
             guideLayout.unsafeRegions[1].rect,
-            equals: CGRect(x: 0, y: 1600, width: 1080, height: 320)
+            equals: CGRect(x: 0, y: 1260, width: 1080, height: 660)
         )
         expect(
             guideLayout.unsafeRegions[2].rect,
-            equals: CGRect(x: 0, y: 128, width: 60, height: 1472)
+            equals: CGRect(x: 0, y: 240, width: 120, height: 1020)
         )
         expect(
             guideLayout.unsafeRegions[3].rect,
-            equals: CGRect(x: 960, y: 128, width: 120, height: 1472)
+            equals: CGRect(x: 960, y: 240, width: 120, height: 1020)
         )
     }
 
@@ -73,7 +73,7 @@ struct SocialPlatformSafeAreaTests {
 
         expect(
             safeFrame,
-            equals: CGRect(x: 0, y: 240, width: 1080, height: 1440)
+            equals: CGRect(x: 0, y: 250, width: 1080, height: 1420)
         )
     }
 
@@ -87,7 +87,7 @@ struct SocialPlatformSafeAreaTests {
 
         expect(
             safeFrame,
-            equals: CGRect(x: 60, y: 128, width: 900, height: 1472)
+            equals: CGRect(x: 120, y: 240, width: 840, height: 1020)
         )
     }
 
@@ -102,6 +102,20 @@ struct SocialPlatformSafeAreaTests {
         expect(
             safeFrame,
             equals: CGRect(x: 48, y: 288, width: 840, height: 960)
+        )
+    }
+
+    @Test
+    func universalSocialSafeAreaMatchesTheIntersectionOfThePlatformGuides() throws {
+        let safeFrame = try #require(
+            SafeAreaGuideProfile.universalSocial.safeAreaInsets?.safeFrame(
+                in: CGSize(width: 1080, height: 1920)
+            )
+        )
+
+        expect(
+            safeFrame,
+            equals: CGRect(x: 120, y: 288, width: 768, height: 960)
         )
     }
 
