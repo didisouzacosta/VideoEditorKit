@@ -18,6 +18,7 @@ struct VideoEditingConfiguration: Codable, Equatable, Sendable {
     var trim = Trim()
     var playback = Playback()
     var crop = Crop()
+    var canvas = Canvas()
     var corrections = Corrections()
     var frame = Frame()
     var audio = Audio()
@@ -32,6 +33,7 @@ struct VideoEditingConfiguration: Codable, Equatable, Sendable {
         case trim
         case playback
         case crop
+        case canvas
         case corrections
         case frame
         case audio
@@ -42,7 +44,8 @@ struct VideoEditingConfiguration: Codable, Equatable, Sendable {
     enum SchemaVersion: Int, Codable, Equatable, Sendable {
         case initial = 1
         case legacyNormalizedLayout = 2
-        case current = 3
+        case legacyPresetParity = 3
+        case current = 4
     }
 
     var schemaVersion: SchemaVersion? {
@@ -56,6 +59,7 @@ struct VideoEditingConfiguration: Codable, Equatable, Sendable {
         trim: Trim = .init(),
         playback: Playback = .init(),
         crop: Crop = .init(),
+        canvas: Canvas = .init(),
         corrections: Corrections = .init(),
         frame: Frame = .init(),
         audio: Audio = .init(),
@@ -65,6 +69,7 @@ struct VideoEditingConfiguration: Codable, Equatable, Sendable {
         self.trim = trim
         self.playback = playback
         self.crop = crop
+        self.canvas = canvas
         self.corrections = corrections
         self.frame = frame
         self.audio = audio
@@ -95,6 +100,7 @@ struct VideoEditingConfiguration: Codable, Equatable, Sendable {
         try container.encode(trim, forKey: .trim)
         try container.encode(playback, forKey: .playback)
         try container.encode(crop, forKey: .crop)
+        try container.encode(canvas, forKey: .canvas)
         try container.encode(corrections, forKey: .corrections)
         try container.encode(frame, forKey: .frame)
         try container.encode(audio, forKey: .audio)
@@ -120,6 +126,7 @@ struct VideoEditingConfiguration: Codable, Equatable, Sendable {
             trim: try container.decodeIfPresent(Trim.self, forKey: .trim) ?? .init(),
             playback: try container.decodeIfPresent(Playback.self, forKey: .playback) ?? .init(),
             crop: try container.decodeIfPresent(Crop.self, forKey: .crop) ?? .init(),
+            canvas: try container.decodeIfPresent(Canvas.self, forKey: .canvas) ?? .init(),
             corrections: decodedCorrections,
             frame: try container.decodeIfPresent(Frame.self, forKey: .frame) ?? .init(),
             audio: try container.decodeIfPresent(Audio.self, forKey: .audio) ?? .init(),
@@ -137,6 +144,7 @@ struct VideoEditingConfiguration: Codable, Equatable, Sendable {
         switch schemaVersion {
         case .initial,
             .legacyNormalizedLayout,
+            .legacyPresetParity,
             .current:
             return preservingVersion(Self.currentSchemaVersion.rawValue)
                 .clearingOpaquePayload()
@@ -209,6 +217,14 @@ extension VideoEditingConfiguration {
 
     }
 
+    struct Canvas: Codable, Equatable, Sendable {
+
+        // MARK: - Public Properties
+
+        var snapshot: VideoCanvasSnapshot = .initial
+
+    }
+
     struct Frame: Codable, Equatable, Sendable {
 
         // MARK: - Public Properties
@@ -242,7 +258,6 @@ extension VideoEditingConfiguration {
         // MARK: - Public Properties
 
         var selectedTool: ToolEnum?
-        var cropTab: CropTab = .rotate
         var socialVideoDestination: SocialVideoDestination?
         var showsSafeAreaGuides = false
 
@@ -250,7 +265,6 @@ extension VideoEditingConfiguration {
 
         private enum CodingKeys: String, CodingKey {
             case selectedTool
-            case cropTab
             case socialVideoDestination
             case showsSafeAreaGuides
         }
@@ -259,12 +273,10 @@ extension VideoEditingConfiguration {
 
         init(
             _ selectedTool: ToolEnum? = nil,
-            cropTab: CropTab = .rotate,
             socialVideoDestination: SocialVideoDestination? = nil,
             showsSafeAreaGuides: Bool = false
         ) {
             self.selectedTool = selectedTool
-            self.cropTab = cropTab
             self.socialVideoDestination = socialVideoDestination
             self.showsSafeAreaGuides = showsSafeAreaGuides
         }
@@ -280,7 +292,6 @@ extension VideoEditingConfiguration {
                 selectedTool = nil
             }
 
-            cropTab = try container.decodeIfPresent(CropTab.self, forKey: .cropTab) ?? .rotate
             socialVideoDestination = try container.decodeIfPresent(
                 SocialVideoDestination.self,
                 forKey: .socialVideoDestination
@@ -293,7 +304,6 @@ extension VideoEditingConfiguration {
         func encode(to encoder: any Encoder) throws {
             var container = encoder.container(keyedBy: CodingKeys.self)
             try container.encodeIfPresent(selectedTool?.rawValue, forKey: .selectedTool)
-            try container.encode(cropTab, forKey: .cropTab)
             try container.encodeIfPresent(socialVideoDestination, forKey: .socialVideoDestination)
             try container.encode(showsSafeAreaGuides, forKey: .showsSafeAreaGuides)
         }
@@ -303,11 +313,6 @@ extension VideoEditingConfiguration {
     enum SelectedTrack: String, Codable, Equatable, Sendable {
         case video
         case recorded
-    }
-
-    enum CropTab: String, Codable, Equatable, Sendable {
-        case format
-        case rotate
     }
 
     enum SocialVideoDestination: String, Codable, CaseIterable, Equatable, Sendable {

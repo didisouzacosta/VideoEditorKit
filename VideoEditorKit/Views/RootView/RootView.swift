@@ -113,7 +113,7 @@ extension RootView {
 
     private var editorConfiguration: VideoEditorView.Configuration {
         .init(
-            tools: ToolAvailability.enabled(ToolEnum.all.filter { $0 != .frames }),
+            tools: ToolAvailability.enabled(ToolEnum.all),
             onBlockedToolTap: { tool in
                 blockedTool = tool
             }

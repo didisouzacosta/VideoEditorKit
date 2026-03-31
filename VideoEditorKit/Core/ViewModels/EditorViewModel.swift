@@ -22,10 +22,10 @@ final class EditorViewModel {
     var selectedAudioTrack: AudioTrackSelection = .video
     var showVideoQualitySheet = false
     var showRecordView = false
-    var cropTab: CropToolTab = .rotate
     var cropFreeformRect: VideoEditingConfiguration.FreeformRect?
     var socialVideoDestination: VideoEditingConfiguration.SocialVideoDestination?
-    var showsSocialVideoSafeAreaGuides = false
+    var showsSafeAreaOverlay = false
+    var canvasEditorState = VideoCanvasEditorState()
     private(set) var editingConfigurationChangeCounter = 0
 
     var hasCurrentVideo: Bool {
@@ -46,36 +46,25 @@ final class EditorViewModel {
     }
 
     var shouldShowCropOverlay: Bool {
-        cropFreeformRect != nil
+        cropFreeformRect != nil || canvasEditorState.snapshot().isIdentity == false
     }
 
     var isCropOverlayInteractive: Bool {
-        selectedTools == .crop
-            && cropFreeformRect != nil
+        selectedCropPreset() != .original
     }
 
-    var shouldShowSocialVideoDestinationPicker: Bool {
-        false
-    }
-
-    var shouldShowSocialVideoSafeAreaGuide: Bool {
-        shouldShowCropOverlay
-            && selectedCropPreset() == .vertical9x16
+    var shouldShowSafeAreaOverlay: Bool {
+        showsSafeAreaOverlay
+            && resolvedSafeAreaPlatform() != nil
     }
 
     var shouldUseCropPresetSpotlight: Bool {
         selectedCropPreset() != .original
-            && cropFreeformRect != nil
     }
 
-    var activeSocialVideoSafeAreaGuide: SocialVideoSafeAreaGuide? {
-        guard shouldShowSocialVideoSafeAreaGuide else { return nil }
-        return .socialVideo
-    }
-
-    enum CropToolTab: String, CaseIterable {
-        case format
-        case rotate
+    var activeSafeAreaPlatform: SocialPlatform? {
+        guard showsSafeAreaOverlay else { return nil }
+        return resolvedSafeAreaPlatform()
     }
 
     // MARK: - Private Properties
@@ -108,7 +97,7 @@ final class EditorViewModel {
             )
             self?.frames = video.videoFrames ?? VideoFrames()
             self?.currentVideo = video
-            self?.restorePendingEditingPresentationState()
+            await self?.restorePendingEditingPresentationState()
             self?.loadThumbnails(
                 for: video,
                 containerSize: containerSize,
@@ -120,6 +109,7 @@ final class EditorViewModel {
 
     func setToolAvailability(_ tools: [ToolAvailability]) {
         enabledTools = Set(tools.filter(\.isEnabled).map(\.tool))
+
         let previousSelection = selectedTools
 
         if let selectedTools, !canSelectTool(selectedTools) {
@@ -241,6 +231,16 @@ extension EditorViewModel {
 
 extension EditorViewModel {
 
+    struct CropPreviewCanvas: Equatable {
+
+        // MARK: - Public Properties
+
+        let referenceSize: CGSize
+        let contentSize: CGSize
+        let viewportSize: CGSize
+
+    }
+
     // MARK: - Public Methods
 
     func setFrames() {
@@ -318,17 +318,19 @@ extension EditorViewModel {
     }
 
     func selectCropFormat(_ preset: VideoCropFormatPreset) {
-        let previousCropTab = cropTab
+        let previousSelectedTool = selectedTools
         let previousCropRect = cropFreeformRect
         let previousSocialVideoDestination = socialVideoDestination
-        let previousShowsSocialVideoSafeAreaGuides = showsSocialVideoSafeAreaGuides
+        let previousShowsSafeAreaOverlay = showsSafeAreaOverlay
+        let previousCanvasSnapshot = canvasEditorState.snapshot()
         let nextCropRect: VideoEditingConfiguration.FreeformRect?
 
         switch preset {
         case .original:
             nextCropRect = nil
             socialVideoDestination = nil
-            showsSocialVideoSafeAreaGuides = false
+            showsSafeAreaOverlay = false
+            canvasEditorState.restore(.initial)
         case .vertical9x16,
             .square1x1,
             .portrait4x5,
@@ -340,23 +342,33 @@ extension EditorViewModel {
                 let hadSocialDestination = socialVideoDestination != nil
                 socialVideoDestination = socialVideoDestination ?? .instagramReels
                 if !hadSocialDestination {
-                    showsSocialVideoSafeAreaGuides = true
+                    showsSafeAreaOverlay = true
                 }
+                canvasEditorState.preset = .social(
+                    platform: socialVideoDestination?.socialPlatform ?? .instagram
+                )
             } else {
                 socialVideoDestination = nil
-                showsSocialVideoSafeAreaGuides = false
+                showsSafeAreaOverlay = false
+                canvasEditorState.preset = canvasPreset(for: preset)
             }
+
+            canvasEditorState.resetTransform()
+            canvasEditorState.showsSafeAreaOverlay = shouldRenderSafeAreaOverlay(
+                for: canvasEditorState.preset
+            )
         }
 
-        cropTab = .format
         cropFreeformRect = nextCropRect
+        selectedTools = nil
         syncCropToolState()
 
         guard
-            previousCropTab != cropTab
+            previousSelectedTool != selectedTools
                 || previousCropRect != cropFreeformRect
                 || previousSocialVideoDestination != socialVideoDestination
-                || previousShowsSocialVideoSafeAreaGuides != showsSocialVideoSafeAreaGuides
+                || previousShowsSafeAreaOverlay != showsSafeAreaOverlay
+                || previousCanvasSnapshot != canvasEditorState.snapshot()
         else { return }
 
         markEditingConfigurationChanged()
@@ -365,37 +377,43 @@ extension EditorViewModel {
     func selectSocialVideoDestination(
         _ destination: VideoEditingConfiguration.SocialVideoDestination
     ) {
-        let previousCropTab = cropTab
         let previousCropRect = cropFreeformRect
         let previousSocialVideoDestination = socialVideoDestination
-        let previousShowsSocialVideoSafeAreaGuides = showsSocialVideoSafeAreaGuides
+        let previousShowsSafeAreaOverlay = showsSafeAreaOverlay
+        let previousCanvasSnapshot = canvasEditorState.snapshot()
 
         guard let referenceSize = currentCropReferenceSize() else { return }
 
         let hadSocialDestination = socialVideoDestination != nil
-        cropTab = .format
         socialVideoDestination = destination
         cropFreeformRect = VideoCropFormatPreset.vertical9x16.makeFreeformRect(
             for: referenceSize
         )
         if !hadSocialDestination {
-            showsSocialVideoSafeAreaGuides = true
+            showsSafeAreaOverlay = true
         }
+        canvasEditorState.preset = .social(platform: destination.socialPlatform)
+        canvasEditorState.showsSafeAreaOverlay = shouldRenderSafeAreaOverlay(
+            for: canvasEditorState.preset
+        )
         syncCropToolState()
 
         guard
-            previousCropTab != cropTab
-                || previousCropRect != cropFreeformRect
+            previousCropRect != cropFreeformRect
                 || previousSocialVideoDestination != socialVideoDestination
-                || previousShowsSocialVideoSafeAreaGuides != showsSocialVideoSafeAreaGuides
+                || previousShowsSafeAreaOverlay != showsSafeAreaOverlay
+                || previousCanvasSnapshot != canvasEditorState.snapshot()
         else { return }
 
         markEditingConfigurationChanged()
     }
 
-    func toggleSocialVideoSafeAreaGuides() {
+    func toggleSafeAreaOverlay() {
         guard socialVideoDestination != nil else { return }
-        showsSocialVideoSafeAreaGuides = true
+        showsSafeAreaOverlay.toggle()
+        canvasEditorState.showsSafeAreaOverlay = shouldRenderSafeAreaOverlay(
+            for: canvasEditorState.preset
+        )
         markEditingConfigurationChanged()
     }
 
@@ -439,13 +457,13 @@ extension EditorViewModel {
             if let currentVideo {
                 videoPlayer.syncPlaybackState(with: currentVideo, previousRate: previousRate)
             }
-        case .crop:
+        case .presets:
             currentVideo?.rotation = 0
             currentVideo?.isMirror = false
             cropFreeformRect = nil
-            cropTab = .rotate
             socialVideoDestination = nil
-            showsSocialVideoSafeAreaGuides = false
+            showsSafeAreaOverlay = false
+            canvasEditorState.restore(.initial)
         case .audio:
             selectedAudioTrack = .video
             if currentVideo?.audio != nil {
@@ -458,9 +476,6 @@ extension EditorViewModel {
         case .corrections:
             currentVideo?.colorCorrection = .init()
             videoPlayer.clearColorCorrection()
-        case .frames:
-            frames.reset()
-            currentVideo?.videoFrames = nil
         }
 
         markEditingConfigurationChanged()
@@ -505,6 +520,57 @@ extension EditorViewModel {
         return fittedSize(baseSize, in: fallbackSize)
     }
 
+    func resolvedCropPreviewCanvas(
+        for video: Video,
+        in containerSize: CGSize
+    ) -> CropPreviewCanvas {
+        let fallbackSize = CGSize(
+            width: max(containerSize.width, 1),
+            height: max(containerSize.height, 1)
+        )
+        let referenceSize = resolvedCropReferenceSize(for: video)
+        let contentSize = fittedSize(referenceSize, in: fallbackSize)
+
+        guard shouldUseCropPresetSpotlight else {
+            return .init(
+                referenceSize: referenceSize,
+                contentSize: contentSize,
+                viewportSize: contentSize
+            )
+        }
+
+        guard
+            let aspectRatio = activeCropViewportAspectRatio(
+                in: referenceSize
+            )
+        else {
+            return .init(
+                referenceSize: referenceSize,
+                contentSize: contentSize,
+                viewportSize: contentSize
+            )
+        }
+
+        let viewportSize = fittedAspectSize(
+            for: aspectRatio,
+            in: containerSize
+        )
+
+        guard viewportSize.width > 0, viewportSize.height > 0 else {
+            return .init(
+                referenceSize: referenceSize,
+                contentSize: contentSize,
+                viewportSize: contentSize
+            )
+        }
+
+        return .init(
+            referenceSize: referenceSize,
+            contentSize: contentSize,
+            viewportSize: viewportSize
+        )
+    }
+
     func updateCurrentVideoLayout(
         to size: CGSize
     ) {
@@ -537,12 +603,9 @@ extension EditorViewModel {
     }
 
     func isCropFormatSelected(_ preset: VideoCropFormatPreset) -> Bool {
-        if preset == .vertical9x16, socialVideoDestination != nil {
-            return true
-        }
-
-        if preset == .original, socialVideoDestination != nil {
-            return false
+        let canvasPreset = selectedCropPresetFromCanvas()
+        if canvasPreset != .original {
+            return canvasPreset == preset
         }
 
         guard let referenceSize = currentCropReferenceSize() else {
@@ -553,6 +616,11 @@ extension EditorViewModel {
     }
 
     func selectedCropPreset() -> VideoCropFormatPreset {
+        let canvasPreset = selectedCropPresetFromCanvas()
+        if canvasPreset != .original {
+            return canvasPreset
+        }
+
         for preset in VideoCropFormatPreset.editorPresets where preset != .original {
             if isCropFormatSelected(preset) {
                 return preset
@@ -753,13 +821,32 @@ extension EditorViewModel {
         return VideoEditingConfigurationMapper.makeConfiguration(
             from: currentVideo,
             freeformRect: cropFreeformRect,
+            canvasSnapshot: canvasEditorState.snapshot(),
             selectedAudioTrack: selectedAudioTrack,
             selectedTool: selectedTools,
-            cropTab: serializedCropTab(),
             socialVideoDestination: socialVideoDestination,
-            showsSafeAreaGuides: showsSocialVideoSafeAreaGuides,
+            showsSafeAreaGuides: showsSafeAreaOverlay,
             currentTimelineTime: currentTimelineTime
         )
+    }
+
+    func videoCanvasSource(for video: Video) -> VideoCanvasSourceDescriptor {
+        VideoCanvasSourceDescriptor(
+            naturalSize: resolvedCropReferenceSize(for: video),
+            preferredTransform: .identity,
+            userRotationDegrees: video.rotation,
+            isMirrored: video.isMirror
+        )
+    }
+
+    func handleCanvasPreviewChange() {
+        syncCropToolState()
+        markEditingConfigurationChanged()
+    }
+
+    func resetCanvasTransform() {
+        canvasEditorState.resetTransform()
+        handleCanvasPreviewChange()
     }
 
     func playerContainerSize(in availableSize: CGSize) -> CGSize {
@@ -774,12 +861,12 @@ extension EditorViewModel {
         videoPlayer: VideoPlayerManager
     ) {
         pendingEditingConfiguration = editingConfiguration
-        cropTab = .rotate
         selectedTools = nil
         selectedAudioTrack = .video
         cropFreeformRect = nil
         socialVideoDestination = nil
-        showsSocialVideoSafeAreaGuides = false
+        showsSafeAreaOverlay = false
+        canvasEditorState.restore(.initial)
 
         guard let editingConfiguration else { return }
 
@@ -806,13 +893,17 @@ extension EditorViewModel {
         }
     }
 
-    func restorePendingEditingPresentationState() {
+    func restorePendingEditingPresentationState() async {
         guard let pendingEditingConfiguration else { return }
 
-        cropTab = VideoEditingConfigurationMapper.cropTab(from: pendingEditingConfiguration)
         cropFreeformRect = pendingEditingConfiguration.crop.freeformRect
         socialVideoDestination = pendingEditingConfiguration.presentation.socialVideoDestination
-        showsSocialVideoSafeAreaGuides = pendingEditingConfiguration.presentation.showsSafeAreaGuides
+        showsSafeAreaOverlay = pendingEditingConfiguration.presentation.showsSafeAreaGuides
+        canvasEditorState.restore(
+            await resolvedCanvasSnapshot(
+                from: pendingEditingConfiguration
+            )
+        )
 
         let selectedAudioTrack = VideoEditingConfigurationMapper.selectedAudioTrack(
             from: pendingEditingConfiguration
@@ -851,35 +942,45 @@ extension EditorViewModel {
         let hasRotation = abs(currentVideo.rotation.truncatingRemainder(dividingBy: 360)) > 0.001
         let hasMirror = currentVideo.isMirror
         let hasFreeformRect = cropFreeformRect != nil
+        let hasCanvasState = canvasEditorState.snapshot().isIdentity == false
 
-        if hasRotation || hasMirror || hasFreeformRect {
-            self.currentVideo?.appliedTool(for: .crop)
+        if hasRotation || hasMirror || hasFreeformRect || hasCanvasState {
+            self.currentVideo?.appliedTool(for: .presets)
         } else {
-            self.currentVideo?.removeTool(for: .crop)
+            self.currentVideo?.removeTool(for: .presets)
         }
     }
 
     private func currentCropReferenceSize() -> CGSize? {
         guard let currentVideo else { return nil }
+        return resolvedCropReferenceSize(for: currentVideo)
+    }
 
-        let resolvedSize = rotatedBaseSize(for: currentVideo)
+    private func resolvedCropReferenceSize(for video: Video) -> CGSize {
+        let resolvedSize = rotatedBaseSize(for: video)
         if resolvedSize.width > 0, resolvedSize.height > 0 {
             return resolvedSize
         }
 
-        if currentVideo.geometrySize.width > 0, currentVideo.geometrySize.height > 0 {
-            return currentVideo.geometrySize
+        if video.geometrySize.width > 0, video.geometrySize.height > 0 {
+            return video.geometrySize
         }
 
-        if currentVideo.frameSize.width > 0, currentVideo.frameSize.height > 0 {
-            return currentVideo.frameSize
+        if video.frameSize.width > 0, video.frameSize.height > 0 {
+            return video.frameSize
         }
 
         let fittedPreviewSize = resolvedPlayerDisplaySize(
-            for: currentVideo,
+            for: video,
             in: lastPlayerContainerSize
         )
-        guard fittedPreviewSize.width > 0, fittedPreviewSize.height > 0 else { return nil }
+        guard fittedPreviewSize.width > 0, fittedPreviewSize.height > 0 else {
+            return CGSize(
+                width: max(lastPlayerContainerSize.width, 1),
+                height: max(lastPlayerContainerSize.height, 1)
+            )
+        }
+
         return fittedPreviewSize
     }
 
@@ -903,6 +1004,45 @@ extension EditorViewModel {
         )
     }
 
+    private func fittedAspectSize(
+        for aspectRatio: CGFloat,
+        in bounds: CGSize
+    ) -> CGSize {
+        guard aspectRatio > 0 else { return .zero }
+        guard bounds.width > 0, bounds.height > 0 else { return .zero }
+
+        let boundsAspectRatio = bounds.width / bounds.height
+
+        if boundsAspectRatio > aspectRatio {
+            let height = bounds.height
+            return CGSize(
+                width: height * aspectRatio,
+                height: height
+            )
+        }
+
+        let width = bounds.width
+        return CGSize(
+            width: width,
+            height: width / aspectRatio
+        )
+    }
+
+    private func activeCropViewportAspectRatio(
+        in referenceSize: CGSize
+    ) -> CGFloat? {
+        guard
+            let previewLayout = VideoCropPreviewLayout(
+                freeformRect: cropFreeformRect,
+                in: referenceSize
+            ),
+            previewLayout.presetSourceRect.width > 0,
+            previewLayout.presetSourceRect.height > 0
+        else { return nil }
+
+        return previewLayout.presetSourceRect.width / previewLayout.presetSourceRect.height
+    }
+
     private func rotatedBaseSize(for video: Video) -> CGSize {
         let baseSize: CGSize
 
@@ -923,13 +1063,172 @@ extension EditorViewModel {
         return baseSize
     }
 
-    private func serializedCropTab() -> VideoEditingConfiguration.CropTab {
-        switch cropTab {
-        case .format:
-            .format
-        case .rotate:
-            .rotate
+    private func canvasPreset(
+        for preset: VideoCropFormatPreset
+    ) -> VideoCanvasPreset {
+        switch preset {
+        case .original:
+            .original
+        case .vertical9x16:
+            if let socialVideoDestination {
+                .social(platform: socialVideoDestination.socialPlatform)
+            } else {
+                .story
+            }
+        case .square1x1:
+            .custom(width: 1080, height: 1080)
+        case .portrait4x5:
+            .facebookPost
+        case .landscape16x9:
+            .custom(width: 1920, height: 1080)
         }
+    }
+
+    private func selectedCropPresetFromCanvas() -> VideoCropFormatPreset {
+        switch canvasEditorState.preset {
+        case .original,
+            .free:
+            .original
+        case .social,
+            .story:
+            .vertical9x16
+        case .facebookPost:
+            .portrait4x5
+        case .custom(let width, let height):
+            switch normalizedPresetKey(width: width, height: height) {
+            case "1:1":
+                .square1x1
+            case "16:9":
+                .landscape16x9
+            case "9:16":
+                .vertical9x16
+            case "4:5":
+                .portrait4x5
+            default:
+                .original
+            }
+        }
+    }
+
+    private func normalizedPresetKey(
+        width: Int,
+        height: Int
+    ) -> String {
+        guard width > 0, height > 0 else { return "0:0" }
+        let divisor = greatestCommonDivisor(width, height)
+        return "\(width / divisor):\(height / divisor)"
+    }
+
+    private func greatestCommonDivisor(
+        _ lhs: Int,
+        _ rhs: Int
+    ) -> Int {
+        var lhs = abs(lhs)
+        var rhs = abs(rhs)
+
+        while rhs != 0 {
+            let remainder = lhs % rhs
+            lhs = rhs
+            rhs = remainder
+        }
+
+        return max(lhs, 1)
+    }
+
+    private func shouldRenderSafeAreaOverlay(
+        for preset: VideoCanvasPreset
+    ) -> Bool {
+        showsSafeAreaOverlay && resolvedSafeAreaPlatform(for: preset) != nil
+    }
+
+    private func resolvedSafeAreaPlatform() -> SocialPlatform? {
+        resolvedSafeAreaPlatform(for: canvasEditorState.preset)
+    }
+
+    private func resolvedSafeAreaPlatform(
+        for preset: VideoCanvasPreset
+    ) -> SocialPlatform? {
+        switch preset {
+        case .social(let platform):
+            platform
+        case .original,
+            .free,
+            .custom,
+            .story,
+            .facebookPost:
+            nil
+        }
+    }
+
+    private func resolvedCanvasSnapshot(
+        from configuration: VideoEditingConfiguration
+    ) async -> VideoCanvasSnapshot {
+        if configuration.canvas.snapshot != .initial {
+            return configuration.canvas.snapshot
+        }
+
+        var snapshot = VideoCanvasSnapshot(
+            preset: VideoCanvasPreset.fromLegacySelection(
+                preset: selectedLegacyCropPreset(
+                    from: configuration.crop.freeformRect,
+                    referenceSize: currentCropReferenceSize() ?? .zero
+                ),
+                socialVideoDestination: configuration.presentation.socialVideoDestination
+            ),
+            showsSafeAreaOverlay: configuration.presentation.showsSafeAreaGuides
+        )
+
+        guard let referenceSize = currentCropReferenceSize() else {
+            return snapshot
+        }
+
+        let mappingActor = VideoCanvasMappingActor()
+        let resolvedPreset = await mappingActor.resolvePreset(
+            snapshot.preset,
+            naturalSize: referenceSize,
+            freeCanvasSize: snapshot.freeCanvasSize
+        )
+
+        snapshot.freeCanvasSize = resolvedPreset.exportSize
+        snapshot.transform = await mappingActor.snapshotTransform(
+            fromLegacyFreeformRect: configuration.crop.freeformRect,
+            referenceSize: referenceSize,
+            exportSize: resolvedPreset.exportSize
+        )
+
+        return snapshot
+    }
+
+    private func selectedLegacyCropPreset(
+        from freeformRect: VideoEditingConfiguration.FreeformRect?,
+        referenceSize: CGSize
+    ) -> VideoCropFormatPreset {
+        guard referenceSize.width > 0, referenceSize.height > 0 else {
+            return freeformRect == nil ? .original : .vertical9x16
+        }
+
+        guard let freeformRect else { return .original }
+        guard
+            let cropRect = VideoCropPreviewLayout.resolvedGeometry(
+                freeformRect: freeformRect,
+                in: referenceSize
+            )?.sourceRect,
+            cropRect.width > 0,
+            cropRect.height > 0
+        else {
+            return .vertical9x16
+        }
+
+        let aspectRatio = cropRect.width / cropRect.height
+
+        for preset in VideoCropFormatPreset.editorPresets {
+            guard let presetAspectRatio = preset.aspectRatio else { continue }
+            if abs(aspectRatio - presetAspectRatio) < 0.001 {
+                return preset
+            }
+        }
+
+        return .vertical9x16
     }
 
     private func markEditingConfigurationChanged() {

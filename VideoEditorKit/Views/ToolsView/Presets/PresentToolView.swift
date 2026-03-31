@@ -1,5 +1,5 @@
 //
-//  CropToolView.swift
+//  PresentToolView.swift
 //  VideoEditorKit
 //
 //  Created by Adriano Souza Costa on 23.03.2026.
@@ -8,7 +8,7 @@
 import SwiftUI
 
 @MainActor
-struct CropToolView: View {
+struct PresentToolView: View {
 
     // MARK: - Private Properties
 
@@ -28,7 +28,7 @@ struct CropToolView: View {
 
 }
 
-extension CropToolView {
+extension PresentToolView {
 
     // MARK: - Private Properties
 
@@ -141,7 +141,7 @@ extension CropToolView {
 }
 
 #Preview {
-    CropToolView(EditorViewModel())
+    PresentToolView(EditorViewModel())
         .padding()
         .preferredColorScheme(.dark)
 }

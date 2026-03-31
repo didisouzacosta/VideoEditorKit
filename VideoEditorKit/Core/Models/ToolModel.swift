@@ -11,10 +11,9 @@ enum ToolEnum: Int, CaseIterable, Identifiable, Codable, Sendable {
 
     case cut = 0
     case speed = 1
-    case crop = 2
+    case presets = 2
     case audio = 3
     case corrections = 6
-    case frames = 7
 
     var id: Int {
         rawValue
@@ -28,10 +27,9 @@ enum ToolEnum: Int, CaseIterable, Identifiable, Codable, Sendable {
         switch self {
         case .cut: "Cut"
         case .speed: "Speed"
-        case .crop: "Presets"
+        case .presets: "Presets"
         case .audio: "Audio"
         case .corrections: "Corrections"
-        case .frames: "Frames"
         }
     }
 
@@ -39,10 +37,9 @@ enum ToolEnum: Int, CaseIterable, Identifiable, Codable, Sendable {
         switch self {
         case .cut: "scissors"
         case .speed: "timer"
-        case .crop: "aspectratio"
+        case .presets: "aspectratio"
         case .audio: "waveform"
         case .corrections: "circle.righthalf.filled"
-        case .frames: "person.crop.artframe"
         }
     }
 

@@ -48,7 +48,6 @@ struct VideoEditingConfigurationTests {
             ),
             presentation: .init(
                 .corrections,
-                cropTab: .rotate,
                 socialVideoDestination: .tikTok,
                 showsSafeAreaGuides: true
             )
@@ -114,7 +113,7 @@ struct VideoEditingConfigurationTests {
         let configuration = try JSONDecoder().decode(VideoEditingConfiguration.self, from: data)
 
         #expect(configuration.presentation.selectedTool == nil)
-        #expect(configuration.presentation.cropTab == .format)
+        #expect(configuration.presentation.socialVideoDestination == nil)
     }
 
     @Test
@@ -214,9 +213,17 @@ struct VideoEditingConfigurationTests {
                 width: 0.55,
                 height: 0.7
             ),
+            canvasSnapshot: .init(
+                preset: .social(platform: .youtubeShorts),
+                transform: .init(
+                    normalizedOffset: CGPoint(x: 0.12, y: -0.08),
+                    zoom: 1.4,
+                    rotationRadians: 0.33
+                ),
+                showsSafeAreaOverlay: true
+            ),
             selectedAudioTrack: .recorded,
             selectedTool: .corrections,
-            cropTab: .rotate,
             socialVideoDestination: .youtubeShorts,
             showsSafeAreaGuides: true,
             currentTimelineTime: 7
@@ -247,9 +254,13 @@ struct VideoEditingConfigurationTests {
         #expect(abs(Double(configuration.audio.recordedClip?.volume ?? 0) - 0.4) < 0.0001)
         #expect(configuration.audio.selectedTrack == .recorded)
         #expect(configuration.presentation.selectedTool == .corrections)
-        #expect(configuration.presentation.cropTab == .rotate)
         #expect(configuration.presentation.socialVideoDestination == .youtubeShorts)
         #expect(configuration.presentation.showsSafeAreaGuides)
+        #expect(configuration.canvas.snapshot.preset == .social(platform: .youtubeShorts))
+        #expect(abs(configuration.canvas.snapshot.transform.normalizedOffset.x - 0.12) < 0.0001)
+        #expect(abs(configuration.canvas.snapshot.transform.normalizedOffset.y + 0.08) < 0.0001)
+        #expect(abs(configuration.canvas.snapshot.transform.zoom - 1.4) < 0.0001)
+        #expect(abs(configuration.canvas.snapshot.transform.rotationRadians - 0.33) < 0.0001)
     }
 
     @Test
@@ -288,7 +299,6 @@ struct VideoEditingConfigurationTests {
             ),
             presentation: .init(
                 .corrections,
-                cropTab: .format,
                 socialVideoDestination: .instagramReels,
                 showsSafeAreaGuides: true
             )
@@ -312,12 +322,10 @@ struct VideoEditingConfigurationTests {
         #expect(abs(Double(video.audio?.volume ?? 0) - 0.7) < 0.0001)
         #expect(video.isAppliedTool(for: .cut))
         #expect(video.isAppliedTool(for: .speed))
-        #expect(video.isAppliedTool(for: .crop))
+        #expect(video.isAppliedTool(for: .presets))
         #expect(video.isAppliedTool(for: .audio))
         #expect(video.isAppliedTool(for: .corrections))
-        #expect(video.isAppliedTool(for: .frames))
         #expect(VideoEditingConfigurationMapper.selectedAudioTrack(from: configuration) == .recorded)
-        #expect(VideoEditingConfigurationMapper.cropTab(from: configuration) == .format)
     }
 
     @Test
@@ -338,6 +346,29 @@ struct VideoEditingConfigurationTests {
 
         #expect(configuration.presentation.socialVideoDestination == .tikTok)
         #expect(configuration.presentation.showsSafeAreaGuides)
+    }
+
+    @Test
+    func configurationCodableRoundTripPreservesCanvasSnapshot() throws {
+        let configuration = VideoEditingConfiguration(
+            canvas: .init(
+                snapshot: .init(
+                    preset: .facebookPost,
+                    freeCanvasSize: CGSize(width: 1080, height: 1350),
+                    transform: .init(
+                        normalizedOffset: CGPoint(x: -0.22, y: 0.14),
+                        zoom: 1.8,
+                        rotationRadians: 0.42
+                    ),
+                    showsSafeAreaOverlay: false
+                )
+            )
+        )
+
+        let data = try JSONEncoder().encode(configuration)
+        let decodedConfiguration = try JSONDecoder().decode(VideoEditingConfiguration.self, from: data)
+
+        #expect(decodedConfiguration.canvas.snapshot == configuration.canvas.snapshot)
     }
 
 }

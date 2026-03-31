@@ -26,7 +26,7 @@ enum VideoEditor {
         )
 
         let usesCorrectionsStage = !corrections.isEmpty
-        let usesCropStage = editingConfiguration.crop.freeformRect != nil
+        let usesCanvasStage = requiresCanvasStage(editingConfiguration)
 
         do {
             let url = try await resizeAndLayerOperation(
@@ -36,7 +36,7 @@ enum VideoEditor {
                 progressRange: progressRange(
                     for: .base,
                     usesCorrectionsStage: usesCorrectionsStage,
-                    usesCropStage: usesCropStage
+                    usesCropStage: usesCanvasStage
                 ),
                 onProgress: onProgress
             )
@@ -47,19 +47,17 @@ enum VideoEditor {
                 progressRange: progressRange(
                     for: .corrections,
                     usesCorrectionsStage: usesCorrectionsStage,
-                    usesCropStage: usesCropStage
+                    usesCropStage: usesCanvasStage
                 ),
                 onProgress: onProgress
             )
-            let croppedURL = try await applyCropOperation(
-                editingConfiguration.crop.freeformRect,
+            let croppedURL = try await applyCanvasOperation(
                 editingConfiguration: editingConfiguration,
-                videoQuality: videoQuality,
                 fromUrl: correctedURL,
                 progressRange: progressRange(
                     for: .crop,
                     usesCorrectionsStage: usesCorrectionsStage,
-                    usesCropStage: usesCropStage
+                    usesCropStage: usesCanvasStage
                 ),
                 onProgress: onProgress
             )
@@ -180,15 +178,13 @@ enum VideoEditor {
         return outputURL
     }
 
-    private static func applyCropOperation(
-        _ freeformRect: VideoEditingConfiguration.FreeformRect?,
+    private static func applyCanvasOperation(
         editingConfiguration: VideoEditingConfiguration,
-        videoQuality: VideoQuality,
         fromUrl: URL,
         progressRange: ClosedRange<Double>,
         onProgress: ProgressHandler?
     ) async throws -> URL {
-        guard let freeformRect else {
+        guard requiresCanvasStage(editingConfiguration) else {
             await reportProgress(progressRange.upperBound, via: onProgress)
             return fromUrl
         }
@@ -205,21 +201,16 @@ enum VideoEditor {
             naturalSize: naturalSize,
             preferredTransform: preferredTransform
         )
-        let cropRect = resolvedCropRect(
-            for: freeformRect,
-            in: presentationSize
+        let renderRequest = await resolvedCanvasRenderRequest(
+            naturalSize: naturalSize,
+            preferredTransform: preferredTransform,
+            sourcePresentationSize: presentationSize,
+            editingConfiguration: editingConfiguration
         )
-        let outputSize = resolvedCropRenderSize(
-            for: presentationSize,
-            cropRect: cropRect,
-            editingConfiguration: editingConfiguration,
-            videoQuality: videoQuality
+        let mappingActor = VideoCanvasMappingActor()
+        let exportMapping = await mappingActor.makeExportMapping(
+            request: renderRequest
         )
-
-        guard cropRect.size != presentationSize || outputSize != evenPixelSize(for: presentationSize) else {
-            await reportProgress(progressRange.upperBound, via: onProgress)
-            return fromUrl
-        }
 
         guard
             let session = AVAssetExportSession(
@@ -231,12 +222,10 @@ enum VideoEditor {
             throw ExporterError.cannotCreateExportSession
         }
 
-        session.videoComposition = cropVideoComposition(
+        session.videoComposition = canvasVideoComposition(
             track: videoTrack,
-            naturalSize: naturalSize,
-            preferredTransform: preferredTransform,
-            cropRect: cropRect,
-            renderSize: outputSize,
+            contentTransform: exportMapping.contentTransform,
+            renderSize: exportMapping.renderSize,
             timeRange: trackTimeRange
         )
 
@@ -340,6 +329,13 @@ extension VideoEditor {
         editingConfiguration: VideoEditingConfiguration,
         videoQuality: VideoQuality
     ) -> CGSize {
+        if let canvasSize = preferredCanvasRenderSize(
+            for: sourceSize,
+            editingConfiguration: editingConfiguration
+        ) {
+            return evenPixelSize(for: canvasSize)
+        }
+
         let layout = resolvedOutputRenderLayout(
             for: sourceSize,
             editingConfiguration: editingConfiguration
@@ -363,29 +359,25 @@ extension VideoEditor {
             return CGRect(origin: .zero, size: evenPixelSize(for: CGSize(width: 2, height: 2)))
         }
 
-        let fullRect = CGRect(origin: .zero, size: presentationSize)
-        let rawRect = CGRect(
-            x: freeformRect.x.clamped(to: 0...1) * presentationSize.width,
-            y: freeformRect.y.clamped(to: 0...1) * presentationSize.height,
-            width: freeformRect.width.clamped(to: 0...1) * presentationSize.width,
-            height: freeformRect.height.clamped(to: 0...1) * presentationSize.height
-        )
-        let intersection = rawRect.intersection(fullRect)
-
-        guard !intersection.isNull, !intersection.isEmpty else {
+        guard
+            let cropRect = VideoCropPreviewLayout.resolvedGeometry(
+                freeformRect: freeformRect,
+                in: presentationSize
+            )?.sourceRect
+        else {
             return CGRect(origin: .zero, size: evenPixelSize(for: presentationSize))
         }
 
-        let width = max(round(intersection.width / 2) * 2, 2)
-        let height = max(round(intersection.height / 2) * 2, 2)
+        let width = max(round(cropRect.width / 2) * 2, 2)
+        let height = max(round(cropRect.height / 2) * 2, 2)
         let boundedWidth = min(width, presentationSize.width)
         let boundedHeight = min(height, presentationSize.height)
         let originX = min(
-            max(round(intersection.minX), 0),
+            max(round(cropRect.minX), 0),
             max(presentationSize.width - boundedWidth, 0)
         )
         let originY = min(
-            max(round(intersection.minY), 0),
+            max(round(cropRect.minY), 0),
             max(presentationSize.height - boundedHeight, 0)
         )
 
@@ -401,6 +393,13 @@ extension VideoEditor {
         for sourceSize: CGSize,
         editingConfiguration: VideoEditingConfiguration
     ) -> VideoQuality.RenderLayout {
+        if let canvasSize = preferredCanvasRenderSize(
+            for: sourceSize,
+            editingConfiguration: editingConfiguration
+        ) {
+            return canvasSize.height > canvasSize.width ? .portrait : .landscape
+        }
+
         if editingConfiguration.presentation.socialVideoDestination != nil {
             return .portrait
         }
@@ -413,16 +412,171 @@ extension VideoEditor {
             return .landscape
         }
 
-        let cropRect = resolvedCropRect(
-            for: freeformRect,
-            in: sourceSize
-        )
+        guard
+            let cropRect = VideoCropPreviewLayout.resolvedGeometry(
+                freeformRect: freeformRect,
+                in: sourceSize
+            )?.sourceRect
+        else { return .landscape }
 
         guard cropRect.width > 0, cropRect.height > 0 else {
             return .landscape
         }
 
         return cropRect.height > cropRect.width ? .portrait : .landscape
+    }
+
+    private static func requiresCanvasStage(
+        _ editingConfiguration: VideoEditingConfiguration
+    ) -> Bool {
+        let normalizedRotation = editingConfiguration.crop.rotationDegrees
+            .truncatingRemainder(dividingBy: 360)
+
+        return editingConfiguration.canvas.snapshot.isIdentity == false
+            || editingConfiguration.crop.freeformRect != nil
+            || editingConfiguration.crop.isMirrored
+            || abs(normalizedRotation) > 0.001
+            || editingConfiguration.presentation.socialVideoDestination != nil
+    }
+
+    private static func preferredCanvasRenderSize(
+        for sourceSize: CGSize,
+        editingConfiguration: VideoEditingConfiguration
+    ) -> CGSize? {
+        let preset = resolvedCanvasPreset(
+            for: sourceSize,
+            editingConfiguration: editingConfiguration
+        )
+
+        let shouldPreferCanvasSize =
+            editingConfiguration.canvas.snapshot.preset != .original
+            || editingConfiguration.presentation.socialVideoDestination != nil
+            || editingConfiguration.crop.freeformRect != nil
+
+        guard shouldPreferCanvasSize else { return nil }
+
+        return preset.resolvedExportSize(
+            naturalSize: sourceSize,
+            freeCanvasSize: editingConfiguration.canvas.snapshot.freeCanvasSize
+        )
+    }
+
+    private static func resolvedCanvasRenderRequest(
+        naturalSize: CGSize,
+        preferredTransform: CGAffineTransform,
+        sourcePresentationSize: CGSize,
+        editingConfiguration: VideoEditingConfiguration
+    ) async -> VideoCanvasRenderRequest {
+        let mappingActor = VideoCanvasMappingActor()
+        let snapshot = await resolvedCanvasSnapshot(
+            for: sourcePresentationSize,
+            editingConfiguration: editingConfiguration,
+            mappingActor: mappingActor
+        )
+
+        return await mappingActor.makeRenderRequest(
+            source: VideoCanvasSourceDescriptor(
+                naturalSize: naturalSize,
+                preferredTransform: preferredTransform,
+                userRotationDegrees: editingConfiguration.crop.rotationDegrees,
+                isMirrored: editingConfiguration.crop.isMirrored
+            ),
+            snapshot: snapshot
+        )
+    }
+
+    private static func resolvedCanvasSnapshot(
+        for sourcePresentationSize: CGSize,
+        editingConfiguration: VideoEditingConfiguration,
+        mappingActor: VideoCanvasMappingActor
+    ) async -> VideoCanvasSnapshot {
+        let storedSnapshot = editingConfiguration.canvas.snapshot
+        if storedSnapshot != .initial {
+            return storedSnapshot
+        }
+
+        let preset = resolvedCanvasPreset(
+            for: sourcePresentationSize,
+            editingConfiguration: editingConfiguration
+        )
+        let resolvedPreset = await mappingActor.resolvePreset(
+            preset,
+            naturalSize: sourcePresentationSize,
+            freeCanvasSize: storedSnapshot.freeCanvasSize
+        )
+
+        var snapshot = VideoCanvasSnapshot(
+            preset: preset,
+            freeCanvasSize: resolvedPreset.exportSize,
+            transform: .identity,
+            showsSafeAreaOverlay: editingConfiguration.presentation.showsSafeAreaGuides
+        )
+
+        snapshot.transform = await mappingActor.snapshotTransform(
+            fromLegacyFreeformRect: editingConfiguration.crop.freeformRect,
+            referenceSize: sourcePresentationSize,
+            exportSize: resolvedPreset.exportSize
+        )
+
+        return snapshot
+    }
+
+    private static func resolvedCanvasPreset(
+        for sourceSize: CGSize,
+        editingConfiguration: VideoEditingConfiguration
+    ) -> VideoCanvasPreset {
+        let storedPreset = editingConfiguration.canvas.snapshot.preset
+        if storedPreset != .original {
+            return storedPreset
+        }
+
+        if let socialVideoDestination = editingConfiguration.presentation.socialVideoDestination {
+            return .social(platform: socialVideoDestination.socialPlatform)
+        }
+
+        guard let freeformRect = editingConfiguration.crop.freeformRect else {
+            return .original
+        }
+
+        let clampedAspectRatio = resolvedLegacyCanvasAspectRatio(
+            freeformRect: freeformRect,
+            sourceSize: sourceSize
+        )
+
+        for preset in VideoCropFormatPreset.editorPresets {
+            guard let aspectRatio = preset.aspectRatio else { continue }
+            guard let clampedAspectRatio else { continue }
+            if abs(clampedAspectRatio - aspectRatio) < 0.001 {
+                return VideoCanvasPreset.fromLegacySelection(
+                    preset: preset,
+                    socialVideoDestination: nil
+                )
+            }
+        }
+
+        let cropRect = resolvedCropRect(
+            for: freeformRect,
+            in: sourceSize
+        )
+
+        return .custom(
+            width: max(Int(cropRect.width.rounded()), 2),
+            height: max(Int(cropRect.height.rounded()), 2)
+        )
+    }
+
+    private static func resolvedLegacyCanvasAspectRatio(
+        freeformRect: VideoEditingConfiguration.FreeformRect,
+        sourceSize: CGSize
+    ) -> CGFloat? {
+        let cropRect = resolvedCropRect(
+            for: freeformRect,
+            in: sourceSize
+        )
+
+        guard cropRect.width > 0, cropRect.height > 0 else { return nil }
+
+        return cropRect.width / cropRect.height
     }
 
     private static func exportSession(
@@ -672,35 +826,16 @@ extension VideoEditor {
         return AVVideoCompositionLayerInstruction(configuration: configuration)
     }
 
-    private static func cropVideoComposition(
+    private static func canvasVideoComposition(
         track: AVAssetTrack,
-        naturalSize: CGSize,
-        preferredTransform: CGAffineTransform,
-        cropRect: CGRect,
+        contentTransform: CGAffineTransform,
         renderSize: CGSize,
         timeRange: CMTimeRange
     ) -> AVVideoComposition {
         var configuration = AVVideoCompositionLayerInstruction.Configuration(assetTrack: track)
-        let transformedBounds = CGRect(origin: .zero, size: naturalSize)
-            .applying(preferredTransform)
-            .standardized
-        let normalizedTransform = preferredTransform.concatenating(
-            CGAffineTransform(
-                translationX: -transformedBounds.minX,
-                y: -transformedBounds.minY
-            )
-        )
-        let cropTransform = CGAffineTransform(
-            translationX: -cropRect.minX,
-            y: -cropRect.minY
-        )
-        let widthScale = renderSize.width / max(cropRect.width, 1)
-        let heightScale = renderSize.height / max(cropRect.height, 1)
 
         configuration.setTransform(
-            normalizedTransform
-                .concatenating(cropTransform)
-                .concatenating(CGAffineTransform(scaleX: widthScale, y: heightScale)),
+            contentTransform,
             at: .zero
         )
 
@@ -738,24 +873,6 @@ extension VideoEditor {
         }
 
         return isFullFrameCrop(freeformRect) ? .portrait : .landscape
-    }
-
-    private static func resolvedCropRenderSize(
-        for sourceSize: CGSize,
-        cropRect: CGRect,
-        editingConfiguration: VideoEditingConfiguration,
-        videoQuality: VideoQuality
-    ) -> CGSize {
-        let outputLayout = resolvedOutputRenderLayout(
-            for: sourceSize,
-            editingConfiguration: editingConfiguration
-        )
-
-        guard outputLayout == .portrait else {
-            return evenPixelSize(for: cropRect.size)
-        }
-
-        return videoQuality.size(for: outputLayout)
     }
 
     private static func isFullFrameCrop(

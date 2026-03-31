@@ -83,11 +83,11 @@ struct VideoModelTests {
     @Test
     func removeToolClearsPreviouslyAppliedTool() {
         var video = Video.mock
-        video.appliedTool(for: .frames)
+        video.appliedTool(for: .presets)
 
-        video.removeTool(for: .frames)
+        video.removeTool(for: .presets)
 
-        #expect(video.isAppliedTool(for: .frames) == false)
+        #expect(video.isAppliedTool(for: .presets) == false)
         #expect(video.toolsApplied.isEmpty)
     }
 

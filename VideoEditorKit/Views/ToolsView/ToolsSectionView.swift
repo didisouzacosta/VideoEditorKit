@@ -88,7 +88,7 @@ extension ToolsSectionView {
         }
         .modifier(
             CropBackgroundInteractionModifier(
-                isEnabled: tool == .crop
+                isEnabled: tool == .presets
             )
         )
     }
@@ -123,10 +123,8 @@ extension ToolsSectionView {
             220
         case .speed:
             260
-        case .crop, .corrections:
+        case .presets, .corrections:
             300
-        case .frames:
-            340
         case .cut:
             420
         }
@@ -136,7 +134,7 @@ extension ToolsSectionView {
         switch tool {
         case .audio:
             .resizes
-        case .speed, .crop, .corrections, .frames, .cut:
+        case .speed, .presets, .corrections, .cut:
             .scrolls
         }
     }
@@ -180,20 +178,14 @@ extension ToolsSectionView {
             VideoSpeedToolView(Double(video.rate), isChangeState: isAppliedTool) { rate in
                 editorViewModel.handleRateChange(rate, videoPlayer: videoPlayer)
             }
-        case .crop:
-            CropToolView(editorViewModel)
+        case .presets:
+            PresentToolView(editorViewModel)
         case .audio:
             VideoAudioToolView(videoPlayer, editorVM: editorViewModel)
         case .corrections:
             VideoCorrectionsToolView(editorViewModel.colorCorrectionBinding(videoPlayer: videoPlayer)) { corrections in
                 editorViewModel.handleCorrectionsChange(corrections, videoPlayer: videoPlayer)
             }
-        case .frames:
-            FramesToolView(
-                editorViewModel.frameColorBinding(),
-                scaleValue: editorViewModel.frameScaleBinding(),
-                onChange: editorViewModel.setFrames
-            )
         case .cut:
             EmptyView()
         }

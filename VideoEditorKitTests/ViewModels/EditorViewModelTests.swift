@@ -138,29 +138,99 @@ struct EditorViewModelTests {
     }
 
     @Test
+    func resolvedPlayerDisplaySizeUsesTheRotatedPresentationDimensions() {
+        let viewModel = EditorViewModel()
+        var video = Video.mock
+        video.presentationSize = CGSize(width: 1920, height: 1080)
+        video.rotation = 90
+
+        let displaySize = viewModel.resolvedPlayerDisplaySize(
+            for: video,
+            in: CGSize(width: 320, height: 220)
+        )
+
+        #expect(abs(displaySize.width - 123.75) < 0.0001)
+        #expect(abs(displaySize.height - 220) < 0.0001)
+    }
+
+    @Test
+    func resolvedCropPreviewCanvasKeepsReferenceAndRenderedContentSeparatedWhenNoPresetIsActive() {
+        let viewModel = EditorViewModel()
+        var video = Video.mock
+        video.presentationSize = CGSize(width: 1920, height: 1080)
+        viewModel.currentVideo = video
+
+        let previewCanvas = viewModel.resolvedCropPreviewCanvas(
+            for: video,
+            in: CGSize(width: 320, height: 360)
+        )
+
+        #expect(abs(previewCanvas.referenceSize.width - 1920) < 0.0001)
+        #expect(abs(previewCanvas.referenceSize.height - 1080) < 0.0001)
+        #expect(abs(previewCanvas.contentSize.width - 320) < 0.0001)
+        #expect(abs(previewCanvas.contentSize.height - 180) < 0.0001)
+        #expect(previewCanvas.viewportSize == previewCanvas.contentSize)
+    }
+
+    @Test
+    func resolvedCropPreviewCanvasExpandsThePresetViewportWithoutLosingTheVideoReferenceSpace() {
+        let viewModel = EditorViewModel()
+        var video = Video.mock
+        video.presentationSize = CGSize(width: 1920, height: 1080)
+        viewModel.currentVideo = video
+        viewModel.selectTool(.presets)
+        viewModel.selectCropFormat(.vertical9x16)
+
+        let previewCanvas = viewModel.resolvedCropPreviewCanvas(
+            for: video,
+            in: CGSize(width: 320, height: 360)
+        )
+
+        #expect(abs(previewCanvas.referenceSize.width - 1920) < 0.0001)
+        #expect(abs(previewCanvas.referenceSize.height - 1080) < 0.0001)
+        #expect(abs(previewCanvas.contentSize.width - 320) < 0.0001)
+        #expect(abs(previewCanvas.contentSize.height - 180) < 0.0001)
+        #expect(abs(previewCanvas.viewportSize.width - 202.5) < 0.0001)
+        #expect(abs(previewCanvas.viewportSize.height - 360) < 0.0001)
+        #expect(previewCanvas.viewportSize.height > previewCanvas.contentSize.height)
+    }
+
+    @Test
+    func originalPresetIsSelectedByDefault() {
+        let viewModel = EditorViewModel()
+        var video = Video.mock
+        video.presentationSize = CGSize(width: 1920, height: 1080)
+        viewModel.currentVideo = video
+
+        #expect(viewModel.selectedCropPreset() == .original)
+        #expect(viewModel.isCropFormatSelected(.original))
+        #expect(viewModel.shouldUseCropPresetSpotlight == false)
+    }
+
+    @Test
     func selectingVerticalCropFormatCreatesACenteredNineBySixteenRect() throws {
         let viewModel = EditorViewModel()
         var video = Video.mock
         video.presentationSize = CGSize(width: 1920, height: 1080)
         viewModel.currentVideo = video
-        viewModel.selectTool(.crop)
+        viewModel.selectTool(.presets)
 
         viewModel.selectCropFormat(.vertical9x16)
 
         let cropRect = try #require(viewModel.cropFreeformRect)
-        #expect(viewModel.cropTab == .format)
         #expect(abs(cropRect.x - 0.341796875) < 0.0001)
         #expect(abs(cropRect.width - 0.31640625) < 0.0001)
         #expect(abs(cropRect.y - 0) < 0.0001)
         #expect(abs(cropRect.height - 1) < 0.0001)
-        #expect(viewModel.currentVideo?.isAppliedTool(for: .crop) == true)
+        #expect(viewModel.selectedTools == nil)
+        #expect(viewModel.currentVideo?.isAppliedTool(for: .presets) == true)
         #expect(viewModel.shouldShowCropOverlay)
         #expect(viewModel.isCropOverlayInteractive)
         #expect(viewModel.shouldUseCropPresetSpotlight)
         #expect(viewModel.isCropFormatSelected(.vertical9x16))
         #expect(viewModel.socialVideoDestination == .instagramReels)
-        #expect(viewModel.showsSocialVideoSafeAreaGuides)
-        #expect(viewModel.shouldShowSocialVideoSafeAreaGuide)
+        #expect(viewModel.showsSafeAreaOverlay)
+        #expect(viewModel.shouldShowSafeAreaOverlay)
     }
 
     @Test
@@ -169,21 +239,36 @@ struct EditorViewModelTests {
         var video = Video.mock
         video.presentationSize = CGSize(width: 1920, height: 1080)
         viewModel.currentVideo = video
-        viewModel.selectTool(.crop)
+        viewModel.selectTool(.presets)
         viewModel.selectCropFormat(.vertical9x16)
 
         viewModel.selectCropFormat(.original)
 
         #expect(viewModel.cropFreeformRect == nil)
         #expect(viewModel.shouldShowCropOverlay == false)
-        #expect(viewModel.currentVideo?.isAppliedTool(for: .crop) == false)
+        #expect(viewModel.currentVideo?.isAppliedTool(for: .presets) == false)
         #expect(viewModel.isCropFormatSelected(.original))
         #expect(viewModel.socialVideoDestination == nil)
-        #expect(viewModel.showsSocialVideoSafeAreaGuides == false)
+        #expect(viewModel.showsSafeAreaOverlay == false)
         #expect(viewModel.isCropOverlayInteractive == false)
         #expect(viewModel.shouldUseCropPresetSpotlight == false)
         #expect(viewModel.selectedCropPresetBadgeTitle() == "Original")
         #expect(viewModel.selectedCropPresetBadgeDimension() == "1920x1080")
+    }
+
+    @Test
+    func selectingVerticalCropFormatAlsoUpdatesTheCanvasEditorState() {
+        let viewModel = EditorViewModel()
+        var video = Video.mock
+        video.presentationSize = CGSize(width: 1920, height: 1080)
+        viewModel.currentVideo = video
+        viewModel.selectTool(.presets)
+
+        viewModel.selectCropFormat(.vertical9x16)
+
+        #expect(viewModel.canvasEditorState.preset == .social(platform: .instagram))
+        #expect(viewModel.canvasEditorState.transform == .identity)
+        #expect(viewModel.canvasEditorState.showsSafeAreaOverlay)
     }
 
     @Test
@@ -192,18 +277,45 @@ struct EditorViewModelTests {
         var video = Video.mock
         video.presentationSize = CGSize(width: 1080, height: 1920)
         viewModel.currentVideo = video
-        viewModel.selectTool(.crop)
+        viewModel.selectTool(.presets)
 
         viewModel.selectSocialVideoDestination(.youtubeShorts)
 
-        #expect(viewModel.cropTab == .format)
         #expect(viewModel.socialVideoDestination == .youtubeShorts)
         #expect(viewModel.isCropFormatSelected(.vertical9x16))
         #expect(viewModel.isSocialVideoDestinationSelected(.youtubeShorts))
         #expect(viewModel.selectedCropPreset() == .vertical9x16)
         #expect(viewModel.selectedCropPresetBadgeTitle() == "Social")
         #expect(viewModel.selectedCropPresetBadgeDimension() == "9:16")
-        #expect(viewModel.showsSocialVideoSafeAreaGuides)
+        #expect(viewModel.showsSafeAreaOverlay)
+    }
+
+    @Test
+    func activeSafeAreaPlatformMatchesTheSelectedDestination() {
+        let viewModel = EditorViewModel()
+        var video = Video.mock
+        video.presentationSize = CGSize(width: 1080, height: 1920)
+        viewModel.currentVideo = video
+        viewModel.selectTool(.presets)
+
+        viewModel.selectSocialVideoDestination(.youtubeShorts)
+
+        #expect(viewModel.activeSafeAreaPlatform == .youtubeShorts)
+    }
+
+    @Test
+    func safeAreaOverlayOnlyAppearsWhenTheGuideToggleIsEnabled() {
+        let viewModel = EditorViewModel()
+        var video = Video.mock
+        video.presentationSize = CGSize(width: 1080, height: 1920)
+        viewModel.currentVideo = video
+        viewModel.selectTool(.presets)
+        viewModel.selectSocialVideoDestination(.tikTok)
+
+        viewModel.showsSafeAreaOverlay = false
+
+        #expect(viewModel.shouldShowSafeAreaOverlay == false)
+        #expect(viewModel.activeSafeAreaPlatform == nil)
     }
 
     @Test
@@ -212,7 +324,7 @@ struct EditorViewModelTests {
         var video = Video.mock
         video.presentationSize = CGSize(width: 1920, height: 1080)
         viewModel.currentVideo = video
-        viewModel.selectTool(.crop)
+        viewModel.selectTool(.presets)
         viewModel.selectSocialVideoDestination(.instagramReels)
 
         viewModel.selectCropFormat(.portrait4x5)
@@ -221,11 +333,93 @@ struct EditorViewModelTests {
         #expect(abs(cropRect.x - 0.275) < 0.0001)
         #expect(abs(cropRect.width - 0.45) < 0.0001)
         #expect(viewModel.socialVideoDestination == nil)
-        #expect(viewModel.showsSocialVideoSafeAreaGuides == false)
+        #expect(viewModel.showsSafeAreaOverlay == false)
         #expect(viewModel.shouldUseCropPresetSpotlight)
         #expect(viewModel.selectedCropPreset() == .portrait4x5)
         #expect(viewModel.selectedCropPresetBadgeTitle() == "4:5")
         #expect(viewModel.selectedCropPresetBadgeDimension() == "4:5")
+    }
+
+    @Test
+    func currentEditingConfigurationPersistsActivePresetPresentationState() throws {
+        let viewModel = EditorViewModel()
+        var video = Video.mock
+        video.presentationSize = CGSize(width: 1920, height: 1080)
+        viewModel.currentVideo = video
+        viewModel.selectTool(.presets)
+        viewModel.selectSocialVideoDestination(.instagramReels)
+
+        let configuration = try #require(
+            viewModel.currentEditingConfiguration(currentTimelineTime: 12)
+        )
+        let cropRect = try #require(configuration.crop.freeformRect)
+        let activeRect = try #require(viewModel.cropFreeformRect)
+
+        #expect(configuration.presentation.socialVideoDestination == .instagramReels)
+        #expect(configuration.presentation.showsSafeAreaGuides)
+        #expect(configuration.playback.currentTimelineTime == 12)
+        #expect(cropRect == activeRect)
+        #expect(configuration.canvas.snapshot.preset == .social(platform: .instagram))
+        #expect(configuration.canvas.snapshot.showsSafeAreaOverlay)
+    }
+
+    @Test
+    func currentEditingConfigurationPersistsCanvasTransform() throws {
+        let viewModel = EditorViewModel()
+        var video = Video.mock
+        video.presentationSize = CGSize(width: 1920, height: 1080)
+        viewModel.currentVideo = video
+        viewModel.canvasEditorState.restore(
+            .init(
+                preset: .facebookPost,
+                freeCanvasSize: CGSize(width: 1080, height: 1350),
+                transform: .init(
+                    normalizedOffset: CGPoint(x: 0.18, y: -0.06),
+                    zoom: 1.25,
+                    rotationRadians: 0.2
+                ),
+                showsSafeAreaOverlay: false
+            )
+        )
+
+        let configuration = try #require(viewModel.currentEditingConfiguration())
+
+        #expect(configuration.canvas.snapshot.preset == .facebookPost)
+        #expect(abs(configuration.canvas.snapshot.transform.normalizedOffset.x - 0.18) < 0.0001)
+        #expect(abs(configuration.canvas.snapshot.transform.normalizedOffset.y + 0.06) < 0.0001)
+        #expect(abs(configuration.canvas.snapshot.transform.zoom - 1.25) < 0.0001)
+        #expect(abs(configuration.canvas.snapshot.transform.rotationRadians - 0.2) < 0.0001)
+    }
+
+    @Test
+    func restorePendingEditingPresentationStateSynthesizesCanvasSnapshotFromLegacyCrop() async {
+        let viewModel = EditorViewModel()
+        var video = Video.mock
+        video.presentationSize = CGSize(width: 1920, height: 1080)
+        viewModel.currentVideo = video
+        viewModel.prepareEditingConfigurationForInitialLoad(
+            VideoEditingConfiguration(
+                crop: .init(
+                    freeformRect: .init(
+                        x: 0.341796875,
+                        y: 0,
+                        width: 0.31640625,
+                        height: 1
+                    )
+                ),
+                presentation: .init(
+                    socialVideoDestination: .tikTok,
+                    showsSafeAreaGuides: true
+                )
+            ),
+            videoPlayer: VideoPlayerManager()
+        )
+
+        await viewModel.restorePendingEditingPresentationState()
+
+        #expect(viewModel.canvasEditorState.preset == .social(platform: .tiktok))
+        #expect(viewModel.canvasEditorState.showsSafeAreaOverlay)
+        #expect(viewModel.canvasEditorState.transform == .identity)
     }
 
     @Test
@@ -338,7 +532,7 @@ struct EditorViewModelTests {
 
         viewModel.setToolAvailability([
             .init(.speed),
-            .init(.frames),
+            .init(.presets),
         ])
 
         #expect(viewModel.selectedTools == nil)
@@ -387,7 +581,7 @@ struct EditorViewModelTests {
     }
 
     @Test
-    func prepareEditingConfigurationForInitialLoadSeedsPlayerAndRestoresPresentationState() throws {
+    func prepareEditingConfigurationForInitialLoadSeedsPlayerAndRestoresPresentationState() async throws {
         let viewModel = EditorViewModel()
         let videoPlayer = VideoPlayerManager()
         let audioURL = try TestFixtures.createTemporaryAudio()
@@ -429,7 +623,6 @@ struct EditorViewModelTests {
             ),
             presentation: .init(
                 .corrections,
-                cropTab: .format,
                 socialVideoDestination: .tikTok,
                 showsSafeAreaGuides: true
             )
@@ -446,7 +639,7 @@ struct EditorViewModelTests {
             containerSize: CGSize(width: 320, height: 240)
         )
         viewModel.currentVideo = video
-        viewModel.restorePendingEditingPresentationState()
+        await viewModel.restorePendingEditingPresentationState()
 
         #expect(abs(videoPlayer.currentTime - 11) < 0.0001)
         #expect(viewModel.currentVideo?.rangeDuration == 8...24)
@@ -457,16 +650,14 @@ struct EditorViewModelTests {
         #expect(viewModel.currentVideo?.audio?.url == audioURL)
         #expect(viewModel.selectedAudioTrack == .recorded)
         #expect(viewModel.cropFreeformRect == editingConfiguration.crop.freeformRect)
-        #expect(viewModel.cropTab == .format)
         #expect(viewModel.socialVideoDestination == .tikTok)
-        #expect(viewModel.showsSocialVideoSafeAreaGuides)
+        #expect(viewModel.showsSafeAreaOverlay)
         #expect(viewModel.selectedTools == .corrections)
         #expect(viewModel.currentVideo?.isAppliedTool(for: .cut) == true)
         #expect(viewModel.currentVideo?.isAppliedTool(for: .speed) == true)
-        #expect(viewModel.currentVideo?.isAppliedTool(for: .crop) == true)
+        #expect(viewModel.currentVideo?.isAppliedTool(for: .presets) == true)
         #expect(viewModel.currentVideo?.isAppliedTool(for: .audio) == true)
         #expect(viewModel.currentVideo?.isAppliedTool(for: .corrections) == true)
-        #expect(viewModel.currentVideo?.isAppliedTool(for: .frames) == true)
     }
 
     @Test
@@ -503,9 +694,8 @@ struct EditorViewModelTests {
             width: 0.72,
             height: 0.6
         )
-        viewModel.cropTab = .format
         viewModel.socialVideoDestination = .youtubeShorts
-        viewModel.showsSocialVideoSafeAreaGuides = true
+        viewModel.showsSafeAreaOverlay = true
         viewModel.selectTool(.corrections)
 
         let configuration = viewModel.currentEditingConfiguration(currentTimelineTime: 9)
@@ -522,30 +712,29 @@ struct EditorViewModelTests {
         #expect(configuration?.audio.selectedTrack == .recorded)
         #expect(configuration?.audio.recordedClip?.url == audioURL)
         #expect(configuration?.presentation.selectedTool == .corrections)
-        #expect(configuration?.presentation.cropTab == .format)
         #expect(configuration?.presentation.socialVideoDestination == .youtubeShorts)
         #expect(configuration?.presentation.showsSafeAreaGuides == true)
     }
 
     @Test
-    func toggleSocialVideoSafeAreaGuidesKeepsTheSocialOverlayVisible() {
+    func toggleSafeAreaOverlayTogglesTheSocialOverlayVisibility() {
         let viewModel = EditorViewModel()
         var video = Video.mock
         video.presentationSize = CGSize(width: 1080, height: 1920)
         viewModel.currentVideo = video
-        viewModel.selectTool(.crop)
+        viewModel.selectTool(.presets)
         viewModel.selectSocialVideoDestination(.instagramReels)
 
-        viewModel.toggleSocialVideoSafeAreaGuides()
+        viewModel.toggleSafeAreaOverlay()
 
         #expect(viewModel.socialVideoDestination == .instagramReels)
-        #expect(viewModel.showsSocialVideoSafeAreaGuides == true)
-        #expect(viewModel.shouldShowSocialVideoSafeAreaGuide == true)
+        #expect(viewModel.showsSafeAreaOverlay == false)
+        #expect(viewModel.shouldShowSafeAreaOverlay == false)
         #expect(viewModel.isCropFormatSelected(.vertical9x16))
     }
 
     @Test
-    func restoredNonSocialPresetGeometryMapsBackToThePresetLibrary() throws {
+    func restoredNonSocialPresetGeometryMapsBackToThePresetLibrary() async throws {
         let viewModel = EditorViewModel()
         let cropRect = try #require(
             VideoCropFormatPreset.square1x1.makeFreeformRect(
@@ -557,8 +746,7 @@ struct EditorViewModelTests {
                 freeformRect: cropRect
             ),
             presentation: .init(
-                .crop,
-                cropTab: .format
+                .presets
             )
         )
         let videoPlayer = VideoPlayerManager()
@@ -575,7 +763,7 @@ struct EditorViewModelTests {
             containerSize: CGSize(width: 320, height: 240)
         )
         viewModel.currentVideo = video
-        viewModel.restorePendingEditingPresentationState()
+        await viewModel.restorePendingEditingPresentationState()
 
         #expect(viewModel.selectedCropPreset() == .square1x1)
         #expect(viewModel.selectedCropPresetBadgeTitle() == "1:1")
@@ -590,15 +778,15 @@ struct EditorViewModelTests {
         var video = Video.mock
         video.presentationSize = CGSize(width: 1080, height: 1920)
         viewModel.currentVideo = video
-        viewModel.selectTool(.crop)
+        viewModel.selectTool(.presets)
         viewModel.selectSocialVideoDestination(.tikTok)
 
         viewModel.closeSelectedTool()
 
         #expect(viewModel.selectedTools == nil)
         #expect(viewModel.shouldShowCropOverlay)
-        #expect(viewModel.isCropOverlayInteractive == false)
-        #expect(viewModel.shouldShowSocialVideoSafeAreaGuide)
+        #expect(viewModel.isCropOverlayInteractive == true)
+        #expect(viewModel.shouldShowSafeAreaOverlay)
         #expect(viewModel.shouldShowCropPresetBadge())
         #expect(viewModel.shouldUseCropPresetSpotlight)
         #expect(viewModel.selectedCropPresetBadgeTitle() == "Social")

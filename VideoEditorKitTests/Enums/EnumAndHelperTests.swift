@@ -17,10 +17,9 @@ struct ToolEnumTests {
         #expect(
             ToolEnum.all == [
                 .speed,
-                .crop,
+                .presets,
                 .audio,
                 .corrections,
-                .frames,
             ]
         )
     }
@@ -30,10 +29,9 @@ struct ToolEnumTests {
         let expectations: [(tool: ToolEnum, title: String, image: String)] = [
             (.cut, "Cut", "scissors"),
             (.speed, "Speed", "timer"),
-            (.crop, "Presets", "aspectratio"),
+            (.presets, "Presets", "aspectratio"),
             (.audio, "Audio", "waveform"),
             (.corrections, "Corrections", "circle.righthalf.filled"),
-            (.frames, "Frames", "person.crop.artframe"),
         ]
 
         for expectation in expectations {
@@ -53,11 +51,11 @@ struct VideoEditorConfigurationTests {
     @Test
     func toolAvailabilityHelpersProduceTheExpectedAccessStates() {
         let visibleTools = ToolAvailability.enabled([.speed, .corrections])
-        let blockedTool = ToolAvailability.blocked(.frames)
+        let blockedTool = ToolAvailability.blocked(.presets)
 
         #expect(visibleTools.map(\.tool) == [.speed, .corrections])
         #expect(visibleTools.allSatisfy { $0.isEnabled })
-        #expect(blockedTool.tool == .frames)
+        #expect(blockedTool.tool == .presets)
         #expect(blockedTool.isBlocked)
     }
 
@@ -76,11 +74,11 @@ struct VideoEditorConfigurationTests {
             tools: [
                 .enabled(.corrections),
                 .blocked(.speed),
-                .enabled(.frames),
+                .enabled(.presets),
             ]
         )
 
-        #expect(configuration.tools.map(\.tool) == [.corrections, .speed, .frames])
+        #expect(configuration.tools.map(\.tool) == [.corrections, .speed, .presets])
         #expect(configuration.isVisible(.corrections))
         #expect(configuration.isEnabled(.corrections))
         #expect(configuration.availability(for: .corrections)?.isBlocked == false)
@@ -246,16 +244,11 @@ struct MathAndRatioTests {
 
     @Test
     func cropperRatioPresetsUseTheCurrentAspectValues() {
-        #expect(CropperRatio.square.width == 1)
-        #expect(CropperRatio.square.height == 1)
-        #expect(CropperRatio.landscape3x2.width == 3)
-        #expect(CropperRatio.landscape3x2.height == 2)
-        #expect(CropperRatio.landscape4x3.width == 4)
-        #expect(CropperRatio.landscape4x3.height == 3)
-        #expect(CropperRatio.widescreen16x9.width == 16)
-        #expect(CropperRatio.widescreen16x9.height == 9)
-        #expect(CropperRatio.cinematic18x6.width == 18)
-        #expect(CropperRatio.cinematic18x6.height == 6)
+        #expect(VideoCropFormatPreset.original.aspectRatio == nil)
+        #expect(VideoCropFormatPreset.square1x1.aspectRatio == 1)
+        #expect(abs((VideoCropFormatPreset.vertical9x16.aspectRatio ?? 0) - (9.0 / 16.0)) < 0.0001)
+        #expect(abs((VideoCropFormatPreset.portrait4x5.aspectRatio ?? 0) - (4.0 / 5.0)) < 0.0001)
+        #expect(abs((VideoCropFormatPreset.landscape16x9.aspectRatio ?? 0) - (16.0 / 9.0)) < 0.0001)
     }
 
     @Test

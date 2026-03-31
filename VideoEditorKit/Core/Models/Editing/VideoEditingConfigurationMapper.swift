@@ -16,9 +16,9 @@ enum VideoEditingConfigurationMapper {
     static func makeConfiguration(
         from video: Video,
         freeformRect: VideoEditingConfiguration.FreeformRect? = nil,
+        canvasSnapshot: VideoCanvasSnapshot = .initial,
         selectedAudioTrack: EditorViewModel.AudioTrackSelection = .video,
         selectedTool: ToolEnum? = nil,
-        cropTab: VideoEditingConfiguration.CropTab = .rotate,
         socialVideoDestination: VideoEditingConfiguration.SocialVideoDestination? = nil,
         showsSafeAreaGuides: Bool = false,
         currentTimelineTime: Double? = nil
@@ -37,6 +37,9 @@ enum VideoEditingConfigurationMapper {
                 rotationDegrees: video.rotation,
                 isMirrored: video.isMirror,
                 freeformRect: freeformRect
+            ),
+            canvas: .init(
+                snapshot: canvasSnapshot
             ),
             corrections: .init(
                 brightness: video.colorCorrection.brightness,
@@ -61,7 +64,6 @@ enum VideoEditingConfigurationMapper {
             ),
             presentation: .init(
                 selectedTool,
-                cropTab: cropTab,
                 socialVideoDestination: socialVideoDestination,
                 showsSafeAreaGuides: showsSafeAreaGuides
             )
@@ -120,17 +122,6 @@ enum VideoEditingConfigurationMapper {
         }
     }
 
-    static func cropTab(
-        from configuration: VideoEditingConfiguration
-    ) -> EditorViewModel.CropToolTab {
-        switch configuration.presentation.cropTab {
-        case .format:
-            .format
-        case .rotate:
-            .rotate
-        }
-    }
-
     // MARK: - Private Methods
 
     private static func mapSelectedTrack(
@@ -164,8 +155,9 @@ enum VideoEditingConfigurationMapper {
         let hasRotation = abs(video.rotation.truncatingRemainder(dividingBy: 360)) > 0.001
         let hasMirror = video.isMirror
         let hasFreeformRect = configuration.crop.freeformRect != nil
-        if hasRotation || hasMirror || hasFreeformRect {
-            restoredTools.append(.crop)
+        let hasCanvasState = configuration.canvas.snapshot.isIdentity == false
+        if hasRotation || hasMirror || hasFreeformRect || hasCanvasState {
+            restoredTools.append(.presets)
         }
 
         let hasRecordedAudio = video.audio != nil
@@ -176,10 +168,6 @@ enum VideoEditingConfigurationMapper {
 
         if !video.colorCorrection.isIdentity {
             restoredTools.append(.corrections)
-        }
-
-        if video.videoFrames?.isActive == true {
-            restoredTools.append(.frames)
         }
 
         return restoredTools.map(\.rawValue)
