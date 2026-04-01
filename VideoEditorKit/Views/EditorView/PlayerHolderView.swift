@@ -59,11 +59,13 @@ extension PlayerHolderView {
     private var playerCropView: some View {
         Group {
             if let video = editorViewModel.currentVideo {
+                let cropSummary = editorViewModel.cropPresentationSummary
+
                 GeometryReader { proxy in
                     VideoCanvasPreviewView(
                         editorViewModel.cropPresentationState.canvasEditorState,
                         source: editorViewModel.videoCanvasSource(for: video),
-                        isInteractive: editorViewModel.isCropOverlayInteractive,
+                        isInteractive: cropSummary.isCropOverlayInteractive,
                         cornerRadius: 16,
                         onSnapshotChange: { _ in
                             editorViewModel.handleCanvasPreviewChange()
@@ -77,19 +79,29 @@ extension PlayerHolderView {
                                 .scaleEffect(editorViewModel.frames.scale)
                         }
                     } overlay: {
-                        ZStack(alignment: .bottom) {
-                            if let profile = editorViewModel.activeSafeAreaGuideProfile {
-                                SafeAreaOverlayView(
-                                    profile: profile,
-                                    cornerRadius: 16
-                                )
+                        Color.clear
+                            .allFrame()
+                            .overlay {
+                                if let profile = cropSummary.activeSafeAreaGuideProfile {
+                                    SafeAreaOverlayView(
+                                        profile: profile,
+                                        cornerRadius: 16
+                                    )
+                                }
                             }
-
-                            if editorViewModel.shouldShowCropPresetBadge() {
-                                cropPresetBadge
-                                    .padding(.bottom, 16)
+                            .overlay(alignment: .bottom) {
+                                if cropSummary.shouldShowCropPresetBadge {
+                                    cropPresetBadge(cropSummary)
+                                        .padding(.bottom, 16)
+                                }
                             }
-                        }
+                            .overlay(alignment: .bottomTrailing) {
+                                if cropSummary.shouldShowCanvasResetButton {
+                                    resetCanvasButton
+                                        .padding(.trailing, 16)
+                                        .padding(.bottom, 16)
+                                }
+                            }
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
                     .task(
@@ -108,18 +120,35 @@ extension PlayerHolderView {
         }
     }
 
-    private var cropPresetBadge: some View {
-        Text(
-            "\(editorViewModel.selectedCropPresetBadgeTitle()) • \(editorViewModel.selectedCropPresetBadgeDimension())"
-        )
-        .font(.caption2.weight(.bold))
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .capsuleControl(
-            prominent: true,
-            tint: .black.opacity(0.82)
-        )
-        .foregroundStyle(.white)
+    private func cropPresetBadge(
+        _ cropSummary: EditorCropPresentationSummary
+    ) -> some View {
+        Text(cropSummary.badgeText)
+            .font(.caption2.weight(.bold))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .capsuleControl(
+                prominent: true,
+                tint: .black.opacity(0.82)
+            )
+            .foregroundStyle(.white)
+    }
+
+    private var resetCanvasButton: some View {
+        Button {
+            editorViewModel.resetCanvasTransform()
+        } label: {
+            Image(systemName: "arrow.counterclockwise")
+                .font(.headline.weight(.semibold))
+                .foregroundStyle(.white)
+                .padding(14)
+                .circleControl(
+                    prominent: true,
+                    tint: .black.opacity(0.82)
+                )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Reset transform")
     }
 
     // MARK: - Private Methods

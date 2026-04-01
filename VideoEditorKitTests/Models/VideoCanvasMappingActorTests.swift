@@ -96,4 +96,20 @@ struct VideoCanvasMappingActorTests {
         #expect(abs(layout.contentScale - mapping.aspectFillScale) < 0.0001)
     }
 
+    @Test
+    func magnifiedTransformKeepsThePinchAnchorStableInsideThePreviewCanvas() {
+        let actor = VideoCanvasMappingActor()
+
+        let transform = actor.magnifiedTransform(
+            from: .identity,
+            magnification: 2,
+            anchor: CGPoint(x: 150, y: 50),
+            previewCanvasSize: CGSize(width: 200, height: 100)
+        )
+
+        #expect(abs(transform.zoom - 2) < 0.0001)
+        #expect(abs(transform.normalizedOffset.x + 0.25) < 0.0001)
+        #expect(abs(transform.normalizedOffset.y) < 0.0001)
+    }
+
 }

@@ -11,6 +11,13 @@ import SwiftUI
 
 struct VideoCanvasMappingActor {
 
+    // MARK: - Private Properties
+
+    private enum Constants {
+        static let minimumZoom: CGFloat = 0.25
+        static let maximumZoom: CGFloat = 8
+    }
+
     // MARK: - Public Methods
 
     func makeRenderRequest(
@@ -151,10 +158,57 @@ struct VideoCanvasMappingActor {
         from baseline: VideoCanvasTransform,
         magnification: CGFloat
     ) -> VideoCanvasTransform {
+        magnifiedTransform(
+            from: baseline,
+            magnification: magnification,
+            anchor: CGPoint(x: 0.5, y: 0.5),
+            previewCanvasSize: CGSize(width: 1, height: 1)
+        )
+    }
+
+    func magnifiedTransform(
+        from baseline: VideoCanvasTransform,
+        magnification: CGFloat,
+        anchor: CGPoint,
+        previewCanvasSize: CGSize
+    ) -> VideoCanvasTransform {
         guard magnification.isFinite, magnification > 0 else { return baseline }
 
+        let baselineZoom = min(
+            max(baseline.zoom, Constants.minimumZoom),
+            Constants.maximumZoom
+        )
+        let nextZoom = min(
+            max(baselineZoom * magnification, Constants.minimumZoom),
+            Constants.maximumZoom
+        )
+
         var nextTransform = baseline
-        nextTransform.zoom = min(max(baseline.zoom * magnification, 0.25), 8)
+        nextTransform.zoom = nextZoom
+
+        guard previewCanvasSize.width > 0, previewCanvasSize.height > 0 else {
+            return nextTransform
+        }
+
+        let resolvedMagnification = nextZoom / max(baselineZoom, 0.0001)
+        let clampedAnchor = CGPoint(
+            x: min(max(anchor.x, 0), previewCanvasSize.width),
+            y: min(max(anchor.y, 0), previewCanvasSize.height)
+        )
+        let baselineCenter = CGPoint(
+            x: previewCanvasSize.width / 2 + baseline.normalizedOffset.x * previewCanvasSize.width,
+            y: previewCanvasSize.height / 2 + baseline.normalizedOffset.y * previewCanvasSize.height
+        )
+        let anchoredCenter = CGPoint(
+            x: baselineCenter.x + (1 - resolvedMagnification) * (clampedAnchor.x - baselineCenter.x),
+            y: baselineCenter.y + (1 - resolvedMagnification) * (clampedAnchor.y - baselineCenter.y)
+        )
+
+        nextTransform.normalizedOffset = CGPoint(
+            x: (anchoredCenter.x - previewCanvasSize.width / 2) / previewCanvasSize.width,
+            y: (anchoredCenter.y - previewCanvasSize.height / 2) / previewCanvasSize.height
+        )
+
         return nextTransform
     }
 

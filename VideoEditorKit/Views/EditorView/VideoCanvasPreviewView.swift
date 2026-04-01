@@ -148,9 +148,12 @@ struct VideoCanvasPreviewView<Content: View, Overlay: View>: View {
                         dragBaselineTransform = nil
                         commitInteractiveChangesIfNeeded()
                     },
-                MagnificationGesture()
+                MagnifyGesture()
                     .onChanged { value in
-                        updateMagnification(value)
+                        updateMagnification(
+                            value,
+                            previewCanvasSize: layout.previewCanvasSize
+                        )
                     }
                     .onEnded { _ in
                         magnificationBaselineTransform = nil
@@ -186,7 +189,8 @@ struct VideoCanvasPreviewView<Content: View, Overlay: View>: View {
     }
 
     private func updateMagnification(
-        _ magnification: CGFloat
+        _ value: MagnifyGesture.Value,
+        previewCanvasSize: CGSize
     ) {
         let baseline = magnificationBaselineTransform ?? editorState.transform
         if magnificationBaselineTransform == nil {
@@ -195,7 +199,9 @@ struct VideoCanvasPreviewView<Content: View, Overlay: View>: View {
 
         editorState.transform = editorState.magnifiedTransform(
             from: baseline,
-            magnification: magnification
+            magnification: value.magnification,
+            anchor: value.startLocation,
+            previewCanvasSize: previewCanvasSize
         )
         hasPendingInteractiveChange = true
     }

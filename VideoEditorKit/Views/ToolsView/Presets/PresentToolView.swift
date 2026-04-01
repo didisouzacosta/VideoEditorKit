@@ -34,7 +34,7 @@ extension PresentToolView {
 
     private var formatSection: some View {
         VStack(spacing: 16) {
-            Text("Choose a preset. Drag the video to reposition, pinch to resize, and double tap to go back to full.")
+            Text("Choose a preset. Original also supports drag and pinch. Double tap or use reset to go back to full.")
                 .font(.footnote.weight(.medium))
                 .foregroundStyle(Theme.secondary)
                 .multilineTextAlignment(.center)
@@ -54,7 +54,7 @@ extension PresentToolView {
     }
 
     private func cropFormatButton(_ preset: VideoCropFormatPreset) -> some View {
-        let isSelected = editorVM.isCropFormatSelected(preset)
+        let isSelected = editorVM.cropPresentationSummary.isCropFormatSelected(preset)
 
         return Button {
             editorVM.selectCropFormat(preset)

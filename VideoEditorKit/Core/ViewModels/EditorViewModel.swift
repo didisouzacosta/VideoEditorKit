@@ -51,17 +51,21 @@ final class EditorViewModel {
 
     // MARK: - Public Properties
 
-    var currentVideo: Video?
-    var frames = VideoFrames()
     let presentationState = EditorPresentationState()
     let cropPresentationState = EditorCropPresentationState()
+    
+    var currentVideo: Video?
+    var frames = VideoFrames()
 
     var hasCurrentVideo: Bool {
         currentVideo != nil
     }
 
     var exportVideo: Video? {
-        presentationState.showVideoQualitySheet ? currentVideo : nil
+        EditorSessionCoordinator.exportVideo(
+            currentVideo: currentVideo,
+            isQualitySheetPresented: presentationState.showVideoQualitySheet
+        )
     }
 
     var isMirrorEnabled: Bool {
@@ -73,28 +77,11 @@ final class EditorViewModel {
         set { setRotation(newValue) }
     }
 
-    var shouldShowCropOverlay: Bool {
-        cropPresentationState.shouldShowCropOverlay
-    }
-
-    var isCropOverlayInteractive: Bool {
-        selectedCropPreset() != .original
-    }
-
-    var shouldUseCropPresetSpotlight: Bool {
-        selectedCropPreset() != .original
-    }
-
-    var shouldShowSafeAreaOverlay: Bool {
-        EditorCropEditingCoordinator.shouldShowSafeAreaOverlay(
-            for: cropEditingState
-        )
-    }
-
-    var activeSafeAreaGuideProfile: SafeAreaGuideProfile? {
-        guard shouldShowSafeAreaOverlay else { return nil }
-        return EditorCropEditingCoordinator.activeSafeAreaGuideProfile(
-            for: cropEditingState
+    var cropPresentationSummary: EditorCropPresentationSummary {
+        EditorCropPresentationResolver.makeSummary(
+            state: cropEditingState,
+            video: currentVideo,
+            fallbackContainerSize: lastPlayerContainerSize
         )
     }
 
@@ -134,9 +121,12 @@ final class EditorViewModel {
                 to: &video,
                 containerSize: containerSize
             )
+
             frames = video.videoFrames ?? VideoFrames()
             currentVideo = video
+
             await self.restorePendingEditingPresentationState()
+
             loadThumbnails(
                 for: video,
                 containerSize: containerSize,
@@ -262,31 +252,13 @@ final class EditorViewModel {
         }
     }
 
-    private func resolvedSourceSizeForBadge() -> CGSize {
-        if let presentationSize = currentVideo?.presentationSize,
-            presentationSize.width > 0,
-            presentationSize.height > 0
-        {
-            return presentationSize
-        }
-
-        if let geometrySize = currentVideo?.geometrySize,
-            geometrySize.width > 0,
-            geometrySize.height > 0
-        {
-            return geometrySize
-        }
-
-        return .zero
-    }
-
     func setFrameColor(_ color: Color) {
-        frames.frameColor = color
+        guard EditorAppearanceEditingCoordinator.setFrameColor(color, in: &frames) else { return }
         syncFramesState()
     }
 
     func setFrameScale(_ scaleValue: Double) {
-        frames.scaleValue = scaleValue
+        guard EditorAppearanceEditingCoordinator.setFrameScale(scaleValue, in: &frames) else { return }
         syncFramesState()
     }
 
@@ -294,12 +266,12 @@ final class EditorViewModel {
         guard var currentVideo else { return }
         cancelPendingToolReset(for: .corrections)
 
-        currentVideo.colorCorrection = correction
-        if correction.isIdentity {
-            currentVideo.removeTool(for: .corrections)
-        } else {
-            currentVideo.appliedTool(for: .corrections)
-        }
+        guard
+            EditorAppearanceEditingCoordinator.setCorrections(
+                correction,
+                in: &currentVideo
+            )
+        else { return }
 
         self.currentVideo = currentVideo
         markEditingConfigurationChanged()
@@ -307,54 +279,76 @@ final class EditorViewModel {
 
     func updateRate(rate: Float) {
         cancelPendingToolReset(for: .speed)
-        currentVideo?.updateRate(rate)
-        applySelectedToolIfNeeded()
+        guard var currentVideo else { return }
+
+        EditorPlaybackEditingCoordinator.updateRate(
+            rate,
+            in: &currentVideo,
+            selectedTool: presentationState.selectedTool
+        )
+        self.currentVideo = currentVideo
         markEditingConfigurationChanged()
     }
 
     func setCut() {
-        guard let video = currentVideo else { return }
+        guard var currentVideo else { return }
         cancelPendingToolReset(for: .cut)
 
-        let isTrimmed =
-            video.rangeDuration.lowerBound > 0
-            || abs(video.rangeDuration.upperBound - video.originalDuration) > Constants.numericTolerance
-
-        if isTrimmed {
-            currentVideo?.appliedTool(for: .cut)
-        } else {
-            currentVideo?.removeTool(for: .cut)
-        }
-
+        EditorPlaybackEditingCoordinator.syncCutToolState(
+            in: &currentVideo,
+            tolerance: Constants.numericTolerance
+        )
+        self.currentVideo = currentVideo
         markEditingConfigurationChanged()
     }
 
     func resetCut() {
         cancelPendingToolReset(for: .cut)
-        currentVideo?.resetRangeDuration()
-        currentVideo?.removeTool(for: .cut)
+        guard var currentVideo else { return }
+
+        EditorPlaybackEditingCoordinator.resetCut(
+            in: &currentVideo
+        )
+        self.currentVideo = currentVideo
         markEditingConfigurationChanged()
     }
 
     func rotate() {
         cancelPendingToolReset(for: .presets)
-        currentVideo?.rotate()
-        applySelectedToolIfNeeded()
+        guard var currentVideo else { return }
+
+        EditorPlaybackEditingCoordinator.rotate(
+            in: &currentVideo,
+            selectedTool: presentationState.selectedTool
+        )
+        self.currentVideo = currentVideo
         markEditingConfigurationChanged()
     }
 
     func setRotation(_ rotation: Double) {
-        guard currentVideo?.rotation != rotation else { return }
         cancelPendingToolReset(for: .presets)
-        currentVideo?.rotation = rotation
-        applySelectedToolIfNeeded()
+        guard var currentVideo else { return }
+        guard
+            EditorPlaybackEditingCoordinator.setRotation(
+                rotation,
+                in: &currentVideo,
+                selectedTool: presentationState.selectedTool
+            )
+        else { return }
+
+        self.currentVideo = currentVideo
         markEditingConfigurationChanged()
     }
 
     func toggleMirror() {
         cancelPendingToolReset(for: .presets)
-        currentVideo?.isMirror.toggle()
-        applySelectedToolIfNeeded()
+        guard var currentVideo else { return }
+
+        EditorPlaybackEditingCoordinator.toggleMirror(
+            in: &currentVideo,
+            selectedTool: presentationState.selectedTool
+        )
+        self.currentVideo = currentVideo
         markEditingConfigurationChanged()
     }
 
@@ -368,25 +362,27 @@ final class EditorViewModel {
 
     func selectCropFormat(_ preset: VideoCropFormatPreset) {
         cancelPendingToolReset(for: .presets)
+
         let previousSelectedTool = presentationState.selectedTool
         let previousCropState = cropEditingState
+
         guard let referenceSize = currentCropReferenceSize() else { return }
-        guard
-            let nextCropState = EditorCropEditingCoordinator.selectingCropFormat(
-                preset,
-                from: previousCropState,
-                referenceSize: referenceSize
-            )
-        else { return }
+
+        let nextCropState = EditorCropEditingCoordinator.selectingCropFormat(
+            preset,
+            from: previousCropState,
+            referenceSize: referenceSize
+        )
+
+        guard let nextCropState else { return }
 
         applyCropEditingState(nextCropState)
         presentationState.selectedTool = nil
         syncCropToolState()
 
-        guard
-            previousSelectedTool != presentationState.selectedTool
-                || previousCropState != nextCropState
-        else { return }
+        let status = previousSelectedTool != presentationState.selectedTool || previousCropState != nextCropState
+
+        guard status else { return }
 
         markEditingConfigurationChanged()
     }
@@ -398,13 +394,14 @@ final class EditorViewModel {
         let previousCropState = cropEditingState
 
         guard let referenceSize = currentCropReferenceSize() else { return }
-        guard
-            let nextCropState = EditorCropEditingCoordinator.selectingSocialVideoDestination(
-                destination,
-                from: previousCropState,
-                referenceSize: referenceSize
-            )
-        else { return }
+
+        let nextCropState = EditorCropEditingCoordinator.selectingSocialVideoDestination(
+            destination,
+            from: previousCropState,
+            referenceSize: referenceSize
+        )
+
+        guard let nextCropState else { return }
 
         applyCropEditingState(nextCropState)
         syncCropToolState()
@@ -439,11 +436,6 @@ final class EditorViewModel {
         markEditingConfigurationChanged()
     }
 
-    func applySelectedToolIfNeeded() {
-        guard let selectedTool = presentationState.selectedTool else { return }
-        currentVideo?.appliedTool(for: selectedTool)
-    }
-
     func removeAudio() {
         guard let url = currentVideo?.audio?.url else { return }
         guard var currentVideo else { return }
@@ -463,14 +455,20 @@ final class EditorViewModel {
     ) {
         switch tool {
         case .cut:
-            currentVideo?.resetRangeDuration()
+            guard var currentVideo else { break }
+            EditorPlaybackEditingCoordinator.restoreDefaultCut(
+                in: &currentVideo
+            )
+            self.currentVideo = currentVideo
         case .speed:
             let previousRate = currentVideo?.rate ?? 1
             videoPlayer.pause()
-            currentVideo?.resetRate()
-            if let currentVideo {
-                videoPlayer.syncPlaybackState(with: currentVideo, previousRate: previousRate)
-            }
+            guard var currentVideo else { break }
+            EditorPlaybackEditingCoordinator.restoreDefaultRate(
+                in: &currentVideo
+            )
+            self.currentVideo = currentVideo
+            videoPlayer.syncPlaybackState(with: currentVideo, previousRate: previousRate)
         case .presets:
             currentVideo?.rotation = 0
             currentVideo?.isMirror = false
@@ -485,7 +483,14 @@ final class EditorViewModel {
             currentVideo?.setVolume(1.0)
             videoPlayer.setVolume(true, value: 1.0)
         case .corrections:
-            currentVideo?.colorCorrection = .init()
+            guard var currentVideo else { break }
+            guard
+                EditorAppearanceEditingCoordinator.restoreDefaultCorrections(
+                    in: &currentVideo
+                )
+            else { break }
+
+            self.currentVideo = currentVideo
             videoPlayer.clearColorCorrection()
         }
 
@@ -516,7 +521,7 @@ final class EditorViewModel {
         videoPlayer: VideoPlayerManager
     ) {
         guard let video else { return }
-        frames = video.videoFrames ?? VideoFrames()
+        frames = EditorAppearanceEditingCoordinator.framesState(from: video)
         videoPlayer.syncPlaybackState(with: video)
         videoPlayer.setColorCorrection(video.colorCorrection)
     }
@@ -565,51 +570,6 @@ final class EditorViewModel {
         }
     }
 
-    func isCropFormatSelected(_ preset: VideoCropFormatPreset) -> Bool {
-        selectedCropPreset() == preset
-    }
-
-    func selectedCropPreset() -> VideoCropFormatPreset {
-        EditorCropEditingCoordinator.selectedCropPreset(
-            from: cropEditingState,
-            referenceSize: currentCropReferenceSize()
-        )
-    }
-
-    func shouldShowCropPresetBadge() -> Bool {
-        selectedCropPreset() != .original
-    }
-
-    func selectedCropPresetBadgeTitle() -> String {
-        if selectedCropPreset() == .vertical9x16 {
-            return "Social"
-        }
-
-        return selectedCropPreset().title
-    }
-
-    func selectedCropPresetBadgeDimension() -> String {
-        let preset = selectedCropPreset()
-
-        switch preset {
-        case .original:
-            let sourceSize = resolvedSourceSizeForBadge()
-            guard sourceSize.width > 0, sourceSize.height > 0 else { return preset.dimensionTitle }
-            return "\(Int(sourceSize.width.rounded()))x\(Int(sourceSize.height.rounded()))"
-        case .vertical9x16,
-            .square1x1,
-            .portrait4x5,
-            .landscape16x9:
-            return preset.dimensionTitle
-        }
-    }
-
-    func isSocialVideoDestinationSelected(
-        _ destination: VideoEditingConfiguration.SocialVideoDestination
-    ) -> Bool {
-        cropPresentationState.socialVideoDestination == destination
-    }
-
     func removeAudio(using videoPlayer: VideoPlayerManager) {
         videoPlayer.pause()
         removeAudio()
@@ -654,7 +614,12 @@ final class EditorViewModel {
     }
 
     private func syncFramesState() {
-        currentVideo?.videoFrames = frames
+        guard var currentVideo else { return }
+        EditorAppearanceEditingCoordinator.syncFrames(
+            frames,
+            into: &currentVideo
+        )
+        self.currentVideo = currentVideo
         markEditingConfigurationChanged()
     }
 
@@ -664,23 +629,34 @@ final class EditorViewModel {
         availableSize: CGSize,
         videoPlayer: VideoPlayerManager
     ) {
-        let containerSize = playerContainerSize(in: availableSize)
-        lastPlayerContainerSize = containerSize
+        guard
+            let bootstrap = EditorSessionCoordinator.beginSourceVideoSession(
+                sourceVideoURL: sourceVideoURL,
+                editingConfiguration: editingConfiguration,
+                availableSize: availableSize,
+                hasLoadedSourceVideo: hasLoadedSourceVideo,
+                containerSizeResolver: playerContainerSize(in:)
+            )
+        else {
+            lastPlayerContainerSize = playerContainerSize(in: availableSize)
+            return
+        }
 
-        guard !hasLoadedSourceVideo, let sourceVideoURL else { return }
+        lastPlayerContainerSize = bootstrap.containerSize
         hasLoadedSourceVideo = true
         prepareEditingConfigurationForInitialLoad(
-            editingConfiguration,
+            bootstrap.editingConfiguration,
             videoPlayer: videoPlayer
         )
-        videoPlayer.loadState = .loaded(sourceVideoURL)
-        setNewVideo(sourceVideoURL, containerSize: containerSize)
+        videoPlayer.loadState = .loaded(bootstrap.sourceVideoURL)
+        setNewVideo(bootstrap.sourceVideoURL, containerSize: bootstrap.containerSize)
     }
 
     func handleRecordedVideo(_ url: URL, videoPlayer: VideoPlayerManager) {
-        hasLoadedSourceVideo = true
-        presentationState.selectedAudioTrack = .video
-        videoPlayer.loadState = .loaded(url)
+        let recordedVideoSession = EditorSessionCoordinator.recordedVideoSession(url)
+        hasLoadedSourceVideo = recordedVideoSession.hasLoadedSourceVideo
+        presentationState.selectedAudioTrack = recordedVideoSession.selectedAudioTrack
+        videoPlayer.loadState = recordedVideoSession.playerLoadState
         setNewVideo(url, containerSize: lastPlayerContainerSize)
     }
 
@@ -700,12 +676,9 @@ final class EditorViewModel {
     }
 
     func currentEditingConfiguration(currentTimelineTime: Double? = nil) -> VideoEditingConfiguration? {
-        guard var currentVideo else { return nil }
-
-        currentVideo.videoFrames = frames.isActive ? frames : nil
-
-        return VideoEditingConfigurationMapper.makeConfiguration(
+        EditorSessionCoordinator.currentEditingConfiguration(
             from: currentVideo,
+            frames: frames,
             freeformRect: cropPresentationState.freeformRect,
             canvasSnapshot: cropPresentationState.canvasEditorState.snapshot(),
             selectedAudioTrack: presentationState.selectedAudioTrack,

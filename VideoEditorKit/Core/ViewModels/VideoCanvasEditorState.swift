@@ -25,6 +25,10 @@ final class VideoCanvasEditorState {
         snapshot().isIdentity
     }
 
+    var shouldShowResetButton: Bool {
+        transform.shouldShowResetButton
+    }
+
     // MARK: - Private Properties
 
     private let mappingActor = VideoCanvasMappingActor()
@@ -92,11 +96,15 @@ final class VideoCanvasEditorState {
 
     func magnifiedTransform(
         from baseline: VideoCanvasTransform,
-        magnification: CGFloat
+        magnification: CGFloat,
+        anchor: CGPoint,
+        previewCanvasSize: CGSize
     ) -> VideoCanvasTransform {
         mappingActor.magnifiedTransform(
             from: baseline,
-            magnification: magnification
+            magnification: magnification,
+            anchor: anchor,
+            previewCanvasSize: previewCanvasSize
         )
     }
 

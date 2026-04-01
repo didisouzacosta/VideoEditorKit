@@ -18,6 +18,20 @@ struct VideoCropFormatPresetTests {
     }
 
     @Test
+    func presetsExposeDisplayNamesAndDimensionsIndependently() {
+        #expect(VideoCropFormatPreset.original.title == "Original")
+        #expect(VideoCropFormatPreset.original.dimensionTitle == "Source")
+        #expect(VideoCropFormatPreset.vertical9x16.title == "Social")
+        #expect(VideoCropFormatPreset.vertical9x16.dimensionTitle == "9:16")
+        #expect(VideoCropFormatPreset.square1x1.title == "Square")
+        #expect(VideoCropFormatPreset.square1x1.dimensionTitle == "1:1")
+        #expect(VideoCropFormatPreset.portrait4x5.title == "Portrait")
+        #expect(VideoCropFormatPreset.portrait4x5.dimensionTitle == "4:5")
+        #expect(VideoCropFormatPreset.landscape16x9.title == "Landscape")
+        #expect(VideoCropFormatPreset.landscape16x9.dimensionTitle == "16:9")
+    }
+
+    @Test
     func verticalPresetCreatesCentered9x16CropForLandscapeVideo() throws {
         let cropRect = try #require(
             VideoCropFormatPreset.vertical9x16.makeFreeformRect(

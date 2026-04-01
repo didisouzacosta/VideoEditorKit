@@ -118,7 +118,7 @@ struct EditorCropEditingCoordinatorTests {
                 for: video,
                 state: .init(
                     canvasSnapshot: .init(
-                        preset: .free,
+                        preset: .original,
                         transform: .init(zoom: 1.2)
                     )
                 )

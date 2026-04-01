@@ -29,13 +29,13 @@ enum VideoCropFormatPreset: String, CaseIterable, Identifiable, Sendable {
         case .original:
             "Original"
         case .vertical9x16:
-            "9:16"
+            "Social"
         case .square1x1:
-            "1:1"
+            "Square"
         case .portrait4x5:
-            "4:5"
+            "Portrait"
         case .landscape16x9:
-            "16:9"
+            "Landscape"
         }
     }
 
