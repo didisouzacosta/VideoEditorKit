@@ -77,7 +77,6 @@ struct VideoCanvasPreviewView<Content: View, Overlay: View>: View {
         .contentShape(Rectangle())
         .overlay {
             overlayContent()
-                .allowsHitTesting(false)
         }
         .onTapGesture(count: 2) {
             guard isInteractive else { return }

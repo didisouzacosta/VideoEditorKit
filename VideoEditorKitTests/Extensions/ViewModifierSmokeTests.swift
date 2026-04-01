@@ -181,6 +181,39 @@ struct ViewModifierSmokeTests {
         )
     }
 
+    @Test
+    func refactoredToolViewsRenderInsideAHostingController() {
+        assertRenders(
+            VStack(spacing: 16) {
+                VideoSpeedToolView(.constant(1.8))
+                VideoCorrectionsToolView(
+                    .constant(
+                        .init(
+                            brightness: 0.2,
+                            contrast: -0.15,
+                            saturation: 0.1
+                        )
+                    )
+                )
+                VideoAudioToolView(
+                    draft: .constant(
+                        .init(
+                            selectedTrack: .recorded,
+                            videoVolume: 0.9,
+                            recordedVolume: 0.35
+                        )
+                    ),
+                    hasRecordedAudioTrack: true
+                )
+                PresentToolView(
+                    selectedPreset: .constant(.portrait4x5),
+                    onSelect: { _ in }
+                )
+            }
+            .padding()
+        )
+    }
+
     // MARK: - Private Methods
 
     private func assertRenders<Content: View>(_ content: Content) {

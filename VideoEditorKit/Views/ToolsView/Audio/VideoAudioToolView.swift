@@ -7,17 +7,77 @@
 
 import SwiftUI
 
+struct AudioToolDraft: Equatable {
+
+    // MARK: - Public Properties
+
+    var selectedTrack: VideoEditingConfiguration.SelectedTrack = .video
+    var videoVolume: Float = 1
+    var recordedVolume: Float = 1
+
+    var selectedTrackVolume: Float {
+        get {
+            switch selectedTrack {
+            case .video:
+                videoVolume
+            case .recorded:
+                recordedVolume
+            }
+        }
+        set {
+            switch selectedTrack {
+            case .video:
+                videoVolume = newValue
+            case .recorded:
+                recordedVolume = newValue
+            }
+        }
+    }
+
+    // MARK: - Initializer
+
+    init(
+        selectedTrack: VideoEditingConfiguration.SelectedTrack = .video,
+        videoVolume: Float = 1,
+        recordedVolume: Float = 1
+    ) {
+        self.selectedTrack = selectedTrack
+        self.videoVolume = videoVolume
+        self.recordedVolume = recordedVolume
+    }
+
+    init(
+        video: Video?,
+        selectedTrack: VideoEditingConfiguration.SelectedTrack
+    ) {
+        self.init(
+            selectedTrack: selectedTrack,
+            videoVolume: video?.volume ?? 1,
+            recordedVolume: video?.audio?.volume ?? 1
+        )
+    }
+
+}
+
 @MainActor
 struct VideoAudioToolView: View {
+
+    // MARK: - Bindings
+
+    @Binding private var draft: AudioToolDraft
+
+    // MARK: - Public Properties
+
+    private let hasRecordedAudioTrack: Bool
 
     // MARK: - Body
 
     var body: some View {
-        let currentVolume = editorVM.selectedTrackVolume()
+        let currentVolume = draft.selectedTrackVolume
 
         VStack(alignment: .leading, spacing: 16) {
-            if editorVM.hasRecordedAudioTrack {
-                Picker("Track", selection: audioTrackSelection) {
+            if hasRecordedAudioTrack {
+                Picker("Track", selection: $draft.selectedTrack) {
                     ForEach(VideoEditingConfiguration.SelectedTrack.allCases) { track in
                         Text(track.title).tag(track)
                     }
@@ -37,32 +97,34 @@ struct VideoAudioToolView: View {
 
     // MARK: - Private Properties
 
-    private let editorVM: EditorViewModel
-    private let videoPlayer: VideoPlayerManager
-
-    private var audioTrackSelection: Binding<VideoEditingConfiguration.SelectedTrack> {
-        Binding(
-            get: { editorVM.presentationState.selectedAudioTrack },
-            set: { editorVM.selectAudioTrack($0) }
-        )
-    }
-
     private var selectedTrackVolume: Binding<Float> {
         Binding(
-            get: { editorVM.selectedTrackVolume() },
-            set: { editorVM.updateSelectedTrackVolume($0, videoPlayer: videoPlayer) }
+            get: { draft.selectedTrackVolume },
+            set: { draft.selectedTrackVolume = $0 }
         )
     }
 
     // MARK: - Initializer
 
-    init(_ videoPlayer: VideoPlayerManager, editorVM: EditorViewModel) {
-        self.videoPlayer = videoPlayer
-        self.editorVM = editorVM
+    init(
+        draft: Binding<AudioToolDraft>,
+        hasRecordedAudioTrack: Bool
+    ) {
+        _draft = draft
+        self.hasRecordedAudioTrack = hasRecordedAudioTrack
     }
 
 }
 
 #Preview {
-    VideoAudioToolView(VideoPlayerManager(), editorVM: EditorViewModel())
+    VideoAudioToolView(
+        draft: .constant(
+            .init(
+                selectedTrack: .recorded,
+                videoVolume: 1,
+                recordedVolume: 0.35
+            )
+        ),
+        hasRecordedAudioTrack: true
+    )
 }

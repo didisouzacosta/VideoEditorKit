@@ -87,12 +87,14 @@ extension PlayerHolderView {
                                         profile: profile,
                                         cornerRadius: 16
                                     )
+                                    .allowsHitTesting(false)
                                 }
                             }
                             .overlay(alignment: .bottom) {
                                 if cropSummary.shouldShowCropPresetBadge {
                                     cropPresetBadge(cropSummary)
                                         .padding(.bottom, 16)
+                                        .allowsHitTesting(false)
                                 }
                             }
                             .overlay(alignment: .bottomTrailing) {

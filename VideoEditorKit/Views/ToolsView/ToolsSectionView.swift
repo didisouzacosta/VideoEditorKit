@@ -11,6 +11,13 @@ import SwiftUI
 @MainActor
 struct ToolsSectionView: View {
 
+    // MARK: - States
+
+    @State private var speedDraft = 1.0
+    @State private var correctionsDraft = ColorCorrection()
+    @State private var presetDraft: VideoCropFormatPreset = .original
+    @State private var audioDraft = AudioToolDraft()
+
     // MARK: - Private Properties
 
     private let videoPlayer: VideoPlayerManager
@@ -20,8 +27,10 @@ struct ToolsSectionView: View {
     // MARK: - Body
 
     var body: some View {
+        let appliedToolIDs = Set(editorViewModel.currentVideo?.toolsApplied ?? [])
+
         PagedToolsRow(configuration.tools) { tool in
-            editorViewModel.currentVideo?.isAppliedTool(for: tool) ?? false
+            appliedToolIDs.contains(tool.rawValue)
         } action: { toolAvailability in
             handleToolTap(toolAvailability)
         }
@@ -56,39 +65,45 @@ struct ToolsSectionView: View {
 extension ToolsSectionView {
 
     fileprivate func toolSheet(_ tool: ToolEnum) -> some View {
-        Group {
+        VStack(spacing: 0) {
             VStack(spacing: 16) {
                 if let video = editorViewModel.currentVideo {
                     toolContent(tool, video)
                 }
             }
-            .safeAreaPadding()
-            .navigationTitle(tool.title)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") {
-                        editorViewModel.closeSelectedTool()
-                    }
-                }
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
+            .padding(.bottom, requiresExplicitApply(tool) ? 20 : 24)
 
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Reset") {
-                        editorViewModel.reset(
-                            tool,
-                            videoPlayer: videoPlayer
-                        )
-                    }
-                    .disabled(!canReset(tool))
+            if requiresExplicitApply(tool) {
+                applyFooter(tool)
+            }
+        }
+        .navigationTitle(tool.title)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Close") {
+                    editorViewModel.closeSelectedTool()
                 }
             }
-            .presentationDragIndicator(.visible)
-            .presentationContentInteraction(contentInteraction(for: tool))
-            .presentationCornerRadius(32)
+
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Reset") {
+                    resetTool(tool)
+                }
+            }
+        }
+        .presentationDragIndicator(.visible)
+        .presentationContentInteraction(contentInteraction(for: tool))
+        .presentationCornerRadius(32)
+        .onAppear {
+            loadDraft(for: tool)
         }
         .modifier(
             CropBackgroundInteractionModifier(
-                isEnabled: tool == .presets
+                isEnabled: false
             )
         )
     }
@@ -120,11 +135,11 @@ extension ToolsSectionView {
     private func initialSheetHeight(for tool: ToolEnum) -> CGFloat {
         switch tool {
         case .audio:
-            220
-        case .speed:
-            260
-        case .presets, .corrections:
             300
+        case .speed:
+            320
+        case .presets, .corrections:
+            380
         case .cut:
             420
         }
@@ -132,15 +147,41 @@ extension ToolsSectionView {
 
     private func contentInteraction(for tool: ToolEnum) -> PresentationContentInteraction {
         switch tool {
-        case .audio:
+        case .audio, .speed, .presets, .corrections:
             .resizes
-        case .speed, .presets, .corrections, .cut:
+        case .cut:
             .scrolls
         }
     }
 
-    private func canReset(_ tool: ToolEnum) -> Bool {
-        editorViewModel.currentVideo?.isAppliedTool(for: tool) ?? false
+    private func requiresExplicitApply(_ tool: ToolEnum) -> Bool {
+        switch tool {
+        case .speed, .presets, .audio, .corrections:
+            true
+        case .cut:
+            false
+        }
+    }
+
+    private func canApply(_ tool: ToolEnum) -> Bool {
+        guard let video = editorViewModel.currentVideo else { return false }
+
+        switch tool {
+        case .speed:
+            return abs(Double(video.rate) - speedDraft) > 0.001
+        case .presets:
+            return editorViewModel.cropPresentationSummary.selectedPreset != presetDraft
+        case .audio:
+            return audioDraft
+                != AudioToolDraft(
+                    video: video,
+                    selectedTrack: editorViewModel.presentationState.selectedAudioTrack
+                )
+        case .corrections:
+            return video.colorCorrection != correctionsDraft
+        case .cut:
+            return false
+        }
     }
 
     // MARK: - Private Properties
@@ -171,27 +212,151 @@ extension ToolsSectionView {
 
     @ViewBuilder
     private func toolContent(_ tool: ToolEnum, _ video: Video) -> some View {
-        let isAppliedTool = video.isAppliedTool(for: tool)
-
         switch tool {
         case .speed:
-            VideoSpeedToolView(Double(video.rate), isChangeState: isAppliedTool) { rate in
-                editorViewModel.handleRateChange(rate, videoPlayer: videoPlayer)
-            }
+            VideoSpeedToolView($speedDraft)
         case .presets:
-            PresentToolView(editorViewModel)
+            PresentToolView(
+                selectedPreset: $presetDraft,
+                onSelect: { presetDraft = $0 }
+            )
         case .audio:
-            VideoAudioToolView(videoPlayer, editorVM: editorViewModel)
+            VideoAudioToolView(
+                draft: $audioDraft,
+                hasRecordedAudioTrack: editorViewModel.hasRecordedAudioTrack
+            )
         case .corrections:
-            VideoCorrectionsToolView(
-                editorViewModel.exportVideo?.colorCorrection ?? .init()
-            ) { corrections in
-                editorViewModel.setCorrections(corrections)
-                videoPlayer.setColorCorrection(corrections)
-            }
+            VideoCorrectionsToolView($correctionsDraft)
         case .cut:
             EmptyView()
         }
+    }
+
+    private func applyFooter(_ tool: ToolEnum) -> some View {
+        let isEnabled = canApply(tool)
+
+        return VStack(spacing: 0) {
+            Button {
+                applyTool(tool)
+            } label: {
+                Text("Apply")
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(Theme.accent.opacity(isEnabled ? 1.0 : 0.45))
+                    )
+                    .contentShape(.capsule)
+            }
+            .buttonStyle(.plain)
+            .disabled(!isEnabled)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 12)
+        .padding(.bottom, 12)
+    }
+
+    private func loadDraft(for tool: ToolEnum) {
+        guard let video = editorViewModel.currentVideo else { return }
+
+        switch tool {
+        case .speed:
+            speedDraft = Double(video.rate)
+        case .presets:
+            presetDraft = editorViewModel.cropPresentationSummary.selectedPreset
+        case .audio:
+            audioDraft = AudioToolDraft(
+                video: video,
+                selectedTrack: editorViewModel.presentationState.selectedAudioTrack
+            )
+        case .corrections:
+            correctionsDraft = video.colorCorrection
+        case .cut:
+            break
+        }
+    }
+
+    private func resetTool(_ tool: ToolEnum) {
+        editorViewModel.reset(
+            tool,
+            videoPlayer: videoPlayer
+        )
+        loadDraft(for: tool)
+        editorViewModel.closeSelectedTool()
+    }
+
+    private func applyTool(_ tool: ToolEnum) {
+        guard let video = editorViewModel.currentVideo else { return }
+
+        switch tool {
+        case .speed:
+            editorViewModel.handleRateChange(
+                Float(speedDraft),
+                videoPlayer: videoPlayer
+            )
+            editorViewModel.closeSelectedTool()
+        case .presets:
+            if presetDraft == editorViewModel.cropPresentationSummary.selectedPreset {
+                editorViewModel.closeSelectedTool()
+            } else {
+                editorViewModel.selectCropFormat(presetDraft)
+            }
+        case .audio:
+            let committedAudioDraft = AudioToolDraft(
+                video: video,
+                selectedTrack: editorViewModel.presentationState.selectedAudioTrack
+            )
+
+            guard audioDraft != committedAudioDraft else {
+                editorViewModel.closeSelectedTool()
+                return
+            }
+
+            editorViewModel.selectAudioTrack(audioDraft.selectedTrack)
+            commitAudioVolumeIfNeeded(
+                committedValue: video.volume,
+                draftValue: audioDraft.videoVolume,
+                track: .video
+            )
+
+            if video.audio != nil {
+                commitAudioVolumeIfNeeded(
+                    committedValue: video.audio?.volume ?? 1,
+                    draftValue: audioDraft.recordedVolume,
+                    track: .recorded
+                )
+            }
+
+            editorViewModel.selectAudioTrack(audioDraft.selectedTrack)
+            editorViewModel.closeSelectedTool()
+        case .corrections:
+            guard correctionsDraft != video.colorCorrection else {
+                editorViewModel.closeSelectedTool()
+                return
+            }
+
+            editorViewModel.setCorrections(correctionsDraft)
+            videoPlayer.setColorCorrection(correctionsDraft)
+            editorViewModel.closeSelectedTool()
+        case .cut:
+            break
+        }
+    }
+
+    private func commitAudioVolumeIfNeeded(
+        committedValue: Float,
+        draftValue: Float,
+        track: VideoEditingConfiguration.SelectedTrack
+    ) {
+        guard abs(Double(committedValue - draftValue)) > 0.001 else { return }
+
+        editorViewModel.selectAudioTrack(track)
+        editorViewModel.updateSelectedTrackVolume(
+            draftValue,
+            videoPlayer: videoPlayer
+        )
     }
 
 }

@@ -11,11 +11,7 @@ struct VideoCorrectionsToolView: View {
 
     // MARK: - Bindings
 
-    @State private var correction: ColorCorrection
-
-    // MARK: - Private Properties
-
-    private let onChange: (ColorCorrection) -> Void
+    @Binding private var correction: ColorCorrection
 
     // MARK: - Body
 
@@ -37,19 +33,12 @@ struct VideoCorrectionsToolView: View {
                 value: $correction.saturation
             )
         }
-        .onChange(of: correction) { _, newValue in
-            onChange(newValue)
-        }
     }
 
     // MARK: - Initializer
 
-    init(
-        _ correction: ColorCorrection,
-        onChange: @escaping (ColorCorrection) -> Void
-    ) {
-        _correction = .init(initialValue: correction)
-        self.onChange = onChange
+    init(_ correction: Binding<ColorCorrection>) {
+        _correction = correction
     }
 
 }
@@ -77,6 +66,5 @@ extension VideoCorrectionsToolView {
 }
 
 #Preview {
-    let colorCorrection = Video.mock.colorCorrection
-    VideoCorrectionsToolView(colorCorrection, onChange: { _ in })
+    VideoCorrectionsToolView(.constant(Video.mock.colorCorrection))
 }

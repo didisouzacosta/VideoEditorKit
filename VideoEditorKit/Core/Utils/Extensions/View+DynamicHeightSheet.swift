@@ -60,12 +60,9 @@ private struct DynamicHeightSheetContainer<SheetContent: View>: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                content
-                    .frame(maxWidth: .infinity, alignment: .topLeading)
-                    .background(sheetHeightReader)
-            }
-            .scrollIndicators(.hidden)
+            content
+                .frame(maxWidth: .infinity, alignment: .topLeading)
+                .background(sheetHeightReader)
         }
         .presentationDetents([.height(resolvedSheetHeight)])
     }

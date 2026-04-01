@@ -10,9 +10,11 @@ import SwiftUI
 @MainActor
 struct PresentToolView: View {
 
-    // MARK: - Private Properties
+    // MARK: - Public Properties
 
-    private let editorVM: EditorViewModel
+    @Binding private var selectedPreset: VideoCropFormatPreset
+
+    private let onSelect: (VideoCropFormatPreset) -> Void
 
     // MARK: - Body
 
@@ -22,8 +24,12 @@ struct PresentToolView: View {
 
     // MARK: - Initializer
 
-    init(_ editorVM: EditorViewModel) {
-        self.editorVM = editorVM
+    init(
+        selectedPreset: Binding<VideoCropFormatPreset>,
+        onSelect: @escaping (VideoCropFormatPreset) -> Void
+    ) {
+        _selectedPreset = selectedPreset
+        self.onSelect = onSelect
     }
 
 }
@@ -54,27 +60,13 @@ extension PresentToolView {
     }
 
     private func cropFormatButton(_ preset: VideoCropFormatPreset) -> some View {
-        let isSelected = editorVM.cropPresentationSummary.isCropFormatSelected(preset)
+        let isSelected = selectedPreset == preset
 
         return Button {
-            editorVM.selectCropFormat(preset)
+            onSelect(preset)
         } label: {
             VStack(alignment: .leading, spacing: 14) {
-                HStack(alignment: .top) {
-                    cropFormatPreview(preset, isSelected: isSelected)
-                    Spacer(minLength: 12)
-
-                    if preset.isSocialVideoPreset {
-                        Text("Social")
-                            .font(.caption2.weight(.bold))
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 5)
-                            .capsuleControl(
-                                prominent: isSelected,
-                                tint: isSelected ? Theme.accent : Theme.secondary
-                            )
-                    }
-                }
+                cropFormatPreview(preset, isSelected: isSelected)
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(preset.title)
@@ -90,6 +82,7 @@ extension PresentToolView {
             }
             .frame(maxWidth: .infinity, minHeight: 118, alignment: .topLeading)
             .padding(16)
+            .contentShape(.rect(cornerRadius: 24))
             .card(
                 cornerRadius: 24,
                 prominent: isSelected,
@@ -141,7 +134,10 @@ extension PresentToolView {
 }
 
 #Preview {
-    PresentToolView(EditorViewModel())
-        .padding()
-        .preferredColorScheme(.dark)
+    PresentToolView(
+        selectedPreset: .constant(.original),
+        onSelect: { _ in }
+    )
+    .padding()
+    .preferredColorScheme(.dark)
 }

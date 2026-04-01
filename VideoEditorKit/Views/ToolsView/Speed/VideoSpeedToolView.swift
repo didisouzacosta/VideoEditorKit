@@ -9,34 +9,22 @@ import SwiftUI
 
 struct VideoSpeedToolView: View {
 
-    // MARK: - States
+    // MARK: - Bindings
 
-    @State private var value: Double = 1
+    @Binding private var value: Double
 
-    // MARK: - Private Properties
-
-    private let isChangeState: Bool?
-    private let onEditingChanged: (Float) -> Void
+    // MARK: - Public Properties
 
     // MARK: - Body
 
     var body: some View {
         HStack {
             Image(systemName: "speedometer")
-            Slider(value: $value, in: rateRange, step: 0.2) { isEditing in
-                if !isEditing {
-                    onEditingChanged(Float(value))
-                }
-            }
+            Slider(value: $value, in: rateRange, step: 0.2)
             Text("\(value, format: .number.precision(.fractionLength(1)))x")
                 .monospacedDigit()
         }
         .font(.caption)
-        .onChange(of: isChangeState) { _, isChange in
-            if !(isChange ?? true) {
-                value = 1
-            }
-        }
     }
 
     // MARK: - Private Properties
@@ -45,15 +33,12 @@ struct VideoSpeedToolView: View {
 
     // MARK: - Initializer
 
-    init(_ value: Double = 1, isChangeState: Bool?, onEditingChanged: @escaping (Float) -> Void) {
-        _value = .init(initialValue: value)
-
-        self.isChangeState = isChangeState
-        self.onEditingChanged = onEditingChanged
+    init(_ value: Binding<Double>) {
+        _value = value
     }
 
 }
 
 #Preview {
-    VideoSpeedToolView(isChangeState: false) { _ in }
+    VideoSpeedToolView(.constant(1))
 }
