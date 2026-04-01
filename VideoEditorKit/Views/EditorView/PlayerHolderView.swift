@@ -61,7 +61,7 @@ extension PlayerHolderView {
             if let video = editorViewModel.currentVideo {
                 GeometryReader { proxy in
                     VideoCanvasPreviewView(
-                        editorViewModel.canvasEditorState,
+                        editorViewModel.cropPresentationState.canvasEditorState,
                         source: editorViewModel.videoCanvasSource(for: video),
                         isInteractive: editorViewModel.isCropOverlayInteractive,
                         cornerRadius: 16,
@@ -97,8 +97,8 @@ extension PlayerHolderView {
                             for: proxy.size,
                             rotation: video.rotation,
                             videoID: video.id,
-                            canvasPreset: editorViewModel.canvasEditorState.preset,
-                            freeCanvasSize: editorViewModel.canvasEditorState.freeCanvasSize
+                            canvasPreset: editorViewModel.cropPresentationState.canvasEditorState.preset,
+                            freeCanvasSize: editorViewModel.cropPresentationState.canvasEditorState.freeCanvasSize
                         )
                     ) {
                         syncVideoLayout(for: proxy.size)
@@ -145,7 +145,7 @@ extension PlayerHolderView {
     private func syncVideoLayout(for containerSize: CGSize) {
         guard let video = editorViewModel.currentVideo else { return }
 
-        let size = editorViewModel.canvasEditorState.previewLayout(
+        let size = editorViewModel.cropPresentationState.canvasEditorState.previewLayout(
             source: editorViewModel.videoCanvasSource(for: video),
             availableSize: containerSize
         ).previewCanvasSize

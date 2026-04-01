@@ -233,7 +233,7 @@ extension Double {
 
 }
 
-struct ThumbnailImage: Identifiable {
+struct ThumbnailImage: Identifiable, @unchecked Sendable {
 
     // MARK: - Public Properties
 

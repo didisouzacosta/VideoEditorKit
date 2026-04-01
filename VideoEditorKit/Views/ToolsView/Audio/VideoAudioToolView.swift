@@ -10,11 +10,6 @@ import SwiftUI
 @MainActor
 struct VideoAudioToolView: View {
 
-    // MARK: - Private Properties
-
-    private let editorVM: EditorViewModel
-    private let videoPlayer: VideoPlayerManager
-
     // MARK: - Body
 
     var body: some View {
@@ -22,8 +17,8 @@ struct VideoAudioToolView: View {
 
         VStack(alignment: .leading, spacing: 16) {
             if editorVM.hasRecordedAudioTrack {
-                Picker("Track", selection: editorVM.audioTrackSelectionBinding()) {
-                    ForEach(EditorViewModel.AudioTrackSelection.allCases) { track in
+                Picker("Track", selection: audioTrackSelection) {
+                    ForEach(VideoEditingConfiguration.SelectedTrack.allCases) { track in
                         Text(track.title).tag(track)
                     }
                 }
@@ -32,12 +27,31 @@ struct VideoAudioToolView: View {
 
             HStack {
                 Image(systemName: currentVolume > 0 ? "speaker.wave.2.fill" : "speaker.slash.fill")
-                Slider(value: editorVM.selectedTrackVolumeBinding(videoPlayer: videoPlayer), in: 0...1) { _ in }
+                Slider(value: selectedTrackVolume, in: 0...1) { _ in }
                     .tint(Theme.accent)
                 Text("\(Int(currentVolume * 100))")
             }
             .font(.caption)
         }
+    }
+
+    // MARK: - Private Properties
+
+    private let editorVM: EditorViewModel
+    private let videoPlayer: VideoPlayerManager
+
+    private var audioTrackSelection: Binding<VideoEditingConfiguration.SelectedTrack> {
+        Binding(
+            get: { editorVM.presentationState.selectedAudioTrack },
+            set: { editorVM.selectAudioTrack($0) }
+        )
+    }
+
+    private var selectedTrackVolume: Binding<Float> {
+        Binding(
+            get: { editorVM.selectedTrackVolume() },
+            set: { editorVM.updateSelectedTrackVolume($0, videoPlayer: videoPlayer) }
+        )
     }
 
     // MARK: - Initializer

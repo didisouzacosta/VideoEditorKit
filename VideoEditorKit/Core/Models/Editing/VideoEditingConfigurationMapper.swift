@@ -17,7 +17,7 @@ enum VideoEditingConfigurationMapper {
         from video: Video,
         freeformRect: VideoEditingConfiguration.FreeformRect? = nil,
         canvasSnapshot: VideoCanvasSnapshot = .initial,
-        selectedAudioTrack: EditorViewModel.AudioTrackSelection = .video,
+        selectedAudioTrack: VideoEditingConfiguration.SelectedTrack = .video,
         selectedTool: ToolEnum? = nil,
         socialVideoDestination: VideoEditingConfiguration.SocialVideoDestination? = nil,
         showsSafeAreaGuides: Bool = false,
@@ -60,7 +60,7 @@ enum VideoEditingConfigurationMapper {
                         volume: $0.volume
                     )
                 },
-                selectedTrack: mapSelectedTrack(selectedAudioTrack)
+                selectedTrack: selectedAudioTrack
             ),
             presentation: .init(
                 selectedTool,
@@ -113,26 +113,8 @@ enum VideoEditingConfigurationMapper {
 
     static func selectedAudioTrack(
         from configuration: VideoEditingConfiguration
-    ) -> EditorViewModel.AudioTrackSelection {
-        switch configuration.audio.selectedTrack {
-        case .video:
-            .video
-        case .recorded:
-            .recorded
-        }
-    }
-
-    // MARK: - Private Methods
-
-    private static func mapSelectedTrack(
-        _ selectedAudioTrack: EditorViewModel.AudioTrackSelection
     ) -> VideoEditingConfiguration.SelectedTrack {
-        switch selectedAudioTrack {
-        case .video:
-            .video
-        case .recorded:
-            .recorded
-        }
+        configuration.audio.selectedTrack
     }
 
     private static func restoredToolsApplied(

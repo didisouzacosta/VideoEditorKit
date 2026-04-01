@@ -402,7 +402,7 @@ struct VideoEditorGeometryTests {
     }
 
     @Test
-    func resolvedOutputRenderSizeScalesPortraitCropUpToPortraitQualityBounds() {
+    func resolvedOutputRenderSizeUsesExactCanvasSizeForPortraitCropPresets() {
         let configuration = VideoEditingConfiguration(
             crop: .init(
                 freeformRect: .init(
@@ -424,7 +424,7 @@ struct VideoEditorGeometryTests {
             videoQuality: .medium
         )
 
-        #expect(renderSize == CGSize(width: 720, height: 1280))
+        #expect(renderSize == CGSize(width: 1080, height: 1920))
     }
 
 }

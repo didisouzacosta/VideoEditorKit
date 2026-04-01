@@ -147,7 +147,7 @@ extension ToolsSectionView {
 
     private var selectedToolBinding: Binding<ToolEnum?> {
         Binding(
-            get: { editorViewModel.selectedTools },
+            get: { editorViewModel.presentationState.selectedTool },
             set: { newValue in
                 if let newValue {
                     editorViewModel.selectTool(newValue)
@@ -183,7 +183,10 @@ extension ToolsSectionView {
         case .audio:
             VideoAudioToolView(videoPlayer, editorVM: editorViewModel)
         case .corrections:
-            VideoCorrectionsToolView(editorViewModel.exportVideo?.colorCorrection ?? .init()) { corrections in
+            VideoCorrectionsToolView(
+                editorViewModel.exportVideo?.colorCorrection ?? .init()
+            ) { corrections in
+                editorViewModel.setCorrections(corrections)
                 videoPlayer.setColorCorrection(corrections)
             }
         case .cut:

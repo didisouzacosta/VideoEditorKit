@@ -7,11 +7,11 @@
 
 import AVKit
 import Combine
-@preconcurrency import CoreImage
 import Foundation
 import Observation
 import PhotosUI
 import SwiftUI
+@preconcurrency import CoreImage
 
 struct VideoPlayerManagerDependencies: Sendable {
 
@@ -554,13 +554,7 @@ extension VideoPlayerManager {
     // MARK: - Public Methods
 
     func setColorCorrection(_ colorCorrection: ColorCorrection?) {
-        let resolvedCorrection = colorCorrection ?? .init()
-        guard previewColorCorrection != resolvedCorrection else { return }
-
-        previewColorCorrection = resolvedCorrection
-
-        guard videoPlayer.currentItem != nil else { return }
-
+        previewColorCorrection = colorCorrection ?? .init()
         scheduleColorCorrectionCompositionUpdate()
     }
 

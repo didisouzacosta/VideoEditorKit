@@ -310,9 +310,24 @@ extension VideoEditingConfiguration {
 
     }
 
-    enum SelectedTrack: String, Codable, Equatable, Sendable {
+    enum SelectedTrack: String, Codable, Equatable, Sendable, CaseIterable, Identifiable {
         case video
         case recorded
+
+        // MARK: - Public Properties
+
+        var id: String {
+            rawValue
+        }
+
+        var title: String {
+            switch self {
+            case .video:
+                "Video"
+            case .recorded:
+                "Recorded"
+            }
+        }
     }
 
     enum SocialVideoDestination: String, Codable, CaseIterable, Equatable, Sendable {

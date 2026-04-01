@@ -31,7 +31,7 @@ struct VideoEditorView: View {
     // MARK: - Body
 
     var body: some View {
-        @Bindable var bindableEditorViewModel = editorViewModel
+        @Bindable var bindablePresentationState = editorViewModel.presentationState
 
         NavigationStack {
             GeometryReader { proxy in
@@ -89,7 +89,7 @@ struct VideoEditorView: View {
         }
         .onDisappear(perform: editorViewModel.cancelDeferredTasks)
         .dynamicHeightSheet(
-            isPresented: $bindableEditorViewModel.showVideoQualitySheet,
+            isPresented: $bindablePresentationState.showVideoQualitySheet,
             initialHeight: 420
         ) {
             if let video = editorViewModel.currentVideo {
@@ -108,7 +108,7 @@ struct VideoEditorView: View {
                 }
             }
         }
-        .fullScreenCover(isPresented: $bindableEditorViewModel.showRecordView) {
+        .fullScreenCover(isPresented: $bindablePresentationState.showRecordView) {
             RecordVideoView { url in
                 editorViewModel.handleRecordedVideo(url, videoPlayer: videoPlayer)
             }
@@ -116,7 +116,7 @@ struct VideoEditorView: View {
         .onChange(of: videoPlayer.isPlaying) { _, isPlaying in
             handlePlaybackLockChange(isPlaying)
         }
-        .onChange(of: editorViewModel.editingConfigurationChangeCounter) { _, _ in
+        .onChange(of: editorViewModel.presentationState.editingConfigurationRevision) { _, _ in
             publishEditingConfigurationIfNeeded()
         }
         .onChange(of: configuration.tools) { _, newValue in

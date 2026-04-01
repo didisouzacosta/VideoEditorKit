@@ -64,13 +64,98 @@ struct EditorViewModelTests {
     }
 
     @Test
+    func refreshThumbnailsIfNeededKeepsTheLatestThumbnailRequestForTheSameVideo() async {
+        let thumbnailProbe = ThumbnailLoaderProbe()
+        let viewModel = EditorViewModel(
+            .init(
+                loadVideo: { await Video.load(from: $0) },
+                makeThumbnails: { _, _, _ in
+                    await thumbnailProbe.load()
+                },
+                sleep: { try await Task.sleep(for: $0) }
+            )
+        )
+        var video = Video.mock
+        video.thumbnailsImages = []
+        viewModel.currentVideo = video
+
+        viewModel.refreshThumbnailsIfNeeded(
+            containerSize: CGSize(width: 300, height: 120)
+        )
+        viewModel.refreshThumbnailsIfNeeded(
+            containerSize: CGSize(width: 420, height: 120)
+        )
+
+        await thumbnailProbe.resumeNext(
+            with: [
+                .init(image: TestFixtures.makeSolidImage(color: .systemRed))
+            ]
+        )
+        await thumbnailProbe.resumeNext(
+            with: [
+                .init(image: TestFixtures.makeSolidImage(color: .systemGreen))
+            ]
+        )
+
+        for _ in 0..<10 where viewModel.currentVideo?.thumbnailsImages.count != 1 {
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+
+        let resolvedImage = try? #require(viewModel.currentVideo?.thumbnailsImages.first?.image)
+        let resolvedPixel = resolvedImage?.pngData()
+        let expectedPixel = TestFixtures.makeSolidImage(color: .systemGreen).pngData()
+        #expect(resolvedPixel == expectedPixel)
+    }
+
+    @Test
+    func applyLoadedThumbnailsIgnoresResultsForAnotherVideo() {
+        let viewModel = EditorViewModel()
+        var video = Video.mock
+        video.thumbnailsImages = []
+        viewModel.currentVideo = video
+
+        viewModel.applyLoadedThumbnails(
+            [
+                .init(image: TestFixtures.makeSolidImage(color: .systemRed))
+            ],
+            for: .init(videoID: UUID(), generation: 0)
+        )
+
+        #expect(viewModel.currentVideo?.thumbnailsImages.isEmpty == true)
+    }
+
+    @Test
+    func applyLoadedThumbnailsIgnoresStaleGenerations() {
+        let viewModel = EditorViewModel()
+        var video = Video.mock
+        video.thumbnailsImages = []
+        viewModel.currentVideo = video
+
+        viewModel.refreshThumbnailsIfNeeded(
+            containerSize: CGSize(width: 300, height: 120)
+        )
+        viewModel.refreshThumbnailsIfNeeded(
+            containerSize: CGSize(width: 420, height: 120)
+        )
+
+        viewModel.applyLoadedThumbnails(
+            [
+                .init(image: TestFixtures.makeSolidImage(color: .systemRed))
+            ],
+            for: .init(videoID: video.id, generation: 1)
+        )
+
+        #expect(viewModel.currentVideo?.thumbnailsImages.isEmpty == true)
+    }
+
+    @Test
     func exportVideoOnlyExistsWhileTheQualitySheetIsPresented() {
         let viewModel = EditorViewModel()
         viewModel.currentVideo = Video.mock
 
         #expect(viewModel.exportVideo == nil)
 
-        viewModel.showVideoQualitySheet = true
+        viewModel.presentationState.showVideoQualitySheet = true
 
         #expect(viewModel.exportVideo?.id == viewModel.currentVideo?.id)
     }
@@ -95,19 +180,24 @@ struct EditorViewModelTests {
     }
 
     @Test
-    func colorCorrectionBindingMutatesTheCurrentVideoImmediately() {
+    func setCorrectionsMutatesTheCurrentVideoImmediately() {
         let viewModel = EditorViewModel()
         viewModel.currentVideo = Video.mock
-        let binding = viewModel.colorCorrectionBinding()
         let correction = ColorCorrection(
             brightness: 0.2,
             contrast: -0.1,
             saturation: 0.35
         )
 
-        binding.wrappedValue = correction
+        viewModel.setCorrections(correction)
 
         #expect(viewModel.currentVideo?.colorCorrection == correction)
+        #expect(viewModel.currentVideo?.isAppliedTool(for: .corrections) == true)
+
+        viewModel.setCorrections(.init())
+
+        #expect(viewModel.currentVideo?.colorCorrection == .init())
+        #expect(viewModel.currentVideo?.isAppliedTool(for: .corrections) == false)
     }
 
     @Test
@@ -233,19 +323,19 @@ struct EditorViewModelTests {
 
         viewModel.selectCropFormat(.vertical9x16)
 
-        let cropRect = try #require(viewModel.cropFreeformRect)
+        let cropRect = try #require(viewModel.cropPresentationState.freeformRect)
         #expect(abs(cropRect.x - 0.341796875) < 0.0001)
         #expect(abs(cropRect.width - 0.31640625) < 0.0001)
         #expect(abs(cropRect.y - 0) < 0.0001)
         #expect(abs(cropRect.height - 1) < 0.0001)
-        #expect(viewModel.selectedTools == nil)
+        #expect(viewModel.presentationState.selectedTool == nil)
         #expect(viewModel.currentVideo?.isAppliedTool(for: .presets) == true)
         #expect(viewModel.shouldShowCropOverlay)
         #expect(viewModel.isCropOverlayInteractive)
         #expect(viewModel.shouldUseCropPresetSpotlight)
         #expect(viewModel.isCropFormatSelected(.vertical9x16))
-        #expect(viewModel.socialVideoDestination == nil)
-        #expect(viewModel.showsSafeAreaOverlay)
+        #expect(viewModel.cropPresentationState.socialVideoDestination == nil)
+        #expect(viewModel.cropPresentationState.showsSafeAreaOverlay)
         #expect(viewModel.shouldShowSafeAreaOverlay)
         #expect(viewModel.activeSafeAreaGuideProfile == .universalSocial)
     }
@@ -261,12 +351,12 @@ struct EditorViewModelTests {
 
         viewModel.selectCropFormat(.original)
 
-        #expect(viewModel.cropFreeformRect == nil)
+        #expect(viewModel.cropPresentationState.freeformRect == nil)
         #expect(viewModel.shouldShowCropOverlay == false)
         #expect(viewModel.currentVideo?.isAppliedTool(for: .presets) == false)
         #expect(viewModel.isCropFormatSelected(.original))
-        #expect(viewModel.socialVideoDestination == nil)
-        #expect(viewModel.showsSafeAreaOverlay == false)
+        #expect(viewModel.cropPresentationState.socialVideoDestination == nil)
+        #expect(viewModel.cropPresentationState.showsSafeAreaOverlay == false)
         #expect(viewModel.isCropOverlayInteractive == false)
         #expect(viewModel.shouldUseCropPresetSpotlight == false)
         #expect(viewModel.selectedCropPresetBadgeTitle() == "Original")
@@ -283,9 +373,9 @@ struct EditorViewModelTests {
 
         viewModel.selectCropFormat(.vertical9x16)
 
-        #expect(viewModel.canvasEditorState.preset == .story)
-        #expect(viewModel.canvasEditorState.transform == .identity)
-        #expect(viewModel.canvasEditorState.showsSafeAreaOverlay)
+        #expect(viewModel.cropPresentationState.canvasEditorState.preset == .story)
+        #expect(viewModel.cropPresentationState.canvasEditorState.transform == .identity)
+        #expect(viewModel.cropPresentationState.canvasEditorState.showsSafeAreaOverlay)
     }
 
     @Test
@@ -298,13 +388,13 @@ struct EditorViewModelTests {
 
         viewModel.selectSocialVideoDestination(.youtubeShorts)
 
-        #expect(viewModel.socialVideoDestination == .youtubeShorts)
+        #expect(viewModel.cropPresentationState.socialVideoDestination == .youtubeShorts)
         #expect(viewModel.isCropFormatSelected(.vertical9x16))
         #expect(viewModel.isSocialVideoDestinationSelected(.youtubeShorts))
         #expect(viewModel.selectedCropPreset() == .vertical9x16)
         #expect(viewModel.selectedCropPresetBadgeTitle() == "Social")
         #expect(viewModel.selectedCropPresetBadgeDimension() == "9:16")
-        #expect(viewModel.showsSafeAreaOverlay)
+        #expect(viewModel.cropPresentationState.showsSafeAreaOverlay)
     }
 
     @Test
@@ -329,7 +419,7 @@ struct EditorViewModelTests {
         viewModel.selectTool(.presets)
         viewModel.selectSocialVideoDestination(.tikTok)
 
-        viewModel.showsSafeAreaOverlay = false
+        viewModel.cropPresentationState.showsSafeAreaOverlay = false
 
         #expect(viewModel.shouldShowSafeAreaOverlay == false)
         #expect(viewModel.activeSafeAreaGuideProfile == nil)
@@ -346,11 +436,11 @@ struct EditorViewModelTests {
 
         viewModel.selectCropFormat(.portrait4x5)
 
-        let cropRect = try #require(viewModel.cropFreeformRect)
+        let cropRect = try #require(viewModel.cropPresentationState.freeformRect)
         #expect(abs(cropRect.x - 0.275) < 0.0001)
         #expect(abs(cropRect.width - 0.45) < 0.0001)
-        #expect(viewModel.socialVideoDestination == nil)
-        #expect(viewModel.showsSafeAreaOverlay == false)
+        #expect(viewModel.cropPresentationState.socialVideoDestination == nil)
+        #expect(viewModel.cropPresentationState.showsSafeAreaOverlay == false)
         #expect(viewModel.shouldUseCropPresetSpotlight)
         #expect(viewModel.selectedCropPreset() == .portrait4x5)
         #expect(viewModel.selectedCropPresetBadgeTitle() == "4:5")
@@ -370,7 +460,7 @@ struct EditorViewModelTests {
             viewModel.currentEditingConfiguration(currentTimelineTime: 12)
         )
         let cropRect = try #require(configuration.crop.freeformRect)
-        let activeRect = try #require(viewModel.cropFreeformRect)
+        let activeRect = try #require(viewModel.cropPresentationState.freeformRect)
 
         #expect(configuration.presentation.socialVideoDestination == nil)
         #expect(configuration.presentation.showsSafeAreaGuides)
@@ -386,7 +476,7 @@ struct EditorViewModelTests {
         var video = Video.mock
         video.presentationSize = CGSize(width: 1920, height: 1080)
         viewModel.currentVideo = video
-        viewModel.canvasEditorState.restore(
+        viewModel.cropPresentationState.canvasEditorState.restore(
             .init(
                 preset: .facebookPost,
                 freeCanvasSize: CGSize(width: 1080, height: 1350),
@@ -434,9 +524,9 @@ struct EditorViewModelTests {
 
         await viewModel.restorePendingEditingPresentationState()
 
-        #expect(viewModel.canvasEditorState.preset == .social(platform: .tiktok))
-        #expect(viewModel.canvasEditorState.showsSafeAreaOverlay)
-        #expect(viewModel.canvasEditorState.transform == .identity)
+        #expect(viewModel.cropPresentationState.canvasEditorState.preset == .social(platform: .tiktok))
+        #expect(viewModel.cropPresentationState.canvasEditorState.showsSafeAreaOverlay)
+        #expect(viewModel.cropPresentationState.canvasEditorState.transform == .identity)
     }
 
     @Test
@@ -470,9 +560,9 @@ struct EditorViewModelTests {
 
         await viewModel.restorePendingEditingPresentationState()
 
-        #expect(viewModel.canvasEditorState.snapshot() == persistedSnapshot)
-        #expect(viewModel.socialVideoDestination == .instagramReels)
-        #expect(viewModel.showsSafeAreaOverlay == true)
+        #expect(viewModel.cropPresentationState.canvasEditorState.snapshot() == persistedSnapshot)
+        #expect(viewModel.cropPresentationState.socialVideoDestination == .instagramReels)
+        #expect(viewModel.cropPresentationState.showsSafeAreaOverlay == true)
     }
 
     @Test
@@ -486,7 +576,7 @@ struct EditorViewModelTests {
 
         viewModel.toggleSafeAreaOverlay()
 
-        #expect(viewModel.showsSafeAreaOverlay == false)
+        #expect(viewModel.cropPresentationState.showsSafeAreaOverlay == false)
         #expect(viewModel.shouldShowSafeAreaOverlay == false)
         #expect(viewModel.activeSafeAreaGuideProfile == nil)
     }
@@ -503,7 +593,7 @@ struct EditorViewModelTests {
         viewModel.setAudio(Audio(url: audioURL, duration: 3, volume: 0.5))
 
         #expect(viewModel.currentVideo?.audio?.url == audioURL)
-        #expect(viewModel.selectedAudioTrack == .recorded)
+        #expect(viewModel.presentationState.selectedAudioTrack == .recorded)
         #expect(viewModel.currentVideo?.isAppliedTool(for: .audio) == true)
     }
 
@@ -516,13 +606,13 @@ struct EditorViewModelTests {
         video.appliedTool(for: .audio)
         viewModel.currentVideo = video
         viewModel.selectTool(.audio)
-        viewModel.selectedAudioTrack = .recorded
+        viewModel.presentationState.selectedAudioTrack = .recorded
 
         viewModel.removeAudio()
 
         #expect(FileManager.default.fileExists(atPath: audioURL.path()) == false)
         #expect(viewModel.currentVideo?.audio == nil)
-        #expect(viewModel.selectedAudioTrack == .video)
+        #expect(viewModel.presentationState.selectedAudioTrack == .video)
         #expect(viewModel.currentVideo?.isAppliedTool(for: .audio) == false)
     }
 
@@ -533,7 +623,7 @@ struct EditorViewModelTests {
 
         viewModel.selectAudioTrack(.recorded)
 
-        #expect(viewModel.selectedAudioTrack == .video)
+        #expect(viewModel.presentationState.selectedAudioTrack == .video)
     }
 
     @Test
@@ -543,7 +633,7 @@ struct EditorViewModelTests {
         var video = Video.mock
         video.appliedTool(for: .audio)
         viewModel.currentVideo = video
-        viewModel.selectedAudioTrack = .video
+        viewModel.presentationState.selectedAudioTrack = .video
 
         viewModel.updateSelectedTrackVolume(1.0, videoPlayer: videoPlayer)
 
@@ -552,28 +642,62 @@ struct EditorViewModelTests {
     }
 
     @Test
-    func editingConfigurationChangeCounterAdvancesWhenEditingStateMutates() {
+    func editingConfigurationRevisionAdvancesWhenEditingStateMutates() {
         let viewModel = EditorViewModel()
         viewModel.currentVideo = Video.mock
-        let initialCounter = viewModel.editingConfigurationChangeCounter
+        let initialRevision = viewModel.presentationState.editingConfigurationRevision
 
         viewModel.selectTool(.corrections)
         viewModel.setCorrections(ColorCorrection(brightness: 0.2))
 
-        #expect(viewModel.editingConfigurationChangeCounter > initialCounter)
+        #expect(viewModel.presentationState.editingConfigurationRevision > initialRevision)
     }
 
     @Test
-    func frameBindingsAdvanceTheEditingConfigurationChangeCounter() {
+    func frameEditsAdvanceTheEditingConfigurationRevision() {
         let viewModel = EditorViewModel()
-        let initialCounter = viewModel.editingConfigurationChangeCounter
-        let colorBinding = viewModel.frameColorBinding()
-        let scaleBinding = viewModel.frameScaleBinding()
+        viewModel.currentVideo = Video.mock
+        let initialRevision = viewModel.presentationState.editingConfigurationRevision
 
-        colorBinding.wrappedValue = .red
-        scaleBinding.wrappedValue = 0.35
+        viewModel.setFrameColor(.red)
+        viewModel.setFrameScale(0.35)
 
-        #expect(viewModel.editingConfigurationChangeCounter >= initialCounter + 2)
+        #expect(viewModel.presentationState.editingConfigurationRevision >= initialRevision + 2)
+    }
+
+    @Test
+    func reapplyingSpeedCancelsThePendingResetRemovalTask() async {
+        let sleepProbe = DeferredSleepProbe()
+        let viewModel = EditorViewModel(
+            .init(
+                loadVideo: { await Video.load(from: $0) },
+                makeThumbnails: { video, containerSize, displayScale in
+                    await video.makeThumbnails(
+                        containerSize: containerSize,
+                        displayScale: displayScale
+                    )
+                },
+                sleep: { _ in
+                    try await sleepProbe.sleep()
+                    try Task.checkCancellation()
+                }
+            )
+        )
+        let videoPlayer = VideoPlayerManager()
+        var video = Video.mock
+        video.rate = 2
+        video.appliedTool(for: .speed)
+        viewModel.currentVideo = video
+        viewModel.selectTool(.speed)
+
+        viewModel.reset(.speed, videoPlayer: videoPlayer)
+        viewModel.updateRate(rate: 1.5)
+
+        await sleepProbe.resumeNext()
+        try? await Task.sleep(for: .milliseconds(10))
+
+        #expect(abs(Double(viewModel.currentVideo?.rate ?? 0) - 1.5) < 0.0001)
+        #expect(viewModel.currentVideo?.isAppliedTool(for: .speed) == true)
     }
 
     @Test
@@ -585,13 +709,13 @@ struct EditorViewModelTests {
         ])
 
         viewModel.selectTool(.corrections)
-        #expect(viewModel.selectedTools == .corrections)
+        #expect(viewModel.presentationState.selectedTool == .corrections)
 
         viewModel.selectTool(.speed)
-        #expect(viewModel.selectedTools == .corrections)
+        #expect(viewModel.presentationState.selectedTool == .corrections)
 
         viewModel.selectTool(.audio)
-        #expect(viewModel.selectedTools == .corrections)
+        #expect(viewModel.presentationState.selectedTool == .corrections)
     }
 
     @Test
@@ -604,20 +728,22 @@ struct EditorViewModelTests {
             .init(.presets),
         ])
 
-        #expect(viewModel.selectedTools == nil)
+        #expect(viewModel.presentationState.selectedTool == nil)
     }
 
     @Test
-    func frameBindingsMutateTheSharedFramesState() {
+    func frameEditsMutateTheSharedFramesState() throws {
         let viewModel = EditorViewModel()
-        let colorBinding = viewModel.frameColorBinding()
-        let scaleBinding = viewModel.frameScaleBinding()
+        viewModel.currentVideo = Video.mock
 
-        colorBinding.wrappedValue = .red
-        scaleBinding.wrappedValue = 0.35
+        viewModel.setFrameColor(.red)
+        viewModel.setFrameScale(0.35)
 
         #expect(SystemColorPalette.matches(viewModel.frames.frameColor, .red))
         #expect(abs(viewModel.frames.scaleValue - 0.35) < 0.0001)
+        let persistedFrameColor = try #require(viewModel.currentVideo?.videoFrames?.frameColor)
+        #expect(SystemColorPalette.matches(persistedFrameColor, .red))
+        #expect(abs((viewModel.currentVideo?.videoFrames?.scaleValue ?? 0) - 0.35) < 0.0001)
     }
 
     @Test
@@ -639,14 +765,76 @@ struct EditorViewModelTests {
 
         viewModel.presentExporter()
 
-        #expect(viewModel.selectedTools == nil)
-        #expect(viewModel.showVideoQualitySheet == false)
+        #expect(viewModel.presentationState.selectedTool == nil)
+        #expect(viewModel.presentationState.showVideoQualitySheet == false)
 
-        for _ in 0..<10 where !viewModel.showVideoQualitySheet {
+        for _ in 0..<10 where !viewModel.presentationState.showVideoQualitySheet {
             try? await Task.sleep(for: .milliseconds(100))
         }
 
-        #expect(viewModel.showVideoQualitySheet)
+        #expect(viewModel.presentationState.showVideoQualitySheet)
+    }
+
+    @Test
+    func cancelDeferredTasksCancelsTheDeferredExporterPresentation() async {
+        let sleepProbe = DeferredSleepProbe()
+        let viewModel = EditorViewModel(
+            .init(
+                loadVideo: { await Video.load(from: $0) },
+                makeThumbnails: { video, containerSize, displayScale in
+                    await video.makeThumbnails(
+                        containerSize: containerSize,
+                        displayScale: displayScale
+                    )
+                },
+                sleep: { _ in
+                    try await sleepProbe.sleep()
+                    try Task.checkCancellation()
+                }
+            )
+        )
+
+        viewModel.presentExporter()
+        viewModel.cancelDeferredTasks()
+
+        await sleepProbe.resumeNext()
+        try? await Task.sleep(for: .milliseconds(10))
+
+        #expect(viewModel.presentationState.showVideoQualitySheet == false)
+    }
+
+    @Test
+    func cancelDeferredTasksAlsoCancelsPendingToolResetRemoval() async {
+        let sleepProbe = DeferredSleepProbe()
+        let viewModel = EditorViewModel(
+            .init(
+                loadVideo: { await Video.load(from: $0) },
+                makeThumbnails: { video, containerSize, displayScale in
+                    await video.makeThumbnails(
+                        containerSize: containerSize,
+                        displayScale: displayScale
+                    )
+                },
+                sleep: { _ in
+                    try await sleepProbe.sleep()
+                    try Task.checkCancellation()
+                }
+            )
+        )
+        let videoPlayer = VideoPlayerManager()
+        var video = Video.mock
+        video.rate = 2
+        video.appliedTool(for: .speed)
+        viewModel.currentVideo = video
+        viewModel.selectTool(.speed)
+
+        viewModel.reset(.speed, videoPlayer: videoPlayer)
+        viewModel.cancelDeferredTasks()
+
+        await sleepProbe.resumeNext()
+        try? await Task.sleep(for: .milliseconds(10))
+
+        #expect(viewModel.currentVideo?.isAppliedTool(for: .speed) == true)
     }
 
     @Test
@@ -717,11 +905,11 @@ struct EditorViewModelTests {
         #expect(viewModel.currentVideo?.rotation == 90)
         #expect(viewModel.currentVideo?.isMirror == true)
         #expect(viewModel.currentVideo?.audio?.url == audioURL)
-        #expect(viewModel.selectedAudioTrack == .recorded)
-        #expect(viewModel.cropFreeformRect == editingConfiguration.crop.freeformRect)
-        #expect(viewModel.socialVideoDestination == .tikTok)
-        #expect(viewModel.showsSafeAreaOverlay)
-        #expect(viewModel.selectedTools == .corrections)
+        #expect(viewModel.presentationState.selectedAudioTrack == .recorded)
+        #expect(viewModel.cropPresentationState.freeformRect == editingConfiguration.crop.freeformRect)
+        #expect(viewModel.cropPresentationState.socialVideoDestination == .tikTok)
+        #expect(viewModel.cropPresentationState.showsSafeAreaOverlay)
+        #expect(viewModel.presentationState.selectedTool == .corrections)
         #expect(viewModel.currentVideo?.isAppliedTool(for: .cut) == true)
         #expect(viewModel.currentVideo?.isAppliedTool(for: .speed) == true)
         #expect(viewModel.currentVideo?.isAppliedTool(for: .presets) == true)
@@ -756,15 +944,15 @@ struct EditorViewModelTests {
             scaleValue: 0.3,
             frameColor: Color(uiColor: .systemOrange)
         )
-        viewModel.selectedAudioTrack = .recorded
-        viewModel.cropFreeformRect = .init(
+        viewModel.presentationState.selectedAudioTrack = .recorded
+        viewModel.cropPresentationState.freeformRect = .init(
             x: 0.12,
             y: 0.08,
             width: 0.72,
             height: 0.6
         )
-        viewModel.socialVideoDestination = .youtubeShorts
-        viewModel.showsSafeAreaOverlay = true
+        viewModel.cropPresentationState.socialVideoDestination = .youtubeShorts
+        viewModel.cropPresentationState.showsSafeAreaOverlay = true
         viewModel.selectTool(.corrections)
 
         let configuration = viewModel.currentEditingConfiguration(currentTimelineTime: 9)
@@ -775,7 +963,7 @@ struct EditorViewModelTests {
         #expect(abs(Double(configuration?.playback.currentTimelineTime ?? 0) - 9) < 0.0001)
         #expect(configuration?.crop.rotationDegrees == 180)
         #expect(configuration?.crop.isMirrored == true)
-        #expect(configuration?.crop.freeformRect == viewModel.cropFreeformRect)
+        #expect(configuration?.crop.freeformRect == viewModel.cropPresentationState.freeformRect)
         #expect(abs((configuration?.corrections.brightness ?? 0) - 0.2) < 0.0001)
         #expect(configuration?.frame.colorToken == "palette:orange")
         #expect(configuration?.audio.selectedTrack == .recorded)
@@ -796,8 +984,8 @@ struct EditorViewModelTests {
 
         viewModel.toggleSafeAreaOverlay()
 
-        #expect(viewModel.socialVideoDestination == .instagramReels)
-        #expect(viewModel.showsSafeAreaOverlay == false)
+        #expect(viewModel.cropPresentationState.socialVideoDestination == .instagramReels)
+        #expect(viewModel.cropPresentationState.showsSafeAreaOverlay == false)
         #expect(viewModel.shouldShowSafeAreaOverlay == false)
         #expect(viewModel.isCropFormatSelected(.vertical9x16))
     }
@@ -837,7 +1025,7 @@ struct EditorViewModelTests {
         #expect(viewModel.selectedCropPreset() == .square1x1)
         #expect(viewModel.selectedCropPresetBadgeTitle() == "1:1")
         #expect(viewModel.selectedCropPresetBadgeDimension() == "1:1")
-        #expect(viewModel.socialVideoDestination == nil)
+        #expect(viewModel.cropPresentationState.socialVideoDestination == nil)
         #expect(viewModel.shouldUseCropPresetSpotlight)
     }
 
@@ -852,7 +1040,7 @@ struct EditorViewModelTests {
 
         viewModel.closeSelectedTool()
 
-        #expect(viewModel.selectedTools == nil)
+        #expect(viewModel.presentationState.selectedTool == nil)
         #expect(viewModel.shouldShowCropOverlay)
         #expect(viewModel.isCropOverlayInteractive == true)
         #expect(viewModel.shouldShowSafeAreaOverlay)
@@ -875,6 +1063,66 @@ struct EditorViewModelTests {
 
         #expect(viewModel.currentVideo?.geometrySize == CGSize(width: 400, height: 200))
         #expect(viewModel.currentVideo?.frameSize == CGSize(width: 400, height: 200))
+    }
+
+    @Test
+    func updateCurrentVideoLayoutDoesNotAdvanceTheEditingConfigurationRevision() {
+        let viewModel = EditorViewModel()
+        var video = Video.mock
+        video.geometrySize = CGSize(width: 200, height: 100)
+        video.frameSize = CGSize(width: 200, height: 100)
+        viewModel.currentVideo = video
+        let initialRevision = viewModel.presentationState.editingConfigurationRevision
+
+        viewModel.updateCurrentVideoLayout(
+            to: CGSize(width: 400, height: 200)
+        )
+
+        #expect(viewModel.presentationState.editingConfigurationRevision == initialRevision)
+    }
+
+}
+
+private actor DeferredSleepProbe {
+
+    // MARK: - Private Properties
+
+    private var continuations = [CheckedContinuation<Void, any Error>]()
+
+    // MARK: - Public Methods
+
+    func sleep() async throws {
+        try await withCheckedThrowingContinuation { continuation in
+            continuations.append(continuation)
+        }
+    }
+
+    func resumeNext() {
+        guard !continuations.isEmpty else { return }
+        continuations.removeFirst().resume()
+    }
+
+}
+
+private actor ThumbnailLoaderProbe {
+
+    // MARK: - Private Properties
+
+    private var continuations = [CheckedContinuation<[ThumbnailImage], Never>]()
+
+    // MARK: - Public Methods
+
+    func load() async -> [ThumbnailImage] {
+        await withCheckedContinuation { continuation in
+            continuations.append(continuation)
+        }
+    }
+
+    func resumeNext(
+        with thumbnails: [ThumbnailImage]
+    ) {
+        guard !continuations.isEmpty else { return }
+        continuations.removeFirst().resume(returning: thumbnails)
     }
 
 }
