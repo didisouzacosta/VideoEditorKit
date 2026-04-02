@@ -126,7 +126,6 @@ struct VideoEditorView: View {
                 ) { exportedVideo in
                     videoPlayer.pause()
                     callbacks.onExportedVideoURL(exportedVideo.url)
-                    dismiss()
                 }
             }
         }

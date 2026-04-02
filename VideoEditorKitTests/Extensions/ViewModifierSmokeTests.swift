@@ -99,6 +99,30 @@ struct ViewModifierSmokeTests {
     }
 
     @Test
+    func editorShellContainerViewRendersInsideAHostingController() throws {
+        let sourceURL = try TestFixtures.createTemporaryFile(fileExtension: "mp4")
+        let shareURL = try TestFixtures.createTemporaryFile(fileExtension: "mp4")
+
+        defer { FileManager.default.removeIfExists(for: sourceURL) }
+        defer { FileManager.default.removeIfExists(for: shareURL) }
+
+        assertRenders(
+            EditorShellContainerView(
+                destination: .init(
+                    session: .init(sourceVideoURL: sourceURL)
+                ),
+                shareDestination: .constant(.init(videoURL: shareURL)),
+                configuration: .init(),
+                callbacks: .init(),
+                blockedToolAlertBinding: .constant(false),
+                blockedTool: nil,
+                blockedToolAlertMessage: { _ in "" },
+                onDismissShare: {}
+            )
+        )
+    }
+
+    @Test
     func cropViewRendersPresetClippingModeInsideAHostingController() {
         assertRenders(
             CropView(

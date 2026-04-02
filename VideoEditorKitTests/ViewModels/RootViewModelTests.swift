@@ -222,7 +222,7 @@ struct RootViewModelTests {
     }
 
     @Test
-    func exportedVideoShareIsQueuedUntilTheEditorIsDismissed() throws {
+    func exportedVideoShareIsPresentedWhileTheEditorRemainsActive() throws {
         let viewModel = RootViewModel()
         let sourceURL = try TestFixtures.createTemporaryFile(fileExtension: "mp4")
         let persistedOriginalURL = try TestFixtures.createTemporaryFile(fileExtension: "mp4")
@@ -240,12 +240,9 @@ struct RootViewModelTests {
             exportedVideoURL: exportedVideoURL
         )
 
-        #expect(viewModel.shareDestination == nil)
-
-        viewModel.handleEditorDismiss()
-
         #expect(viewModel.currentProjectID == projectID)
         #expect(viewModel.currentSourceVideoURL == persistedOriginalURL)
+        #expect(viewModel.editorDestination != nil)
         #expect(viewModel.shareDestination == .init(videoURL: exportedVideoURL))
     }
 
@@ -288,6 +285,31 @@ struct RootViewModelTests {
 
         viewModel.dismissShareDestination()
 
+        #expect(viewModel.shareDestination == nil)
+    }
+
+    @Test
+    func handleEditorDismissClearsAnyPresentedShareDestination() throws {
+        let viewModel = RootViewModel()
+        let sourceURL = try TestFixtures.createTemporaryFile(fileExtension: "mp4")
+        let persistedOriginalURL = try TestFixtures.createTemporaryFile(fileExtension: "mp4")
+        let exportedVideoURL = try TestFixtures.createTemporaryFile(fileExtension: "mp4")
+
+        defer { FileManager.default.removeIfExists(for: sourceURL) }
+        defer { FileManager.default.removeIfExists(for: persistedOriginalURL) }
+        defer { FileManager.default.removeIfExists(for: exportedVideoURL) }
+
+        viewModel.startEditorSession(with: sourceURL)
+        viewModel.handlePersistedExportedVideo(
+            projectID: UUID(),
+            originalVideoURL: persistedOriginalURL,
+            exportedVideoURL: exportedVideoURL
+        )
+        #expect(viewModel.shareDestination == .init(videoURL: exportedVideoURL))
+
+        viewModel.handleEditorDismiss()
+
+        #expect(viewModel.editorDestination == nil)
         #expect(viewModel.shareDestination == nil)
     }
 

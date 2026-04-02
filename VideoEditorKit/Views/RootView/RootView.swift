@@ -75,34 +75,22 @@ struct RootView: View {
             } message: {
                 Text(persistenceErrorMessage ?? "")
             }
-            .sheet(
-                item: $bindableViewModel.shareDestination,
-                onDismiss: {
-                    viewModel.dismissShareDestination()
-                }
-            ) { destination in
-                VideoShareSheet(activityItems: [destination.videoURL])
-            }
             .fullScreenCover(
                 item: $bindableViewModel.editorDestination,
                 onDismiss: {
                     viewModel.handleEditorDismiss()
                 }
             ) { destination in
-                VideoEditorView(
-                    destination.session,
+                EditorShellContainerView(
+                    destination: destination,
+                    shareDestination: $bindableViewModel.shareDestination,
                     configuration: editorConfiguration,
-                    callbacks: editorCallbacks
+                    callbacks: editorCallbacks,
+                    blockedToolAlertBinding: blockedToolAlertBinding,
+                    blockedTool: blockedTool,
+                    blockedToolAlertMessage: blockedToolAlertMessage(for:),
+                    onDismissShare: viewModel.dismissShareDestination
                 )
-                .alert(
-                    "Premium Tool",
-                    isPresented: blockedToolAlertBinding,
-                    presenting: blockedTool
-                ) { _ in
-                    Button("OK", role: .cancel) {}
-                } message: { tool in
-                    Text(blockedToolAlertMessage(for: tool))
-                }
             }
         }
     }
