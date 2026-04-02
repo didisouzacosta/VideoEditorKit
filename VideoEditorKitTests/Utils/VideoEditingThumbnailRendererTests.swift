@@ -10,7 +10,7 @@ struct VideoEditingThumbnailRendererTests {
     // MARK: - Public Methods
 
     @Test
-    func makeThumbnailDataUsesTheTrimLowerBoundFrame() async throws {
+    func makeThumbnailDataFallsBackToTheTrimLowerBoundFrameWhenNoCurrentTimeIsAvailable() async throws {
         let videoURL = try await TestFixtures.createTemporaryVideo(
             size: CGSize(width: 80, height: 40),
             frameCount: 60,
@@ -23,6 +23,90 @@ struct VideoEditingThumbnailRendererTests {
         )
         let editingConfiguration = VideoEditingConfiguration(
             trim: .init(lowerBound: 1.2, upperBound: 2.0)
+        )
+
+        defer { FileManager.default.removeIfExists(for: videoURL) }
+
+        let thumbnailData = await VideoEditingThumbnailRenderer.makeThumbnailData(
+            sourceVideoURL: videoURL,
+            editingConfiguration: editingConfiguration,
+            maximumSize: CGSize(width: 80, height: 80)
+        )
+        let thumbnailImage = try #require(thumbnailData.flatMap(UIImage.init(data:)))
+        let sampledColor = try #require(
+            thumbnailImage.sampledColor(
+                at: CGPoint(
+                    x: thumbnailImage.size.width / 2,
+                    y: thumbnailImage.size.height / 2
+                )
+            )
+        )
+
+        #expect(sampledColor.blueComponent > 0.55)
+        #expect(sampledColor.redComponent < 0.45)
+    }
+
+    @Test
+    func makeThumbnailDataUsesTheCurrentTimelineFrameWhenAvailable() async throws {
+        let videoURL = try await TestFixtures.createTemporaryVideo(
+            size: CGSize(width: 80, height: 40),
+            frameCount: 60,
+            framesPerSecond: 30,
+            drawFrame: { context, size, frameIndex in
+                let color = frameIndex < 30 ? UIColor.systemRed : UIColor.systemBlue
+                context.setFillColor(color.cgColor)
+                context.fill(CGRect(origin: .zero, size: size))
+            }
+        )
+        let editingConfiguration = VideoEditingConfiguration(
+            trim: .init(lowerBound: 0.2, upperBound: 2.0),
+            playback: .init(
+                rate: 1,
+                videoVolume: 1,
+                currentTimelineTime: 1.2
+            )
+        )
+
+        defer { FileManager.default.removeIfExists(for: videoURL) }
+
+        let thumbnailData = await VideoEditingThumbnailRenderer.makeThumbnailData(
+            sourceVideoURL: videoURL,
+            editingConfiguration: editingConfiguration,
+            maximumSize: CGSize(width: 80, height: 80)
+        )
+        let thumbnailImage = try #require(thumbnailData.flatMap(UIImage.init(data:)))
+        let sampledColor = try #require(
+            thumbnailImage.sampledColor(
+                at: CGPoint(
+                    x: thumbnailImage.size.width / 2,
+                    y: thumbnailImage.size.height / 2
+                )
+            )
+        )
+
+        #expect(sampledColor.blueComponent > 0.55)
+        #expect(sampledColor.redComponent < 0.45)
+    }
+
+    @Test
+    func makeThumbnailDataConvertsTimelineTimeIntoSourceTimeWhenPlaybackRateChanges() async throws {
+        let videoURL = try await TestFixtures.createTemporaryVideo(
+            size: CGSize(width: 80, height: 40),
+            frameCount: 60,
+            framesPerSecond: 30,
+            drawFrame: { context, size, frameIndex in
+                let color = frameIndex < 30 ? UIColor.systemRed : UIColor.systemBlue
+                context.setFillColor(color.cgColor)
+                context.fill(CGRect(origin: .zero, size: size))
+            }
+        )
+        let editingConfiguration = VideoEditingConfiguration(
+            trim: .init(lowerBound: 0, upperBound: 2.0),
+            playback: .init(
+                rate: 2,
+                videoVolume: 1,
+                currentTimelineTime: 0.6
+            )
         )
 
         defer { FileManager.default.removeIfExists(for: videoURL) }

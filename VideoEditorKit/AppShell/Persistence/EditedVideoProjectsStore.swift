@@ -110,7 +110,8 @@ struct EditedVideoProjectsStore {
             to: projectDirectoryURL
         )
         let thumbnailData = await makeThumbnailData(
-            fromExportedVideoAt: persistedExportedURL
+            fromExportedVideoAt: persistedExportedURL,
+            editingConfiguration: preparedSave.persistedEditingConfiguration
         )
 
         applyCommonProjectFields(
@@ -144,10 +145,13 @@ struct EditedVideoProjectsStore {
     }
 
     static func resolvedThumbnailTimestamp(
-        for duration: Double
+        for duration: Double,
+        editingConfiguration: VideoEditingConfiguration
     ) -> Double {
-        guard duration.isFinite, duration >= 0 else { return 0 }
-        return 0
+        VideoEditingThumbnailTimestampResolver.exportedAssetTimestamp(
+            for: editingConfiguration,
+            exportedDuration: duration
+        )
     }
 
     // MARK: - Private Methods
@@ -322,14 +326,19 @@ struct EditedVideoProjectsStore {
     }
 
     private func makeThumbnailData(
-        fromExportedVideoAt url: URL
+        fromExportedVideoAt url: URL,
+        editingConfiguration: VideoEditingConfiguration
     ) async -> Data? {
         let asset = AVURLAsset(url: url)
         let duration = (try? await asset.load(.duration).seconds) ?? .zero
-        let timestamp = Self.resolvedThumbnailTimestamp(for: duration)
+        let timestamp = Self.resolvedThumbnailTimestamp(
+            for: duration,
+            editingConfiguration: editingConfiguration
+        )
         let image = await asset.generateImage(
             at: timestamp,
-            maximumSize: CGSize(width: 720, height: 720)
+            maximumSize: CGSize(width: 720, height: 720),
+            requiresExactFrame: true
         )
 
         return image?.jpegData(compressionQuality: 0.85)

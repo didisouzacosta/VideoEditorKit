@@ -177,6 +177,56 @@ struct EditedVideoProjectsStoreTests {
     }
 
     @Test
+    func saveExportedVideoUsesTheCurrentTimelineFrameForThePersistedThumbnail() async throws {
+        let container = try makeContainer()
+        let store = EditedVideoProjectsStore(modelContext: container.mainContext)
+        let originalVideoURL = try await TestFixtures.createTemporaryVideo(color: .systemBlue)
+        let exportedVideoURL = try await TestFixtures.createTemporaryVideo(
+            size: CGSize(width: 80, height: 40),
+            frameCount: 30,
+            framesPerSecond: 30,
+            drawFrame: { context, size, frameIndex in
+                let color = frameIndex < 6 ? UIColor.systemRed : UIColor.systemBlue
+                context.setFillColor(color.cgColor)
+                context.fill(CGRect(origin: .zero, size: size))
+            }
+        )
+        let exportedVideo = await ExportedVideo.load(from: exportedVideoURL)
+        let editingConfiguration = VideoEditingConfiguration(
+            trim: .init(lowerBound: 1, upperBound: 2),
+            playback: .init(
+                rate: 1,
+                videoVolume: 1,
+                currentTimelineTime: 1.6
+            )
+        )
+
+        defer { FileManager.default.removeIfExists(for: originalVideoURL) }
+        defer { FileManager.default.removeIfExists(for: exportedVideoURL) }
+
+        let exportedProject = try await store.saveExportedVideo(
+            projectID: nil,
+            originalVideoURL: originalVideoURL,
+            exportedVideo: exportedVideo,
+            editingConfiguration: editingConfiguration
+        )
+        let thumbnailImage = try #require(
+            exportedProject.thumbnailData.flatMap(UIImage.init(data:))
+        )
+        let sampledColor = try #require(
+            thumbnailImage.persistedProjectSampledColor(
+                at: CGPoint(
+                    x: thumbnailImage.size.width / 2,
+                    y: thumbnailImage.size.height / 2
+                )
+            )
+        )
+
+        #expect(sampledColor.blueComponent > 0.55)
+        #expect(sampledColor.redComponent < 0.45)
+    }
+
+    @Test
     func deleteProjectRemovesTheStoredFilesAndTheSwiftDataRecord() async throws {
         let container = try makeContainer()
         let store = EditedVideoProjectsStore(modelContext: container.mainContext)
@@ -209,10 +259,46 @@ struct EditedVideoProjectsStoreTests {
     }
 
     @Test
-    func thumbnailTimestampAlwaysUsesTheFirstFrame() {
-        #expect(EditedVideoProjectsStore.resolvedThumbnailTimestamp(for: 0) == 0)
-        #expect(EditedVideoProjectsStore.resolvedThumbnailTimestamp(for: 3.5) == 0)
-        #expect(EditedVideoProjectsStore.resolvedThumbnailTimestamp(for: 120) == 0)
+    func thumbnailTimestampUsesTheCurrentTimelineFrameRelativeToTheExportedClip() {
+        let editingConfiguration = VideoEditingConfiguration(
+            trim: .init(lowerBound: 10, upperBound: 20),
+            playback: .init(
+                rate: 2,
+                videoVolume: 1,
+                currentTimelineTime: 6
+            )
+        )
+
+        #expect(
+            abs(
+                EditedVideoProjectsStore.resolvedThumbnailTimestamp(
+                    for: 10,
+                    editingConfiguration: editingConfiguration
+                ) - 1
+            ) < 0.0001
+        )
+    }
+
+    @Test
+    func thumbnailTimestampFallsBackToTheStartOfTheExportedClipWhenNoCurrentTimeIsAvailable() {
+        #expect(
+            EditedVideoProjectsStore.resolvedThumbnailTimestamp(
+                for: 0,
+                editingConfiguration: .initial
+            ) == 0
+        )
+        #expect(
+            EditedVideoProjectsStore.resolvedThumbnailTimestamp(
+                for: 3.5,
+                editingConfiguration: .initial
+            ) == 0
+        )
+        #expect(
+            EditedVideoProjectsStore.resolvedThumbnailTimestamp(
+                for: 120,
+                editingConfiguration: .initial
+            ) == 0
+        )
     }
 
     @Test
@@ -241,6 +327,72 @@ struct EditedVideoProjectsStoreTests {
         return try ModelContainer(
             for: EditedVideoProject.self,
             configurations: configuration
+        )
+    }
+
+}
+
+private struct PersistedProjectSampledColor {
+
+    // MARK: - Public Properties
+
+    let redComponent: CGFloat
+    let greenComponent: CGFloat
+    let blueComponent: CGFloat
+    let alphaComponent: CGFloat
+
+}
+
+extension UIImage {
+
+    // MARK: - Private Methods
+
+    fileprivate func persistedProjectSampledColor(
+        at point: CGPoint
+    ) -> PersistedProjectSampledColor? {
+        guard let cgImage else { return nil }
+
+        let clampedPoint = CGPoint(
+            x: min(max(point.x, 0), max(size.width - 1, 0)),
+            y: min(max(point.y, 0), max(size.height - 1, 0))
+        )
+        let pixel = UnsafeMutablePointer<UInt8>.allocate(capacity: 4)
+        defer { pixel.deallocate() }
+
+        guard
+            let colorSpace = CGColorSpace(name: CGColorSpace.sRGB),
+            let context = CGContext(
+                data: pixel,
+                width: 1,
+                height: 1,
+                bitsPerComponent: 8,
+                bytesPerRow: 4,
+                space: colorSpace,
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            )
+        else {
+            return nil
+        }
+
+        context.translateBy(x: -clampedPoint.x, y: clampedPoint.y - size.height + 1)
+        context.draw(
+            cgImage,
+            in: CGRect(
+                origin: .zero,
+                size: size
+            )
+        )
+
+        let red = CGFloat(pixel[0]) / 255
+        let green = CGFloat(pixel[1]) / 255
+        let blue = CGFloat(pixel[2]) / 255
+        let alpha = CGFloat(pixel[3]) / 255
+
+        return PersistedProjectSampledColor(
+            redComponent: red,
+            greenComponent: green,
+            blueComponent: blue,
+            alphaComponent: alpha
         )
     }
 

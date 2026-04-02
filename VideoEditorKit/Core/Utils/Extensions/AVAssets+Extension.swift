@@ -29,11 +29,13 @@ extension AVAsset {
 
     func generateImage(
         at second: Double,
-        maximumSize: CGSize = .zero
+        maximumSize: CGSize = .zero,
+        requiresExactFrame: Bool = false
     ) async -> UIImage? {
         if let first = await generateImages(
             at: [second],
-            maximumSize: maximumSize
+            maximumSize: maximumSize,
+            requiresExactFrame: requiresExactFrame
         ).first {
             first
         } else {
@@ -43,12 +45,18 @@ extension AVAsset {
 
     func generateImages(
         at seconds: [Double],
-        maximumSize: CGSize = .zero
+        maximumSize: CGSize = .zero,
+        requiresExactFrame: Bool = false
     ) async -> [UIImage?] {
         guard !seconds.isEmpty else { return [] }
 
         let imageGenerator = AVAssetImageGenerator(asset: self)
         imageGenerator.appliesPreferredTrackTransform = true
+
+        if requiresExactFrame {
+            imageGenerator.requestedTimeToleranceBefore = .zero
+            imageGenerator.requestedTimeToleranceAfter = .zero
+        }
 
         if maximumSize != .zero {
             imageGenerator.maximumSize = maximumSize

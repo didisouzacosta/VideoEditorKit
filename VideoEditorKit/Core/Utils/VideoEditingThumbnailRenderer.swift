@@ -51,13 +51,18 @@ enum VideoEditingThumbnailRenderer {
         maximumSize: CGSize = Constants.defaultMaximumSize
     ) async -> UIImage? {
         let asset = AVURLAsset(url: sourceVideoURL)
-        let timestamp = resolvedThumbnailTimestamp(for: editingConfiguration)
+        let duration = (try? await asset.load(.duration).seconds) ?? 0
+        let timestamp = VideoEditingThumbnailTimestampResolver.sourceAssetTimestamp(
+            for: editingConfiguration,
+            originalDuration: duration
+        )
         let captureSize = resolvedCaptureSize(for: maximumSize)
 
         guard
             let sourceFrame = await asset.generateImage(
                 at: timestamp,
-                maximumSize: captureSize
+                maximumSize: captureSize,
+                requiresExactFrame: true
             )
         else {
             return nil
@@ -76,12 +81,6 @@ enum VideoEditingThumbnailRenderer {
     }
 
     // MARK: - Private Methods
-
-    private static func resolvedThumbnailTimestamp(
-        for editingConfiguration: VideoEditingConfiguration
-    ) -> Double {
-        max(editingConfiguration.trim.lowerBound, 0)
-    }
 
     private static func resolvedCaptureSize(
         for maximumSize: CGSize
