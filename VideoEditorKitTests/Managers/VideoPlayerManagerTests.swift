@@ -202,6 +202,75 @@ struct VideoPlayerManagerTests {
     }
 
     @Test
+    func playbackInteractionResumesPlaybackWhenTheVideoWasPlaying() async throws {
+        let manager = VideoPlayerManager()
+        let videoURL = try await TestFixtures.createTemporaryVideo(frameCount: 60)
+        defer { FileManager.default.removeIfExists(for: videoURL) }
+
+        let video = await Video.load(from: videoURL)
+
+        manager.loadState = .loaded(videoURL)
+        manager.syncPlaybackState(with: video)
+        manager.action(video)
+        try await waitForPlaybackState(of: manager, isPlaying: true)
+        #expect(manager.isPlaybackFocusActive)
+
+        manager.beginPlaybackInteraction()
+
+        #expect(manager.isPlaying == false)
+        #expect(manager.isPlaybackFocusActive)
+
+        manager.endPlaybackInteraction()
+
+        try await waitForPlaybackState(of: manager, isPlaying: true)
+        #expect(manager.isPlaying)
+        #expect(manager.isPlaybackFocusActive)
+    }
+
+    @Test
+    func playbackInteractionKeepsPlaybackPausedWhenTheVideoWasAlreadyStopped() async throws {
+        let manager = VideoPlayerManager()
+        let videoURL = try await TestFixtures.createTemporaryVideo(frameCount: 60)
+        defer { FileManager.default.removeIfExists(for: videoURL) }
+
+        let video = await Video.load(from: videoURL)
+
+        manager.loadState = .loaded(videoURL)
+        manager.syncPlaybackState(with: video)
+
+        manager.beginPlaybackInteraction()
+        manager.endPlaybackInteraction()
+
+        try await waitForPlaybackState(of: manager, isPlaying: false)
+        #expect(manager.isPlaying == false)
+        #expect(manager.isPlaybackFocusActive == false)
+    }
+
+    @Test
+    func endScrubbingResumesPlaybackFromTheChosenTimeWhenPlaybackWasActive() async throws {
+        let manager = VideoPlayerManager()
+        let videoURL = try await TestFixtures.createTemporaryVideo(frameCount: 60)
+        defer { FileManager.default.removeIfExists(for: videoURL) }
+
+        let video = await Video.load(from: videoURL)
+        let scrubRange = 0.2...1.2
+        let scrubbedTime = 0.8
+
+        manager.loadState = .loaded(videoURL)
+        manager.syncPlaybackState(with: video)
+        manager.action(video)
+        try await waitForPlaybackState(of: manager, isPlaying: true)
+
+        manager.beginScrubbing(in: scrubRange)
+        #expect(manager.isPlaying == false)
+
+        manager.endScrubbing(at: scrubbedTime, in: scrubRange)
+
+        try await waitForPlaybackState(of: manager, isPlaying: true)
+        #expect(abs(manager.currentTime - scrubbedTime) < 0.0001)
+    }
+
+    @Test
     func setVolumeUpdatesTheChosenPlayer() throws {
         let manager = VideoPlayerManager()
         let audioURL = try TestFixtures.createTemporaryAudio()
@@ -333,6 +402,18 @@ private func seek(player: AVPlayer, to seconds: Double) async {
             continuation.resume()
         }
     }
+}
+
+@MainActor
+private func waitForPlaybackState(
+    of manager: VideoPlayerManager,
+    isPlaying expectedIsPlaying: Bool
+) async throws {
+    for _ in 0..<60 where manager.isPlaying != expectedIsPlaying {
+        try await Task.sleep(for: .milliseconds(20))
+    }
+
+    #expect(manager.isPlaying == expectedIsPlaying)
 }
 
 private actor CompositionBuildRecorder {

@@ -20,6 +20,7 @@ struct ThumbnailsSliderView: View {
     @State private var isScrubbingPlaybackIndicator = false
     @State private var playbackScrubStartSourceTime: Double?
     @State private var isSynchronizingAnchoredPlayback = false
+    @State private var isEditingTrimRange = false
     @State private var playheadBadgeWidth: CGFloat = 84
 
     // MARK: - Private Properties
@@ -29,6 +30,8 @@ struct ThumbnailsSliderView: View {
     private let onPlayPauseTapped: () -> Void
     private let onChangeTimeValue: (ClosedRange<Double>) -> Void
     private let onRequestThumbnails: (CGSize) -> Void
+    private let onTrimRangeInteractionStarted: () -> Void
+    private let onTrimRangeInteractionEnded: (Double, ClosedRange<Double>) -> Void
     private let onPlaybackScrubStarted: (ClosedRange<Double>) -> Void
     private let onPlaybackScrubChanged: (Double, ClosedRange<Double>) -> Void
     private let onPlaybackScrubEnded: (Double, ClosedRange<Double>) -> Void
@@ -51,7 +54,6 @@ struct ThumbnailsSliderView: View {
                 footerSection
             }
             .padding(.trailing, 8)
-            .disabled(isPlaying)
         }
         .onChange(of: isChangeState) { _, isChange in
             guard let isChange, !isChange else { return }
@@ -83,6 +85,8 @@ struct ThumbnailsSliderView: View {
         onPlayPauseTapped: @escaping () -> Void,
         onChangeTimeValue: @escaping (ClosedRange<Double>) -> Void,
         onRequestThumbnails: @escaping (CGSize) -> Void,
+        onTrimRangeInteractionStarted: @escaping () -> Void,
+        onTrimRangeInteractionEnded: @escaping (Double, ClosedRange<Double>) -> Void,
         onPlaybackScrubStarted: @escaping (ClosedRange<Double>) -> Void,
         onPlaybackScrubChanged: @escaping (Double, ClosedRange<Double>) -> Void,
         onPlaybackScrubEnded: @escaping (Double, ClosedRange<Double>) -> Void
@@ -95,6 +99,8 @@ struct ThumbnailsSliderView: View {
         self.onPlayPauseTapped = onPlayPauseTapped
         self.onChangeTimeValue = onChangeTimeValue
         self.onRequestThumbnails = onRequestThumbnails
+        self.onTrimRangeInteractionStarted = onTrimRangeInteractionStarted
+        self.onTrimRangeInteractionEnded = onTrimRangeInteractionEnded
         self.onPlaybackScrubStarted = onPlaybackScrubStarted
         self.onPlaybackScrubChanged = onPlaybackScrubChanged
         self.onPlaybackScrubEnded = onPlaybackScrubEnded
@@ -130,6 +136,7 @@ extension ThumbnailsSliderView {
                             bounds: 0...video.originalDuration,
                             step: 0.001,
                             minimumDistance: min(minimumClipDuration, video.originalDuration),
+                            onStartChange: beginTrimRangeInteraction,
                             onEndChange: commitRangeChange
                         )
                     }
@@ -203,6 +210,13 @@ extension ThumbnailsSliderView {
         onPlaybackScrubStarted(range)
     }
 
+    private func beginTrimRangeInteraction() {
+        guard !isEditingTrimRange else { return }
+
+        isEditingTrimRange = true
+        onTrimRangeInteractionStarted()
+    }
+
     private func setVideoRange() {
         if let video {
             rangeDuration = video.rangeDuration
@@ -222,9 +236,20 @@ extension ThumbnailsSliderView {
             isSynchronizingAnchoredPlayback = false
         }
 
-        guard video.rangeDuration != rangeDuration else { return }
+        guard video.rangeDuration != rangeDuration else {
+            finishTrimRangeInteractionIfNeeded(updatedOutputRange)
+            return
+        }
 
         onChangeTimeValue(updatedOutputRange)
+        finishTrimRangeInteractionIfNeeded(updatedOutputRange)
+    }
+
+    private func finishTrimRangeInteractionIfNeeded(_ updatedOutputRange: ClosedRange<Double>) {
+        guard isEditingTrimRange else { return }
+
+        isEditingTrimRange = false
+        onTrimRangeInteractionEnded(currentTime, updatedOutputRange)
     }
 
     @ViewBuilder
@@ -433,6 +458,8 @@ private struct PlayheadBadgeWidthPreferenceKey: PreferenceKey {
         onPlayPauseTapped: {},
         onChangeTimeValue: { _ in },
         onRequestThumbnails: { _ in },
+        onTrimRangeInteractionStarted: {},
+        onTrimRangeInteractionEnded: { _, _ in },
         onPlaybackScrubStarted: { _ in },
         onPlaybackScrubChanged: { _, _ in },
         onPlaybackScrubEnded: { _, _ in }

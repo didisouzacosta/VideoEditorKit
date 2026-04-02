@@ -78,10 +78,19 @@ final class EditorViewModel {
     }
 
     var cropPresentationSummary: EditorCropPresentationSummary {
+        cropPresentationSummary()
+    }
+
+    // MARK: - Public Methods
+
+    func cropPresentationSummary(
+        isPlaybackFocused: Bool = false
+    ) -> EditorCropPresentationSummary {
         EditorCropPresentationResolver.makeSummary(
             state: cropEditingState,
             video: currentVideo,
-            fallbackContainerSize: lastPlayerContainerSize
+            fallbackContainerSize: lastPlayerContainerSize,
+            isPlaybackFocused: isPlaybackFocused
         )
     }
 

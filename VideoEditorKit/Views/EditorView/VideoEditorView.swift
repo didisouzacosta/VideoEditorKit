@@ -63,7 +63,6 @@ struct VideoEditorView: View {
                         videoPlayer: videoPlayer
                     )
                     .layoutPriority(1)
-                    .disabled(isEditingLocked)
 
                     PlayerControl(
                         editorViewModel,
@@ -71,7 +70,7 @@ struct VideoEditorView: View {
                         recorderManager: audioRecorder
                     )
 
-                    if !videoPlayer.isPlaying {
+                    if !videoPlayer.isPlaybackFocusActive {
                         ToolsSectionView(
                             videoPlayer,
                             editorVM: editorViewModel,
@@ -80,7 +79,7 @@ struct VideoEditorView: View {
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
                 }
-                .animation(.default, value: videoPlayer.isPlaying)
+                .animation(.default, value: videoPlayer.isPlaybackFocusActive)
                 .safeAreaPadding()
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
@@ -134,8 +133,8 @@ struct VideoEditorView: View {
                 editorViewModel.handleRecordedVideo(url, videoPlayer: videoPlayer)
             }
         }
-        .onChange(of: videoPlayer.isPlaying) { _, isPlaying in
-            handlePlaybackLockChange(isPlaying)
+        .onChange(of: videoPlayer.isPlaybackFocusActive) { _, isPlaybackFocusActive in
+            handlePlaybackLockChange(isPlaybackFocusActive)
         }
         .onChange(of: editorViewModel.presentationState.editingConfigurationRevision) { _, _ in
             publishEditingConfigurationIfNeeded()
@@ -148,7 +147,7 @@ struct VideoEditorView: View {
     // MARK: - Private Properties
 
     private var isEditingLocked: Bool {
-        videoPlayer.isPlaying
+        videoPlayer.isPlaybackFocusActive
     }
 
     // MARK: - Initializer
@@ -187,8 +186,8 @@ struct VideoEditorView: View {
 
     // MARK: - Private Methods
 
-    private func handlePlaybackLockChange(_ isPlaying: Bool) {
-        guard isPlaying else { return }
+    private func handlePlaybackLockChange(_ isPlaybackFocusActive: Bool) {
+        guard isPlaybackFocusActive else { return }
         editorViewModel.closeSelectedTool()
     }
 

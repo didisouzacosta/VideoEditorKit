@@ -23,6 +23,7 @@ struct RangedSliderView: View {
     private let sliderBounds: ClosedRange<Double>
     private let step: Double
     private let minimumDistance: Double
+    private let onStartChange: (() -> Void)?
     private let onEndChange: (() -> Void)?
 
     // MARK: - Body
@@ -55,10 +56,12 @@ struct RangedSliderView: View {
         bounds: ClosedRange<Double>,
         step: Double = 1,
         minimumDistance: Double = 0,
+        onStartChange: (() -> Void)? = nil,
         onEndChange: (() -> Void)?
     ) {
         self.currentValue = value
 
+        self.onStartChange = onStartChange
         self.onEndChange = onEndChange
         self.step = step
         self.minimumDistance = max(minimumDistance, 0)
@@ -117,6 +120,7 @@ struct RangedSliderView: View {
                             leftThumbDragStartX = leftThumbLocation
                             leftThumbDragStartRange = currentValue?.wrappedValue
                             triggerDragStartHaptic()
+                            onStartChange?()
                         }
 
                         let xThumbOffset = min(
@@ -149,6 +153,7 @@ struct RangedSliderView: View {
                             rightThumbDragStartX = rightThumbLocation
                             rightThumbDragStartRange = currentValue?.wrappedValue
                             triggerDragStartHaptic()
+                            onStartChange?()
                         }
 
                         let xThumbOffset = max(
@@ -334,6 +339,7 @@ struct RangedSliderView: View {
     RangedSliderView(
         .constant(20...60),
         bounds: 1...100,
+        onStartChange: {},
         onEndChange: {}
     )
     .frame(height: 72)

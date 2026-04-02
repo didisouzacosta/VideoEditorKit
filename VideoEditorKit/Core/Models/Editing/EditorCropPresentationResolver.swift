@@ -47,7 +47,8 @@ struct EditorCropPresentationResolver {
     static func makeSummary(
         state: EditorCropEditingState,
         video: Video?,
-        fallbackContainerSize: CGSize
+        fallbackContainerSize: CGSize,
+        isPlaybackFocused: Bool = false
     ) -> EditorCropPresentationSummary {
         let referenceSize = resolvedCropReferenceSize(
             for: video,
@@ -60,9 +61,11 @@ struct EditorCropPresentationResolver {
         let availableSafeAreaGuideProfile = EditorCropEditingCoordinator.activeSafeAreaGuideProfile(
             for: state
         )
-        let shouldShowSafeAreaOverlay = EditorCropEditingCoordinator.shouldShowSafeAreaOverlay(
-            for: state
-        )
+        let shouldShowSafeAreaOverlay =
+            !isPlaybackFocused
+            && EditorCropEditingCoordinator.shouldShowSafeAreaOverlay(
+                for: state
+            )
         let activeSafeAreaGuideProfile =
             shouldShowSafeAreaOverlay
             ? availableSafeAreaGuideProfile : nil
@@ -70,8 +73,15 @@ struct EditorCropPresentationResolver {
             state.freeformRect != nil
             || state.canvasSnapshot.isIdentity == false
         let isCropOverlayInteractive = true
-        let shouldShowCropPresetBadge = selectedPreset != .original
+        let shouldShowCropPresetBadge =
+            !isPlaybackFocused
+            && selectedPreset != .original
         let shouldUseCropPresetSpotlight = selectedPreset != .original
+        let resolvedSafeAreaGuideProfile =
+            isPlaybackFocused ? nil : availableSafeAreaGuideProfile
+        let shouldShowCanvasResetButton =
+            !isPlaybackFocused
+            && state.canvasSnapshot.transform.shouldShowResetButton
 
         return .init(
             selectedPreset: selectedPreset,
@@ -80,10 +90,10 @@ struct EditorCropPresentationResolver {
             isCropOverlayInteractive: isCropOverlayInteractive,
             shouldUseCropPresetSpotlight: shouldUseCropPresetSpotlight,
             shouldShowSafeAreaOverlay: shouldShowSafeAreaOverlay,
-            availableSafeAreaGuideProfile: availableSafeAreaGuideProfile,
+            availableSafeAreaGuideProfile: resolvedSafeAreaGuideProfile,
             activeSafeAreaGuideProfile: activeSafeAreaGuideProfile,
             shouldShowCropPresetBadge: shouldShowCropPresetBadge,
-            shouldShowCanvasResetButton: state.canvasSnapshot.transform.shouldShowResetButton,
+            shouldShowCanvasResetButton: shouldShowCanvasResetButton,
             badgeTitle: badgeTitle(for: selectedPreset),
             badgeDimension: badgeDimension(
                 for: selectedPreset,

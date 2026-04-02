@@ -37,6 +37,8 @@ struct VideoCanvasPreviewView<Content: View, Overlay: View>: View {
     private let source: VideoCanvasSourceDescriptor
     private let isInteractive: Bool
     private let cornerRadius: CGFloat
+    private let onInteractionStarted: @MainActor () -> Void
+    private let onInteractionEnded: @MainActor (VideoCanvasSnapshot) -> Void
     private let onSnapshotChange: @MainActor (VideoCanvasSnapshot) -> Void
     @ViewBuilder
     private var content: () -> Content
@@ -124,11 +126,14 @@ struct VideoCanvasPreviewView<Content: View, Overlay: View>: View {
         }
         .onTapGesture(count: 2) {
             guard isInteractive else { return }
+            onInteractionStarted()
             withAnimation(settleAnimation) {
                 interactionState = nil
                 editorState.resetTransform()
             }
-            onSnapshotChange(editorState.snapshot())
+            let snapshot = editorState.snapshot()
+            onSnapshotChange(snapshot)
+            onInteractionEnded(snapshot)
         }
 
         if isInteractive {
@@ -145,6 +150,8 @@ struct VideoCanvasPreviewView<Content: View, Overlay: View>: View {
         source: VideoCanvasSourceDescriptor,
         isInteractive: Bool,
         cornerRadius: CGFloat = 28,
+        onInteractionStarted: @escaping @MainActor () -> Void = {},
+        onInteractionEnded: @escaping @MainActor (VideoCanvasSnapshot) -> Void = { _ in },
         onSnapshotChange: @escaping @MainActor (VideoCanvasSnapshot) -> Void = { _ in },
         @ViewBuilder content: @escaping () -> Content
     )
@@ -153,6 +160,8 @@ struct VideoCanvasPreviewView<Content: View, Overlay: View>: View {
         self.source = source
         self.isInteractive = isInteractive
         self.cornerRadius = cornerRadius
+        self.onInteractionStarted = onInteractionStarted
+        self.onInteractionEnded = onInteractionEnded
         self.onSnapshotChange = onSnapshotChange
         self.content = content
         self.overlayContent = { EmptyView() }
@@ -163,6 +172,8 @@ struct VideoCanvasPreviewView<Content: View, Overlay: View>: View {
         source: VideoCanvasSourceDescriptor,
         isInteractive: Bool,
         cornerRadius: CGFloat = 28,
+        onInteractionStarted: @escaping @MainActor () -> Void = {},
+        onInteractionEnded: @escaping @MainActor (VideoCanvasSnapshot) -> Void = { _ in },
         onSnapshotChange: @escaping @MainActor (VideoCanvasSnapshot) -> Void = { _ in },
         @ViewBuilder content: @escaping () -> Content,
         @ViewBuilder overlay: @escaping () -> Overlay
@@ -171,6 +182,8 @@ struct VideoCanvasPreviewView<Content: View, Overlay: View>: View {
         self.source = source
         self.isInteractive = isInteractive
         self.cornerRadius = cornerRadius
+        self.onInteractionStarted = onInteractionStarted
+        self.onInteractionEnded = onInteractionEnded
         self.onSnapshotChange = onSnapshotChange
         self.content = content
         self.overlayContent = overlay
@@ -217,6 +230,7 @@ struct VideoCanvasPreviewView<Content: View, Overlay: View>: View {
     private func updateDrag(
         _ translation: CGSize
     ) {
+        let isStartingInteraction = interactionState == nil
         var interactionState =
             interactionState
             ?? .init(
@@ -225,11 +239,16 @@ struct VideoCanvasPreviewView<Content: View, Overlay: View>: View {
         interactionState.translation = translation
         interactionState.isDragging = true
         self.interactionState = interactionState
+
+        if isStartingInteraction {
+            onInteractionStarted()
+        }
     }
 
     private func updateMagnification(
         _ value: MagnifyGesture.Value
     ) {
+        let isStartingInteraction = interactionState == nil
         var interactionState =
             interactionState
             ?? .init(
@@ -239,11 +258,16 @@ struct VideoCanvasPreviewView<Content: View, Overlay: View>: View {
         interactionState.magnificationAnchor = value.startLocation
         interactionState.isMagnifying = true
         self.interactionState = interactionState
+
+        if isStartingInteraction {
+            onInteractionStarted()
+        }
     }
 
     private func updateRotation(
         _ rotation: Angle
     ) {
+        let isStartingInteraction = interactionState == nil
         var interactionState =
             interactionState
             ?? .init(
@@ -252,6 +276,10 @@ struct VideoCanvasPreviewView<Content: View, Overlay: View>: View {
         interactionState.rotation = rotation
         interactionState.isRotating = true
         self.interactionState = interactionState
+
+        if isStartingInteraction {
+            onInteractionStarted()
+        }
     }
 
     private func endDrag(
@@ -302,7 +330,9 @@ struct VideoCanvasPreviewView<Content: View, Overlay: View>: View {
             previewCanvasSize: previewCanvasSize
         )
         self.interactionState = nil
-        onSnapshotChange(editorState.snapshot())
+        let snapshot = editorState.snapshot()
+        onSnapshotChange(snapshot)
+        onInteractionEnded(snapshot)
     }
 
     private var settleAnimation: Animation {

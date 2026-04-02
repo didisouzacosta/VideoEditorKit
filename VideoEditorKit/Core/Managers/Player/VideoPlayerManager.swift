@@ -49,6 +49,7 @@ final class VideoPlayerManager {
     private(set) var audioPlayer = AVPlayer()
 
     private(set) var isPlaying = false
+    private(set) var isPlaybackFocusActive = false
 
     var loadState: LoadState = .unknown {
         didSet {
@@ -57,24 +58,7 @@ final class VideoPlayerManager {
         }
     }
 
-    var scrubState: PlayerScrubState = .reset {
-        didSet {
-            switch scrubState {
-            case .scrubEnded(let seekTime):
-                pause()
-
-                seek(sourceTime(forTimelineTime: seekTime), player: videoPlayer)
-
-                if isSetAudio {
-                    seek(sourceTime(forTimelineTime: seekTime), player: audioPlayer)
-                }
-
-                currentTime = seekTime
-            default:
-                break
-            }
-        }
-    }
+    var scrubState: PlayerScrubState = .reset
 
     // MARK: - Private Properties
 
@@ -126,6 +110,12 @@ final class VideoPlayerManager {
     @ObservationIgnored
     private var adjustsCompositionGeneration = 0
 
+    @ObservationIgnored
+    private var playbackInteractionDepth = 0
+
+    @ObservationIgnored
+    private var shouldResumeAfterPlaybackInteraction = false
+
     private let playbackRestartTolerance = 0.05
     private let dependencies: VideoPlayerManagerDependencies
 
@@ -143,6 +133,7 @@ final class VideoPlayerManager {
         if isPlaying {
             pause()
         } else {
+            isPlaybackFocusActive = true
             play()
         }
     }
@@ -193,7 +184,9 @@ final class VideoPlayerManager {
         isSetAudio = true
     }
 
-    func pause() {
+    func pause(
+        maintainingPlaybackFocus: Bool = false
+    ) {
         pendingPlaybackTask?.cancel()
         pendingPlaybackTask = nil
 
@@ -202,6 +195,7 @@ final class VideoPlayerManager {
         if isSetAudio { audioPlayer.pause() }
 
         isPlaying = false
+        isPlaybackFocusActive = maintainingPlaybackFocus
         syncCurrentTimeFromPlayer()
     }
 
@@ -232,10 +226,60 @@ final class VideoPlayerManager {
         }
     }
 
+    func beginPlaybackInteraction() {
+        if playbackInteractionDepth == 0 {
+            shouldResumeAfterPlaybackInteraction = isPlaying
+        }
+
+        playbackInteractionDepth += 1
+        pause(
+            maintainingPlaybackFocus: shouldResumeAfterPlaybackInteraction
+        )
+    }
+
+    func endPlaybackInteraction(
+        resumeAt time: Double? = nil,
+        in range: ClosedRange<Double>? = nil
+    ) {
+        if let range {
+            currentDurationRange = range
+        }
+
+        if let time {
+            let clampedTime = clampedInteractionTime(
+                time,
+                in: range ?? currentDurationRange
+            )
+            currentTime = clampedTime
+
+            seek(sourceTime(forTimelineTime: clampedTime), player: videoPlayer)
+
+            if isSetAudio {
+                seek(sourceTime(forTimelineTime: clampedTime), player: audioPlayer)
+            }
+        }
+
+        guard playbackInteractionDepth > 0 else { return }
+        playbackInteractionDepth -= 1
+
+        guard playbackInteractionDepth == 0 else { return }
+
+        let shouldResume = shouldResumeAfterPlaybackInteraction
+        shouldResumeAfterPlaybackInteraction = false
+
+        guard shouldResume else {
+            isPlaybackFocusActive = false
+            return
+        }
+
+        isPlaybackFocusActive = true
+        play()
+    }
+
     func beginScrubbing(in range: ClosedRange<Double>) {
         currentDurationRange = range
         scrubState = .scrubStarted
-        pause()
+        beginPlaybackInteraction()
     }
 
     func scrub(to time: Double, in range: ClosedRange<Double>) {
@@ -258,6 +302,10 @@ final class VideoPlayerManager {
 
         currentTime = clampedTime
         scrubState = .scrubEnded(clampedTime)
+        endPlaybackInteraction(
+            resumeAt: clampedTime,
+            in: range
+        )
     }
 
     func currentTimeBinding() -> Binding<Double> {
@@ -305,6 +353,7 @@ final class VideoPlayerManager {
                 switch status {
                 case .playing:
                     self.isPlaying = true
+                    self.isPlaybackFocusActive = true
                     self.startTimer()
                 case .paused:
                     self.isPlaying = false
@@ -509,6 +558,14 @@ final class VideoPlayerManager {
     private func normalizedPlaybackRate(_ rate: Float) -> Float {
         guard rate.isFinite, rate > 0 else { return 1 }
         return rate
+    }
+
+    private func clampedInteractionTime(
+        _ time: Double,
+        in range: ClosedRange<Double>?
+    ) -> Double {
+        guard let range else { return time }
+        return time.clamped(to: range)
     }
 
     private func sourceTime(forTimelineTime time: Double) -> Double {

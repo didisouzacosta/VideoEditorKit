@@ -70,7 +70,9 @@ extension PlayerHolderView {
     private var playerCropView: some View {
         Group {
             if let video = editorViewModel.currentVideo {
-                let cropSummary = editorViewModel.cropPresentationSummary
+                let cropSummary = editorViewModel.cropPresentationSummary(
+                    isPlaybackFocused: videoPlayer.isPlaybackFocusActive
+                )
 
                 GeometryReader { proxy in
                     VideoCanvasPreviewView(
@@ -78,6 +80,12 @@ extension PlayerHolderView {
                         source: editorViewModel.videoCanvasSource(for: video),
                         isInteractive: cropSummary.isCropOverlayInteractive,
                         cornerRadius: 16,
+                        onInteractionStarted: {
+                            videoPlayer.beginPlaybackInteraction()
+                        },
+                        onInteractionEnded: { _ in
+                            videoPlayer.endPlaybackInteraction()
+                        },
                         onSnapshotChange: { _ in
                             editorViewModel.handleCanvasPreviewChange()
                         }
@@ -391,7 +399,6 @@ struct PlayerControl: View {
                 }
             },
             onChangeTimeValue: { newRange in
-                videoPlayer.pause()
                 videoPlayer.updatePlaybackRange(newRange)
                 editorViewModel.setCut()
             },
@@ -399,6 +406,15 @@ struct PlayerControl: View {
                 editorViewModel.refreshThumbnailsIfNeeded(
                     containerSize: size,
                     displayScale: displayScale
+                )
+            },
+            onTrimRangeInteractionStarted: {
+                videoPlayer.beginPlaybackInteraction()
+            },
+            onTrimRangeInteractionEnded: { time, range in
+                videoPlayer.endPlaybackInteraction(
+                    resumeAt: time,
+                    in: range
                 )
             },
             onPlaybackScrubStarted: { range in

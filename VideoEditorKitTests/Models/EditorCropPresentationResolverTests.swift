@@ -157,4 +157,41 @@ struct EditorCropPresentationResolverTests {
         #expect(summary.badgeText == "Portrait • 4:5")
     }
 
+    @Test
+    @MainActor
+    func playbackFocusHidesOverlayChromeWhileKeepingCropInteractionsAvailable() {
+        let summary = EditorCropPresentationResolver.makeSummary(
+            state: .init(
+                freeformRect: .init(
+                    x: 0.34,
+                    y: 0,
+                    width: 0.32,
+                    height: 1
+                ),
+                socialVideoDestination: .instagramReels,
+                showsSafeAreaOverlay: true,
+                canvasSnapshot: .init(
+                    preset: .social(platform: .instagram),
+                    freeCanvasSize: CGSize(width: 1080, height: 1920),
+                    transform: .init(
+                        normalizedOffset: CGPoint(x: 0.12, y: -0.08),
+                        zoom: 1.2
+                    ),
+                    showsSafeAreaOverlay: true
+                )
+            ),
+            video: nil,
+            fallbackContainerSize: CGSize(width: 320, height: 240),
+            isPlaybackFocused: true
+        )
+
+        #expect(summary.selectedPreset == .vertical9x16)
+        #expect(summary.isCropOverlayInteractive)
+        #expect(summary.shouldShowSafeAreaOverlay == false)
+        #expect(summary.availableSafeAreaGuideProfile == nil)
+        #expect(summary.activeSafeAreaGuideProfile == nil)
+        #expect(summary.shouldShowCropPresetBadge == false)
+        #expect(summary.shouldShowCanvasResetButton == false)
+    }
+
 }
