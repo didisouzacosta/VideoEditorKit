@@ -171,6 +171,24 @@ Implemented in this cycle:
 - draft projects can exist without an exported file and still be reopened from the home screen
 - save callbacks now include thumbnail data rendered from the visible first frame of the edit
 
-Still pending after phase 4:
+### Phase 5
 
-- broader callback-level regression coverage for `VideoEditorView` emission timing under rapid gesture churn
+Goal: cover save callback emission timing with focused regression tests.
+
+Deliverables:
+
+- extract `VideoEditorView` save emission orchestration into a dedicated coordinator
+- add regression coverage for:
+  - latest-wins behavior during rapid edits
+  - transient-only changes not producing a second callback
+  - reset/cancel semantics when the editor disappears
+
+Status:
+
+- implemented
+- `VideoEditorView` now delegates debounced save emission to `VideoEditorSaveEmissionCoordinator`
+- the coordinator is covered by dedicated tests for latest-wins, transient-state dedupe, and reset behavior
+
+## Remaining Work
+
+- run full simulator test execution once the environment is available, since this cycle validated `build` and `build-for-testing`

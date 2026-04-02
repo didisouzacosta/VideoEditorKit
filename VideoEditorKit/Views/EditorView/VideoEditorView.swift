@@ -41,19 +41,14 @@ struct VideoEditorView: View {
 
     @State private var editorViewModel = EditorViewModel()
     @State private var audioRecorder = AudioRecorderManager()
+    @State private var saveEmissionCoordinator = VideoEditorSaveEmissionCoordinator()
     @State private var videoPlayer = VideoPlayerManager()
-    @State private var lastPublishedSaveFingerprint: VideoEditingConfiguration?
-    @State private var saveStateTask: Task<Void, Never>?
 
     // MARK: - Private Properties
 
     private let callbacks: Callbacks
     private let configuration: Configuration
     private let session: Session
-
-    private enum Constants {
-        static let saveStateDebounceInNanoseconds: UInt64 = 150_000_000
-    }
 
     // MARK: - Body
 
@@ -217,49 +212,23 @@ struct VideoEditorView: View {
             return
         }
 
-        let saveState = SaveState(
-            editingConfiguration: currentEditingConfiguration
-        )
-
-        guard saveState.continuousSaveFingerprint != lastPublishedSaveFingerprint else {
-            return
-        }
-
-        lastPublishedSaveFingerprint = saveState.continuousSaveFingerprint
-        saveStateTask?.cancel()
-
         let sourceVideoURL = editorViewModel.currentVideo?.url ?? session.sourceVideoURL
 
-        saveStateTask = Task {
-            try? await Task.sleep(nanoseconds: Constants.saveStateDebounceInNanoseconds)
-            guard Task.isCancelled == false else { return }
-
-            let thumbnailData: Data?
-
-            if let sourceVideoURL {
-                thumbnailData = await VideoEditingThumbnailRenderer.makeThumbnailData(
-                    sourceVideoURL: sourceVideoURL,
-                    editingConfiguration: currentEditingConfiguration
-                )
-            } else {
-                thumbnailData = nil
-            }
-
-            guard Task.isCancelled == false else { return }
-
+        saveEmissionCoordinator.scheduleSave(
+            editingConfiguration: currentEditingConfiguration,
+            sourceVideoURL: sourceVideoURL
+        ) { publishedSave in
             callbacks.onSaveStateChanged(
                 .init(
-                    editingConfiguration: currentEditingConfiguration,
-                    thumbnailData: thumbnailData
+                    editingConfiguration: publishedSave.editingConfiguration,
+                    thumbnailData: publishedSave.thumbnailData
                 )
             )
         }
     }
 
     private func handleDisappear() {
-        saveStateTask?.cancel()
-        saveStateTask = nil
-        lastPublishedSaveFingerprint = nil
+        saveEmissionCoordinator.reset()
         editorViewModel.cancelDeferredTasks()
     }
 

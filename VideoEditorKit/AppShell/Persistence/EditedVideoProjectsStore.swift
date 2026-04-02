@@ -232,14 +232,8 @@ struct EditedVideoProjectsStore {
 
     private func fetchProject(id: UUID?) throws -> EditedVideoProject? {
         guard let id else { return nil }
-
-        let descriptor = FetchDescriptor<EditedVideoProject>(
-            predicate: #Predicate<EditedVideoProject> { project in
-                project.id == id
-            }
-        )
-
-        return try modelContext.fetch(descriptor).first
+        let descriptor = FetchDescriptor<EditedVideoProject>()
+        return try modelContext.fetch(descriptor).first(where: { $0.id == id })
     }
 
     private func ensureProjectDirectory(for id: UUID) throws -> URL {

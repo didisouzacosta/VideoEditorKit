@@ -137,7 +137,7 @@ struct ExporterViewModelTests {
         let viewModel = ExporterViewModel(
             Video.mock,
             renderVideo: { _, _, _, _ in
-                await tracker.recordRenderCall()
+                _ = await tracker.recordRenderCall()
 
                 do {
                     try await Task.sleep(for: .seconds(5))
