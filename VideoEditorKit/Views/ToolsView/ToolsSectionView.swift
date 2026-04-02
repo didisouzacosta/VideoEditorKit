@@ -11,6 +11,13 @@ import SwiftUI
 @MainActor
 struct ToolsSectionView: View {
 
+    private enum Constants {
+        static let settleAnimation = Animation.smooth(
+            duration: 0.28,
+            extraBounce: 0.04
+        )
+    }
+
     // MARK: - States
 
     @State private var speedDraft = 1.0
@@ -279,10 +286,19 @@ extension ToolsSectionView {
     }
 
     private func resetTool(_ tool: ToolEnum) {
-        editorViewModel.reset(
-            tool,
-            videoPlayer: videoPlayer
-        )
+        if tool == .presets {
+            withAnimation(Constants.settleAnimation) {
+                editorViewModel.reset(
+                    tool,
+                    videoPlayer: videoPlayer
+                )
+            }
+        } else {
+            editorViewModel.reset(
+                tool,
+                videoPlayer: videoPlayer
+            )
+        }
         loadDraft(for: tool)
         editorViewModel.closeSelectedTool()
     }
@@ -301,7 +317,9 @@ extension ToolsSectionView {
             if presetDraft == editorViewModel.cropPresentationSummary.selectedPreset {
                 editorViewModel.closeSelectedTool()
             } else {
-                editorViewModel.selectCropFormat(presetDraft)
+                withAnimation(Constants.settleAnimation) {
+                    editorViewModel.selectCropFormat(presetDraft)
+                }
             }
         case .audio:
             let committedAudioDraft = AudioToolDraft(

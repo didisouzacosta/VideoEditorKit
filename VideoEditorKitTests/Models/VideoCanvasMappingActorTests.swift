@@ -112,4 +112,45 @@ struct VideoCanvasMappingActorTests {
         #expect(abs(transform.normalizedOffset.y) < 0.0001)
     }
 
+    @Test
+    func interactiveTransformCombinesPanPinchAndRotationFromTheSameBaseline() {
+        let actor = VideoCanvasMappingActor()
+        let baseline = VideoCanvasTransform(
+            normalizedOffset: CGPoint(x: 0.12, y: -0.08),
+            zoom: 1.3,
+            rotationRadians: 0.18
+        )
+        let previewCanvasSize = CGSize(width: 240, height: 180)
+
+        let combined = actor.interactiveTransform(
+            from: baseline,
+            translation: CGSize(width: 36, height: -18),
+            magnification: 1.4,
+            anchor: CGPoint(x: 180, y: 40),
+            rotation: .degrees(12),
+            previewCanvasSize: previewCanvasSize
+        )
+
+        var expected = actor.magnifiedTransform(
+            from: baseline,
+            magnification: 1.4,
+            anchor: CGPoint(x: 180, y: 40),
+            previewCanvasSize: previewCanvasSize
+        )
+        expected = actor.dragTransform(
+            from: expected,
+            translation: CGSize(width: 36, height: -18),
+            previewCanvasSize: previewCanvasSize
+        )
+        expected = actor.rotatedTransform(
+            from: expected,
+            rotation: .degrees(12)
+        )
+
+        #expect(combined == expected)
+        #expect(combined.zoom > baseline.zoom)
+        #expect(combined.rotationRadians > baseline.rotationRadians)
+        #expect(combined.normalizedOffset != baseline.normalizedOffset)
+    }
+
 }

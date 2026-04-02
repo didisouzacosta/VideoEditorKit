@@ -11,6 +11,13 @@ import SwiftUI
 @MainActor
 struct PlayerHolderView: View {
 
+    private enum Constants {
+        static let settleAnimation = Animation.smooth(
+            duration: 0.28,
+            extraBounce: 0.04
+        )
+    }
+
     // MARK: - Environments
 
     @Environment(\.displayScale) private var displayScale
@@ -81,6 +88,10 @@ extension PlayerHolderView {
                             PlayerView(videoPlayer.videoPlayer)
                                 .allFrame()
                                 .scaleEffect(editorViewModel.frames.scale)
+                                .animation(
+                                    Constants.settleAnimation,
+                                    value: editorViewModel.frames.scale
+                                )
                         }
                     } overlay: {
                         Color.clear
@@ -144,7 +155,9 @@ extension PlayerHolderView {
 
     private var resetCanvasButton: some View {
         Button {
-            editorViewModel.resetCanvasTransform()
+            withAnimation(Constants.settleAnimation) {
+                editorViewModel.resetCanvasTransform()
+            }
         } label: {
             Image(systemName: "arrow.counterclockwise")
                 .font(.headline.weight(.semibold))
@@ -200,7 +213,9 @@ extension PlayerHolderView {
             .accessibilityLabel("Explain safe area")
 
             Button {
-                editorViewModel.toggleSafeAreaOverlay()
+                withAnimation(Constants.settleAnimation) {
+                    editorViewModel.toggleSafeAreaOverlay()
+                }
             } label: {
                 Image(systemName: isVisible ? "eye.slash" : "eye")
                     .font(.headline.weight(.semibold))

@@ -36,6 +36,12 @@ final class VideoCanvasEditorState {
     // MARK: - Public Methods
 
     func snapshot() -> VideoCanvasSnapshot {
+        snapshot(with: transform)
+    }
+
+    func snapshot(
+        with transform: VideoCanvasTransform
+    ) -> VideoCanvasSnapshot {
         VideoCanvasSnapshot(
             preset: preset,
             freeCanvasSize: freeCanvasSize,
@@ -56,19 +62,24 @@ final class VideoCanvasEditorState {
     }
 
     func makeRenderRequest(
-        source: VideoCanvasSourceDescriptor
+        source: VideoCanvasSourceDescriptor,
+        canvasSnapshot: VideoCanvasSnapshot? = nil
     ) -> VideoCanvasRenderRequest {
         mappingActor.makeRenderRequest(
             source: source,
-            snapshot: snapshot()
+            snapshot: canvasSnapshot ?? snapshot()
         )
     }
 
     func previewLayout(
         source: VideoCanvasSourceDescriptor,
-        availableSize: CGSize
+        availableSize: CGSize,
+        canvasSnapshot: VideoCanvasSnapshot? = nil
     ) -> VideoCanvasLayout {
-        let request = makeRenderRequest(source: source)
+        let request = makeRenderRequest(
+            source: source,
+            canvasSnapshot: canvasSnapshot
+        )
         return mappingActor.makePreviewLayout(
             request: request,
             availableSize: availableSize
@@ -115,6 +126,24 @@ final class VideoCanvasEditorState {
         mappingActor.rotatedTransform(
             from: baseline,
             rotation: rotation
+        )
+    }
+
+    func interactiveTransform(
+        from baseline: VideoCanvasTransform,
+        translation: CGSize,
+        magnification: CGFloat,
+        anchor: CGPoint,
+        rotation: Angle,
+        previewCanvasSize: CGSize
+    ) -> VideoCanvasTransform {
+        mappingActor.interactiveTransform(
+            from: baseline,
+            translation: translation,
+            magnification: magnification,
+            anchor: anchor,
+            rotation: rotation,
+            previewCanvasSize: previewCanvasSize
         )
     }
 

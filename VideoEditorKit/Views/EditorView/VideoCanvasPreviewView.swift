@@ -16,10 +16,7 @@ struct VideoCanvasPreviewView<Content: View, Overlay: View>: View {
 
     // MARK: - States
 
-    @State private var dragBaselineTransform: VideoCanvasTransform?
-    @State private var magnificationBaselineTransform: VideoCanvasTransform?
-    @State private var rotationBaselineTransform: VideoCanvasTransform?
-    @State private var hasPendingInteractiveChange = false
+    @State private var interactionState: InteractionState?
 
     // MARK: - Public Properties
 
@@ -36,14 +33,25 @@ struct VideoCanvasPreviewView<Content: View, Overlay: View>: View {
 
     var body: some View {
         GeometryReader { proxy in
-            let layout = editorState.previewLayout(
+            let baseLayout = editorState.previewLayout(
                 source: source,
                 availableSize: proxy.size
+            )
+            let effectiveSnapshot = resolvedSnapshot(
+                previewCanvasSize: baseLayout.previewCanvasSize
+            )
+            let layout = editorState.previewLayout(
+                source: source,
+                availableSize: proxy.size,
+                canvasSnapshot: effectiveSnapshot
             )
 
             ZStack {
                 if layout.previewCanvasSize.width > 0, layout.previewCanvasSize.height > 0 {
-                    canvasView(layout)
+                    canvasView(
+                        layout,
+                        effectiveSnapshot: effectiveSnapshot
+                    )
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
@@ -53,7 +61,10 @@ struct VideoCanvasPreviewView<Content: View, Overlay: View>: View {
     // MARK: - Private Properties
 
     @ViewBuilder
-    private func canvasView(_ layout: VideoCanvasLayout) -> some View {
+    private func canvasView(
+        _ layout: VideoCanvasLayout,
+        effectiveSnapshot: VideoCanvasSnapshot
+    ) -> some View {
         let contentScaleX = layout.isMirrored ? -layout.contentScale : layout.contentScale
 
         let canvas = ZStack {
@@ -78,9 +89,26 @@ struct VideoCanvasPreviewView<Content: View, Overlay: View>: View {
         .overlay {
             overlayContent()
         }
+        .animation(
+            settleAnimation,
+            value: effectiveSnapshot
+        )
+        .animation(
+            settleAnimation,
+            value: source
+        )
+        .transaction { transaction in
+            if interactionState?.isActive == true {
+                transaction.animation = nil
+                transaction.disablesAnimations = true
+            }
+        }
         .onTapGesture(count: 2) {
             guard isInteractive else { return }
-            editorState.resetTransform()
+            withAnimation(settleAnimation) {
+                interactionState = nil
+                editorState.resetTransform()
+            }
             onSnapshotChange(editorState.snapshot())
         }
 
@@ -136,27 +164,23 @@ struct VideoCanvasPreviewView<Content: View, Overlay: View>: View {
     ) -> some Gesture {
         SimultaneousGesture(
             SimultaneousGesture(
-                DragGesture()
+                DragGesture(minimumDistance: 0)
                     .onChanged { value in
-                        updateDrag(
-                            value.translation,
-                            previewCanvasSize: layout.previewCanvasSize
-                        )
+                        updateDrag(value.translation)
                     }
                     .onEnded { _ in
-                        dragBaselineTransform = nil
-                        commitInteractiveChangesIfNeeded()
+                        endDrag(
+                            previewCanvasSize: layout.previewCanvasSize
+                        )
                     },
                 MagnifyGesture()
                     .onChanged { value in
-                        updateMagnification(
-                            value,
-                            previewCanvasSize: layout.previewCanvasSize
-                        )
+                        updateMagnification(value)
                     }
                     .onEnded { _ in
-                        magnificationBaselineTransform = nil
-                        commitInteractiveChangesIfNeeded()
+                        endMagnification(
+                            previewCanvasSize: layout.previewCanvasSize
+                        )
                     }
             ),
             RotationGesture()
@@ -164,72 +188,159 @@ struct VideoCanvasPreviewView<Content: View, Overlay: View>: View {
                     updateRotation(value)
                 }
                 .onEnded { _ in
-                    rotationBaselineTransform = nil
-                    commitInteractiveChangesIfNeeded()
+                    endRotation(
+                        previewCanvasSize: layout.previewCanvasSize
+                    )
                 }
         )
     }
 
     private func updateDrag(
-        _ translation: CGSize,
-        previewCanvasSize: CGSize
+        _ translation: CGSize
     ) {
-        let baseline = dragBaselineTransform ?? editorState.transform
-        if dragBaselineTransform == nil {
-            dragBaselineTransform = baseline
-        }
-
-        editorState.transform = editorState.dragTransform(
-            from: baseline,
-            translation: translation,
-            previewCanvasSize: previewCanvasSize
-        )
-        hasPendingInteractiveChange = true
+        var interactionState =
+            interactionState
+            ?? .init(
+                baselineTransform: editorState.transform
+            )
+        interactionState.translation = translation
+        interactionState.isDragging = true
+        self.interactionState = interactionState
     }
 
     private func updateMagnification(
-        _ value: MagnifyGesture.Value,
-        previewCanvasSize: CGSize
+        _ value: MagnifyGesture.Value
     ) {
-        let baseline = magnificationBaselineTransform ?? editorState.transform
-        if magnificationBaselineTransform == nil {
-            magnificationBaselineTransform = baseline
-        }
-
-        editorState.transform = editorState.magnifiedTransform(
-            from: baseline,
-            magnification: value.magnification,
-            anchor: value.startLocation,
-            previewCanvasSize: previewCanvasSize
-        )
-        hasPendingInteractiveChange = true
+        var interactionState =
+            interactionState
+            ?? .init(
+                baselineTransform: editorState.transform
+            )
+        interactionState.magnification = value.magnification
+        interactionState.magnificationAnchor = value.startLocation
+        interactionState.isMagnifying = true
+        self.interactionState = interactionState
     }
 
     private func updateRotation(
         _ rotation: Angle
     ) {
-        let baseline = rotationBaselineTransform ?? editorState.transform
-        if rotationBaselineTransform == nil {
-            rotationBaselineTransform = baseline
-        }
-
-        editorState.transform = editorState.rotatedTransform(
-            from: baseline,
-            rotation: rotation
-        )
-        hasPendingInteractiveChange = true
+        var interactionState =
+            interactionState
+            ?? .init(
+                baselineTransform: editorState.transform
+            )
+        interactionState.rotation = rotation
+        interactionState.isRotating = true
+        self.interactionState = interactionState
     }
 
-    private func commitInteractiveChangesIfNeeded() {
-        let isInteractionActive =
-            dragBaselineTransform != nil
-            || magnificationBaselineTransform != nil
-            || rotationBaselineTransform != nil
+    private func endDrag(
+        previewCanvasSize: CGSize
+    ) {
+        updateInteractionActivity(
+            previewCanvasSize: previewCanvasSize
+        ) { interactionState in
+            interactionState.isDragging = false
+        }
+    }
 
-        guard hasPendingInteractiveChange, isInteractionActive == false else { return }
+    private func endMagnification(
+        previewCanvasSize: CGSize
+    ) {
+        updateInteractionActivity(
+            previewCanvasSize: previewCanvasSize
+        ) { interactionState in
+            interactionState.isMagnifying = false
+        }
+    }
 
-        hasPendingInteractiveChange = false
+    private func endRotation(
+        previewCanvasSize: CGSize
+    ) {
+        updateInteractionActivity(
+            previewCanvasSize: previewCanvasSize
+        ) { interactionState in
+            interactionState.isRotating = false
+        }
+    }
+
+    private func updateInteractionActivity(
+        previewCanvasSize: CGSize,
+        update: (inout InteractionState) -> Void
+    ) {
+        guard var interactionState else { return }
+        update(&interactionState)
+
+        if interactionState.isActive {
+            self.interactionState = interactionState
+            return
+        }
+
+        editorState.transform = interactionState.resolvedTransform(
+            editorState: editorState,
+            previewCanvasSize: previewCanvasSize
+        )
+        self.interactionState = nil
         onSnapshotChange(editorState.snapshot())
+    }
+
+    private var settleAnimation: Animation {
+        .smooth(
+            duration: 0.28,
+            extraBounce: 0.04
+        )
+    }
+
+    private func resolvedSnapshot(
+        previewCanvasSize: CGSize
+    ) -> VideoCanvasSnapshot {
+        guard let interactionState else {
+            return editorState.snapshot()
+        }
+
+        return editorState.snapshot(
+            with: interactionState.resolvedTransform(
+                editorState: editorState,
+                previewCanvasSize: previewCanvasSize
+            )
+        )
+    }
+
+}
+
+@MainActor
+private struct InteractionState {
+
+    // MARK: - Public Properties
+
+    let baselineTransform: VideoCanvasTransform
+    var translation: CGSize = .zero
+    var magnification: CGFloat = 1
+    var magnificationAnchor = CGPoint(x: 0.5, y: 0.5)
+    var rotation: Angle = .zero
+    var isDragging = false
+    var isMagnifying = false
+    var isRotating = false
+
+    var isActive: Bool {
+        isDragging || isMagnifying || isRotating
+    }
+
+    // MARK: - Public Methods
+
+    func resolvedTransform(
+        editorState: VideoCanvasEditorState,
+        previewCanvasSize: CGSize
+    ) -> VideoCanvasTransform {
+        editorState.interactiveTransform(
+            from: baselineTransform,
+            translation: translation,
+            magnification: magnification,
+            anchor: magnificationAnchor,
+            rotation: rotation,
+            previewCanvasSize: previewCanvasSize
+        )
     }
 
 }

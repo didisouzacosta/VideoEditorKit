@@ -221,6 +221,32 @@ struct VideoCanvasMappingActor {
         return nextTransform
     }
 
+    func interactiveTransform(
+        from baseline: VideoCanvasTransform,
+        translation: CGSize,
+        magnification: CGFloat,
+        anchor: CGPoint,
+        rotation: Angle,
+        previewCanvasSize: CGSize
+    ) -> VideoCanvasTransform {
+        var nextTransform = magnifiedTransform(
+            from: baseline,
+            magnification: magnification,
+            anchor: anchor,
+            previewCanvasSize: previewCanvasSize
+        )
+        nextTransform = dragTransform(
+            from: nextTransform,
+            translation: translation,
+            previewCanvasSize: previewCanvasSize
+        )
+        nextTransform = rotatedTransform(
+            from: nextTransform,
+            rotation: rotation
+        )
+        return nextTransform
+    }
+
     func snapshotTransform(
         fromLegacyFreeformRect freeformRect: VideoEditingConfiguration.FreeformRect?,
         referenceSize: CGSize,
