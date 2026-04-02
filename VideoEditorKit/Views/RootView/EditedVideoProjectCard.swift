@@ -23,10 +23,19 @@ struct EditedVideoProjectCard: View {
         Button(action: onOpen) {
             thumbnailContent
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .overlay(alignment: .bottomLeading) {
+                    if project.hasExportedVideo == false {
+                        draftBadge
+                            .padding(6)
+                            .allowsHitTesting(false)
+                    }
+                }
                 .overlay(alignment: .bottomTrailing) {
-                    durationBadge
-                        .padding(6)
-                        .allowsHitTesting(false)
+                    if project.duration > 0 {
+                        durationBadge
+                            .padding(6)
+                            .allowsHitTesting(false)
+                    }
                 }
         }
         .buttonStyle(.plain)
@@ -61,6 +70,15 @@ struct EditedVideoProjectCard: View {
             .background(.black.opacity(0.78), in: Capsule())
     }
 
+    private var draftBadge: some View {
+        Text("Draft")
+            .font(.caption2.weight(.bold))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(Theme.accent.opacity(0.9), in: Capsule())
+    }
+
     private var menuButton: some View {
         Menu {
             ShareLink(item: project.exportedVideoURL) {
@@ -89,6 +107,20 @@ struct EditedVideoProjectCard: View {
                     Image(uiImage: resolvedThumbnailImage)
                         .resizable()
                         .scaledToFill()
+                }
+        } else {
+            Rectangle()
+                .fill(
+                    LinearGradient(
+                        colors: [Color.black, Theme.secondary.opacity(0.35)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .overlay {
+                    Image(systemName: project.hasExportedVideo ? "play.rectangle.fill" : "square.and.pencil")
+                        .font(.system(size: 28, weight: .bold))
+                        .foregroundStyle(.white.opacity(0.85))
                 }
         }
     }

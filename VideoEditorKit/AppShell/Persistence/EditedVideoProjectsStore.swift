@@ -13,6 +13,26 @@ import UIKit
 @MainActor
 struct EditedVideoProjectsStore {
 
+    struct PersistedEditingState {
+
+        // MARK: - Public Properties
+
+        let project: EditedVideoProject
+        let saveState: VideoEditorView.SaveState
+
+    }
+
+    private struct PreparedProjectSave {
+
+        // MARK: - Public Properties
+
+        let project: EditedVideoProject
+        let now: Date
+        let persistedOriginalURL: URL
+        let persistedEditingConfiguration: VideoEditingConfiguration
+
+    }
+
     // MARK: - Public Properties
 
     let modelContext: ModelContext
@@ -34,12 +54,109 @@ struct EditedVideoProjectsStore {
 
     // MARK: - Public Methods
 
-    func saveProject(
+    func saveEditingState(
+        projectID: UUID?,
+        originalVideoURL: URL,
+        saveState: VideoEditorView.SaveState
+    ) async throws -> PersistedEditingState {
+        let preparedSave = try prepareProjectSave(
+            projectID: projectID,
+            originalVideoURL: originalVideoURL,
+            editingConfiguration: saveState.editingConfiguration
+        )
+        let sourceVideoMetadata = await loadVideoMetadata(from: preparedSave.persistedOriginalURL)
+
+        applyCommonProjectFields(
+            preparedSave,
+            displayName: originalVideoURL.deletingPathExtension().lastPathComponent
+        )
+
+        if let thumbnailData = saveState.thumbnailData {
+            preparedSave.project.thumbnailData = thumbnailData
+        }
+
+        if preparedSave.project.hasExportedVideo == false {
+            applyVideoMetadata(
+                sourceVideoMetadata,
+                to: preparedSave.project
+            )
+        }
+
+        try modelContext.save()
+
+        return PersistedEditingState(
+            project: preparedSave.project,
+            saveState: .init(
+                editingConfiguration: preparedSave.persistedEditingConfiguration,
+                thumbnailData: preparedSave.project.thumbnailData
+            )
+        )
+    }
+
+    func saveExportedVideo(
         projectID: UUID?,
         originalVideoURL: URL,
         exportedVideo: ExportedVideo,
         editingConfiguration: VideoEditingConfiguration
     ) async throws -> EditedVideoProject {
+        let preparedSave = try prepareProjectSave(
+            projectID: projectID,
+            originalVideoURL: originalVideoURL,
+            editingConfiguration: editingConfiguration
+        )
+        let projectDirectoryURL = try ensureProjectDirectory(for: preparedSave.project.id)
+        let persistedExportedURL = try persistExportedVideo(
+            from: exportedVideo.url,
+            to: projectDirectoryURL
+        )
+        let thumbnailData = await makeThumbnailData(
+            fromExportedVideoAt: persistedExportedURL
+        )
+
+        applyCommonProjectFields(
+            preparedSave,
+            displayName: originalVideoURL.deletingPathExtension().lastPathComponent
+        )
+
+        preparedSave.project.exportedVideoFileName = persistedExportedURL.lastPathComponent
+        preparedSave.project.thumbnailData = thumbnailData ?? preparedSave.project.thumbnailData
+        applyVideoMetadata(
+            exportedVideo,
+            to: preparedSave.project
+        )
+
+        try modelContext.save()
+
+        cleanupTransientMediaIfNeeded(originalVideoURL, protectedURL: preparedSave.persistedOriginalURL)
+        cleanupTransientMediaIfNeeded(exportedVideo.url, protectedURL: persistedExportedURL)
+        cleanupTransientAudioIfNeeded(
+            originalConfiguration: editingConfiguration,
+            persistedConfiguration: preparedSave.persistedEditingConfiguration
+        )
+
+        return preparedSave.project
+    }
+
+    func deleteProject(_ project: EditedVideoProject) throws {
+        fileManager.removeIfExists(for: EditedVideoProject.directoryURL(for: project.id))
+        modelContext.delete(project)
+        try modelContext.save()
+    }
+
+    static func resolvedThumbnailTimestamp(
+        for duration: Double
+    ) -> Double {
+        guard duration.isFinite, duration >= 0 else { return 0 }
+        return 0
+    }
+
+    // MARK: - Private Methods
+
+    private func prepareProjectSave(
+        projectID: UUID?,
+        originalVideoURL: URL,
+        editingConfiguration: VideoEditingConfiguration
+    ) throws -> PreparedProjectSave {
         guard fileManager.fileExists(atPath: originalVideoURL.path()) else {
             throw StoreError.missingOriginalVideo
         }
@@ -71,50 +188,47 @@ struct EditedVideoProjectsStore {
             from: originalVideoURL,
             to: projectDirectoryURL
         )
-        let persistedExportedURL = try persistExportedVideo(
-            from: exportedVideo.url,
-            to: projectDirectoryURL
-        )
         let persistedEditingConfiguration = try persistRecordedAudioIfNeeded(
             editingConfiguration,
             in: projectDirectoryURL
         )
-        let thumbnailData = await makeThumbnailData(
-            fromExportedVideoAt: persistedExportedURL
+
+        return .init(
+            project: resolvedProject,
+            now: now,
+            persistedOriginalURL: persistedOriginalURL,
+            persistedEditingConfiguration: persistedEditingConfiguration
         )
-
-        resolvedProject.updatedAt = now
-        resolvedProject.displayName = originalVideoURL.deletingPathExtension().lastPathComponent
-        resolvedProject.originalVideoFileName = persistedOriginalURL.lastPathComponent
-        resolvedProject.exportedVideoFileName = persistedExportedURL.lastPathComponent
-        resolvedProject.editingConfigurationData = try JSONEncoder().encode(
-            persistedEditingConfiguration
-        )
-        resolvedProject.thumbnailData = thumbnailData
-        resolvedProject.duration = exportedVideo.duration
-        resolvedProject.width = exportedVideo.width
-        resolvedProject.height = exportedVideo.height
-        resolvedProject.fileSize = exportedVideo.fileSize
-
-        try modelContext.save()
-
-        cleanupTransientMediaIfNeeded(originalVideoURL, protectedURL: persistedOriginalURL)
-        cleanupTransientMediaIfNeeded(exportedVideo.url, protectedURL: persistedExportedURL)
-        cleanupTransientAudioIfNeeded(
-            originalConfiguration: editingConfiguration,
-            persistedConfiguration: persistedEditingConfiguration
-        )
-
-        return resolvedProject
     }
 
-    func deleteProject(_ project: EditedVideoProject) throws {
-        fileManager.removeIfExists(for: EditedVideoProject.directoryURL(for: project.id))
-        modelContext.delete(project)
-        try modelContext.save()
+    private func applyCommonProjectFields(
+        _ preparedSave: PreparedProjectSave,
+        displayName: String
+    ) {
+        preparedSave.project.updatedAt = preparedSave.now
+        preparedSave.project.displayName = displayName
+        preparedSave.project.originalVideoFileName = preparedSave.persistedOriginalURL.lastPathComponent
+        preparedSave.project.editingConfigurationData =
+            (try? JSONEncoder().encode(
+                preparedSave.persistedEditingConfiguration
+            )) ?? Data()
     }
 
-    // MARK: - Private Methods
+    private func applyVideoMetadata(
+        _ video: ExportedVideo,
+        to project: EditedVideoProject
+    ) {
+        project.duration = video.duration
+        project.width = video.width
+        project.height = video.height
+        project.fileSize = video.fileSize
+    }
+
+    private func loadVideoMetadata(
+        from url: URL
+    ) async -> ExportedVideo {
+        await ExportedVideo.load(from: url)
+    }
 
     private func fetchProject(id: UUID?) throws -> EditedVideoProject? {
         guard let id else { return nil }
@@ -167,16 +281,20 @@ struct EditedVideoProjectsStore {
         in projectDirectoryURL: URL
     ) throws -> VideoEditingConfiguration {
         var persistedEditingConfiguration = editingConfiguration
-        removePersistedRecordedAudioIfNeeded(in: projectDirectoryURL)
 
         guard var recordedClip = editingConfiguration.audio.recordedClip else {
+            removePersistedRecordedAudioIfNeeded(in: projectDirectoryURL)
             return persistedEditingConfiguration
         }
 
         let fileExtension = recordedClip.url.pathExtension.isEmpty ? "m4a" : recordedClip.url.pathExtension
         let destinationURL = projectDirectoryURL.appending(path: "recorded-audio.\(fileExtension)")
 
-        recordedClip.url = try persistFile(from: recordedClip.url, to: destinationURL)
+        if recordedClip.url.standardizedFileURL != destinationURL.standardizedFileURL {
+            removePersistedRecordedAudioIfNeeded(in: projectDirectoryURL)
+            recordedClip.url = try persistFile(from: recordedClip.url, to: destinationURL)
+        }
+
         persistedEditingConfiguration.audio.recordedClip = recordedClip
         return persistedEditingConfiguration
     }
@@ -221,13 +339,6 @@ struct EditedVideoProjectsStore {
         )
 
         return image?.jpegData(compressionQuality: 0.85)
-    }
-
-    static func resolvedThumbnailTimestamp(
-        for duration: Double
-    ) -> Double {
-        guard duration.isFinite, duration >= 0 else { return 0 }
-        return 0
     }
 
     private func cleanupTransientMediaIfNeeded(

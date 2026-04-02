@@ -31,12 +31,14 @@ extension AVAsset {
         at second: Double,
         maximumSize: CGSize = .zero
     ) async -> UIImage? {
-        let images = await generateImages(
+        if let first = await generateImages(
             at: [second],
             maximumSize: maximumSize
-        )
-
-        return images.first
+        ).first {
+            first
+        } else {
+            nil
+        }
     }
 
     func generateImages(
@@ -125,6 +127,7 @@ extension AVAsset {
 
         let normalizedAngle = Int(rotationAngle) % 180
         let fittedAssetSize: CGSize
+
         if normalizedAngle == 0 {
             fittedAssetSize = assetSize
         } else {

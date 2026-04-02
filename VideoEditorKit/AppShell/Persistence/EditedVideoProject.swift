@@ -52,7 +52,14 @@ final class EditedVideoProject {
     }
 
     var hasExportedVideo: Bool {
-        FileManager.default.fileExists(atPath: exportedVideoURL.path())
+        guard exportedVideoFileName.isEmpty == false else { return false }
+
+        var isDirectory: ObjCBool = false
+        let fileExists = FileManager.default.fileExists(
+            atPath: exportedVideoURL.path(),
+            isDirectory: &isDirectory
+        )
+        return fileExists && isDirectory.boolValue == false
     }
 
     var hasRequiredMedia: Bool {

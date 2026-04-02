@@ -63,6 +63,90 @@ struct VideoEditingConfigurationTests {
     }
 
     @Test
+    func continuousSaveFingerprintIgnoresTransientEditingPresentationState() {
+        let baseline = VideoEditingConfiguration(
+            trim: .init(lowerBound: 4, upperBound: 22),
+            playback: .init(
+                rate: 1.75,
+                videoVolume: 0.45,
+                currentTimelineTime: 12
+            ),
+            crop: .init(
+                rotationDegrees: 180,
+                isMirrored: true,
+                freeformRect: .init(
+                    x: 0.1,
+                    y: 0.2,
+                    width: 0.6,
+                    height: 0.4
+                )
+            ),
+            canvas: .init(
+                snapshot: .init(
+                    preset: .original,
+                    freeCanvasSize: CGSize(width: 1080, height: 1080),
+                    transform: .identity,
+                    showsSafeAreaOverlay: true
+                )
+            ),
+            adjusts: .init(
+                brightness: 0.2,
+                contrast: 1.1,
+                saturation: 0.8
+            ),
+            frame: .init(
+                scaleValue: 0.3,
+                colorToken: "palette:teal"
+            ),
+            audio: .init(
+                recordedClip: .init(
+                    url: URL(fileURLWithPath: "/tmp/test-audio.m4a"),
+                    duration: 3,
+                    volume: 0.8
+                ),
+                selectedTrack: .recorded
+            ),
+            presentation: .init(
+                .adjusts,
+                socialVideoDestination: .tikTok,
+                showsSafeAreaGuides: true
+            )
+        )
+        var transientOnlyChange = baseline
+        transientOnlyChange.playback.currentTimelineTime = 3
+        transientOnlyChange.audio.selectedTrack = .video
+        transientOnlyChange.presentation.selectedTool = nil
+        transientOnlyChange.presentation.showsSafeAreaGuides = false
+        transientOnlyChange.canvas.snapshot.showsSafeAreaOverlay = false
+
+        #expect(baseline.continuousSaveFingerprint == transientOnlyChange.continuousSaveFingerprint)
+    }
+
+    @Test
+    func continuousSaveFingerprintPreservesMeaningfulEditingChanges() {
+        let baseline = VideoEditingConfiguration(
+            trim: .init(lowerBound: 4, upperBound: 22),
+            crop: .init(
+                freeformRect: .init(
+                    x: 0.1,
+                    y: 0.2,
+                    width: 0.6,
+                    height: 0.4
+                )
+            )
+        )
+        var changed = baseline
+        changed.crop.freeformRect = .init(
+            x: 0.2,
+            y: 0.2,
+            width: 0.5,
+            height: 0.4
+        )
+
+        #expect(baseline.continuousSaveFingerprint != changed.continuousSaveFingerprint)
+    }
+
+    @Test
     func decodeCurrentAdjustsSnapshotWithoutVersionToCurrentSchemaVersion() throws {
         let currentJSON = """
             {

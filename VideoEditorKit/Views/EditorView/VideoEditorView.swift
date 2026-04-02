@@ -11,6 +11,28 @@ import SwiftUI
 @MainActor
 struct VideoEditorView: View {
 
+    struct SaveState: Equatable, Sendable {
+
+        // MARK: - Public Properties
+
+        let editingConfiguration: VideoEditingConfiguration
+        let thumbnailData: Data?
+        var continuousSaveFingerprint: VideoEditingConfiguration {
+            editingConfiguration.continuousSaveFingerprint
+        }
+
+        // MARK: - Initializer
+
+        init(
+            editingConfiguration: VideoEditingConfiguration,
+            thumbnailData: Data? = nil
+        ) {
+            self.editingConfiguration = editingConfiguration
+            self.thumbnailData = thumbnailData
+        }
+
+    }
+
     // MARK: - Environments
 
     @Environment(\.dismiss) private var dismiss
@@ -20,13 +42,18 @@ struct VideoEditorView: View {
     @State private var editorViewModel = EditorViewModel()
     @State private var audioRecorder = AudioRecorderManager()
     @State private var videoPlayer = VideoPlayerManager()
-    @State private var lastPublishedEditingConfiguration: VideoEditingConfiguration?
+    @State private var lastPublishedSaveFingerprint: VideoEditingConfiguration?
+    @State private var saveStateTask: Task<Void, Never>?
 
     // MARK: - Private Properties
 
     private let callbacks: Callbacks
     private let configuration: Configuration
     private let session: Session
+
+    private enum Constants {
+        static let saveStateDebounceInNanoseconds: UInt64 = 150_000_000
+    }
 
     // MARK: - Body
 
@@ -87,7 +114,7 @@ struct VideoEditorView: View {
                 }
             }
         }
-        .onDisappear(perform: editorViewModel.cancelDeferredTasks)
+        .onDisappear(perform: handleDisappear)
         .dynamicHeightSheet(
             isPresented: $bindablePresentationState.showVideoQualitySheet,
             initialHeight: 420
@@ -101,9 +128,9 @@ struct VideoEditorView: View {
                 VideoExporterView(
                     video: video,
                     editingConfiguration: editingConfiguration
-                ) { exportedURL in
+                ) { exportedVideo in
                     videoPlayer.pause()
-                    callbacks.onExported(exportedURL, editingConfiguration)
+                    callbacks.onExportedVideoURL(exportedVideo.url)
                     dismiss()
                 }
             }
@@ -146,9 +173,9 @@ struct VideoEditorView: View {
         _ sourceVideoURL: URL? = nil,
         editingConfiguration: VideoEditingConfiguration? = nil,
         configuration: Configuration = .init(),
-        onEditingConfigurationChanged: @escaping (VideoEditingConfiguration) -> Void = { _ in },
+        onSaveStateChanged: @escaping (SaveState) -> Void = { _ in },
         onDismissed: @escaping (VideoEditingConfiguration?) -> Void = { _ in },
-        onExported: @escaping (ExportedVideo, VideoEditingConfiguration) -> Void = { _, _ in }
+        onExportedVideoURL: @escaping (URL) -> Void = { _ in }
     ) {
         self.init(
             .init(
@@ -157,9 +184,9 @@ struct VideoEditorView: View {
             ),
             configuration: configuration,
             callbacks: .init(
-                onEditingConfigurationChanged: onEditingConfigurationChanged,
+                onSaveStateChanged: onSaveStateChanged,
                 onDismissed: onDismissed,
-                onExported: onExported
+                onExportedVideoURL: onExportedVideoURL
             )
         )
     }
@@ -185,14 +212,55 @@ struct VideoEditorView: View {
         guard
             let currentEditingConfiguration = editorViewModel.currentEditingConfiguration(
                 currentTimelineTime: videoPlayer.currentTime
-            ),
-            currentEditingConfiguration != lastPublishedEditingConfiguration
+            )
         else {
             return
         }
 
-        lastPublishedEditingConfiguration = currentEditingConfiguration
-        callbacks.onEditingConfigurationChanged(currentEditingConfiguration)
+        let saveState = SaveState(
+            editingConfiguration: currentEditingConfiguration
+        )
+
+        guard saveState.continuousSaveFingerprint != lastPublishedSaveFingerprint else {
+            return
+        }
+
+        lastPublishedSaveFingerprint = saveState.continuousSaveFingerprint
+        saveStateTask?.cancel()
+
+        let sourceVideoURL = editorViewModel.currentVideo?.url ?? session.sourceVideoURL
+
+        saveStateTask = Task {
+            try? await Task.sleep(nanoseconds: Constants.saveStateDebounceInNanoseconds)
+            guard Task.isCancelled == false else { return }
+
+            let thumbnailData: Data?
+
+            if let sourceVideoURL {
+                thumbnailData = await VideoEditingThumbnailRenderer.makeThumbnailData(
+                    sourceVideoURL: sourceVideoURL,
+                    editingConfiguration: currentEditingConfiguration
+                )
+            } else {
+                thumbnailData = nil
+            }
+
+            guard Task.isCancelled == false else { return }
+
+            callbacks.onSaveStateChanged(
+                .init(
+                    editingConfiguration: currentEditingConfiguration,
+                    thumbnailData: thumbnailData
+                )
+            )
+        }
+    }
+
+    private func handleDisappear() {
+        saveStateTask?.cancel()
+        saveStateTask = nil
+        lastPublishedSaveFingerprint = nil
+        editorViewModel.cancelDeferredTasks()
     }
 
 }
@@ -222,20 +290,20 @@ extension VideoEditorView {
 
         // MARK: - Public Properties
 
-        let onEditingConfigurationChanged: (VideoEditingConfiguration) -> Void
+        let onSaveStateChanged: (SaveState) -> Void
         let onDismissed: (VideoEditingConfiguration?) -> Void
-        let onExported: (ExportedVideo, VideoEditingConfiguration) -> Void
+        let onExportedVideoURL: (URL) -> Void
 
         // MARK: - Initializer
 
         init(
-            onEditingConfigurationChanged: @escaping (VideoEditingConfiguration) -> Void = { _ in },
+            onSaveStateChanged: @escaping (SaveState) -> Void = { _ in },
             onDismissed: @escaping (VideoEditingConfiguration?) -> Void = { _ in },
-            onExported: @escaping (ExportedVideo, VideoEditingConfiguration) -> Void = { _, _ in }
+            onExportedVideoURL: @escaping (URL) -> Void = { _ in }
         ) {
-            self.onEditingConfigurationChanged = onEditingConfigurationChanged
+            self.onSaveStateChanged = onSaveStateChanged
             self.onDismissed = onDismissed
-            self.onExported = onExported
+            self.onExportedVideoURL = onExportedVideoURL
         }
 
     }

@@ -19,6 +19,8 @@ enum TestFixtureError: Error {
 
 enum TestFixtures {
 
+    typealias VideoFrameDrawer = @Sendable (CGContext, CGSize, Int) -> Void
+
     // MARK: - Public Methods
 
     static func temporaryURL(fileExtension: String) -> URL {
@@ -92,7 +94,8 @@ enum TestFixtures {
         frameCount: Int = 30,
         framesPerSecond: Int32 = 30,
         color: UIColor = .systemRed,
-        transform: CGAffineTransform = .identity
+        transform: CGAffineTransform = .identity,
+        drawFrame: VideoFrameDrawer? = nil
     ) async throws -> URL {
         let outputURL = temporaryURL(fileExtension: "mp4")
         let writer = try AVAssetWriter(outputURL: outputURL, fileType: .mp4)
@@ -130,7 +133,12 @@ enum TestFixtures {
                 try await Task.sleep(for: .milliseconds(10))
             }
 
-            let pixelBuffer = try makePixelBuffer(size: size, color: color)
+            let pixelBuffer = try makePixelBuffer(
+                size: size,
+                color: color,
+                frameIndex: frameIndex,
+                drawFrame: drawFrame
+            )
             let presentationTime = CMTime(
                 value: CMTimeValue(frameIndex),
                 timescale: framesPerSecond
@@ -165,7 +173,9 @@ enum TestFixtures {
 
     private static func makePixelBuffer(
         size: CGSize,
-        color: UIColor
+        color: UIColor,
+        frameIndex: Int,
+        drawFrame: VideoFrameDrawer?
     ) throws -> CVPixelBuffer {
         var pixelBuffer: CVPixelBuffer?
         let attributes =
@@ -204,8 +214,12 @@ enum TestFixtures {
             throw TestFixtureError.unableToCreateContext
         }
 
-        context.setFillColor(color.cgColor)
-        context.fill(CGRect(origin: .zero, size: size))
+        if let drawFrame {
+            drawFrame(context, size, frameIndex)
+        } else {
+            context.setFillColor(color.cgColor)
+            context.fill(CGRect(origin: .zero, size: size))
+        }
 
         return pixelBuffer
     }

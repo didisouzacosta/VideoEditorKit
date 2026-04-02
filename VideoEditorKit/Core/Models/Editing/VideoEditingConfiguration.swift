@@ -349,6 +349,22 @@ extension VideoEditingConfiguration {
 
 }
 
+extension VideoEditingConfiguration {
+
+    // MARK: - Public Properties
+
+    var continuousSaveFingerprint: Self {
+        var configuration = self
+        configuration.playback.currentTimelineTime = nil
+        configuration.audio.selectedTrack = .video
+        configuration.presentation.selectedTool = nil
+        configuration.presentation.showsSafeAreaGuides = false
+        configuration.canvas.snapshot.showsSafeAreaOverlay = false
+        return configuration
+    }
+
+}
+
 private enum OpaquePayload: Codable, Equatable, Sendable {
 
     // MARK: - Cases

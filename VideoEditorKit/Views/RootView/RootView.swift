@@ -22,6 +22,7 @@ struct RootView: View {
     @State private var viewModel = RootViewModel()
     @State private var selectedItem: PhotosPickerItem?
     @State private var itemLoadTask: Task<Void, Never>?
+    @State private var saveStateTask: Task<Void, Never>?
     @State private var blockedTool: ToolEnum?
     @State private var persistenceErrorMessage: String?
 
@@ -29,6 +30,10 @@ struct RootView: View {
 
     @Query(sort: \EditedVideoProject.updatedAt, order: .reverse)
     private var persistedProjects: [EditedVideoProject]
+
+    private enum Constants {
+        static let editingStateSaveDebounceInNanoseconds: UInt64 = 250_000_000
+    }
 
     // MARK: - Body
 
@@ -133,21 +138,22 @@ extension RootView {
 
     private var editorCallbacks: VideoEditorView.Callbacks {
         .init(
-            onEditingConfigurationChanged: { _ in },
+            onSaveStateChanged: { saveState in
+                if viewModel.handleEditorSaveStateChange(saveState) {
+                    scheduleEditingStateSave(saveState)
+                }
+            },
             onDismissed: { _ in },
-            onExported: { exportedVideo, editingConfiguration in
+            onExportedVideoURL: { exportedVideoURL in
                 Task {
-                    await persistProject(
-                        exportedVideo,
-                        editingConfiguration: editingConfiguration
-                    )
+                    await persistExportedVideo(at: exportedVideoURL)
                 }
             }
         )
     }
 
     private var availableProjects: [EditedVideoProject] {
-        persistedProjects.filter(\.hasRequiredMedia)
+        persistedProjects.filter(\.hasOriginalVideo)
     }
 
     private var projectsStore: EditedVideoProjectsStore {
@@ -266,11 +272,11 @@ extension RootView {
 
     private var emptyProjectsCard: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("No exported videos yet")
+            Text("No saved videos yet")
                 .font(.headline)
 
             Text(
-                "Export your first clip and it will appear here with its thumbnail, duration tag, and saved editing configuration."
+                "Choose a video, make your edits, and it will appear here with the latest saved configuration even before export."
             )
             .font(.subheadline)
             .foregroundStyle(Theme.secondary)
@@ -303,7 +309,59 @@ extension RootView {
     private func handleViewDisappear() {
         itemLoadTask?.cancel()
         itemLoadTask = nil
+        saveStateTask?.cancel()
+        saveStateTask = nil
         viewModel.handleViewDisappear()
+    }
+
+    private func scheduleEditingStateSave(
+        _ saveState: VideoEditorView.SaveState
+    ) {
+        saveStateTask?.cancel()
+        saveStateTask = Task {
+            try? await Task.sleep(nanoseconds: Constants.editingStateSaveDebounceInNanoseconds)
+            guard Task.isCancelled == false else {
+                viewModel.clearPendingEditingStateSave(for: saveState)
+                return
+            }
+
+            await persistEditingState(saveState)
+        }
+    }
+
+    private func persistEditingState(
+        _ saveState: VideoEditorView.SaveState
+    ) async {
+        guard let originalVideoURL = viewModel.currentSourceVideoURL else {
+            persistenceErrorMessage = "The original video for this editing session could not be resolved."
+            return
+        }
+
+        do {
+            let persistedState = try await projectsStore.saveEditingState(
+                projectID: viewModel.currentProjectID,
+                originalVideoURL: originalVideoURL,
+                saveState: saveState
+            )
+
+            guard Task.isCancelled == false else {
+                viewModel.clearPendingEditingStateSave(for: saveState)
+                return
+            }
+
+            viewModel.handlePersistedEditingStateSave(
+                projectID: persistedState.project.id,
+                originalVideoURL: persistedState.project.originalVideoURL,
+                saveState: persistedState.saveState
+            )
+        } catch {
+            guard Task.isCancelled == false else {
+                viewModel.clearPendingEditingStateSave(for: saveState)
+                return
+            }
+            viewModel.clearPendingEditingStateSave(for: saveState)
+            persistenceErrorMessage = error.localizedDescription
+        }
     }
 
     private func loadSelectedItem(_ newItem: PhotosPickerItem?) async {
@@ -330,17 +388,25 @@ extension RootView {
         }
     }
 
-    private func persistProject(
-        _ exportedVideo: ExportedVideo,
-        editingConfiguration: VideoEditingConfiguration
+    private func persistExportedVideo(
+        at exportedVideoURL: URL
     ) async {
+        saveStateTask?.cancel()
+        saveStateTask = nil
+
         guard let originalVideoURL = viewModel.currentSourceVideoURL else {
             persistenceErrorMessage = "The original video for this editing session could not be resolved."
             return
         }
 
+        let editingConfiguration =
+            viewModel.latestEditorSaveState?.editingConfiguration
+            ?? viewModel.editorDestination?.session.editingConfiguration
+            ?? .initial
+        let exportedVideo = await ExportedVideo.load(from: exportedVideoURL)
+
         do {
-            let project = try await projectsStore.saveProject(
+            let project = try await projectsStore.saveExportedVideo(
                 projectID: viewModel.currentProjectID,
                 originalVideoURL: originalVideoURL,
                 exportedVideo: exportedVideo,
