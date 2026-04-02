@@ -23,6 +23,22 @@ Video editing application with great functionality of tools and the ability to e
 - AVFoundation
 - AVKit
 
+## Development
+
+Format the project Swift files with the repository configuration:
+
+```bash
+scripts/format-swift.sh
+```
+
+Lint without changing files:
+
+```bash
+scripts/format-swift.sh --lint
+```
+
+The git `pre-commit` hook also formats staged `.swift` files automatically.
+
 ## Screenshots 📷
 
 ### Projects and editor views

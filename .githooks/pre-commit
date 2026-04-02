@@ -4,6 +4,10 @@ set -eu
 repo_root="$(git rev-parse --show-toplevel)"
 cd "$repo_root"
 
+if [ -x "scripts/format-swift.sh" ]; then
+  scripts/format-swift.sh --staged
+fi
+
 if [ -f "AGENTS.md" ]; then
   git add -- AGENTS.md
 fi

@@ -374,29 +374,34 @@ struct PlayerControl: View {
                 if let video = editorViewModel.currentVideo {
                     videoPlayer.action(video)
                 }
+            },
+            onChangeTimeValue: { newRange in
+                videoPlayer.pause()
+                videoPlayer.updatePlaybackRange(newRange)
+                editorViewModel.setCut()
+            },
+            onRequestThumbnails: { size in
+                editorViewModel.refreshThumbnailsIfNeeded(
+                    containerSize: size,
+                    displayScale: displayScale
+                )
+            },
+            onPlaybackScrubStarted: { range in
+                videoPlayer.beginScrubbing(in: range)
+            },
+            onPlaybackScrubChanged: { time, range in
+                videoPlayer.scrub(
+                    to: time,
+                    in: range
+                )
+            },
+            onPlaybackScrubEnded: { time, range in
+                videoPlayer.endScrubbing(
+                    at: time,
+                    in: range
+                )
             }
-        ) { newRange in
-            videoPlayer.pause()
-            videoPlayer.updatePlaybackRange(newRange)
-            editorViewModel.setCut()
-        } onRequestThumbnails: { size in
-            editorViewModel.refreshThumbnailsIfNeeded(
-                containerSize: size,
-                displayScale: displayScale
-            )
-        } onPlaybackScrubStarted: { range in
-            videoPlayer.beginScrubbing(in: range)
-        } onPlaybackScrubChanged: { time, range in
-            videoPlayer.scrub(
-                to: time,
-                in: range
-            )
-        } onPlaybackScrubEnded: { time, range in
-            videoPlayer.endScrubbing(
-                at: time,
-                in: range
-            )
-        }
+        )
     }
 
 }

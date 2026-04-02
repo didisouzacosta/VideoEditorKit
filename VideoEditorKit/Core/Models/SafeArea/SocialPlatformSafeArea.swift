@@ -17,20 +17,6 @@ struct SafeAreaInsets: Equatable, Sendable {
     let left: CGFloat
     let right: CGFloat
 
-    // MARK: - Initializer
-
-    init(
-        top: CGFloat,
-        bottom: CGFloat,
-        left: CGFloat,
-        right: CGFloat
-    ) {
-        self.top = top
-        self.bottom = bottom
-        self.left = left
-        self.right = right
-    }
-
     // MARK: - Public Methods
 
     func safeFrame(
