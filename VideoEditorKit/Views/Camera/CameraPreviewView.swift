@@ -25,12 +25,17 @@ final class CameraPreviewView: UIView {
         AVCaptureVideoPreviewLayer.self
     }
 
-    private var videoPreviewLayer: AVCaptureVideoPreviewLayer {
-        layer as! AVCaptureVideoPreviewLayer
+    private var videoPreviewLayer: AVCaptureVideoPreviewLayer? {
+        layer as? AVCaptureVideoPreviewLayer
     }
 
     override func didMoveToSuperview() {
         super.didMoveToSuperview()
+
+        guard let videoPreviewLayer else {
+            assertionFailure("Expected AVCaptureVideoPreviewLayer backing layer.")
+            return
+        }
 
         if superview != nil {
             videoPreviewLayer.session = captureSession

@@ -52,7 +52,9 @@ struct Video: Identifiable, @unchecked Sendable {
 
     @MainActor
     static let mock: Video = .init(
-        url: URL(string: "https://www.google.com/")!, rangeDuration: 0...250)
+        url: URL(fileURLWithPath: "/tmp/mock-video.mp4"),
+        rangeDuration: 0...250
+    )
 
     static func load(from url: URL) async -> Video {
         let asset = AVURLAsset(url: url)

@@ -1,0 +1,91 @@
+included:
+  - VideoEditorKit
+  - VideoEditorKitTests
+
+excluded:
+  - .build
+  - DerivedData
+
+disabled_rules:
+  - closure_parameter_position
+  - explicit_init
+  - file_length
+  - function_body_length
+  - function_parameter_count
+  - identifier_name
+  - implicit_optional_initialization
+  - large_tuple
+  - line_length
+  - multiple_closures_with_trailing_closure
+  - nesting
+  - non_optional_string_data_conversion
+  - opening_brace
+  - static_over_final_class
+  - trailing_comma
+  - type_body_length
+
+vertical_whitespace:
+  max_empty_lines: 1
+
+force_cast: error
+force_try: error
+force_unwrapping: error
+
+opt_in_rules:
+  - closure_end_indentation
+  - closure_spacing
+  - collection_alignment
+  - discouraged_object_literal
+  - empty_count
+  - empty_string
+  - first_where
+  - force_cast
+  - force_try
+  - force_unwrapping
+  - identical_operands
+  - joined_default_parameter
+  - last_where
+  - legacy_multiple
+  - modifier_order
+  - redundant_nil_coalescing
+  - sorted_imports
+  - toggle_bool
+  - unused_closure_parameter
+  - yoda_condition
+
+custom_rules:
+  modern_foreground_style:
+    name: "Modern Foreground Style"
+    regex: "\\.foregroundColor\\("
+    message: "Prefer foregroundStyle() over foregroundColor() in SwiftUI."
+    severity: warning
+
+  modern_clip_shape_rect:
+    name: "Modern Clip Shape"
+    regex: "\\.cornerRadius\\("
+    message: "Prefer clipShape(.rect(cornerRadius:)) over cornerRadius()."
+    severity: warning
+
+  modern_navigation_stack:
+    name: "Modern NavigationStack"
+    regex: "\\bNavigationView\\b"
+    message: "Prefer NavigationStack over NavigationView."
+    severity: warning
+
+  avoid_legacy_string_format:
+    name: "Avoid String Format"
+    regex: "\\bString\\s*\\(\\s*format:"
+    message: "Prefer modern formatting APIs over String(format:)."
+    severity: warning
+
+  avoid_screen_bounds:
+    name: "Avoid UIScreen Main Bounds"
+    regex: "UIScreen\\.main\\.bounds"
+    message: "Avoid UIScreen.main.bounds; prefer layout-driven sizing."
+    severity: warning
+
+  prefer_observation_over_observable_object:
+    name: "Prefer Observation"
+    regex: "\\bObservableObject\\b|@ObservedObject\\b|@StateObject\\b"
+    message: "Prefer Observation-based state for new code unless legacy interop requires ObservableObject."
+    severity: warning

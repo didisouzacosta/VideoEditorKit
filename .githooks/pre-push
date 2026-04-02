@@ -13,3 +13,7 @@ if ! git diff --quiet -- AGENTS.md || ! git diff --cached --quiet -- AGENTS.md; 
   echo "pre-push: commit or discard your AGENTS.md changes before pushing." >&2
   exit 1
 fi
+
+if [ -x "scripts/lint-swift.sh" ]; then
+  scripts/lint-swift.sh
+fi

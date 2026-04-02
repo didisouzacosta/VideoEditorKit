@@ -230,7 +230,8 @@ private enum SerializedColorCodec {
             rgbaComponents
             .map { component in
                 let value = Int(round(component * 255))
-                return String(format: "%02X", value)
+                let hex = String(value, radix: 16, uppercase: true)
+                return hex.count == 1 ? "0\(hex)" : hex
             }
             .joined()
     }

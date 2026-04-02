@@ -57,10 +57,11 @@ struct UIImageExtensionTests {
     // MARK: - Public Methods
 
     @Test
-    func normalizedForDisplayKeepsPointSizeAndUsesANonZeroScale() {
+    func normalizedForDisplayKeepsPointSizeAndUsesANonZeroScale() throws {
         let baseImage = TestFixtures.makeSolidImage(scale: 3)
+        let cgImage = try #require(baseImage.cgImage)
         let orientedImage = UIImage(
-            cgImage: baseImage.cgImage!,
+            cgImage: cgImage,
             scale: 3,
             orientation: .left
         )

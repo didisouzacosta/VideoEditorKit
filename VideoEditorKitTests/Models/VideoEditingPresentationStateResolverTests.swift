@@ -4,7 +4,7 @@ import Testing
 @testable import VideoEditorKit
 
 @Suite("VideoEditingPresentationStateResolverTests")
-struct VideoEditingPresentationStateResolverTests {
+struct VideoEditingPresentationResolverTests {
 
     // MARK: - Public Methods
 

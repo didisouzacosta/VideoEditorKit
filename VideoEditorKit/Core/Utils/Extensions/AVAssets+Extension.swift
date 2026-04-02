@@ -36,7 +36,7 @@ extension AVAsset {
             maximumSize: maximumSize
         )
 
-        return images.first ?? nil
+        return images.first
     }
 
     func generateImages(

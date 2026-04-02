@@ -37,7 +37,19 @@ Lint without changing files:
 scripts/format-swift.sh --lint
 ```
 
-The git `pre-commit` hook also formats staged `.swift` files automatically.
+Run the full Swift quality gate:
+
+```bash
+scripts/lint-swift.sh
+```
+
+Install `SwiftLint` locally if needed:
+
+```bash
+brew install swiftlint
+```
+
+The git `pre-commit` hook formats staged `.swift` files automatically, and `pre-push` runs the full formatter + SwiftLint checks.
 
 ## Screenshots 📷
 
