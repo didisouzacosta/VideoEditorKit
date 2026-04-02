@@ -9,6 +9,12 @@ struct EditorPlaybackEditingCoordinator {
 
     // MARK: - Public Methods
 
+    static func minimumTrimDuration(
+        for originalDuration: Double
+    ) -> Double {
+        min(1, max(originalDuration, 0))
+    }
+
     static func updateRate(
         _ rate: Float,
         in video: inout Video,

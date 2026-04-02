@@ -8,6 +8,17 @@ struct EditorPlaybackEditingCoordinatorTests {
     // MARK: - Public Methods
 
     @Test
+    func minimumTrimDurationResolvesToOneSecondForLongVideos() {
+        #expect(EditorPlaybackEditingCoordinator.minimumTrimDuration(for: 12) == 1)
+    }
+
+    @Test
+    func minimumTrimDurationClampsToTheVideoDurationForShortVideos() {
+        #expect(EditorPlaybackEditingCoordinator.minimumTrimDuration(for: 0.75) == 0.75)
+        #expect(EditorPlaybackEditingCoordinator.minimumTrimDuration(for: -1) == 0)
+    }
+
+    @Test
     @MainActor
     func updateRateAppliesTheSelectedToolToTheVideo() {
         var video = Video.mock

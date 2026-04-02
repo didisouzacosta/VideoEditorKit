@@ -56,6 +56,26 @@ extension TimeInterval {
         return "\(totalMinutes.twoDigitString):\(seconds.twoDigitString)"
     }
 
+    func formatterPreciseTimeString() -> String {
+        guard isFinite, self >= 0 else {
+            return "00:00.00"
+        }
+
+        let totalCentiseconds = Int((self * 100).rounded())
+        let hours = totalCentiseconds / 360_000
+        let minutes = (totalCentiseconds % 360_000) / 6_000
+        let seconds = (totalCentiseconds % 6_000) / 100
+        let centiseconds = totalCentiseconds % 100
+
+        if hours > 0 {
+            return
+                "\(hours.twoDigitString):\(minutes.twoDigitString):\(seconds.twoDigitString).\(centiseconds.twoDigitString)"
+        }
+
+        let totalMinutes = totalCentiseconds / 6_000
+        return "\(totalMinutes.twoDigitString):\(seconds.twoDigitString).\(centiseconds.twoDigitString)"
+    }
+
 }
 
 extension Int {

@@ -73,7 +73,6 @@ struct ThumbnailsSliderView: View {
     private let playheadLineWidth: CGFloat = 2
     private let playheadLabelHeight: CGFloat = 28
     private let timelineHeight: CGFloat = 60
-    private let minimumClipDuration: Double = 3
 
     // MARK: - Initializer
 
@@ -135,7 +134,9 @@ extension ThumbnailsSliderView {
                             $rangeDuration,
                             bounds: 0...video.originalDuration,
                             step: 0.001,
-                            minimumDistance: min(minimumClipDuration, video.originalDuration),
+                            minimumDistance: EditorPlaybackEditingCoordinator.minimumTrimDuration(
+                                for: video.originalDuration
+                            ),
                             onStartChange: beginTrimRangeInteraction,
                             onEndChange: commitRangeChange
                         )
@@ -173,7 +174,7 @@ extension ThumbnailsSliderView {
     // MARK: - Private Methods
 
     private func footerTime(_ value: Double) -> some View {
-        Text(value.formatterTimeString())
+        Text(value.formatterPreciseTimeString())
             .foregroundStyle(Theme.primary)
             .font(.caption2.weight(.medium))
     }
@@ -294,27 +295,29 @@ extension ThumbnailsSliderView {
         let currentClipTime = max(currentTime.clamped(to: playbackRange) - playbackRange.lowerBound, 0)
         let clipDuration = playbackRange.upperBound - playbackRange.lowerBound
 
-        return Text("\(currentClipTime.formatterTimeString()) / \(clipDuration.formatterTimeString())")
-            .font(.caption2)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .capsuleControl()
-            .background {
-                GeometryReader { geometry in
-                    Color.clear
-                        .preference(key: PlayheadBadgeWidthPreferenceKey.self, value: geometry.size.width)
-                }
+        return Text(
+            "\(currentClipTime.formatterPreciseTimeString()) / \(clipDuration.formatterPreciseTimeString())"
+        )
+        .font(.caption2)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .capsuleControl()
+        .background {
+            GeometryReader { geometry in
+                Color.clear
+                    .preference(key: PlayheadBadgeWidthPreferenceKey.self, value: geometry.size.width)
             }
-            .onPreferenceChange(PlayheadBadgeWidthPreferenceKey.self) { width in
-                playheadBadgeWidth = width
-            }
-            .position(x: clampedX, y: 12)
-            .gesture(
-                playbackIndicatorGesture(
-                    video: video,
-                    width: proxy.size.width
-                )
+        }
+        .onPreferenceChange(PlayheadBadgeWidthPreferenceKey.self) { width in
+            playheadBadgeWidth = width
+        }
+        .position(x: clampedX, y: 12)
+        .gesture(
+            playbackIndicatorGesture(
+                video: video,
+                width: proxy.size.width
             )
+        )
     }
 
     private func playbackIndicatorGesture(

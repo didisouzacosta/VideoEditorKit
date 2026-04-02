@@ -17,6 +17,7 @@ struct VideoEditorView: View {
 
         let editingConfiguration: VideoEditingConfiguration
         let thumbnailData: Data?
+
         var continuousSaveFingerprint: VideoEditingConfiguration {
             editingConfiguration.continuousSaveFingerprint
         }
@@ -46,6 +47,7 @@ struct VideoEditorView: View {
 
     // MARK: - Private Properties
 
+    private let title: String?
     private let callbacks: Callbacks
     private let configuration: Configuration
     private let session: Session
@@ -79,6 +81,8 @@ struct VideoEditorView: View {
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
                 }
+                .navigationTitle(title ?? "")
+                .navigationBarTitleDisplayMode(.inline)
                 .animation(.default, value: videoPlayer.isPlaybackFocusActive)
                 .safeAreaPadding()
                 .toolbar {
@@ -153,17 +157,20 @@ struct VideoEditorView: View {
     // MARK: - Initializer
 
     init(
-        _ session: Session,
+        _ title: String? = nil,
+        session: Session,
         configuration: Configuration = .init(),
         callbacks: Callbacks = .init()
     ) {
+        self.title = title
         self.callbacks = callbacks
         self.configuration = configuration
         self.session = session
     }
 
     init(
-        _ sourceVideoURL: URL? = nil,
+        _ title: String? = nil,
+        sourceVideoURL: URL? = nil,
         editingConfiguration: VideoEditingConfiguration? = nil,
         configuration: Configuration = .init(),
         onSaveStateChanged: @escaping (SaveState) -> Void = { _ in },
@@ -171,7 +178,8 @@ struct VideoEditorView: View {
         onExportedVideoURL: @escaping (URL) -> Void = { _ in }
     ) {
         self.init(
-            .init(
+            title,
+            session: .init(
                 sourceVideoURL: sourceVideoURL,
                 editingConfiguration: editingConfiguration
             ),

@@ -77,20 +77,29 @@ struct RootView: View {
             }
             .fullScreenCover(
                 item: $bindableViewModel.editorDestination,
-                onDismiss: {
-                    viewModel.handleEditorDismiss()
-                }
+                onDismiss: viewModel.handleEditorDismiss
             ) { destination in
-                EditorShellContainerView(
-                    destination: destination,
-                    shareDestination: $bindableViewModel.shareDestination,
+                VideoEditorView(
+                    "Editor",
+                    session: destination.session,
                     configuration: editorConfiguration,
-                    callbacks: editorCallbacks,
-                    blockedToolAlertBinding: blockedToolAlertBinding,
-                    blockedTool: blockedTool,
-                    blockedToolAlertMessage: blockedToolAlertMessage(for:),
-                    onDismissShare: viewModel.dismissShareDestination
+                    callbacks: editorCallbacks
                 )
+                .sheet(
+                    item: $bindableViewModel.shareDestination,
+                    onDismiss: viewModel.dismissShareDestination
+                ) { shareDestination in
+                    VideoShareSheet(activityItems: [shareDestination.videoURL])
+                }
+                .alert(
+                    "Premium Tool",
+                    isPresented: blockedToolAlertBinding,
+                    presenting: blockedTool
+                ) { _ in
+                    Button("OK", role: .cancel) {}
+                } message: { tool in
+                    Text(blockedToolAlertMessage(for: tool))
+                }
             }
         }
     }

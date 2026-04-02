@@ -99,7 +99,7 @@ struct ViewModifierSmokeTests {
     }
 
     @Test
-    func editorShellContainerViewRendersInsideAHostingController() throws {
+    func videoEditorViewCanRenderWithInlineShellPresentationModifiers() throws {
         let sourceURL = try TestFixtures.createTemporaryFile(fileExtension: "mp4")
         let shareURL = try TestFixtures.createTemporaryFile(fileExtension: "mp4")
 
@@ -107,17 +107,9 @@ struct ViewModifierSmokeTests {
         defer { FileManager.default.removeIfExists(for: shareURL) }
 
         assertRenders(
-            EditorShellContainerView(
-                destination: .init(
-                    session: .init(sourceVideoURL: sourceURL)
-                ),
-                shareDestination: .constant(.init(videoURL: shareURL)),
-                configuration: .init(),
-                callbacks: .init(),
-                blockedToolAlertBinding: .constant(false),
-                blockedTool: nil,
-                blockedToolAlertMessage: { _ in "" },
-                onDismissShare: {}
+            VideoEditorPresentationSmokeHostView(
+                sourceURL: sourceURL,
+                shareDestination: .init(videoURL: shareURL)
             )
         )
     }
@@ -248,6 +240,68 @@ struct ViewModifierSmokeTests {
         controller.view.layoutIfNeeded()
 
         #expect(controller.view.bounds.size == CGSize(width: 240, height: 240))
+    }
+
+}
+
+private struct VideoEditorPresentationSmokeHostView: View {
+
+    // MARK: - States
+
+    @State private var shareDestination: RootViewModel.ShareDestination?
+    @State private var blockedTool: ToolEnum?
+
+    // MARK: - Public Properties
+
+    let sourceURL: URL
+    let initialShareDestination: RootViewModel.ShareDestination
+
+    // MARK: - Body
+
+    var body: some View {
+        VideoEditorView(
+            "Editor",
+            session: .init(sourceVideoURL: sourceURL),
+            configuration: .init()
+        )
+        .sheet(item: $shareDestination) { shareDestination in
+            VideoShareSheet(activityItems: [shareDestination.videoURL])
+        }
+        .alert(
+            "Premium Tool",
+            isPresented: blockedToolAlertBinding,
+            presenting: blockedTool
+        ) { _ in
+            Button("OK", role: .cancel) {}
+        } message: { _ in
+            Text("")
+        }
+        .task {
+            shareDestination = initialShareDestination
+        }
+    }
+
+    // MARK: - Private Properties
+
+    private var blockedToolAlertBinding: Binding<Bool> {
+        Binding(
+            get: { blockedTool != nil },
+            set: { isPresented in
+                if !isPresented {
+                    blockedTool = nil
+                }
+            }
+        )
+    }
+
+    // MARK: - Initializer
+
+    init(
+        sourceURL: URL,
+        shareDestination: RootViewModel.ShareDestination
+    ) {
+        self.sourceURL = sourceURL
+        initialShareDestination = shareDestination
     }
 
 }

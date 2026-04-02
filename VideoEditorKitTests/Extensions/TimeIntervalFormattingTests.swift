@@ -43,6 +43,26 @@ struct TimeIntervalFormattingTests {
     }
 
     @Test
+    func formatterPreciseTimeStringFormatsFractionalSecondsForEditorDisplays() {
+        let interval: TimeInterval = 3.32
+
+        #expect(interval.formatterPreciseTimeString() == "00:03.32")
+    }
+
+    @Test
+    func formatterPreciseTimeStringRoundsToCentiseconds() {
+        let interval: TimeInterval = 3.325
+
+        #expect(interval.formatterPreciseTimeString() == "00:03.33")
+    }
+
+    @Test
+    func formatterPreciseTimeStringReturnsZeroForInvalidValues() {
+        #expect(TimeInterval.zero.formatterPreciseTimeString() == "00:00.00")
+        #expect(TimeInterval.infinity.formatterPreciseTimeString() == "00:00.00")
+    }
+
+    @Test
     func secondsToTimeClampsNegativeValues() {
         #expect((-3).secondsToTime() == "00:00")
     }
