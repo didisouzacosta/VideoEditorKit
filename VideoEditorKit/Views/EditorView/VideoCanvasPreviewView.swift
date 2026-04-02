@@ -7,6 +7,20 @@
 
 import SwiftUI
 
+struct VideoCanvasInteractionCancellationPolicy {
+
+    // MARK: - Public Methods
+
+    static func shouldCancelInteraction(
+        isInteractionActive: Bool,
+        baselineTransform: VideoCanvasTransform,
+        incomingTransform: VideoCanvasTransform
+    ) -> Bool {
+        isInteractionActive && incomingTransform != baselineTransform
+    }
+
+}
+
 @MainActor
 struct VideoCanvasPreviewView<Content: View, Overlay: View>: View {
 
@@ -55,6 +69,11 @@ struct VideoCanvasPreviewView<Content: View, Overlay: View>: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+        }
+        .onChange(of: editorState.transform) { _, newTransform in
+            guard let interactionState else { return }
+            guard interactionState.shouldCancel(for: newTransform) else { return }
+            self.interactionState = nil
         }
     }
 
@@ -330,6 +349,16 @@ private struct InteractionState {
     }
 
     // MARK: - Public Methods
+
+    func shouldCancel(
+        for transform: VideoCanvasTransform
+    ) -> Bool {
+        VideoCanvasInteractionCancellationPolicy.shouldCancelInteraction(
+            isInteractionActive: isActive,
+            baselineTransform: baselineTransform,
+            incomingTransform: transform
+        )
+    }
 
     func resolvedTransform(
         editorState: VideoCanvasEditorState,
