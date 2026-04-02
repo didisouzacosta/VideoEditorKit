@@ -1,5 +1,5 @@
 //
-//  ColorCorrection.swift
+//  ColorAdjusts.swift
 //  VideoEditorKit
 //
 //  Created by Codex on 30.03.2026.
@@ -8,7 +8,7 @@
 import CoreImage
 import Foundation
 
-enum CorrectionType: String, CaseIterable {
+enum ColorAdjustType: String, CaseIterable {
 
     // MARK: - Public Properties
 
@@ -26,7 +26,7 @@ enum CorrectionType: String, CaseIterable {
 
 }
 
-struct ColorCorrection: Equatable, Sendable {
+struct ColorAdjusts: Equatable, Sendable {
 
     // MARK: - Public Properties
 
@@ -46,9 +46,9 @@ struct ColorCorrection: Equatable, Sendable {
         _ keyPath: WritableKeyPath<Self, Double>,
         to newValue: Double
     ) -> Self {
-        var updatedCorrection = self
-        updatedCorrection[keyPath: keyPath] = newValue
-        return updatedCorrection
+        var updatedAdjusts = self
+        updatedAdjusts[keyPath: keyPath] = newValue
+        return updatedAdjusts
     }
 
 }

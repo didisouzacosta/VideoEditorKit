@@ -75,7 +75,7 @@ struct EditorSessionCoordinatorTests {
         video.updateRate(1.75)
         video.rotation = 180
         video.isMirror = true
-        video.colorCorrection = .init(
+        video.colorAdjusts = .init(
             brightness: 0.2,
             contrast: 1.15,
             saturation: 0.65
@@ -105,7 +105,7 @@ struct EditorSessionCoordinatorTests {
                 showsSafeAreaOverlay: true
             ),
             selectedAudioTrack: .recorded,
-            selectedTool: .corrections,
+            selectedTool: .adjusts,
             socialVideoDestination: .youtubeShorts,
             showsSafeAreaGuides: true,
             currentTimelineTime: 9
@@ -117,7 +117,7 @@ struct EditorSessionCoordinatorTests {
         #expect(configuration?.crop.rotationDegrees == 180)
         #expect(configuration?.crop.isMirrored == true)
         #expect(configuration?.audio.selectedTrack == .recorded)
-        #expect(configuration?.presentation.selectedTool == .corrections)
+        #expect(configuration?.presentation.selectedTool == .adjusts)
         #expect(configuration?.presentation.socialVideoDestination == .youtubeShorts)
         #expect(configuration?.presentation.showsSafeAreaGuides == true)
         #expect(configuration?.frame.colorToken == "palette:orange")

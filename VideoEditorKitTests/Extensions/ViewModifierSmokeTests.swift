@@ -42,11 +42,24 @@ struct ViewModifierSmokeTests {
     func blockedToolButtonsStillRenderInsideAHostingController() {
         assertRenders(
             ToolButtonView(
-                "Corrections",
+                "Adjusts",
                 image: "circle.righthalf.filled",
                 isChange: false,
                 isBlocked: true
             ) {}
+            .frame(width: 96, height: 96)
+        )
+    }
+
+    @Test
+    func pagedToolsRowRendersInsideAHostingController() {
+        assertRenders(
+            PagedToolsRow(
+                ToolEnum.all.map { ToolAvailability($0) }
+            ) { _ in
+                false
+            } action: { _ in
+            }
         )
     }
 
@@ -186,7 +199,7 @@ struct ViewModifierSmokeTests {
         assertRenders(
             VStack(spacing: 16) {
                 VideoSpeedToolView(.constant(1.8))
-                VideoCorrectionsToolView(
+                VideoAdjustsToolView(
                     .constant(
                         .init(
                             brightness: 0.2,

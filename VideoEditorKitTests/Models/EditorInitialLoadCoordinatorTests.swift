@@ -12,7 +12,7 @@ struct EditorInitialLoadCoordinatorTests {
     func prepareResetsPresentationStateAndPreservesTimelineTime() {
         let configuration = VideoEditingConfiguration(
             playback: .init(currentTimelineTime: 12),
-            presentation: .init(.corrections)
+            presentation: .init(.adjusts)
         )
 
         let preparedState = EditorInitialLoadCoordinator.prepare(configuration)
@@ -31,7 +31,7 @@ struct EditorInitialLoadCoordinatorTests {
             trim: .init(lowerBound: 4, upperBound: 16),
             playback: .init(rate: 1.5, videoVolume: 0.6),
             crop: .init(rotationDegrees: 90, isMirrored: true),
-            corrections: .init(brightness: 0.2, contrast: 1.1, saturation: 0.8)
+            adjusts: .init(brightness: 0.2, contrast: 1.1, saturation: 0.8)
         )
         var video = Video.mock
 
@@ -67,7 +67,7 @@ struct EditorInitialLoadCoordinatorTests {
             canvas: .init(snapshot: persistedSnapshot),
             audio: .init(selectedTrack: .recorded),
             presentation: .init(
-                .corrections,
+                .adjusts,
                 socialVideoDestination: .instagramReels,
                 showsSafeAreaGuides: true
             )
@@ -85,7 +85,7 @@ struct EditorInitialLoadCoordinatorTests {
         #expect(restoredState.cropEditingState.socialVideoDestination == .instagramReels)
         #expect(restoredState.cropEditingState.showsSafeAreaOverlay == true)
         #expect(restoredState.selectedAudioTrack == .recorded)
-        #expect(restoredState.selectedTool == .corrections)
+        #expect(restoredState.selectedTool == .adjusts)
     }
 
 }

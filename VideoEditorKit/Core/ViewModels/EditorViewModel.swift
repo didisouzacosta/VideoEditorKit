@@ -53,7 +53,7 @@ final class EditorViewModel {
 
     let presentationState = EditorPresentationState()
     let cropPresentationState = EditorCropPresentationState()
-    
+
     var currentVideo: Video?
     var frames = VideoFrames()
 
@@ -262,13 +262,13 @@ final class EditorViewModel {
         syncFramesState()
     }
 
-    func setCorrections(_ correction: ColorCorrection) {
+    func setAdjusts(_ adjusts: ColorAdjusts) {
         guard var currentVideo else { return }
-        cancelPendingToolReset(for: .corrections)
+        cancelPendingToolReset(for: .adjusts)
 
         guard
-            EditorAppearanceEditingCoordinator.setCorrections(
-                correction,
+            EditorAppearanceEditingCoordinator.setAdjusts(
+                adjusts,
                 in: &currentVideo
             )
         else { return }
@@ -482,16 +482,16 @@ final class EditorViewModel {
 
             currentVideo?.setVolume(1.0)
             videoPlayer.setVolume(true, value: 1.0)
-        case .corrections:
+        case .adjusts:
             guard var currentVideo else { break }
             guard
-                EditorAppearanceEditingCoordinator.restoreDefaultCorrections(
+                EditorAppearanceEditingCoordinator.restoreDefaultAdjusts(
                     in: &currentVideo
                 )
             else { break }
 
             self.currentVideo = currentVideo
-            videoPlayer.clearColorCorrection()
+            videoPlayer.clearColorAdjusts()
         }
 
         markEditingConfigurationChanged()
@@ -523,7 +523,7 @@ final class EditorViewModel {
         guard let video else { return }
         frames = EditorAppearanceEditingCoordinator.framesState(from: video)
         videoPlayer.syncPlaybackState(with: video)
-        videoPlayer.setColorCorrection(video.colorCorrection)
+        videoPlayer.setColorAdjusts(video.colorAdjusts)
     }
 
     func resolvedPlayerDisplaySize(for video: Video, in containerSize: CGSize) -> CGSize {

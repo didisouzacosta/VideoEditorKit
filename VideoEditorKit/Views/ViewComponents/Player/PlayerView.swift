@@ -35,13 +35,14 @@ struct PlayerView: UIViewControllerRepresentable {
     // MARK: - Public Methods
 
     func makeUIViewController(context: Context) -> AVPlayerViewController {
-        let view = AVPlayerViewController()
-        view.player = player
-        view.showsPlaybackControls = showControls
-        view.videoGravity = videoGravity
-        view.view.backgroundColor = .clear
-        view.view.isUserInteractionEnabled = showControls
-        return view
+        let controller = AVPlayerViewController()
+        controller.player = player
+        controller.showsPlaybackControls = showControls
+        controller.videoGravity = videoGravity
+        controller.view.backgroundColor = .clear
+        controller.view.isUserInteractionEnabled = showControls
+
+        return controller
     }
 
     func updateUIViewController(_ uiViewController: AVPlayerViewController, context: Context) {

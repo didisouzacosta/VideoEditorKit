@@ -226,29 +226,29 @@ struct VideoPlayerManagerTests {
     }
 
     @Test
-    func colorCorrectionControlsAreSafeToCallForLoadedItems() async throws {
+    func colorAdjustsControlsAreSafeToCallForLoadedItems() async throws {
         let manager = VideoPlayerManager()
         let videoURL = try await TestFixtures.createTemporaryVideo()
         defer { FileManager.default.removeIfExists(for: videoURL) }
 
         manager.loadState = .loaded(videoURL)
-        manager.setColorCorrection(
-            ColorCorrection(brightness: 0.1, contrast: 0.2, saturation: 0.3)
+        manager.setColorAdjusts(
+            ColorAdjusts(brightness: 0.1, contrast: 0.2, saturation: 0.3)
         )
-        manager.clearColorCorrection()
+        manager.clearColorAdjusts()
 
         #expect((manager.videoPlayer.currentItem?.asset as? AVURLAsset)?.url == videoURL)
     }
 
     @Test
-    func setColorCorrectionAppliesPreviewCompositionToTheCurrentItem() async throws {
+    func setColorAdjustsAppliesPreviewCompositionToTheCurrentItem() async throws {
         let manager = VideoPlayerManager()
         let videoURL = try await TestFixtures.createTemporaryVideo()
         defer { FileManager.default.removeIfExists(for: videoURL) }
 
         manager.loadState = .loaded(videoURL)
-        manager.setColorCorrection(
-            ColorCorrection(brightness: 0.1, contrast: 0.2, saturation: 0.3)
+        manager.setColorAdjusts(
+            ColorAdjusts(brightness: 0.1, contrast: 0.2, saturation: 0.3)
         )
 
         for _ in 0..<50 where manager.videoPlayer.currentItem?.videoComposition == nil {
@@ -257,17 +257,17 @@ struct VideoPlayerManagerTests {
 
         #expect(manager.videoPlayer.currentItem?.videoComposition != nil)
 
-        manager.clearColorCorrection()
+        manager.clearColorAdjusts()
 
         #expect(manager.videoPlayer.currentItem?.videoComposition == nil)
     }
 
     @Test
-    func rapidColorCorrectionChangesAreGroupedIntoASinglePreviewCompositionBuild() async throws {
+    func rapidColorAdjustsChangesAreGroupedIntoASinglePreviewCompositionBuild() async throws {
         let compositionRecorder = CompositionBuildRecorder()
         let manager = VideoPlayerManager(
             VideoPlayerManagerDependencies(
-                colorCorrectionDebounceDuration: .milliseconds(60),
+                colorAdjustsDebounceDuration: .milliseconds(60),
                 sleep: {
                     try await ContinuousClock().sleep(for: $0)
                 },
@@ -281,9 +281,9 @@ struct VideoPlayerManagerTests {
         defer { FileManager.default.removeIfExists(for: videoURL) }
 
         manager.loadState = .loaded(videoURL)
-        manager.setColorCorrection(ColorCorrection(brightness: 0.1))
-        manager.setColorCorrection(ColorCorrection(brightness: 0.2))
-        manager.setColorCorrection(ColorCorrection(brightness: 0.3))
+        manager.setColorAdjusts(ColorAdjusts(brightness: 0.1))
+        manager.setColorAdjusts(ColorAdjusts(brightness: 0.2))
+        manager.setColorAdjusts(ColorAdjusts(brightness: 0.3))
 
         for _ in 0..<60 where manager.videoPlayer.currentItem?.videoComposition == nil {
             try? await Task.sleep(for: .milliseconds(20))
@@ -294,11 +294,11 @@ struct VideoPlayerManagerTests {
     }
 
     @Test
-    func clearingColorCorrectionBeforeTheDebounceWindowSkipsThePreviewCompositionBuild() async throws {
+    func clearingColorAdjustsBeforeTheDebounceWindowSkipsThePreviewCompositionBuild() async throws {
         let compositionRecorder = CompositionBuildRecorder()
         let manager = VideoPlayerManager(
             VideoPlayerManagerDependencies(
-                colorCorrectionDebounceDuration: .milliseconds(80),
+                colorAdjustsDebounceDuration: .milliseconds(80),
                 sleep: {
                     try await ContinuousClock().sleep(for: $0)
                 },
@@ -312,8 +312,8 @@ struct VideoPlayerManagerTests {
         defer { FileManager.default.removeIfExists(for: videoURL) }
 
         manager.loadState = .loaded(videoURL)
-        manager.setColorCorrection(ColorCorrection(brightness: 0.2))
-        manager.clearColorCorrection()
+        manager.setColorAdjusts(ColorAdjusts(brightness: 0.2))
+        manager.clearColorAdjusts()
 
         try? await Task.sleep(for: .milliseconds(160))
 

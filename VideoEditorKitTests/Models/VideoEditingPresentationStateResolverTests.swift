@@ -28,7 +28,7 @@ struct VideoEditingPresentationStateResolverTests {
             ),
             referenceSize: CGSize(width: 1920, height: 1080),
             hasRecordedAudioTrack: false,
-            enabledTools: Set([.corrections, .presets])
+            enabledTools: Set([.adjusts, .presets])
         )
 
         #expect(resolvedState.selectedAudioTrack == .video)

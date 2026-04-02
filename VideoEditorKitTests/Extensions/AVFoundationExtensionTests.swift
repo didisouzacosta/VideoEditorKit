@@ -54,7 +54,7 @@ struct AVAssetExtensionTests {
 
         let asset = AVURLAsset(url: url)
         let chainedComposition = try await asset.makeVideoComposition(applying: [
-            try #require(Helpers.createColorCorrectionFilter(.init(brightness: 0.2)))
+            try #require(Helpers.createColorAdjustsFilter(.init(brightness: 0.2)))
         ])
 
         #expect(chainedComposition.renderSize.width > 0)

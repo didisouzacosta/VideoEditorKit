@@ -57,28 +57,28 @@ struct EditorAppearanceEditingCoordinator {
         return configurationVideo
     }
 
-    static func setCorrections(
-        _ correction: ColorCorrection,
+    static func setAdjusts(
+        _ adjusts: ColorAdjusts,
         in video: inout Video
     ) -> Bool {
-        guard video.colorCorrection != correction else { return false }
+        guard video.colorAdjusts != adjusts else { return false }
 
-        video.colorCorrection = correction
+        video.colorAdjusts = adjusts
 
-        if correction.isIdentity {
-            video.removeTool(for: .corrections)
+        if adjusts.isIdentity {
+            video.removeTool(for: .adjusts)
         } else {
-            video.appliedTool(for: .corrections)
+            video.appliedTool(for: .adjusts)
         }
 
         return true
     }
 
-    static func restoreDefaultCorrections(
+    static func restoreDefaultAdjusts(
         in video: inout Video
     ) -> Bool {
-        guard video.colorCorrection != .init() else { return false }
-        video.colorCorrection = .init()
+        guard video.colorAdjusts != .init() else { return false }
+        video.colorAdjusts = .init()
         return true
     }
 

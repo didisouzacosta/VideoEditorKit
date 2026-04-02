@@ -21,11 +21,11 @@ enum VideoEditor {
         videoQuality: VideoQuality,
         onProgress: ProgressHandler? = nil
     ) async throws -> URL {
-        let corrections = Helpers.createColorCorrectionFilters(
-            colorCorrection: video.colorCorrection
+        let adjusts = Helpers.createColorAdjustsFilters(
+            colorAdjusts: video.colorAdjusts
         )
 
-        let usesCorrectionsStage = !corrections.isEmpty
+        let usesAdjustsStage = !adjusts.isEmpty
         let usesCanvasStage = requiresCanvasStage(editingConfiguration)
 
         do {
@@ -35,28 +35,28 @@ enum VideoEditor {
                 videoQuality: videoQuality,
                 progressRange: progressRange(
                     for: .base,
-                    usesCorrectionsStage: usesCorrectionsStage,
+                    usesAdjustsStage: usesAdjustsStage,
                     usesCropStage: usesCanvasStage
                 ),
                 onProgress: onProgress
             )
 
-            let correctedURL = try await applyCorrectionsOperation(
-                corrections,
+            let adjustedURL = try await applyAdjustsOperation(
+                adjusts,
                 fromUrl: url,
                 progressRange: progressRange(
-                    for: .corrections,
-                    usesCorrectionsStage: usesCorrectionsStage,
+                    for: .adjusts,
+                    usesAdjustsStage: usesAdjustsStage,
                     usesCropStage: usesCanvasStage
                 ),
                 onProgress: onProgress
             )
             let croppedURL = try await applyCanvasOperation(
                 editingConfiguration: editingConfiguration,
-                fromUrl: correctedURL,
+                fromUrl: adjustedURL,
                 progressRange: progressRange(
                     for: .crop,
-                    usesCorrectionsStage: usesCorrectionsStage,
+                    usesAdjustsStage: usesAdjustsStage,
                     usesCropStage: usesCanvasStage
                 ),
                 onProgress: onProgress
@@ -140,19 +140,19 @@ enum VideoEditor {
         return outputURL
     }
 
-    private static func applyCorrectionsOperation(
-        _ corrections: [CIFilter],
+    private static func applyAdjustsOperation(
+        _ adjusts: [CIFilter],
         fromUrl: URL,
         progressRange: ClosedRange<Double>,
         onProgress: ProgressHandler?
     ) async throws -> URL {
-        if corrections.isEmpty {
+        if adjusts.isEmpty {
             await reportProgress(progressRange.upperBound, via: onProgress)
             return fromUrl
         }
 
         let asset = AVURLAsset(url: fromUrl)
-        let composition = try await asset.makeVideoComposition(applying: corrections)
+        let composition = try await asset.makeVideoComposition(applying: adjusts)
         let outputURL = createTempPath()
 
         guard
@@ -164,7 +164,7 @@ enum VideoEditor {
                 )
             )
         else {
-            assertionFailure("Unable to create color correction export session.")
+            assertionFailure("Unable to create color adjusts export session.")
             throw ExporterError.cannotCreateExportSession
         }
 
@@ -255,7 +255,7 @@ extension VideoEditor {
 
     private enum RenderStage {
         case base
-        case corrections
+        case adjusts
         case crop
     }
 
@@ -440,7 +440,7 @@ extension VideoEditor {
             return AVAssetExportPresetHighestQuality
         }
 
-        // `passthrough` ignores videoComposition, which would drop preset/canvas and correction renders.
+        // `passthrough` ignores videoComposition, which would drop preset/canvas and adjusts renders.
         return appliesVideoComposition
             ? AVAssetExportPresetHighestQuality
             : AVAssetExportPresetPassthrough
@@ -782,19 +782,19 @@ extension VideoEditor {
 
     private static func progressRange(
         for stage: RenderStage,
-        usesCorrectionsStage: Bool,
+        usesAdjustsStage: Bool,
         usesCropStage: Bool
     ) -> ClosedRange<Double> {
-        switch (usesCorrectionsStage, usesCropStage, stage) {
+        switch (usesAdjustsStage, usesCropStage, stage) {
         case (false, false, .base):
             0...1
         case (true, false, .base), (false, true, .base):
             0...0.7
-        case (false, true, .crop), (true, false, .corrections):
+        case (false, true, .crop), (true, false, .adjusts):
             0.7...1
         case (true, true, .base):
             0...0.55
-        case (true, true, .corrections):
+        case (true, true, .adjusts):
             0.55...0.8
         case (true, true, .crop):
             0.8...1

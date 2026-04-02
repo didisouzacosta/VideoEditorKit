@@ -19,7 +19,7 @@ struct VideoEditingConfiguration: Codable, Equatable, Sendable {
     var playback = Playback()
     var crop = Crop()
     var canvas = Canvas()
-    var corrections = Corrections()
+    var adjusts = Adjusts()
     var frame = Frame()
     var audio = Audio()
     var presentation = Presentation()
@@ -34,18 +34,14 @@ struct VideoEditingConfiguration: Codable, Equatable, Sendable {
         case playback
         case crop
         case canvas
-        case corrections
+        case adjusts
         case frame
         case audio
         case presentation
-        case legacyCorrectionsContainer = "filter"
     }
 
     enum SchemaVersion: Int, Codable, Equatable, Sendable {
-        case initial = 1
-        case legacyNormalizedLayout = 2
-        case legacyPresetParity = 3
-        case current = 4
+        case current = 1
     }
 
     var schemaVersion: SchemaVersion? {
@@ -60,7 +56,7 @@ struct VideoEditingConfiguration: Codable, Equatable, Sendable {
         playback: Playback = .init(),
         crop: Crop = .init(),
         canvas: Canvas = .init(),
-        corrections: Corrections = .init(),
+        adjusts: Adjusts = .init(),
         frame: Frame = .init(),
         audio: Audio = .init(),
         presentation: Presentation = .init()
@@ -70,7 +66,7 @@ struct VideoEditingConfiguration: Codable, Equatable, Sendable {
         self.playback = playback
         self.crop = crop
         self.canvas = canvas
-        self.corrections = corrections
+        self.adjusts = adjusts
         self.frame = frame
         self.audio = audio
         self.presentation = presentation
@@ -83,7 +79,7 @@ struct VideoEditingConfiguration: Codable, Equatable, Sendable {
 
         self = try Self(
             decodedFrom: container,
-            version: decodedVersion ?? SchemaVersion.initial.rawValue
+            version: decodedVersion ?? SchemaVersion.current.rawValue
         )
         self.opaquePayload = opaquePayload
         self = self.migratedToCurrentSchema()
@@ -101,7 +97,7 @@ struct VideoEditingConfiguration: Codable, Equatable, Sendable {
         try container.encode(playback, forKey: .playback)
         try container.encode(crop, forKey: .crop)
         try container.encode(canvas, forKey: .canvas)
-        try container.encode(corrections, forKey: .corrections)
+        try container.encode(adjusts, forKey: .adjusts)
         try container.encode(frame, forKey: .frame)
         try container.encode(audio, forKey: .audio)
         try container.encode(presentation, forKey: .presentation)
@@ -113,13 +109,7 @@ struct VideoEditingConfiguration: Codable, Equatable, Sendable {
         decodedFrom container: KeyedDecodingContainer<CodingKeys>,
         version: Int
     ) throws {
-        let decodedCorrections =
-            try container.decodeIfPresent(Corrections.self, forKey: .corrections)
-            ?? container.decodeIfPresent(
-                LegacyCorrectionsContainer.self,
-                forKey: .legacyCorrectionsContainer
-            )?.asCorrections
-            ?? .init()
+        let decodedAdjusts = try container.decodeIfPresent(Adjusts.self, forKey: .adjusts) ?? .init()
 
         self.init(
             version: version,
@@ -127,7 +117,7 @@ struct VideoEditingConfiguration: Codable, Equatable, Sendable {
             playback: try container.decodeIfPresent(Playback.self, forKey: .playback) ?? .init(),
             crop: try container.decodeIfPresent(Crop.self, forKey: .crop) ?? .init(),
             canvas: try container.decodeIfPresent(Canvas.self, forKey: .canvas) ?? .init(),
-            corrections: decodedCorrections,
+            adjusts: decodedAdjusts,
             frame: try container.decodeIfPresent(Frame.self, forKey: .frame) ?? .init(),
             audio: try container.decodeIfPresent(Audio.self, forKey: .audio) ?? .init(),
             presentation: try container.decodeIfPresent(Presentation.self, forKey: .presentation) ?? .init()
@@ -142,10 +132,7 @@ struct VideoEditingConfiguration: Codable, Equatable, Sendable {
         }
 
         switch schemaVersion {
-        case .initial,
-            .legacyNormalizedLayout,
-            .legacyPresetParity,
-            .current:
+        case .current:
             return preservingVersion(Self.currentSchemaVersion.rawValue)
                 .clearingOpaquePayload()
         }
@@ -207,7 +194,7 @@ extension VideoEditingConfiguration {
 
     }
 
-    struct Corrections: Codable, Equatable, Sendable {
+    struct Adjusts: Codable, Equatable, Sendable {
 
         // MARK: - Public Properties
 
@@ -358,28 +345,6 @@ extension VideoEditingConfiguration {
                 "Shorts"
             }
         }
-    }
-
-}
-
-extension VideoEditingConfiguration {
-
-    fileprivate struct LegacyCorrectionsContainer: Codable, Equatable, Sendable {
-
-        // MARK: - Public Properties
-
-        var brightness: Double = 0
-        var contrast: Double = 0
-        var saturation: Double = 0
-
-        var asCorrections: Corrections {
-            .init(
-                brightness: brightness,
-                contrast: contrast,
-                saturation: saturation
-            )
-        }
-
     }
 
 }

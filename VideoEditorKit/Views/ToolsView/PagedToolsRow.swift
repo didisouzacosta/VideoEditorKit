@@ -12,6 +12,7 @@ struct PagedToolsRow: View {
     // MARK: - States
 
     @State private var currentPageID: Int?
+    @State private var rowHeight = Layout.defaultRowHeight
 
     // MARK: - Private Properties
 
@@ -24,7 +25,9 @@ struct PagedToolsRow: View {
     var body: some View {
         VStack(spacing: 12) {
             GeometryReader { proxy in
-                let metrics = layoutMetrics(for: proxy.size.width)
+                let metrics = EditorToolbarLayoutResolver.resolvedMetrics(
+                    for: proxy.size.width
+                )
 
                 ScrollView(.horizontal) {
                     GlassEffectContainer(spacing: metrics.itemSpacing) {
@@ -40,7 +43,10 @@ struct PagedToolsRow: View {
                                         ) {
                                             action(item)
                                         }
-                                        .frame(width: metrics.itemWidth)
+                                        .frame(
+                                            width: metrics.itemSize,
+                                            height: metrics.itemSize
+                                        )
                                     }
                                 }
                                 .frame(width: metrics.pageWidth, alignment: .leading)
@@ -54,8 +60,14 @@ struct PagedToolsRow: View {
                 .scrollIndicators(.hidden)
                 .scrollPosition(id: $currentPageID)
                 .scrollTargetBehavior(.viewAligned)
+                .onAppear {
+                    updateRowHeight(for: proxy.size.width)
+                }
+                .onChange(of: proxy.size.width) { _, newWidth in
+                    updateRowHeight(for: newWidth)
+                }
             }
-            .frame(height: Layout.rowHeight)
+            .frame(height: rowHeight)
 
             if shouldShowPagination {
                 pagination
@@ -75,28 +87,12 @@ struct PagedToolsRow: View {
         self.action = action
     }
 
-    // MARK: - Private Methods
-
-    private func layoutMetrics(for availableWidth: CGFloat) -> LayoutMetrics {
-        let visibleWidth = max(availableWidth - (Layout.horizontalInset * 2), 0)
-        let pageWidth = max(visibleWidth - Layout.previewWidth - Layout.pageSpacing, 0)
-        let itemWidth = max(
-            (pageWidth - (Layout.itemSpacing * CGFloat(Layout.itemsPerPage - 1))) / CGFloat(Layout.itemsPerPage),
-            0
-        )
-
-        return LayoutMetrics(
-            pageWidth: pageWidth,
-            itemWidth: itemWidth,
-            itemSpacing: Layout.itemSpacing,
-            pageSpacing: Layout.pageSpacing
-        )
-    }
-
     // MARK: - Private Properties
 
     private var toolPages: [[ToolAvailability]] {
-        toolAvailability.chunked(into: Layout.itemsPerPage)
+        toolAvailability.chunked(
+            into: EditorToolbarLayoutResolver.itemsPerPage
+        )
     }
 
     private var shouldShowPagination: Bool {
@@ -122,32 +118,26 @@ struct PagedToolsRow: View {
         currentPageID ?? 0
     }
 
+    // MARK: - Private Methods
+
+    private func updateRowHeight(for availableWidth: CGFloat) {
+        let resolvedRowHeight = EditorToolbarLayoutResolver.resolvedMetrics(
+            for: availableWidth
+        ).rowHeight
+
+        guard abs(rowHeight - resolvedRowHeight) > 0.0001 else { return }
+        rowHeight = resolvedRowHeight
+    }
+
 }
 
 extension PagedToolsRow {
-
-    fileprivate struct LayoutMetrics {
-
-        // MARK: - Public Properties
-
-        let pageWidth: CGFloat
-        let itemWidth: CGFloat
-        let itemSpacing: CGFloat
-        let pageSpacing: CGFloat
-
-    }
 
     fileprivate enum Layout {
 
         // MARK: - Public Properties
 
-        static let itemsPerPage = 4
-        static let itemSpacing: CGFloat = 10
-        static let pageSpacing: CGFloat = 10
-        static let previewWidth: CGFloat = 28
-        static let horizontalInset: CGFloat = 0
-        static let rowHeight: CGFloat = 97
-        static let verticalContentPadding: CGFloat = 8
+        static let defaultRowHeight: CGFloat = 97
         static let indicatorSize: CGFloat = 6
         static let activeIndicatorWidth: CGFloat = 18
 

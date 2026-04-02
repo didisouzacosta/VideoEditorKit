@@ -11,20 +11,20 @@ struct EditorToolSelectionCoordinatorTests {
     func enabledToolsOnlyKeepsTheAvailableEntries() {
         let enabledTools = EditorToolSelectionCoordinator.enabledTools(
             from: [
-                .init(.corrections),
+                .init(.adjusts),
                 .init(.speed, access: .blocked),
                 .init(.audio),
             ]
         )
 
-        #expect(enabledTools == Set([.corrections, .audio]))
+        #expect(enabledTools == Set([.adjusts, .audio]))
     }
 
     @Test
     func resolvedSelectionClearsUnavailableTools() {
         let selection = EditorToolSelectionCoordinator.resolvedSelection(
             currentSelection: .speed,
-            enabledTools: Set([.corrections, .audio])
+            enabledTools: Set([.adjusts, .audio])
         )
 
         #expect(selection == nil)
@@ -34,7 +34,7 @@ struct EditorToolSelectionCoordinatorTests {
     func selectToolRejectsUnavailableEntries() {
         let selectedTool = EditorToolSelectionCoordinator.selectTool(
             .speed,
-            enabledTools: Set([.corrections, .audio])
+            enabledTools: Set([.adjusts, .audio])
         )
 
         #expect(selectedTool == nil)

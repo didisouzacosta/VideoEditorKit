@@ -37,7 +37,7 @@ struct ToolButtonView: View {
 
     private var buttonContent: some View {
         toolLabel
-            .frame(maxWidth: .infinity, minHeight: 85)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .opacity(isBlocked ? 0.55 : 1)
             .contentShape(Rectangle())
             .overlay(alignment: .topLeading) {
@@ -135,8 +135,10 @@ struct ToolButtonView: View {
 #Preview {
     VStack {
         ToolButtonView("Cut", image: "scissors", isChange: false) {}
+            .frame(width: 100, height: 100)
         ToolButtonView("Cut", image: "scissors", isChange: true) {}
+            .frame(width: 100, height: 100)
         ToolButtonView("Cut", image: "scissors", isChange: false, isBlocked: true) {}
+            .frame(width: 100, height: 100)
     }
-    .frame(width: 100)
 }

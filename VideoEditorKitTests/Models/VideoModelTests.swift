@@ -74,10 +74,10 @@ struct VideoModelTests {
     func appliedToolAddsOnlyOnce() {
         var video = Video.mock
 
-        video.appliedTool(for: .corrections)
-        video.appliedTool(for: .corrections)
+        video.appliedTool(for: .adjusts)
+        video.appliedTool(for: .adjusts)
 
-        #expect(video.toolsApplied == [ToolEnum.corrections.rawValue])
+        #expect(video.toolsApplied == [ToolEnum.adjusts.rawValue])
     }
 
     @Test

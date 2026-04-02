@@ -19,7 +19,7 @@ struct ToolEnumTests {
                 .speed,
                 .presets,
                 .audio,
-                .corrections,
+                .adjusts,
             ]
         )
     }
@@ -31,7 +31,7 @@ struct ToolEnumTests {
             (.speed, "Speed", "timer"),
             (.presets, "Presets", "aspectratio"),
             (.audio, "Audio", "waveform"),
-            (.corrections, "Corrections", "circle.righthalf.filled"),
+            (.adjusts, "Adjusts", "circle.righthalf.filled"),
         ]
 
         for expectation in expectations {
@@ -50,10 +50,10 @@ struct VideoEditorConfigurationTests {
 
     @Test
     func toolAvailabilityHelpersProduceTheExpectedAccessStates() {
-        let visibleTools = ToolAvailability.enabled([.speed, .corrections])
+        let visibleTools = ToolAvailability.enabled([.speed, .adjusts])
         let blockedTool = ToolAvailability.blocked(.presets)
 
-        #expect(visibleTools.map(\.tool) == [.speed, .corrections])
+        #expect(visibleTools.map(\.tool) == [.speed, .adjusts])
         #expect(visibleTools.allSatisfy { $0.isEnabled })
         #expect(blockedTool.tool == .presets)
         #expect(blockedTool.isBlocked)
@@ -72,16 +72,16 @@ struct VideoEditorConfigurationTests {
     func customConfigurationPreservesTheProvidedOrderAndAccessState() {
         let configuration = VideoEditorView.Configuration(
             tools: [
-                .enabled(.corrections),
+                .enabled(.adjusts),
                 .blocked(.speed),
                 .enabled(.presets),
             ]
         )
 
-        #expect(configuration.tools.map(\.tool) == [.corrections, .speed, .presets])
-        #expect(configuration.isVisible(.corrections))
-        #expect(configuration.isEnabled(.corrections))
-        #expect(configuration.availability(for: .corrections)?.isBlocked == false)
+        #expect(configuration.tools.map(\.tool) == [.adjusts, .speed, .presets])
+        #expect(configuration.isVisible(.adjusts))
+        #expect(configuration.isEnabled(.adjusts))
+        #expect(configuration.availability(for: .adjusts)?.isBlocked == false)
         #expect(configuration.isBlocked(.speed))
         #expect(configuration.availability(for: .speed)?.isBlocked == true)
         #expect(configuration.isVisible(.audio) == false)
@@ -160,60 +160,60 @@ struct VideoQualityTests {
 
 }
 
-@Suite("ColorCorrectionHelperTests")
-struct ColorCorrectionHelperTests {
+@Suite("ColorAdjustsHelperTests")
+struct ColorAdjustsHelperTests {
 
     // MARK: - Public Methods
 
     @Test
-    func createColorCorrectionFilterBuildsAColorControlsFilterWithCurrentCorrectionRules() throws {
-        let correction = ColorCorrection(
+    func createColorAdjustsFilterBuildsAColorControlsFilterWithCurrentAdjustRules() throws {
+        let adjusts = ColorAdjusts(
             brightness: 0.15,
             contrast: 0.35,
             saturation: 0.8
         )
 
-        let filter = try #require(Helpers.createColorCorrectionFilter(correction))
+        let filter = try #require(Helpers.createColorAdjustsFilter(adjusts))
 
         #expect(filter.name == "CIColorControls")
-        #expect((filter.value(forKey: CorrectionType.brightness.key) as? NSNumber)?.doubleValue == 0.15)
-        #expect((filter.value(forKey: CorrectionType.contrast.key) as? NSNumber)?.doubleValue == 1.35)
-        #expect((filter.value(forKey: CorrectionType.saturation.key) as? NSNumber)?.doubleValue == 1.8)
+        #expect((filter.value(forKey: ColorAdjustType.brightness.key) as? NSNumber)?.doubleValue == 0.15)
+        #expect((filter.value(forKey: ColorAdjustType.contrast.key) as? NSNumber)?.doubleValue == 1.35)
+        #expect((filter.value(forKey: ColorAdjustType.saturation.key) as? NSNumber)?.doubleValue == 1.8)
     }
 
     @Test
-    func createColorCorrectionFiltersProducesASingleStagePipeline() {
-        let correction = ColorCorrection(brightness: 0.1, contrast: 0.2, saturation: 0.3)
+    func createColorAdjustsFiltersProducesASingleStagePipeline() {
+        let adjusts = ColorAdjusts(brightness: 0.1, contrast: 0.2, saturation: 0.3)
 
-        let filters = Helpers.createColorCorrectionFilters(colorCorrection: correction)
+        let filters = Helpers.createColorAdjustsFilters(colorAdjusts: adjusts)
 
         #expect(filters.count == 1)
         #expect(filters[0].name == "CIColorControls")
     }
 
     @Test
-    func correctionTypesExposeExpectedCoreImageKeysAndIdentityBehavior() {
-        #expect(CorrectionType.brightness.key == kCIInputBrightnessKey)
-        #expect(CorrectionType.contrast.key == kCIInputContrastKey)
-        #expect(CorrectionType.saturation.key == kCIInputSaturationKey)
+    func colorAdjustTypesExposeExpectedCoreImageKeysAndIdentityBehavior() {
+        #expect(ColorAdjustType.brightness.key == kCIInputBrightnessKey)
+        #expect(ColorAdjustType.contrast.key == kCIInputContrastKey)
+        #expect(ColorAdjustType.saturation.key == kCIInputSaturationKey)
 
-        #expect(ColorCorrection().isIdentity)
-        #expect(ColorCorrection(brightness: 0.002).isIdentity == false)
+        #expect(ColorAdjusts().isIdentity)
+        #expect(ColorAdjusts(brightness: 0.002).isIdentity == false)
     }
 
     @Test
-    func updatingChangesOnlyTheRequestedCorrectionChannel() {
-        let correction = ColorCorrection(
+    func updatingChangesOnlyTheRequestedAdjustChannel() {
+        let adjusts = ColorAdjusts(
             brightness: 0.15,
             contrast: 0.35,
             saturation: 0.8
         )
 
-        let updatedCorrection = correction.updating(\.contrast, to: -0.25)
+        let updatedAdjusts = adjusts.updating(\.contrast, to: -0.25)
 
-        #expect(abs(updatedCorrection.brightness - 0.15) < 0.0001)
-        #expect(abs(updatedCorrection.contrast + 0.25) < 0.0001)
-        #expect(abs(updatedCorrection.saturation - 0.8) < 0.0001)
+        #expect(abs(updatedAdjusts.brightness - 0.15) < 0.0001)
+        #expect(abs(updatedAdjusts.contrast + 0.25) < 0.0001)
+        #expect(abs(updatedAdjusts.saturation - 0.8) < 0.0001)
     }
 
 }

@@ -210,55 +210,55 @@ struct EditorViewModelTests {
     }
 
     @Test
-    func setCorrectionsAppliesAndRemovesTheCorrectionsTool() {
+    func setAdjustsAppliesAndRemovesTheAdjustsTool() {
         let viewModel = EditorViewModel()
         viewModel.currentVideo = Video.mock
-        viewModel.selectTool(.corrections)
+        viewModel.selectTool(.adjusts)
 
-        viewModel.setCorrections(
-            ColorCorrection(brightness: 0.2, contrast: 0.15, saturation: 0.1)
+        viewModel.setAdjusts(
+            ColorAdjusts(brightness: 0.2, contrast: 0.15, saturation: 0.1)
         )
 
-        #expect(abs((viewModel.currentVideo?.colorCorrection.brightness ?? 0) - 0.2) < 0.0001)
-        #expect(viewModel.currentVideo?.isAppliedTool(for: .corrections) == true)
+        #expect(abs((viewModel.currentVideo?.colorAdjusts.brightness ?? 0) - 0.2) < 0.0001)
+        #expect(viewModel.currentVideo?.isAppliedTool(for: .adjusts) == true)
 
-        viewModel.setCorrections(.init())
+        viewModel.setAdjusts(.init())
 
-        #expect(viewModel.currentVideo?.colorCorrection == .init())
-        #expect(viewModel.currentVideo?.isAppliedTool(for: .corrections) == false)
+        #expect(viewModel.currentVideo?.colorAdjusts == .init())
+        #expect(viewModel.currentVideo?.isAppliedTool(for: .adjusts) == false)
     }
 
     @Test
-    func setCorrectionsMutatesTheCurrentVideoImmediately() {
+    func setAdjustsMutatesTheCurrentVideoImmediately() {
         let viewModel = EditorViewModel()
         viewModel.currentVideo = Video.mock
-        let correction = ColorCorrection(
+        let adjusts = ColorAdjusts(
             brightness: 0.2,
             contrast: -0.1,
             saturation: 0.35
         )
 
-        viewModel.setCorrections(correction)
+        viewModel.setAdjusts(adjusts)
 
-        #expect(viewModel.currentVideo?.colorCorrection == correction)
-        #expect(viewModel.currentVideo?.isAppliedTool(for: .corrections) == true)
+        #expect(viewModel.currentVideo?.colorAdjusts == adjusts)
+        #expect(viewModel.currentVideo?.isAppliedTool(for: .adjusts) == true)
 
-        viewModel.setCorrections(.init())
+        viewModel.setAdjusts(.init())
 
-        #expect(viewModel.currentVideo?.colorCorrection == .init())
-        #expect(viewModel.currentVideo?.isAppliedTool(for: .corrections) == false)
+        #expect(viewModel.currentVideo?.colorAdjusts == .init())
+        #expect(viewModel.currentVideo?.isAppliedTool(for: .adjusts) == false)
     }
 
     @Test
-    func settingTheSameCorrectionsDoesNotAdvanceTheEditingConfigurationRevision() {
+    func settingTheSameAdjustsDoesNotAdvanceTheEditingConfigurationRevision() {
         let viewModel = EditorViewModel()
-        let correction = ColorCorrection(brightness: 0.2, contrast: -0.1, saturation: 0.35)
+        let adjusts = ColorAdjusts(brightness: 0.2, contrast: -0.1, saturation: 0.35)
         var video = Video.mock
-        video.colorCorrection = correction
+        video.colorAdjusts = adjusts
         viewModel.currentVideo = video
         let initialRevision = viewModel.presentationState.editingConfigurationRevision
 
-        viewModel.setCorrections(correction)
+        viewModel.setAdjusts(adjusts)
 
         #expect(viewModel.presentationState.editingConfigurationRevision == initialRevision)
     }
@@ -746,8 +746,8 @@ struct EditorViewModelTests {
         viewModel.currentVideo = Video.mock
         let initialRevision = viewModel.presentationState.editingConfigurationRevision
 
-        viewModel.selectTool(.corrections)
-        viewModel.setCorrections(ColorCorrection(brightness: 0.2))
+        viewModel.selectTool(.adjusts)
+        viewModel.setAdjusts(ColorAdjusts(brightness: 0.2))
 
         #expect(viewModel.presentationState.editingConfigurationRevision > initialRevision)
     }
@@ -803,24 +803,24 @@ struct EditorViewModelTests {
     func selectToolIgnoresBlockedAndHiddenToolsFromAvailability() {
         let viewModel = EditorViewModel()
         viewModel.setToolAvailability([
-            .init(.corrections),
+            .init(.adjusts),
             .init(.speed, access: .blocked),
         ])
 
-        viewModel.selectTool(.corrections)
-        #expect(viewModel.presentationState.selectedTool == .corrections)
+        viewModel.selectTool(.adjusts)
+        #expect(viewModel.presentationState.selectedTool == .adjusts)
 
         viewModel.selectTool(.speed)
-        #expect(viewModel.presentationState.selectedTool == .corrections)
+        #expect(viewModel.presentationState.selectedTool == .adjusts)
 
         viewModel.selectTool(.audio)
-        #expect(viewModel.presentationState.selectedTool == .corrections)
+        #expect(viewModel.presentationState.selectedTool == .adjusts)
     }
 
     @Test
     func changingAvailabilityClearsTheCurrentSelectionWhenItBecomesUnavailable() {
         let viewModel = EditorViewModel()
-        viewModel.selectTool(.corrections)
+        viewModel.selectTool(.adjusts)
 
         viewModel.setToolAvailability([
             .init(.speed),
@@ -877,7 +877,7 @@ struct EditorViewModelTests {
     @Test
     func presentExporterShowsTheQualitySheetAfterTheDeferredDelay() async {
         let viewModel = EditorViewModel()
-        viewModel.selectTool(.corrections)
+        viewModel.selectTool(.adjusts)
 
         viewModel.presentExporter()
 
@@ -977,7 +977,7 @@ struct EditorViewModelTests {
                     height: 0.65
                 )
             ),
-            corrections: .init(
+            adjusts: .init(
                 brightness: 0.1,
                 contrast: 1.2,
                 saturation: 0.7
@@ -995,7 +995,7 @@ struct EditorViewModelTests {
                 selectedTrack: .recorded
             ),
             presentation: .init(
-                .corrections,
+                .adjusts,
                 socialVideoDestination: .tikTok,
                 showsSafeAreaGuides: true
             )
@@ -1025,12 +1025,12 @@ struct EditorViewModelTests {
         #expect(viewModel.cropPresentationState.freeformRect == editingConfiguration.crop.freeformRect)
         #expect(viewModel.cropPresentationState.socialVideoDestination == .tikTok)
         #expect(viewModel.cropPresentationState.showsSafeAreaOverlay)
-        #expect(viewModel.presentationState.selectedTool == .corrections)
+        #expect(viewModel.presentationState.selectedTool == .adjusts)
         #expect(viewModel.currentVideo?.isAppliedTool(for: .cut) == true)
         #expect(viewModel.currentVideo?.isAppliedTool(for: .speed) == true)
         #expect(viewModel.currentVideo?.isAppliedTool(for: .presets) == true)
         #expect(viewModel.currentVideo?.isAppliedTool(for: .audio) == true)
-        #expect(viewModel.currentVideo?.isAppliedTool(for: .corrections) == true)
+        #expect(viewModel.currentVideo?.isAppliedTool(for: .adjusts) == true)
     }
 
     @Test
@@ -1044,7 +1044,7 @@ struct EditorViewModelTests {
         video.updateRate(1.75)
         video.rotation = 180
         video.isMirror = true
-        video.colorCorrection = .init(
+        video.colorAdjusts = .init(
             brightness: 0.2,
             contrast: 1.15,
             saturation: 0.65
@@ -1069,7 +1069,7 @@ struct EditorViewModelTests {
         )
         viewModel.cropPresentationState.socialVideoDestination = .youtubeShorts
         viewModel.cropPresentationState.showsSafeAreaOverlay = true
-        viewModel.selectTool(.corrections)
+        viewModel.selectTool(.adjusts)
 
         let configuration = viewModel.currentEditingConfiguration(currentTimelineTime: 9)
 
@@ -1080,11 +1080,11 @@ struct EditorViewModelTests {
         #expect(configuration?.crop.rotationDegrees == 180)
         #expect(configuration?.crop.isMirrored == true)
         #expect(configuration?.crop.freeformRect == viewModel.cropPresentationState.freeformRect)
-        #expect(abs((configuration?.corrections.brightness ?? 0) - 0.2) < 0.0001)
+        #expect(abs((configuration?.adjusts.brightness ?? 0) - 0.2) < 0.0001)
         #expect(configuration?.frame.colorToken == "palette:orange")
         #expect(configuration?.audio.selectedTrack == .recorded)
         #expect(configuration?.audio.recordedClip?.url == audioURL)
-        #expect(configuration?.presentation.selectedTool == .corrections)
+        #expect(configuration?.presentation.selectedTool == .adjusts)
         #expect(configuration?.presentation.socialVideoDestination == .youtubeShorts)
         #expect(configuration?.presentation.showsSafeAreaGuides == true)
     }

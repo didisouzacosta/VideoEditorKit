@@ -12,37 +12,37 @@ enum Helpers {
 
     // MARK: - Public Methods
 
-    static func createColorCorrectionFilter(_ colorCorrection: ColorCorrection?) -> CIFilter? {
-        guard let colorCorrection else { return nil }
+    static func createColorAdjustsFilter(_ colorAdjusts: ColorAdjusts?) -> CIFilter? {
+        guard let colorAdjusts else { return nil }
 
-        let colorCorrectionFilter = CIFilter(name: "CIColorControls")
+        let colorAdjustsFilter = CIFilter(name: "CIColorControls")
 
-        colorCorrectionFilter?.setValue(
-            colorCorrection.brightness,
-            forKey: CorrectionType.brightness.key
+        colorAdjustsFilter?.setValue(
+            colorAdjusts.brightness,
+            forKey: ColorAdjustType.brightness.key
         )
 
-        colorCorrectionFilter?.setValue(
-            colorCorrection.contrast + 1,
-            forKey: CorrectionType.contrast.key
+        colorAdjustsFilter?.setValue(
+            colorAdjusts.contrast + 1,
+            forKey: ColorAdjustType.contrast.key
         )
 
-        colorCorrectionFilter?.setValue(
-            colorCorrection.saturation + 1,
-            forKey: CorrectionType.saturation.key
+        colorAdjustsFilter?.setValue(
+            colorAdjusts.saturation + 1,
+            forKey: ColorAdjustType.saturation.key
         )
 
-        return colorCorrectionFilter
+        return colorAdjustsFilter
     }
 
-    static func createColorCorrectionFilters(
-        colorCorrection: ColorCorrection?
+    static func createColorAdjustsFilters(
+        colorAdjusts: ColorAdjusts?
     ) -> [CIFilter] {
-        guard let correctionFilter = createColorCorrectionFilter(colorCorrection) else {
+        guard let adjustsFilter = createColorAdjustsFilter(colorAdjusts) else {
             return []
         }
 
-        return [correctionFilter]
+        return [adjustsFilter]
     }
 
 }

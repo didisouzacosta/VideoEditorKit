@@ -10,42 +10,42 @@ struct EditorAppearanceEditingCoordinatorTests {
 
     @Test
     @MainActor
-    func setCorrectionsAppliesAndRemovesTheCorrectionsTool() {
+    func setAdjustsAppliesAndRemovesTheAdjustsTool() {
         var video = Video.mock
 
-        let didApply = EditorAppearanceEditingCoordinator.setCorrections(
+        let didApply = EditorAppearanceEditingCoordinator.setAdjusts(
             .init(brightness: 0.2, contrast: 0.15, saturation: 0.1),
             in: &video
         )
 
         #expect(didApply == true)
-        #expect(abs(video.colorCorrection.brightness - 0.2) < 0.0001)
-        #expect(video.isAppliedTool(for: .corrections) == true)
+        #expect(abs(video.colorAdjusts.brightness - 0.2) < 0.0001)
+        #expect(video.isAppliedTool(for: .adjusts) == true)
 
-        let didReset = EditorAppearanceEditingCoordinator.setCorrections(
+        let didReset = EditorAppearanceEditingCoordinator.setAdjusts(
             .init(),
             in: &video
         )
 
         #expect(didReset == true)
-        #expect(video.colorCorrection == .init())
-        #expect(video.isAppliedTool(for: .corrections) == false)
+        #expect(video.colorAdjusts == .init())
+        #expect(video.isAppliedTool(for: .adjusts) == false)
     }
 
     @Test
     @MainActor
-    func restoreDefaultCorrectionsKeepsTheToolAppliedUntilDeferredCleanup() {
+    func restoreDefaultAdjustsKeepsTheToolAppliedUntilDeferredCleanup() {
         var video = Video.mock
-        video.colorCorrection = .init(brightness: 0.2)
-        video.appliedTool(for: .corrections)
+        video.colorAdjusts = .init(brightness: 0.2)
+        video.appliedTool(for: .adjusts)
 
-        let didRestore = EditorAppearanceEditingCoordinator.restoreDefaultCorrections(
+        let didRestore = EditorAppearanceEditingCoordinator.restoreDefaultAdjusts(
             in: &video
         )
 
         #expect(didRestore == true)
-        #expect(video.colorCorrection == .init())
-        #expect(video.isAppliedTool(for: .corrections) == true)
+        #expect(video.colorAdjusts == .init())
+        #expect(video.isAppliedTool(for: .adjusts) == true)
     }
 
     @Test

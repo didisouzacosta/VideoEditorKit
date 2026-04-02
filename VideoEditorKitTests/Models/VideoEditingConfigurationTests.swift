@@ -29,7 +29,7 @@ struct VideoEditingConfigurationTests {
                     height: 0.4
                 )
             ),
-            corrections: .init(
+            adjusts: .init(
                 brightness: 0.2,
                 contrast: 1.1,
                 saturation: 0.8
@@ -47,7 +47,7 @@ struct VideoEditingConfigurationTests {
                 selectedTrack: .recorded
             ),
             presentation: .init(
-                .corrections,
+                .adjusts,
                 socialVideoDestination: .tikTok,
                 showsSafeAreaGuides: true
             )
@@ -63,8 +63,8 @@ struct VideoEditingConfigurationTests {
     }
 
     @Test
-    func decodeMigratesLegacyCorrectionsSnapshotWithoutVersionToCurrentSchemaVersion() throws {
-        let legacyJSON = """
+    func decodeCurrentAdjustsSnapshotWithoutVersionToCurrentSchemaVersion() throws {
+        let currentJSON = """
             {
               "trim": {
                 "lowerBound": 2,
@@ -75,7 +75,7 @@ struct VideoEditingConfigurationTests {
                 "videoVolume": 0.5,
                 "currentTimelineTime": 3
               },
-              "filter": {
+              "adjusts": {
                 "brightness": 0.15,
                 "contrast": 0.35,
                 "saturation": 0.6
@@ -84,23 +84,23 @@ struct VideoEditingConfigurationTests {
             """
             .data(using: .utf8)
 
-        let data = try #require(legacyJSON)
+        let data = try #require(currentJSON)
         let configuration = try JSONDecoder().decode(VideoEditingConfiguration.self, from: data)
 
         #expect(configuration.version == VideoEditingConfiguration.currentSchemaVersion.rawValue)
         #expect(configuration.schemaVersion == .current)
         #expect(configuration.trim == .init(lowerBound: 2, upperBound: 8))
         #expect(abs(Double(configuration.playback.rate) - 1.25) < 0.0001)
-        #expect(abs(configuration.corrections.brightness - 0.15) < 0.0001)
-        #expect(abs(configuration.corrections.contrast - 0.35) < 0.0001)
-        #expect(abs(configuration.corrections.saturation - 0.6) < 0.0001)
+        #expect(abs(configuration.adjusts.brightness - 0.15) < 0.0001)
+        #expect(abs(configuration.adjusts.contrast - 0.35) < 0.0001)
+        #expect(abs(configuration.adjusts.saturation - 0.6) < 0.0001)
     }
 
     @Test
-    func legacyRemovedSelectedToolDecodesAsNilInsteadOfFailing() throws {
-        let legacyJSON = """
+    func removedSelectedToolDecodesAsNilInsteadOfFailing() throws {
+        let json = """
             {
-              "version": 2,
+              "version": 1,
               "presentation": {
                 "selectedTool": 5,
                 "cropTab": "format"
@@ -109,7 +109,7 @@ struct VideoEditingConfigurationTests {
             """
             .data(using: .utf8)
 
-        let data = try #require(legacyJSON)
+        let data = try #require(json)
         let configuration = try JSONDecoder().decode(VideoEditingConfiguration.self, from: data)
 
         #expect(configuration.presentation.selectedTool == nil)
@@ -189,7 +189,7 @@ struct VideoEditingConfigurationTests {
         video.updateRate(1.5)
         video.rotation = 90
         video.isMirror = true
-        video.colorCorrection = ColorCorrection(
+        video.colorAdjusts = ColorAdjusts(
             brightness: 0.15,
             contrast: 1.25,
             saturation: 0.75
@@ -223,7 +223,7 @@ struct VideoEditingConfigurationTests {
                 showsSafeAreaOverlay: true
             ),
             selectedAudioTrack: .recorded,
-            selectedTool: .corrections,
+            selectedTool: .adjusts,
             socialVideoDestination: .youtubeShorts,
             showsSafeAreaGuides: true,
             currentTimelineTime: 7
@@ -245,15 +245,15 @@ struct VideoEditingConfigurationTests {
                     height: 0.7
                 )
         )
-        #expect(abs(configuration.corrections.brightness - 0.15) < 0.0001)
-        #expect(abs(configuration.corrections.contrast - 1.25) < 0.0001)
-        #expect(abs(configuration.corrections.saturation - 0.75) < 0.0001)
+        #expect(abs(configuration.adjusts.brightness - 0.15) < 0.0001)
+        #expect(abs(configuration.adjusts.contrast - 1.25) < 0.0001)
+        #expect(abs(configuration.adjusts.saturation - 0.75) < 0.0001)
         #expect(abs(configuration.frame.scaleValue - 0.3) < 0.0001)
         #expect(configuration.frame.colorToken == "palette:teal")
         #expect(configuration.audio.recordedClip?.url == audioURL)
         #expect(abs(Double(configuration.audio.recordedClip?.volume ?? 0) - 0.4) < 0.0001)
         #expect(configuration.audio.selectedTrack == .recorded)
-        #expect(configuration.presentation.selectedTool == .corrections)
+        #expect(configuration.presentation.selectedTool == .adjusts)
         #expect(configuration.presentation.socialVideoDestination == .youtubeShorts)
         #expect(configuration.presentation.showsSafeAreaGuides)
         #expect(configuration.canvas.snapshot.preset == .social(platform: .youtubeShorts))
@@ -280,7 +280,7 @@ struct VideoEditingConfigurationTests {
                 isMirrored: true,
                 freeformRect: nil
             ),
-            corrections: .init(
+            adjusts: .init(
                 brightness: 0.1,
                 contrast: 1.2,
                 saturation: 0.5
@@ -298,7 +298,7 @@ struct VideoEditingConfigurationTests {
                 selectedTrack: .recorded
             ),
             presentation: .init(
-                .corrections,
+                .adjusts,
                 socialVideoDestination: .instagramReels,
                 showsSafeAreaGuides: true
             )
@@ -313,9 +313,9 @@ struct VideoEditingConfigurationTests {
         #expect(abs(Double(video.volume) - 0.35) < 0.0001)
         #expect(video.rotation == 270)
         #expect(video.isMirror)
-        #expect(abs(video.colorCorrection.brightness - 0.1) < 0.0001)
-        #expect(abs(video.colorCorrection.contrast - 1.2) < 0.0001)
-        #expect(abs(video.colorCorrection.saturation - 0.5) < 0.0001)
+        #expect(abs(video.colorAdjusts.brightness - 0.1) < 0.0001)
+        #expect(abs(video.colorAdjusts.contrast - 1.2) < 0.0001)
+        #expect(abs(video.colorAdjusts.saturation - 0.5) < 0.0001)
         #expect(abs((video.videoFrames?.scaleValue ?? 0) - 0.25) < 0.0001)
         #expect(SystemColorPalette.matches(video.videoFrames?.frameColor ?? .clear, Color(uiColor: .systemOrange)))
         #expect(video.audio?.url == audioURL)
@@ -324,7 +324,7 @@ struct VideoEditingConfigurationTests {
         #expect(video.isAppliedTool(for: .speed))
         #expect(video.isAppliedTool(for: .presets))
         #expect(video.isAppliedTool(for: .audio))
-        #expect(video.isAppliedTool(for: .corrections))
+        #expect(video.isAppliedTool(for: .adjusts))
         #expect(VideoEditingConfigurationMapper.selectedAudioTrack(from: configuration) == .recorded)
     }
 

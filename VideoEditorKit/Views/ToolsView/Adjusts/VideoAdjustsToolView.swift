@@ -1,5 +1,5 @@
 //
-//  VideoCorrectionsToolView.swift
+//  VideoAdjustsToolView.swift
 //  VideoEditorKit
 //
 //  Created by Adriano Souza Costa on 23.03.2026.
@@ -7,47 +7,47 @@
 
 import SwiftUI
 
-struct VideoCorrectionsToolView: View {
+struct VideoAdjustsToolView: View {
 
     // MARK: - Bindings
 
-    @Binding private var correction: ColorCorrection
+    @Binding private var adjusts: ColorAdjusts
 
     // MARK: - Body
 
     var body: some View {
         VStack(spacing: 16) {
-            correctionSlider(
-                title: CorrectionType.brightness.rawValue,
+            adjustSlider(
+                title: ColorAdjustType.brightness.rawValue,
                 systemImage: "sun.max",
-                value: $correction.brightness
+                value: $adjusts.brightness
             )
-            correctionSlider(
-                title: CorrectionType.contrast.rawValue,
+            adjustSlider(
+                title: ColorAdjustType.contrast.rawValue,
                 systemImage: "circle.lefthalf.filled",
-                value: $correction.contrast
+                value: $adjusts.contrast
             )
-            correctionSlider(
-                title: CorrectionType.saturation.rawValue,
+            adjustSlider(
+                title: ColorAdjustType.saturation.rawValue,
                 systemImage: "drop",
-                value: $correction.saturation
+                value: $adjusts.saturation
             )
         }
     }
 
     // MARK: - Initializer
 
-    init(_ correction: Binding<ColorCorrection>) {
-        _correction = correction
+    init(_ adjusts: Binding<ColorAdjusts>) {
+        _adjusts = adjusts
     }
 
 }
 
-extension VideoCorrectionsToolView {
+extension VideoAdjustsToolView {
 
     // MARK: - Private Methods
 
-    fileprivate func correctionSlider(
+    fileprivate func adjustSlider(
         title: String,
         systemImage: String,
         value: Binding<Double>
@@ -66,5 +66,5 @@ extension VideoCorrectionsToolView {
 }
 
 #Preview {
-    VideoCorrectionsToolView(.constant(Video.mock.colorCorrection))
+    VideoAdjustsToolView(.constant(Video.mock.colorAdjusts))
 }

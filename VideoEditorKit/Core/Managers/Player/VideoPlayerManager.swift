@@ -7,22 +7,22 @@
 
 import AVKit
 import Combine
+@preconcurrency import CoreImage
 import Foundation
 import Observation
 import PhotosUI
 import SwiftUI
-@preconcurrency import CoreImage
 
 struct VideoPlayerManagerDependencies: Sendable {
 
     // MARK: - Public Properties
 
-    let colorCorrectionDebounceDuration: Duration
+    let colorAdjustsDebounceDuration: Duration
     let sleep: @Sendable (Duration) async throws -> Void
     let makeVideoComposition: @Sendable (AVAsset, [CIFilter]) async throws -> AVVideoComposition
 
     static let live = Self(
-        colorCorrectionDebounceDuration: .milliseconds(60),
+        colorAdjustsDebounceDuration: .milliseconds(60),
         sleep: {
             try await ContinuousClock().sleep(for: $0)
         },
@@ -100,22 +100,22 @@ final class VideoPlayerManager {
     private var endPlaybackObserver: NSObjectProtocol?
 
     @ObservationIgnored
-    private var correctionCompositionTask: Task<Void, Never>?
+    private var adjustsCompositionTask: Task<Void, Never>?
 
     @ObservationIgnored
-    private var scheduledCorrectionCompositionTask: Task<Void, Never>?
+    private var scheduledAdjustsCompositionTask: Task<Void, Never>?
 
     @ObservationIgnored
     private var pendingPlaybackTask: Task<Void, Never>?
 
     @ObservationIgnored
-    private var previewColorCorrection = ColorCorrection()
+    private var previewColorAdjusts = ColorAdjusts()
 
     @ObservationIgnored
-    private var appliedCorrectionSignature: String?
+    private var appliedAdjustsSignature: String?
 
     @ObservationIgnored
-    private var appliedCorrectionItemID: ObjectIdentifier?
+    private var appliedAdjustsItemID: ObjectIdentifier?
 
     @ObservationIgnored
     private var loadedVideoURL: URL?
@@ -124,7 +124,7 @@ final class VideoPlayerManager {
     private var loadedAudioURL: URL?
 
     @ObservationIgnored
-    private var correctionCompositionGeneration = 0
+    private var adjustsCompositionGeneration = 0
 
     private let playbackRestartTolerance = 0.05
     private let dependencies: VideoPlayerManagerDependencies
@@ -289,8 +289,8 @@ final class VideoPlayerManager {
             }
 
             startStatusSubscriptions()
-            appliedCorrectionItemID = nil
-            applyCurrentColorCorrectionComposition()
+            appliedAdjustsItemID = nil
+            applyCurrentColorAdjustsComposition()
         case .failed, .loading, .unknown:
             break
         }
@@ -480,14 +480,14 @@ final class VideoPlayerManager {
     private func cleanupObservers() {
         pendingPlaybackTask?.cancel()
         pendingPlaybackTask = nil
-        scheduledCorrectionCompositionTask?.cancel()
-        scheduledCorrectionCompositionTask = nil
+        scheduledAdjustsCompositionTask?.cancel()
+        scheduledAdjustsCompositionTask = nil
         removeTimeObserver()
         removeEndPlaybackObserver()
         statusCancellable?.cancel()
         statusCancellable = nil
-        correctionCompositionTask?.cancel()
-        correctionCompositionTask = nil
+        adjustsCompositionTask?.cancel()
+        adjustsCompositionTask = nil
     }
 
     private func resolvedCurrentTime(from playbackTime: Double) -> Double {
@@ -553,33 +553,33 @@ extension VideoPlayerManager {
 
     // MARK: - Public Methods
 
-    func setColorCorrection(_ colorCorrection: ColorCorrection?) {
-        previewColorCorrection = colorCorrection ?? .init()
-        scheduleColorCorrectionCompositionUpdate()
+    func setColorAdjusts(_ colorAdjusts: ColorAdjusts?) {
+        previewColorAdjusts = colorAdjusts ?? .init()
+        scheduleColorAdjustsCompositionUpdate()
     }
 
-    func clearColorCorrection() {
-        guard !previewColorCorrection.isIdentity || scheduledCorrectionCompositionTask != nil else { return }
+    func clearColorAdjusts() {
+        guard !previewColorAdjusts.isIdentity || scheduledAdjustsCompositionTask != nil else { return }
 
-        previewColorCorrection = .init()
-        applyCurrentColorCorrectionComposition()
+        previewColorAdjusts = .init()
+        applyCurrentColorAdjustsComposition()
     }
 
     // MARK: - Private Methods
 
-    private func scheduleColorCorrectionCompositionUpdate() {
-        scheduledCorrectionCompositionTask?.cancel()
-        correctionCompositionGeneration += 1
+    private func scheduleColorAdjustsCompositionUpdate() {
+        scheduledAdjustsCompositionTask?.cancel()
+        adjustsCompositionGeneration += 1
 
-        let generation = correctionCompositionGeneration
-        let debounceDuration = dependencies.colorCorrectionDebounceDuration
+        let generation = adjustsCompositionGeneration
+        let debounceDuration = dependencies.colorAdjustsDebounceDuration
 
         guard debounceDuration > .zero else {
-            applyCurrentColorCorrectionComposition()
+            applyCurrentColorAdjustsComposition()
             return
         }
 
-        scheduledCorrectionCompositionTask = Task { @MainActor [weak self] in
+        scheduledAdjustsCompositionTask = Task { @MainActor [weak self] in
             guard let self else { return }
 
             do {
@@ -588,61 +588,61 @@ extension VideoPlayerManager {
                 return
             }
 
-            guard !Task.isCancelled, self.correctionCompositionGeneration == generation else { return }
+            guard !Task.isCancelled, self.adjustsCompositionGeneration == generation else { return }
 
-            self.applyCurrentColorCorrectionComposition()
+            self.applyCurrentColorAdjustsComposition()
 
-            guard self.correctionCompositionGeneration == generation else { return }
-            self.scheduledCorrectionCompositionTask = nil
+            guard self.adjustsCompositionGeneration == generation else { return }
+            self.scheduledAdjustsCompositionTask = nil
         }
     }
 
-    private func applyCurrentColorCorrectionComposition() {
-        scheduledCorrectionCompositionTask?.cancel()
-        scheduledCorrectionCompositionTask = nil
-        correctionCompositionTask?.cancel()
+    private func applyCurrentColorAdjustsComposition() {
+        scheduledAdjustsCompositionTask?.cancel()
+        scheduledAdjustsCompositionTask = nil
+        adjustsCompositionTask?.cancel()
 
         guard let currentItem = videoPlayer.currentItem else {
-            appliedCorrectionSignature = nil
-            appliedCorrectionItemID = nil
+            appliedAdjustsSignature = nil
+            appliedAdjustsItemID = nil
             return
         }
 
         let currentItemID = ObjectIdentifier(currentItem)
-        let signature = currentColorCorrectionSignature()
+        let signature = currentColorAdjustsSignature()
 
         if signature == nil {
-            guard appliedCorrectionSignature != nil || appliedCorrectionItemID != currentItemID else {
+            guard appliedAdjustsSignature != nil || appliedAdjustsItemID != currentItemID else {
                 return
             }
 
             pause()
             currentItem.videoComposition = nil
             refreshCurrentVideoFrame()
-            appliedCorrectionSignature = nil
-            appliedCorrectionItemID = currentItemID
+            appliedAdjustsSignature = nil
+            appliedAdjustsItemID = currentItemID
             return
         }
 
-        guard appliedCorrectionSignature != signature || appliedCorrectionItemID != currentItemID else {
+        guard appliedAdjustsSignature != signature || appliedAdjustsItemID != currentItemID else {
             return
         }
 
-        let filters = Helpers.createColorCorrectionFilters(
-            colorCorrection: previewColorCorrection.isIdentity ? nil : previewColorCorrection
+        let filters = Helpers.createColorAdjustsFilters(
+            colorAdjusts: previewColorAdjusts.isIdentity ? nil : previewColorAdjusts
         )
 
         guard !filters.isEmpty else {
             currentItem.videoComposition = nil
             refreshCurrentVideoFrame()
-            appliedCorrectionSignature = nil
-            appliedCorrectionItemID = currentItemID
+            appliedAdjustsSignature = nil
+            appliedAdjustsItemID = currentItemID
             return
         }
 
         pause()
 
-        correctionCompositionTask = Task { [weak self] in
+        adjustsCompositionTask = Task { [weak self] in
             guard
                 let self,
                 let composition = try? await self.dependencies.makeVideoComposition(currentItem.asset, filters)
@@ -654,8 +654,8 @@ extension VideoPlayerManager {
                 guard self.videoPlayer.currentItem === currentItem else { return }
                 currentItem.videoComposition = composition
                 self.refreshCurrentVideoFrame()
-                self.appliedCorrectionSignature = signature
-                self.appliedCorrectionItemID = currentItemID
+                self.appliedAdjustsSignature = signature
+                self.appliedAdjustsItemID = currentItemID
             }
         }
     }
@@ -670,13 +670,13 @@ extension VideoPlayerManager {
         seek(resolvedTime, player: videoPlayer)
     }
 
-    private func currentColorCorrectionSignature() -> String? {
-        guard !previewColorCorrection.isIdentity else { return nil }
+    private func currentColorAdjustsSignature() -> String? {
+        guard !previewColorAdjusts.isIdentity else { return nil }
 
         return [
-            String(previewColorCorrection.brightness),
-            String(previewColorCorrection.contrast),
-            String(previewColorCorrection.saturation),
+            String(previewColorAdjusts.brightness),
+            String(previewColorAdjusts.contrast),
+            String(previewColorAdjusts.saturation),
         ]
         .joined(separator: "|")
     }

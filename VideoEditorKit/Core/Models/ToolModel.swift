@@ -13,7 +13,7 @@ enum ToolEnum: Int, CaseIterable, Identifiable, Codable, Sendable {
     case speed = 1
     case presets = 2
     case audio = 3
-    case corrections = 6
+    case adjusts = 6
 
     var id: Int {
         rawValue
@@ -29,7 +29,7 @@ enum ToolEnum: Int, CaseIterable, Identifiable, Codable, Sendable {
         case .speed: "Speed"
         case .presets: "Presets"
         case .audio: "Audio"
-        case .corrections: "Corrections"
+        case .adjusts: "Adjusts"
         }
     }
 
@@ -39,7 +39,7 @@ enum ToolEnum: Int, CaseIterable, Identifiable, Codable, Sendable {
         case .speed: "timer"
         case .presets: "aspectratio"
         case .audio: "waveform"
-        case .corrections: "circle.righthalf.filled"
+        case .adjusts: "circle.righthalf.filled"
         }
     }
 

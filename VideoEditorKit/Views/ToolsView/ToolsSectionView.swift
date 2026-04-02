@@ -14,7 +14,7 @@ struct ToolsSectionView: View {
     // MARK: - States
 
     @State private var speedDraft = 1.0
-    @State private var correctionsDraft = ColorCorrection()
+    @State private var adjustsDraft = ColorAdjusts()
     @State private var presetDraft: VideoCropFormatPreset = .original
     @State private var audioDraft = AudioToolDraft()
 
@@ -138,7 +138,7 @@ extension ToolsSectionView {
             300
         case .speed:
             320
-        case .presets, .corrections:
+        case .presets, .adjusts:
             380
         case .cut:
             420
@@ -147,7 +147,7 @@ extension ToolsSectionView {
 
     private func contentInteraction(for tool: ToolEnum) -> PresentationContentInteraction {
         switch tool {
-        case .audio, .speed, .presets, .corrections:
+        case .audio, .speed, .presets, .adjusts:
             .resizes
         case .cut:
             .scrolls
@@ -156,7 +156,7 @@ extension ToolsSectionView {
 
     private func requiresExplicitApply(_ tool: ToolEnum) -> Bool {
         switch tool {
-        case .speed, .presets, .audio, .corrections:
+        case .speed, .presets, .audio, .adjusts:
             true
         case .cut:
             false
@@ -177,8 +177,8 @@ extension ToolsSectionView {
                     video: video,
                     selectedTrack: editorViewModel.presentationState.selectedAudioTrack
                 )
-        case .corrections:
-            return video.colorCorrection != correctionsDraft
+        case .adjusts:
+            return video.colorAdjusts != adjustsDraft
         case .cut:
             return false
         }
@@ -225,8 +225,8 @@ extension ToolsSectionView {
                 draft: $audioDraft,
                 hasRecordedAudioTrack: editorViewModel.hasRecordedAudioTrack
             )
-        case .corrections:
-            VideoCorrectionsToolView($correctionsDraft)
+        case .adjusts:
+            VideoAdjustsToolView($adjustsDraft)
         case .cut:
             EmptyView()
         }
@@ -271,8 +271,8 @@ extension ToolsSectionView {
                 video: video,
                 selectedTrack: editorViewModel.presentationState.selectedAudioTrack
             )
-        case .corrections:
-            correctionsDraft = video.colorCorrection
+        case .adjusts:
+            adjustsDraft = video.colorAdjusts
         case .cut:
             break
         }
@@ -331,14 +331,14 @@ extension ToolsSectionView {
 
             editorViewModel.selectAudioTrack(audioDraft.selectedTrack)
             editorViewModel.closeSelectedTool()
-        case .corrections:
-            guard correctionsDraft != video.colorCorrection else {
+        case .adjusts:
+            guard adjustsDraft != video.colorAdjusts else {
                 editorViewModel.closeSelectedTool()
                 return
             }
 
-            editorViewModel.setCorrections(correctionsDraft)
-            videoPlayer.setColorCorrection(correctionsDraft)
+            editorViewModel.setAdjusts(adjustsDraft)
+            videoPlayer.setColorAdjusts(adjustsDraft)
             editorViewModel.closeSelectedTool()
         case .cut:
             break

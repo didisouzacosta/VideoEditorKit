@@ -41,10 +41,10 @@ enum VideoEditingConfigurationMapper {
             canvas: .init(
                 snapshot: canvasSnapshot
             ),
-            corrections: .init(
-                brightness: video.colorCorrection.brightness,
-                contrast: video.colorCorrection.contrast,
-                saturation: video.colorCorrection.saturation
+            adjusts: .init(
+                brightness: video.colorAdjusts.brightness,
+                contrast: video.colorAdjusts.contrast,
+                saturation: video.colorAdjusts.saturation
             ),
             frame: .init(
                 scaleValue: video.videoFrames?.scaleValue ?? 0,
@@ -79,10 +79,10 @@ enum VideoEditingConfigurationMapper {
         video.setVolume(configuration.playback.videoVolume)
         video.rotation = configuration.crop.rotationDegrees
         video.isMirror = configuration.crop.isMirrored
-        video.colorCorrection = ColorCorrection(
-            brightness: configuration.corrections.brightness,
-            contrast: configuration.corrections.contrast,
-            saturation: configuration.corrections.saturation
+        video.colorAdjusts = ColorAdjusts(
+            brightness: configuration.adjusts.brightness,
+            contrast: configuration.adjusts.contrast,
+            saturation: configuration.adjusts.saturation
         )
 
         if configuration.frame.scaleValue > 0 {
@@ -148,8 +148,8 @@ enum VideoEditingConfigurationMapper {
             restoredTools.append(.audio)
         }
 
-        if !video.colorCorrection.isIdentity {
-            restoredTools.append(.corrections)
+        if !video.colorAdjusts.isIdentity {
+            restoredTools.append(.adjusts)
         }
 
         return restoredTools.map(\.rawValue)
