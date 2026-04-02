@@ -38,4 +38,51 @@ struct EditorToolbarLayoutResolverTests {
         #expect(metrics.rowHeight == 0)
     }
 
+    @Test
+    func metricsCenterRowsThatFitTheVisibleWidth() {
+        let metrics = EditorToolbarLayoutResolver.resolvedMetrics(for: 393)
+
+        #expect(
+            metrics.shouldCenterRowContent(
+                for: 1,
+                availableWidth: 393
+            )
+        )
+        #expect(
+            metrics.shouldCenterRowContent(
+                for: 2,
+                availableWidth: 393
+            )
+        )
+        #expect(
+            metrics.shouldCenterRowContent(
+                for: 3,
+                availableWidth: 393
+            )
+        )
+        #expect(
+            metrics.shouldCenterRowContent(
+                for: 4,
+                availableWidth: 393
+            )
+        )
+        #expect(
+            metrics.shouldCenterRowContent(
+                for: 5,
+                availableWidth: 393
+            ) == false
+        )
+    }
+
+    @Test
+    func pageContentWidthMatchesTheVisibleItemsOnThePage() {
+        let metrics = EditorToolbarLayoutResolver.resolvedMetrics(for: 393)
+        let threeItemsWidth = metrics.pageContentWidth(for: 3)
+        let fourItemsWidth = metrics.pageContentWidth(for: 4)
+
+        #expect(threeItemsWidth > 0)
+        #expect(fourItemsWidth > threeItemsWidth)
+        #expect(abs(fourItemsWidth - metrics.pageWidth) < 0.0001)
+    }
+
 }

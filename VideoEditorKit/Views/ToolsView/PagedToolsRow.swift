@@ -28,6 +28,10 @@ struct PagedToolsRow: View {
                 let metrics = EditorToolbarLayoutResolver.resolvedMetrics(
                     for: proxy.size.width
                 )
+                let shouldCenterRow = metrics.shouldCenterRowContent(
+                    for: toolAvailability.count,
+                    availableWidth: proxy.size.width
+                )
 
                 ScrollView(.horizontal) {
                     GlassEffectContainer(spacing: metrics.itemSpacing) {
@@ -49,12 +53,19 @@ struct PagedToolsRow: View {
                                         )
                                     }
                                 }
-                                .frame(width: metrics.pageWidth, alignment: .leading)
+                                .frame(
+                                    width: metrics.pageWidth,
+                                    alignment: .leading
+                                )
                                 .id(index)
                             }
                         }
                         .scrollTargetLayout()
                     }
+                    .frame(
+                        minWidth: proxy.size.width,
+                        alignment: shouldCenterRow ? .center : .leading
+                    )
                 }
                 .scrollClipDisabled()
                 .scrollIndicators(.hidden)

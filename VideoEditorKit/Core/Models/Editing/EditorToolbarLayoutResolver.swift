@@ -19,6 +19,27 @@ struct EditorToolbarLayoutMetrics: Equatable, Sendable {
     let pageSpacing: CGFloat
     let rowHeight: CGFloat
 
+    // MARK: - Public Methods
+
+    func pageContentWidth(
+        for itemCount: Int
+    ) -> CGFloat {
+        guard itemCount > 0 else { return 0 }
+
+        return (itemSize * CGFloat(itemCount))
+            + (itemSpacing * CGFloat(max(itemCount - 1, 0)))
+    }
+
+    func shouldCenterRowContent(
+        for itemCount: Int,
+        availableWidth: CGFloat
+    ) -> Bool {
+        guard itemCount > 0 else { return false }
+        guard itemCount <= itemsPerPage else { return false }
+
+        return pageContentWidth(for: itemCount) < availableWidth
+    }
+
 }
 
 struct EditorToolbarLayoutResolver {
