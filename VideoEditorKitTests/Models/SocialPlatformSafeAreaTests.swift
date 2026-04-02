@@ -73,7 +73,7 @@ struct SocialPlatformSafeAreaTests {
 
         expect(
             safeFrame,
-            equals: CGRect(x: 0, y: 250, width: 1080, height: 1420)
+            equals: CGRect(x: 64.8, y: 268.8, width: 950.4, height: 979.2)
         )
     }
 

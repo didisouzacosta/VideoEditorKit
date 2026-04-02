@@ -18,6 +18,7 @@ struct EditorCropPresentationSummary: Equatable, Sendable {
     let isCropOverlayInteractive: Bool
     let shouldUseCropPresetSpotlight: Bool
     let shouldShowSafeAreaOverlay: Bool
+    let availableSafeAreaGuideProfile: SafeAreaGuideProfile?
     let activeSafeAreaGuideProfile: SafeAreaGuideProfile?
     let shouldShowCropPresetBadge: Bool
     let shouldShowCanvasResetButton: Bool
@@ -56,12 +57,15 @@ struct EditorCropPresentationResolver {
             from: state,
             referenceSize: referenceSize
         )
+        let availableSafeAreaGuideProfile = EditorCropEditingCoordinator.activeSafeAreaGuideProfile(
+            for: state
+        )
         let shouldShowSafeAreaOverlay = EditorCropEditingCoordinator.shouldShowSafeAreaOverlay(
             for: state
         )
         let activeSafeAreaGuideProfile =
             shouldShowSafeAreaOverlay
-            ? EditorCropEditingCoordinator.activeSafeAreaGuideProfile(for: state) : nil
+            ? availableSafeAreaGuideProfile : nil
         let shouldShowCropOverlay =
             state.freeformRect != nil
             || state.canvasSnapshot.isIdentity == false
@@ -76,6 +80,7 @@ struct EditorCropPresentationResolver {
             isCropOverlayInteractive: isCropOverlayInteractive,
             shouldUseCropPresetSpotlight: shouldUseCropPresetSpotlight,
             shouldShowSafeAreaOverlay: shouldShowSafeAreaOverlay,
+            availableSafeAreaGuideProfile: availableSafeAreaGuideProfile,
             activeSafeAreaGuideProfile: activeSafeAreaGuideProfile,
             shouldShowCropPresetBadge: shouldShowCropPresetBadge,
             shouldShowCanvasResetButton: state.canvasSnapshot.transform.shouldShowResetButton,

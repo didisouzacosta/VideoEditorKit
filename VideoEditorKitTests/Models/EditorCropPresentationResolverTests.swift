@@ -61,6 +61,7 @@ struct EditorCropPresentationResolverTests {
         #expect(summary.isCropOverlayInteractive)
         #expect(summary.shouldUseCropPresetSpotlight)
         #expect(summary.shouldShowSafeAreaOverlay)
+        #expect(summary.availableSafeAreaGuideProfile == .platform(.youtubeShorts))
         #expect(summary.activeSafeAreaGuideProfile == .platform(.youtubeShorts))
         #expect(summary.shouldShowCropPresetBadge)
         #expect(summary.badgeTitle == "Social")
@@ -121,6 +122,7 @@ struct EditorCropPresentationResolverTests {
 
         #expect(summary.selectedPreset == .vertical9x16)
         #expect(summary.shouldShowSafeAreaOverlay == false)
+        #expect(summary.availableSafeAreaGuideProfile == .platform(.instagram))
         #expect(summary.activeSafeAreaGuideProfile == nil)
     }
 

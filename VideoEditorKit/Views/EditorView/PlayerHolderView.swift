@@ -15,6 +15,10 @@ struct PlayerHolderView: View {
 
     @Environment(\.displayScale) private var displayScale
 
+    // MARK: - States
+
+    @State private var presentedSafeAreaGuideInfo: SafeAreaGuideInfo?
+
     // MARK: - Private Properties
 
     private let editorViewModel: EditorViewModel
@@ -87,7 +91,6 @@ extension PlayerHolderView {
                                         profile: profile,
                                         cornerRadius: 16
                                     )
-                                    .allowsHitTesting(false)
                                 }
                             }
                             .overlay(alignment: .bottom) {
@@ -98,11 +101,9 @@ extension PlayerHolderView {
                                 }
                             }
                             .overlay(alignment: .bottomTrailing) {
-                                if cropSummary.shouldShowCanvasResetButton {
-                                    resetCanvasButton
-                                        .padding(.trailing, 16)
-                                        .padding(.bottom, 16)
-                                }
+                                trailingPlayerControls(cropSummary)
+                                    .padding(.trailing, 16)
+                                    .padding(.bottom, 16)
                             }
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
@@ -119,6 +120,11 @@ extension PlayerHolderView {
                     }
                 }
             }
+        }
+        .sheet(item: $presentedSafeAreaGuideInfo) { guideInfo in
+            SafeAreaGuideInfoSheet(guideInfo)
+                .presentationDetents([.height(240)])
+                .presentationDragIndicator(.visible)
         }
     }
 
@@ -151,6 +157,63 @@ extension PlayerHolderView {
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Reset transform")
+    }
+
+    @ViewBuilder
+    private func trailingPlayerControls(
+        _ cropSummary: EditorCropPresentationSummary
+    ) -> some View {
+        if cropSummary.shouldShowCanvasResetButton || cropSummary.availableSafeAreaGuideProfile != nil {
+            VStack(alignment: .trailing, spacing: 10) {
+                if let profile = cropSummary.availableSafeAreaGuideProfile {
+                    safeAreaGuideControls(
+                        profile,
+                        isVisible: cropSummary.shouldShowSafeAreaOverlay
+                    )
+                }
+
+                if cropSummary.shouldShowCanvasResetButton {
+                    resetCanvasButton
+                }
+            }
+        }
+    }
+
+    private func safeAreaGuideControls(
+        _ profile: SafeAreaGuideProfile,
+        isVisible: Bool
+    ) -> some View {
+        HStack(spacing: 10) {
+            Button {
+                presentedSafeAreaGuideInfo = .init(profile: profile)
+            } label: {
+                Image(systemName: "questionmark.circle")
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .padding(14)
+                    .circleControl(
+                        prominent: true,
+                        tint: .black.opacity(0.82)
+                    )
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Explain safe area")
+
+            Button {
+                editorViewModel.toggleSafeAreaOverlay()
+            } label: {
+                Image(systemName: isVisible ? "eye.slash" : "eye")
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .padding(14)
+                    .circleControl(
+                        prominent: true,
+                        tint: isVisible ? .green.opacity(0.72) : .black.opacity(0.82)
+                    )
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(isVisible ? "Hide safe area" : "Show safe area")
+        }
     }
 
     // MARK: - Private Methods
@@ -187,6 +250,73 @@ extension PlayerHolderView {
         editorViewModel.updateCurrentVideoLayout(
             to: size
         )
+    }
+
+}
+
+private struct SafeAreaGuideInfo: Identifiable {
+
+    // MARK: - Public Properties
+
+    let profile: SafeAreaGuideProfile
+
+    var id: String {
+        switch profile {
+        case .universalSocial:
+            "universal-social"
+        case .platform(let platform):
+            platform.rawValue
+        }
+    }
+
+}
+
+private struct SafeAreaGuideInfoSheet: View {
+
+    // MARK: - Environments
+
+    @Environment(\.dismiss) private var dismiss
+
+    // MARK: - Private Properties
+
+    private let guideInfo: SafeAreaGuideInfo
+
+    // MARK: - Body
+
+    var body: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 16) {
+                Text(guideInfo.profile.explanation)
+                    .font(.body)
+                    .foregroundStyle(.primary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                Text(
+                    "Keep titles, people, logos and CTAs inside the highlighted frame for better platform readability."
+                )
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                Spacer(minLength: 0)
+            }
+            .padding(20)
+            .navigationTitle(guideInfo.profile.title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Initializer
+
+    init(_ guideInfo: SafeAreaGuideInfo) {
+        self.guideInfo = guideInfo
     }
 
 }
