@@ -6,18 +6,29 @@ import Testing
 @Suite("VideoCanvasMappingActorTests")
 struct VideoCanvasMappingActorTests {
 
+    // MARK: - Private Properties
+
+    private let widescreenSource = VideoCanvasSourceDescriptor(
+        naturalSize: CGSize(width: 1920, height: 1080),
+        preferredTransform: .identity,
+        userRotationDegrees: 0,
+        isMirrored: false
+    )
+    private let squareSource = VideoCanvasSourceDescriptor(
+        naturalSize: CGSize(width: 1000, height: 1000),
+        preferredTransform: .identity,
+        userRotationDegrees: 0,
+        isMirrored: false
+    )
+    private let squareCanvasSize = CGSize(width: 1080, height: 1080)
+
     // MARK: - Public Methods
 
     @Test
     func previewLayoutFitsThePresetCanvasIntoTheAvailablePreviewSpace() {
         let actor = VideoCanvasMappingActor()
         let request = actor.makeRenderRequest(
-            source: VideoCanvasSourceDescriptor(
-                naturalSize: CGSize(width: 1920, height: 1080),
-                preferredTransform: .identity,
-                userRotationDegrees: 0,
-                isMirrored: false
-            ),
+            source: widescreenSource,
             snapshot: VideoCanvasSnapshot(
                 preset: .social(platform: .instagram),
                 transform: .identity,
@@ -70,12 +81,7 @@ struct VideoCanvasMappingActorTests {
     func previewLayoutUsesTheSameZoomedScaleAsTheExportMapping() {
         let actor = VideoCanvasMappingActor()
         let request = actor.makeRenderRequest(
-            source: VideoCanvasSourceDescriptor(
-                naturalSize: CGSize(width: 1920, height: 1080),
-                preferredTransform: .identity,
-                userRotationDegrees: 0,
-                isMirrored: false
-            ),
+            source: widescreenSource,
             snapshot: VideoCanvasSnapshot(
                 preset: .facebookPost,
                 transform: .init(
@@ -97,60 +103,217 @@ struct VideoCanvasMappingActorTests {
     }
 
     @Test
-    func magnifiedTransformKeepsThePinchAnchorStableInsideThePreviewCanvas() {
+    func makeRenderRequestClampsAnInvalidStoredTransformToThePresetCoverage() {
         let actor = VideoCanvasMappingActor()
-
-        let transform = actor.magnifiedTransform(
-            from: .identity,
-            magnification: 2,
-            anchor: CGPoint(x: 150, y: 50),
-            previewCanvasSize: CGSize(width: 200, height: 100)
+        let request = actor.makeRenderRequest(
+            source: widescreenSource,
+            snapshot: VideoCanvasSnapshot(
+                preset: .story,
+                transform: .init(
+                    normalizedOffset: CGPoint(x: 1.8, y: -0.9),
+                    zoom: 0.3,
+                    rotationRadians: 0
+                ),
+                showsSafeAreaOverlay: false
+            )
         )
 
-        #expect(abs(transform.zoom - 2) < 0.0001)
-        #expect(abs(transform.normalizedOffset.x + 0.25) < 0.0001)
-        #expect(abs(transform.normalizedOffset.y) < 0.0001)
+        #expect(abs(request.snapshot.transform.zoom - 1) < 0.001)
+        #expect(abs(request.snapshot.transform.normalizedOffset.x) < 1.8)
+        #expect(abs(request.snapshot.transform.normalizedOffset.y) < 0.9)
+        assertCanvasIsCovered(
+            actor: actor,
+            source: widescreenSource,
+            snapshot: request.snapshot
+        )
     }
 
     @Test
-    func interactiveTransformCombinesPanPinchAndRotationFromTheSameBaseline() {
+    func dragTransformClampsOffsetToKeepThePresetFullyCovered() {
         let actor = VideoCanvasMappingActor()
-        let baseline = VideoCanvasTransform(
-            normalizedOffset: CGPoint(x: 0.12, y: -0.08),
-            zoom: 1.3,
-            rotationRadians: 0.18
+        let transform = actor.dragTransform(
+            from: .identity,
+            translation: CGSize(width: 800, height: -640),
+            previewCanvasSize: CGSize(width: 202.5, height: 360),
+            source: widescreenSource,
+            preset: .story,
+            freeCanvasSize: squareCanvasSize
         )
-        let previewCanvasSize = CGSize(width: 240, height: 180)
 
+        #expect(abs(transform.normalizedOffset.x) < (800.0 / 202.5))
+        #expect(abs(transform.normalizedOffset.y) < (640.0 / 360.0))
+        assertCanvasIsCovered(
+            actor: actor,
+            source: widescreenSource,
+            snapshot: VideoCanvasSnapshot(
+                preset: .story,
+                freeCanvasSize: squareCanvasSize,
+                transform: transform,
+                showsSafeAreaOverlay: false
+            )
+        )
+    }
+
+    @Test
+    func magnifiedTransformClampsZoomOutBeforeThePresetExposesEmptySpace() {
+        let actor = VideoCanvasMappingActor()
+        let transform = actor.magnifiedTransform(
+            from: .identity,
+            magnification: 0.4,
+            anchor: CGPoint(x: 150, y: 90),
+            previewCanvasSize: CGSize(width: 202.5, height: 360),
+            source: widescreenSource,
+            preset: .story,
+            freeCanvasSize: squareCanvasSize
+        )
+
+        #expect(abs(transform.zoom - 1) < 0.001)
+        assertCanvasIsCovered(
+            actor: actor,
+            source: widescreenSource,
+            snapshot: VideoCanvasSnapshot(
+                preset: .story,
+                freeCanvasSize: squareCanvasSize,
+                transform: transform,
+                showsSafeAreaOverlay: false
+            )
+        )
+    }
+
+    @Test
+    func rotatedTransformRaisesZoomWhenNeededToKeepASquareCanvasCovered() {
+        let actor = VideoCanvasMappingActor()
+        let transform = actor.rotatedTransform(
+            from: .identity,
+            rotation: .degrees(45),
+            source: squareSource,
+            preset: .custom(width: 1080, height: 1080),
+            freeCanvasSize: squareCanvasSize
+        )
+
+        #expect(transform.zoom > 1.4)
+        assertCanvasIsCovered(
+            actor: actor,
+            source: squareSource,
+            snapshot: VideoCanvasSnapshot(
+                preset: .custom(width: 1080, height: 1080),
+                freeCanvasSize: squareCanvasSize,
+                transform: transform,
+                showsSafeAreaOverlay: false
+            )
+        )
+    }
+
+    @Test
+    func interactiveTransformKeepsTheCanvasCoveredWhileCombiningPanPinchAndRotation() {
+        let actor = VideoCanvasMappingActor()
         let combined = actor.interactiveTransform(
-            from: baseline,
-            translation: CGSize(width: 36, height: -18),
-            magnification: 1.4,
-            anchor: CGPoint(x: 180, y: 40),
-            rotation: .degrees(12),
-            previewCanvasSize: previewCanvasSize
+            from: .identity,
+            translation: CGSize(width: 180, height: -120),
+            magnification: 1.6,
+            anchor: CGPoint(x: 210, y: 80),
+            rotation: .degrees(20),
+            previewCanvasSize: CGSize(width: 300, height: 300),
+            source: squareSource,
+            preset: .custom(width: 1080, height: 1080),
+            freeCanvasSize: squareCanvasSize
         )
 
-        var expected = actor.magnifiedTransform(
-            from: baseline,
-            magnification: 1.4,
-            anchor: CGPoint(x: 180, y: 40),
-            previewCanvasSize: previewCanvasSize
+        #expect(combined.zoom >= 1.6)
+        #expect(abs(combined.rotationRadians - CGFloat(20.0 * Double.pi / 180.0)) < 0.0001)
+        #expect(abs(combined.normalizedOffset.x) > 0.01 || abs(combined.normalizedOffset.y) > 0.01)
+        assertCanvasIsCovered(
+            actor: actor,
+            source: squareSource,
+            snapshot: VideoCanvasSnapshot(
+                preset: .custom(width: 1080, height: 1080),
+                freeCanvasSize: squareCanvasSize,
+                transform: combined,
+                showsSafeAreaOverlay: false
+            )
         )
-        expected = actor.dragTransform(
-            from: expected,
-            translation: CGSize(width: 36, height: -18),
-            previewCanvasSize: previewCanvasSize
-        )
-        expected = actor.rotatedTransform(
-            from: expected,
-            rotation: .degrees(12)
-        )
+    }
 
-        #expect(combined == expected)
-        #expect(combined.zoom > baseline.zoom)
-        #expect(combined.rotationRadians > baseline.rotationRadians)
-        #expect(combined.normalizedOffset != baseline.normalizedOffset)
+    // MARK: - Private Methods
+
+    private func assertCanvasIsCovered(
+        actor: VideoCanvasMappingActor,
+        source: VideoCanvasSourceDescriptor,
+        snapshot: VideoCanvasSnapshot,
+        fileID: String = #fileID,
+        filePath: String = #filePath,
+        line: Int = #line,
+        column: Int = #column
+    ) {
+        let request = actor.makeRenderRequest(
+            source: source,
+            snapshot: snapshot
+        )
+        let mapping = actor.makeExportMapping(request: request)
+        let contentPolygon = contentPolygon(from: mapping)
+        let renderRect = CGRect(origin: .zero, size: mapping.renderSize)
+
+        for corner in renderRectCorners(of: renderRect) {
+            #expect(
+                point(corner, isInsideConvexPolygon: contentPolygon),
+                sourceLocation: .init(
+                    fileID: fileID,
+                    filePath: filePath,
+                    line: line,
+                    column: column
+                )
+            )
+        }
+    }
+
+    private func contentPolygon(
+        from mapping: VideoCanvasExportMapping
+    ) -> [CGPoint] {
+        renderRectCorners(
+            of: CGRect(origin: .zero, size: mapping.orientedSourceSize)
+        )
+        .map { $0.applying(mapping.contentTransform) }
+    }
+
+    private func renderRectCorners(
+        of rect: CGRect
+    ) -> [CGPoint] {
+        [
+            CGPoint(x: rect.minX, y: rect.minY),
+            CGPoint(x: rect.maxX, y: rect.minY),
+            CGPoint(x: rect.maxX, y: rect.maxY),
+            CGPoint(x: rect.minX, y: rect.maxY),
+        ]
+    }
+
+    private func point(
+        _ point: CGPoint,
+        isInsideConvexPolygon polygon: [CGPoint]
+    ) -> Bool {
+        guard polygon.count >= 3 else { return false }
+
+        var hasPositiveCrossProduct = false
+        var hasNegativeCrossProduct = false
+
+        for index in polygon.indices {
+            let edgeStart = polygon[index]
+            let edgeEnd = polygon[(index + 1) % polygon.count]
+            let crossProduct =
+                (edgeEnd.x - edgeStart.x) * (point.y - edgeStart.y)
+                - (edgeEnd.y - edgeStart.y) * (point.x - edgeStart.x)
+
+            if crossProduct > 0.001 {
+                hasPositiveCrossProduct = true
+            } else if crossProduct < -0.001 {
+                hasNegativeCrossProduct = true
+            }
+
+            if hasPositiveCrossProduct && hasNegativeCrossProduct {
+                return false
+            }
+        }
+
+        return true
     }
 
 }

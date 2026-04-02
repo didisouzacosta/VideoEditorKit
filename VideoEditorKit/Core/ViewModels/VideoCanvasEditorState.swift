@@ -96,12 +96,16 @@ final class VideoCanvasEditorState {
     func dragTransform(
         from baseline: VideoCanvasTransform,
         translation: CGSize,
-        previewCanvasSize: CGSize
+        previewCanvasSize: CGSize,
+        source: VideoCanvasSourceDescriptor
     ) -> VideoCanvasTransform {
         mappingActor.dragTransform(
             from: baseline,
             translation: translation,
-            previewCanvasSize: previewCanvasSize
+            previewCanvasSize: previewCanvasSize,
+            source: source,
+            preset: preset,
+            freeCanvasSize: freeCanvasSize
         )
     }
 
@@ -109,23 +113,31 @@ final class VideoCanvasEditorState {
         from baseline: VideoCanvasTransform,
         magnification: CGFloat,
         anchor: CGPoint,
-        previewCanvasSize: CGSize
+        previewCanvasSize: CGSize,
+        source: VideoCanvasSourceDescriptor
     ) -> VideoCanvasTransform {
         mappingActor.magnifiedTransform(
             from: baseline,
             magnification: magnification,
             anchor: anchor,
-            previewCanvasSize: previewCanvasSize
+            previewCanvasSize: previewCanvasSize,
+            source: source,
+            preset: preset,
+            freeCanvasSize: freeCanvasSize
         )
     }
 
     func rotatedTransform(
         from baseline: VideoCanvasTransform,
-        rotation: Angle
+        rotation: Angle,
+        source: VideoCanvasSourceDescriptor
     ) -> VideoCanvasTransform {
         mappingActor.rotatedTransform(
             from: baseline,
-            rotation: rotation
+            rotation: rotation,
+            source: source,
+            preset: preset,
+            freeCanvasSize: freeCanvasSize
         )
     }
 
@@ -135,7 +147,8 @@ final class VideoCanvasEditorState {
         magnification: CGFloat,
         anchor: CGPoint,
         rotation: Angle,
-        previewCanvasSize: CGSize
+        previewCanvasSize: CGSize,
+        source: VideoCanvasSourceDescriptor
     ) -> VideoCanvasTransform {
         mappingActor.interactiveTransform(
             from: baseline,
@@ -143,7 +156,10 @@ final class VideoCanvasEditorState {
             magnification: magnification,
             anchor: anchor,
             rotation: rotation,
-            previewCanvasSize: previewCanvasSize
+            previewCanvasSize: previewCanvasSize,
+            source: source,
+            preset: preset,
+            freeCanvasSize: freeCanvasSize
         )
     }
 

@@ -279,6 +279,7 @@ struct VideoCanvasPreviewView<Content: View, Overlay: View>: View {
 
         editorState.transform = interactionState.resolvedTransform(
             editorState: editorState,
+            source: source,
             previewCanvasSize: previewCanvasSize
         )
         self.interactionState = nil
@@ -302,6 +303,7 @@ struct VideoCanvasPreviewView<Content: View, Overlay: View>: View {
         return editorState.snapshot(
             with: interactionState.resolvedTransform(
                 editorState: editorState,
+                source: source,
                 previewCanvasSize: previewCanvasSize
             )
         )
@@ -331,6 +333,7 @@ private struct InteractionState {
 
     func resolvedTransform(
         editorState: VideoCanvasEditorState,
+        source: VideoCanvasSourceDescriptor,
         previewCanvasSize: CGSize
     ) -> VideoCanvasTransform {
         editorState.interactiveTransform(
@@ -339,7 +342,8 @@ private struct InteractionState {
             magnification: magnification,
             anchor: magnificationAnchor,
             rotation: rotation,
-            previewCanvasSize: previewCanvasSize
+            previewCanvasSize: previewCanvasSize,
+            source: source
         )
     }
 
