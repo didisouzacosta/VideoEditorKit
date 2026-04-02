@@ -40,7 +40,7 @@ struct VideoEditingPresentationStateResolver {
         ResolvedVideoEditingPresentationState(
             cropFreeformRect: configuration.crop.freeformRect,
             socialVideoDestination: configuration.presentation.socialVideoDestination,
-            showsSafeAreaOverlay: configuration.presentation.showsSafeAreaGuides,
+            showsSafeAreaOverlay: false,
             canvasSnapshot: await resolveCanvasSnapshot(
                 from: configuration,
                 referenceSize: referenceSize
@@ -107,29 +107,6 @@ struct VideoEditingPresentationStateResolver {
         }
     }
 
-    static func shouldRenderSafeAreaOverlay(
-        _ showsSafeAreaOverlay: Bool,
-        for preset: VideoCanvasPreset
-    ) -> Bool {
-        showsSafeAreaOverlay && resolvedSafeAreaGuideProfile(for: preset) != nil
-    }
-
-    static func resolvedSafeAreaGuideProfile(
-        for preset: VideoCanvasPreset
-    ) -> SafeAreaGuideProfile? {
-        switch preset {
-        case .social(let platform):
-            .platform(platform)
-        case .story:
-            .universalSocial
-        case .original,
-            .free,
-            .custom,
-            .facebookPost:
-            nil
-        }
-    }
-
     static func resolveCanvasSnapshot(
         from configuration: VideoEditingConfiguration,
         referenceSize: CGSize
@@ -146,7 +123,7 @@ struct VideoEditingPresentationStateResolver {
                 ),
                 socialVideoDestination: configuration.presentation.socialVideoDestination
             ),
-            showsSafeAreaOverlay: configuration.presentation.showsSafeAreaGuides
+            showsSafeAreaOverlay: false
         )
 
         guard referenceSize.width > 0, referenceSize.height > 0 else {

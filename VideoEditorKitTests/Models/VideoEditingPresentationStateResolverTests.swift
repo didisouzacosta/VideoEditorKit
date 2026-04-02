@@ -56,7 +56,7 @@ struct VideoEditingPresentationResolverTests {
         )
 
         #expect(resolvedSnapshot.preset == .social(platform: .tiktok))
-        #expect(resolvedSnapshot.showsSafeAreaOverlay)
+        #expect(resolvedSnapshot.showsSafeAreaOverlay == false)
         #expect(resolvedSnapshot.transform == .identity)
         #expect(resolvedSnapshot.freeCanvasSize == CGSize(width: 1080, height: 1920))
     }
@@ -111,28 +111,6 @@ struct VideoEditingPresentationResolverTests {
         )
 
         #expect(preset == .vertical9x16)
-    }
-
-    @Test
-    func shouldRenderSafeAreaOverlayRequiresBothTheFlagAndASupportedPreset() {
-        #expect(
-            VideoEditingPresentationStateResolver.shouldRenderSafeAreaOverlay(
-                true,
-                for: .story
-            ) == true
-        )
-        #expect(
-            VideoEditingPresentationStateResolver.shouldRenderSafeAreaOverlay(
-                false,
-                for: .story
-            ) == false
-        )
-        #expect(
-            VideoEditingPresentationStateResolver.shouldRenderSafeAreaOverlay(
-                true,
-                for: .facebookPost
-            ) == false
-        )
     }
 
     @Test

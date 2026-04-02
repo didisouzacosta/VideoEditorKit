@@ -179,22 +179,6 @@ struct ViewModifierSmokeTests {
     }
 
     @Test
-    func safeAreaOverlayRendersAsAGuideWithoutAffectingLayout() {
-        assertRenders(
-            ZStack {
-                Rectangle()
-                    .fill(.black)
-
-                SafeAreaOverlayView(
-                    platform: .tiktok,
-                    cornerRadius: 24
-                )
-            }
-            .frame(width: 240, height: 426)
-        )
-    }
-
-    @Test
     func videoCanvasPreviewViewCanRenderAnOverlayInsideThePresetCanvas() {
         let editorState = VideoCanvasEditorState()
         editorState.preset = .social(platform: .instagram)
@@ -215,15 +199,8 @@ struct ViewModifierSmokeTests {
                 Rectangle()
                     .fill(.blue)
             } overlay: {
-                ZStack(alignment: .bottom) {
-                    SafeAreaOverlayView(
-                        platform: .instagram,
-                        cornerRadius: 24
-                    )
-
-                    Text("Social • 9:16")
-                        .padding(.bottom, 12)
-                }
+                Text("Social • 9:16")
+                    .padding(.bottom, 12)
             }
             .frame(width: 240, height: 426)
         )

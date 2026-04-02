@@ -32,7 +32,7 @@ struct EditorCropPresentationResolverTests {
 
     @Test
     @MainActor
-    func socialSummaryExposesTheSafeAreaGuideAndSocialBadgeCopy() {
+    func socialSummaryKeepsTheSocialBadgeCopyWithoutSafeAreaChrome() {
         let summary = EditorCropPresentationResolver.makeSummary(
             state: .init(
                 freeformRect: .init(
@@ -60,9 +60,6 @@ struct EditorCropPresentationResolverTests {
         #expect(summary.shouldShowCropOverlay)
         #expect(summary.isCropOverlayInteractive)
         #expect(summary.shouldUseCropPresetSpotlight)
-        #expect(summary.shouldShowSafeAreaOverlay)
-        #expect(summary.availableSafeAreaGuideProfile == .platform(.youtubeShorts))
-        #expect(summary.activeSafeAreaGuideProfile == .platform(.youtubeShorts))
         #expect(summary.shouldShowCropPresetBadge)
         #expect(summary.badgeTitle == "Social")
         #expect(summary.badgeDimension == "9:16")
@@ -98,7 +95,7 @@ struct EditorCropPresentationResolverTests {
 
     @Test
     @MainActor
-    func disablingTheGuideSuppressesTheSafeAreaOverlayWithoutChangingThePreset() {
+    func socialSummaryStillResolvesThePresetEvenWhenLegacyGuideStateIsPresent() {
         let summary = EditorCropPresentationResolver.makeSummary(
             state: .init(
                 freeformRect: .init(
@@ -121,9 +118,8 @@ struct EditorCropPresentationResolverTests {
         )
 
         #expect(summary.selectedPreset == .vertical9x16)
-        #expect(summary.shouldShowSafeAreaOverlay == false)
-        #expect(summary.availableSafeAreaGuideProfile == .platform(.instagram))
-        #expect(summary.activeSafeAreaGuideProfile == nil)
+        #expect(summary.shouldShowCropPresetBadge)
+        #expect(summary.badgeText == "Social • 9:16")
     }
 
     @Test
@@ -187,9 +183,6 @@ struct EditorCropPresentationResolverTests {
 
         #expect(summary.selectedPreset == .vertical9x16)
         #expect(summary.isCropOverlayInteractive)
-        #expect(summary.shouldShowSafeAreaOverlay == false)
-        #expect(summary.availableSafeAreaGuideProfile == nil)
-        #expect(summary.activeSafeAreaGuideProfile == nil)
         #expect(summary.shouldShowCropPresetBadge == false)
         #expect(summary.shouldShowCanvasResetButton == false)
     }

@@ -273,6 +273,7 @@ final class VideoPlayerManager {
         }
 
         isPlaybackFocusActive = true
+
         play()
     }
 
@@ -674,10 +675,12 @@ extension VideoPlayerManager {
             }
 
             pause()
+
             currentItem.videoComposition = nil
             refreshCurrentVideoFrame()
             appliedAdjustsSignature = nil
             appliedAdjustsItemID = currentItemID
+
             return
         }
 

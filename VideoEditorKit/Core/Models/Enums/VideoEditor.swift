@@ -529,7 +529,7 @@ extension VideoEditor {
             preset: preset,
             freeCanvasSize: resolvedPreset.exportSize,
             transform: .identity,
-            showsSafeAreaOverlay: editingConfiguration.presentation.showsSafeAreaGuides
+            showsSafeAreaOverlay: false
         )
 
         snapshot.transform = mappingActor.snapshotTransform(

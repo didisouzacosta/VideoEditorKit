@@ -119,7 +119,7 @@ struct EditorSessionCoordinatorTests {
         #expect(configuration?.audio.selectedTrack == .recorded)
         #expect(configuration?.presentation.selectedTool == .adjusts)
         #expect(configuration?.presentation.socialVideoDestination == .youtubeShorts)
-        #expect(configuration?.presentation.showsSafeAreaGuides == true)
+        #expect(configuration?.presentation.showsSafeAreaGuides == false)
         #expect(configuration?.frame.colorToken == "palette:orange")
     }
 

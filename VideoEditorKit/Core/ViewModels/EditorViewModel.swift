@@ -420,19 +420,6 @@ final class EditorViewModel {
         markEditingConfigurationChanged()
     }
 
-    func toggleSafeAreaOverlay() {
-        cancelPendingToolReset(for: .presets)
-        let previousCropState = cropEditingState
-        guard
-            let nextCropState = EditorCropEditingCoordinator.togglingSafeAreaOverlay(
-                from: previousCropState
-            )
-        else { return }
-
-        applyCropEditingState(nextCropState)
-        markEditingConfigurationChanged()
-    }
-
     func setAudio(_ audio: Audio) {
         cancelPendingToolReset(for: .audio)
         guard var currentVideo else { return }
@@ -693,7 +680,7 @@ final class EditorViewModel {
             selectedAudioTrack: presentationState.selectedAudioTrack,
             selectedTool: presentationState.selectedTool,
             socialVideoDestination: cropPresentationState.socialVideoDestination,
-            showsSafeAreaGuides: cropPresentationState.showsSafeAreaOverlay,
+            showsSafeAreaGuides: false,
             currentTimelineTime: currentTimelineTime
         )
     }

@@ -83,7 +83,7 @@ struct EditorInitialLoadCoordinatorTests {
 
         #expect(restoredState.cropEditingState.canvasSnapshot == persistedSnapshot)
         #expect(restoredState.cropEditingState.socialVideoDestination == .instagramReels)
-        #expect(restoredState.cropEditingState.showsSafeAreaOverlay == true)
+        #expect(restoredState.cropEditingState.showsSafeAreaOverlay == false)
         #expect(restoredState.selectedAudioTrack == .recorded)
         #expect(restoredState.selectedTool == .adjusts)
     }

@@ -285,7 +285,7 @@ extension VideoEditingConfiguration {
             )
             showsSafeAreaGuides =
                 try container.decodeIfPresent(Bool.self, forKey: .showsSafeAreaGuides)
-                ?? (socialVideoDestination != nil)
+                ?? false
         }
 
         func encode(to encoder: any Encoder) throws {

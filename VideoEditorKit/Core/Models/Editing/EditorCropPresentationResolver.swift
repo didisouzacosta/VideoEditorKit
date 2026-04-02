@@ -17,9 +17,6 @@ struct EditorCropPresentationSummary: Equatable, Sendable {
     let shouldShowCropOverlay: Bool
     let isCropOverlayInteractive: Bool
     let shouldUseCropPresetSpotlight: Bool
-    let shouldShowSafeAreaOverlay: Bool
-    let availableSafeAreaGuideProfile: SafeAreaGuideProfile?
-    let activeSafeAreaGuideProfile: SafeAreaGuideProfile?
     let shouldShowCropPresetBadge: Bool
     let shouldShowCanvasResetButton: Bool
     let badgeTitle: String
@@ -58,17 +55,6 @@ struct EditorCropPresentationResolver {
             from: state,
             referenceSize: referenceSize
         )
-        let availableSafeAreaGuideProfile = EditorCropEditingCoordinator.activeSafeAreaGuideProfile(
-            for: state
-        )
-        let shouldShowSafeAreaOverlay =
-            !isPlaybackFocused
-            && EditorCropEditingCoordinator.shouldShowSafeAreaOverlay(
-                for: state
-            )
-        let activeSafeAreaGuideProfile =
-            shouldShowSafeAreaOverlay
-            ? availableSafeAreaGuideProfile : nil
         let shouldShowCropOverlay =
             state.freeformRect != nil
             || state.canvasSnapshot.isIdentity == false
@@ -77,8 +63,6 @@ struct EditorCropPresentationResolver {
             !isPlaybackFocused
             && selectedPreset != .original
         let shouldUseCropPresetSpotlight = selectedPreset != .original
-        let resolvedSafeAreaGuideProfile =
-            isPlaybackFocused ? nil : availableSafeAreaGuideProfile
         let shouldShowCanvasResetButton =
             !isPlaybackFocused
             && state.canvasSnapshot.transform.shouldShowResetButton
@@ -89,9 +73,6 @@ struct EditorCropPresentationResolver {
             shouldShowCropOverlay: shouldShowCropOverlay,
             isCropOverlayInteractive: isCropOverlayInteractive,
             shouldUseCropPresetSpotlight: shouldUseCropPresetSpotlight,
-            shouldShowSafeAreaOverlay: shouldShowSafeAreaOverlay,
-            availableSafeAreaGuideProfile: resolvedSafeAreaGuideProfile,
-            activeSafeAreaGuideProfile: activeSafeAreaGuideProfile,
             shouldShowCropPresetBadge: shouldShowCropPresetBadge,
             shouldShowCanvasResetButton: shouldShowCanvasResetButton,
             badgeTitle: badgeTitle(for: selectedPreset),

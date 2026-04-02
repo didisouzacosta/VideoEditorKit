@@ -59,7 +59,7 @@ struct VideoEditingConfigurationTests {
         #expect(decodedConfiguration.version == VideoEditingConfiguration.currentSchemaVersion.rawValue)
         #expect(decodedConfiguration.schemaVersion == .current)
         #expect(decodedConfiguration == configuration)
-        #expect(decodedConfiguration.presentation.showsSafeAreaGuides)
+        #expect(decodedConfiguration.presentation.showsSafeAreaGuides == true)
     }
 
     @Test
@@ -339,7 +339,7 @@ struct VideoEditingConfigurationTests {
         #expect(configuration.audio.selectedTrack == .recorded)
         #expect(configuration.presentation.selectedTool == .adjusts)
         #expect(configuration.presentation.socialVideoDestination == .youtubeShorts)
-        #expect(configuration.presentation.showsSafeAreaGuides)
+        #expect(configuration.presentation.showsSafeAreaGuides == false)
         #expect(configuration.canvas.snapshot.preset == .social(platform: .youtubeShorts))
         #expect(abs(configuration.canvas.snapshot.transform.normalizedOffset.x - 0.12) < 0.0001)
         #expect(abs(configuration.canvas.snapshot.transform.normalizedOffset.y + 0.08) < 0.0001)
@@ -413,7 +413,7 @@ struct VideoEditingConfigurationTests {
     }
 
     @Test
-    func decodeMissingSafeAreaGuidesDefaultsToVisibleForSavedSocialDestinations() throws {
+    func decodeMissingSafeAreaGuidesDefaultsToHiddenForSavedSocialDestinations() throws {
         let json = """
             {
               "version": 3,
@@ -429,7 +429,7 @@ struct VideoEditingConfigurationTests {
         let configuration = try JSONDecoder().decode(VideoEditingConfiguration.self, from: data)
 
         #expect(configuration.presentation.socialVideoDestination == .tikTok)
-        #expect(configuration.presentation.showsSafeAreaGuides)
+        #expect(configuration.presentation.showsSafeAreaGuides == false)
     }
 
     @Test

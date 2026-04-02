@@ -58,8 +58,8 @@ struct EditorCropEditingCoordinatorTests {
 
         #expect(nextState.canvasSnapshot.preset == VideoCanvasPreset.story)
         #expect(nextState.canvasSnapshot.transform == .identity)
-        #expect(nextState.showsSafeAreaOverlay == true)
-        #expect(nextState.canvasSnapshot.showsSafeAreaOverlay == true)
+        #expect(nextState.showsSafeAreaOverlay == false)
+        #expect(nextState.canvasSnapshot.showsSafeAreaOverlay == false)
         #expect(nextState.freeformRect != nil)
     }
 
@@ -78,17 +78,8 @@ struct EditorCropEditingCoordinatorTests {
             nextState.canvasSnapshot.preset
                 == VideoCanvasPreset.social(platform: .tiktok)
         )
-        #expect(nextState.showsSafeAreaOverlay == true)
-        #expect(nextState.canvasSnapshot.showsSafeAreaOverlay == true)
-    }
-
-    @Test
-    func togglingSafeAreaOverlayRequiresASupportedPreset() {
-        #expect(
-            EditorCropEditingCoordinator.togglingSafeAreaOverlay(
-                from: .initial
-            ) == nil
-        )
+        #expect(nextState.showsSafeAreaOverlay == false)
+        #expect(nextState.canvasSnapshot.showsSafeAreaOverlay == false)
     }
 
     @Test

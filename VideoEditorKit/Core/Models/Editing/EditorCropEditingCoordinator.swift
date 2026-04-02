@@ -43,15 +43,11 @@ struct EditorCropEditingCoordinator {
 
             nextState.freeformRect = nextCropRect
             nextState.socialVideoDestination = nil
+            nextState.showsSafeAreaOverlay = false
 
             if preset.isSocialVideoPreset {
-                let hadSafeAreaGuide = activeSafeAreaGuideProfile(for: state) != nil
-                if !hadSafeAreaGuide {
-                    nextState.showsSafeAreaOverlay = true
-                }
                 nextState.canvasSnapshot.preset = .story
             } else {
-                nextState.showsSafeAreaOverlay = false
                 nextState.canvasSnapshot.preset = canvasPreset(
                     for: preset,
                     socialVideoDestination: nextState.socialVideoDestination
@@ -59,9 +55,7 @@ struct EditorCropEditingCoordinator {
             }
 
             nextState.canvasSnapshot.transform = .identity
-            nextState.canvasSnapshot.showsSafeAreaOverlay = shouldShowSafeAreaOverlay(
-                for: nextState
-            )
+            nextState.canvasSnapshot.showsSafeAreaOverlay = false
         }
 
         return nextState
@@ -81,31 +75,13 @@ struct EditorCropEditingCoordinator {
         }
 
         var nextState = state
-        let hadSocialDestination = state.socialVideoDestination != nil
 
         nextState.socialVideoDestination = destination
         nextState.freeformRect = cropRect
-        if !hadSocialDestination {
-            nextState.showsSafeAreaOverlay = true
-        }
+        nextState.showsSafeAreaOverlay = false
         nextState.canvasSnapshot.preset = .social(platform: destination.socialPlatform)
-        nextState.canvasSnapshot.showsSafeAreaOverlay = shouldShowSafeAreaOverlay(
-            for: nextState
-        )
+        nextState.canvasSnapshot.showsSafeAreaOverlay = false
 
-        return nextState
-    }
-
-    static func togglingSafeAreaOverlay(
-        from state: EditorCropEditingState
-    ) -> EditorCropEditingState? {
-        guard activeSafeAreaGuideProfile(for: state) != nil else { return nil }
-
-        var nextState = state
-        nextState.showsSafeAreaOverlay.toggle()
-        nextState.canvasSnapshot.showsSafeAreaOverlay = shouldShowSafeAreaOverlay(
-            for: nextState
-        )
         return nextState
     }
 
@@ -117,21 +93,6 @@ struct EditorCropEditingCoordinator {
             canvasPreset: state.canvasSnapshot.preset,
             freeformRect: state.freeformRect,
             referenceSize: referenceSize
-        )
-    }
-
-    static func shouldShowSafeAreaOverlay(
-        for state: EditorCropEditingState
-    ) -> Bool {
-        state.showsSafeAreaOverlay
-            && activeSafeAreaGuideProfile(for: state) != nil
-    }
-
-    static func activeSafeAreaGuideProfile(
-        for state: EditorCropEditingState
-    ) -> SafeAreaGuideProfile? {
-        VideoEditingPresentationStateResolver.resolvedSafeAreaGuideProfile(
-            for: state.canvasSnapshot.preset
         )
     }
 

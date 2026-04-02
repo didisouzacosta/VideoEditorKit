@@ -65,7 +65,7 @@ enum VideoEditingConfigurationMapper {
             presentation: .init(
                 selectedTool,
                 socialVideoDestination: socialVideoDestination,
-                showsSafeAreaGuides: showsSafeAreaGuides
+                showsSafeAreaGuides: false
             )
         )
     }
