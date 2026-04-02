@@ -88,6 +88,17 @@ struct ViewModifierSmokeTests {
     }
 
     @Test
+    func videoShareSheetRendersInsideAHostingController() throws {
+        let videoURL = try TestFixtures.createTemporaryFile(fileExtension: "mp4")
+
+        defer { FileManager.default.removeIfExists(for: videoURL) }
+
+        assertRenders(
+            VideoShareSheet(activityItems: [videoURL])
+        )
+    }
+
+    @Test
     func cropViewRendersPresetClippingModeInsideAHostingController() {
         assertRenders(
             CropView(

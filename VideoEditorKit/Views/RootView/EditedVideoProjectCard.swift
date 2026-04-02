@@ -81,13 +81,13 @@ struct EditedVideoProjectCard: View {
 
     private var menuButton: some View {
         Menu {
-            ShareLink(item: project.exportedVideoURL) {
-                Label("Share Video", systemImage: "square.and.arrow.up")
+            Button(action: onEdit) {
+                Label("Edit", systemImage: "pencil")
             }
-            .disabled(!project.hasExportedVideo)
 
-            Button("Edit", action: onEdit)
-            Button("Delete", role: .destructive, action: onDelete)
+            Button(role: .destructive, action: onDelete) {
+                Label("Delete", systemImage: "trash")
+            }
         } label: {
             Image(systemName: "ellipsis")
                 .font(.caption.weight(.bold))

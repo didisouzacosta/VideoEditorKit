@@ -12,20 +12,42 @@ import Observation
 @Observable
 final class RootViewModel {
 
+    struct EditorDestination: Identifiable {
+
+        // MARK: - Public Properties
+
+        let id = UUID()
+        let session: VideoEditorView.Session
+
+    }
+
+    struct ShareDestination: Identifiable, Equatable {
+
+        // MARK: - Public Properties
+
+        let videoURL: URL
+
+        var id: URL {
+            videoURL
+        }
+
+    }
+
     // MARK: - Public Properties
 
     var isLoading = false
     var editorDestination: EditorDestination?
+    var shareDestination: ShareDestination?
+
     private(set) var currentProjectID: UUID?
     private(set) var currentSourceVideoURL: URL?
     private(set) var latestEditorSaveState: VideoEditorView.SaveState?
+
+    // MARK: - Private Properties
+
     private var lastPersistedSaveFingerprint: VideoEditingConfiguration?
     private var pendingSaveFingerprint: VideoEditingConfiguration?
-
-    struct EditorDestination: Identifiable {
-        let id = UUID()
-        let session: VideoEditorView.Session
-    }
+    private var pendingShareDestination: ShareDestination?
 
     // MARK: - Public Methods
 
@@ -35,6 +57,8 @@ final class RootViewModel {
 
     func handleEditorDismiss() {
         isLoading = false
+        editorDestination = nil
+        presentPendingShareDestinationIfNeeded()
     }
 
     func startEditorSession(
@@ -49,6 +73,8 @@ final class RootViewModel {
         }
         lastPersistedSaveFingerprint = editingConfiguration?.continuousSaveFingerprint
         pendingSaveFingerprint = nil
+        shareDestination = nil
+        pendingShareDestination = nil
         editorDestination = .init(
             session: .init(
                 sourceVideoURL: url,
@@ -78,14 +104,24 @@ final class RootViewModel {
         projectID: UUID,
         originalVideoURL: URL
     ) {
-        currentProjectID = projectID
-        currentSourceVideoURL = originalVideoURL
+        completePersistedProjectSave(
+            projectID: projectID,
+            originalVideoURL: originalVideoURL
+        )
+    }
 
-        if let latestEditorSaveState {
-            lastPersistedSaveFingerprint = latestEditorSaveState.continuousSaveFingerprint
-        }
-
-        pendingSaveFingerprint = nil
+    func handlePersistedExportedVideo(
+        projectID: UUID,
+        originalVideoURL: URL,
+        exportedVideoURL: URL
+    ) {
+        completePersistedProjectSave(
+            projectID: projectID,
+            originalVideoURL: originalVideoURL
+        )
+        queueShareDestination(
+            .init(videoURL: exportedVideoURL)
+        )
     }
 
     func handlePersistedEditingStateSave(
@@ -113,4 +149,42 @@ final class RootViewModel {
             pendingSaveFingerprint = nil
         }
     }
+
+    func dismissShareDestination() {
+        shareDestination = nil
+    }
+
+    // MARK: - Private Methods
+
+    private func completePersistedProjectSave(
+        projectID: UUID,
+        originalVideoURL: URL
+    ) {
+        currentProjectID = projectID
+        currentSourceVideoURL = originalVideoURL
+
+        if let latestEditorSaveState {
+            lastPersistedSaveFingerprint = latestEditorSaveState.continuousSaveFingerprint
+        }
+
+        pendingSaveFingerprint = nil
+    }
+
+    private func queueShareDestination(
+        _ destination: ShareDestination
+    ) {
+        guard editorDestination == nil else {
+            pendingShareDestination = destination
+            return
+        }
+
+        shareDestination = destination
+    }
+
+    private func presentPendingShareDestinationIfNeeded() {
+        guard let pendingShareDestination else { return }
+        shareDestination = pendingShareDestination
+        self.pendingShareDestination = nil
+    }
+
 }

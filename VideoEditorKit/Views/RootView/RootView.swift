@@ -75,6 +75,14 @@ struct RootView: View {
             } message: {
                 Text(persistenceErrorMessage ?? "")
             }
+            .sheet(
+                item: $bindableViewModel.shareDestination,
+                onDismiss: {
+                    viewModel.dismissShareDestination()
+                }
+            ) { destination in
+                VideoShareSheet(activityItems: [destination.videoURL])
+            }
             .fullScreenCover(
                 item: $bindableViewModel.editorDestination,
                 onDismiss: {
@@ -413,9 +421,10 @@ extension RootView {
                 editingConfiguration: editingConfiguration
             )
 
-            viewModel.handlePersistedProjectSave(
+            viewModel.handlePersistedExportedVideo(
                 projectID: project.id,
-                originalVideoURL: project.originalVideoURL
+                originalVideoURL: project.originalVideoURL,
+                exportedVideoURL: project.exportedVideoURL
             )
             selectedItem = nil
         } catch {

@@ -222,6 +222,76 @@ struct RootViewModelTests {
     }
 
     @Test
+    func exportedVideoShareIsQueuedUntilTheEditorIsDismissed() throws {
+        let viewModel = RootViewModel()
+        let sourceURL = try TestFixtures.createTemporaryFile(fileExtension: "mp4")
+        let persistedOriginalURL = try TestFixtures.createTemporaryFile(fileExtension: "mp4")
+        let exportedVideoURL = try TestFixtures.createTemporaryFile(fileExtension: "mp4")
+        let projectID = UUID()
+
+        defer { FileManager.default.removeIfExists(for: sourceURL) }
+        defer { FileManager.default.removeIfExists(for: persistedOriginalURL) }
+        defer { FileManager.default.removeIfExists(for: exportedVideoURL) }
+
+        viewModel.startEditorSession(with: sourceURL)
+        viewModel.handlePersistedExportedVideo(
+            projectID: projectID,
+            originalVideoURL: persistedOriginalURL,
+            exportedVideoURL: exportedVideoURL
+        )
+
+        #expect(viewModel.shareDestination == nil)
+
+        viewModel.handleEditorDismiss()
+
+        #expect(viewModel.currentProjectID == projectID)
+        #expect(viewModel.currentSourceVideoURL == persistedOriginalURL)
+        #expect(viewModel.shareDestination == .init(videoURL: exportedVideoURL))
+    }
+
+    @Test
+    func exportedVideoShareIsPresentedImmediatelyWhenTheShellIsVisible() throws {
+        let viewModel = RootViewModel()
+        let persistedOriginalURL = try TestFixtures.createTemporaryFile(fileExtension: "mp4")
+        let exportedVideoURL = try TestFixtures.createTemporaryFile(fileExtension: "mp4")
+        let projectID = UUID()
+
+        defer { FileManager.default.removeIfExists(for: persistedOriginalURL) }
+        defer { FileManager.default.removeIfExists(for: exportedVideoURL) }
+
+        viewModel.handlePersistedExportedVideo(
+            projectID: projectID,
+            originalVideoURL: persistedOriginalURL,
+            exportedVideoURL: exportedVideoURL
+        )
+
+        #expect(viewModel.currentProjectID == projectID)
+        #expect(viewModel.currentSourceVideoURL == persistedOriginalURL)
+        #expect(viewModel.shareDestination == .init(videoURL: exportedVideoURL))
+    }
+
+    @Test
+    func dismissShareDestinationClearsThePresentedShareSheet() throws {
+        let viewModel = RootViewModel()
+        let persistedOriginalURL = try TestFixtures.createTemporaryFile(fileExtension: "mp4")
+        let exportedVideoURL = try TestFixtures.createTemporaryFile(fileExtension: "mp4")
+
+        defer { FileManager.default.removeIfExists(for: persistedOriginalURL) }
+        defer { FileManager.default.removeIfExists(for: exportedVideoURL) }
+
+        viewModel.handlePersistedExportedVideo(
+            projectID: UUID(),
+            originalVideoURL: persistedOriginalURL,
+            exportedVideoURL: exportedVideoURL
+        )
+        #expect(viewModel.shareDestination == .init(videoURL: exportedVideoURL))
+
+        viewModel.dismissShareDestination()
+
+        #expect(viewModel.shareDestination == nil)
+    }
+
+    @Test
     func exportedVideoLoadCollectsMetadataNeededByTheHostPreview() async throws {
         let url = try await TestFixtures.createTemporaryVideo(size: CGSize(width: 48, height: 24))
 
