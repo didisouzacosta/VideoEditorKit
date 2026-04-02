@@ -21,7 +21,6 @@ struct RootView: View {
 
     @State private var viewModel = RootViewModel()
     @State private var selectedItem: PhotosPickerItem?
-    @State private var itemLoadTask: Task<Void, Never>?
     @State private var saveStateTask: Task<Void, Never>?
     @State private var blockedTool: ToolEnum?
     @State private var persistenceErrorMessage: String?
@@ -49,10 +48,7 @@ struct RootView: View {
                     VStack(alignment: .leading, spacing: 24) {
                         heroSection
 
-                        selectVideoCard(
-                            $selectedItem,
-                            isLoading: viewModel.isLoading
-                        )
+                        selectVideoCard($selectedItem)
 
                         editedProjectsSection
                     }
@@ -62,10 +58,9 @@ struct RootView: View {
             }
             .onDisappear(perform: handleViewDisappear)
             .onChange(of: selectedItem) { _, newItem in
-                itemLoadTask?.cancel()
-                itemLoadTask = Task {
-                    await loadSelectedItem(newItem)
-                }
+                guard let newItem else { return }
+                viewModel.startEditorSession(with: .photosPickerItem(newItem))
+                selectedItem = nil
             }
             .alert(
                 "Unable to Save Project",
@@ -148,6 +143,9 @@ extension RootView {
                     scheduleEditingStateSave(saveState)
                 }
             },
+            onSourceVideoResolved: { sourceVideoURL in
+                viewModel.handleSourceVideoResolved(sourceVideoURL)
+            },
             onDismissed: { _ in },
             onExportedVideoURL: { exportedVideoURL in
                 Task {
@@ -206,8 +204,7 @@ extension RootView {
     }
 
     private func selectVideoCard(
-        _ selectedItem: Binding<PhotosPickerItem?>,
-        isLoading: Bool
+        _ selectedItem: Binding<PhotosPickerItem?>
     ) -> some View {
         PhotosPicker(selection: selectedItem, matching: .videos) {
             HStack(alignment: .center, spacing: 16) {
@@ -226,13 +223,9 @@ extension RootView {
 
                 Spacer()
 
-                if isLoading {
-                    ProgressView()
-                } else {
-                    Image(systemName: "arrow.up.right")
-                        .font(.headline.weight(.semibold))
-                        .foregroundStyle(Theme.secondary)
-                }
+                Image(systemName: "arrow.up.right")
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(Theme.secondary)
             }
             .padding(32)
             .card(prominent: true, tint: Theme.accent)
@@ -312,8 +305,6 @@ extension RootView {
     }
 
     private func handleViewDisappear() {
-        itemLoadTask?.cancel()
-        itemLoadTask = nil
         saveStateTask?.cancel()
         saveStateTask = nil
         viewModel.handleViewDisappear()
@@ -366,30 +357,6 @@ extension RootView {
             }
             viewModel.clearPendingEditingStateSave(for: saveState)
             persistenceErrorMessage = error.localizedDescription
-        }
-    }
-
-    private func loadSelectedItem(_ newItem: PhotosPickerItem?) async {
-        guard let newItem else {
-            viewModel.isLoading = false
-            return
-        }
-
-        viewModel.isLoading = true
-
-        defer {
-            viewModel.isLoading = false
-            itemLoadTask = nil
-        }
-
-        do {
-            if let video = try await newItem.loadTransferable(type: VideoItem.self), !Task.isCancelled {
-                viewModel.startEditorSession(with: video.url)
-                selectedItem = nil
-            }
-        } catch {
-            assertionFailure("Failed to load selected video: \(error.localizedDescription)")
-            selectedItem = nil
         }
     }
 

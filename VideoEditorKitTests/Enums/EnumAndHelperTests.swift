@@ -129,6 +129,61 @@ struct VideoEditorConfigurationTests {
 
 }
 
+@Suite("VideoEditorSessionTests")
+struct VideoEditorSessionTests {
+
+    // MARK: - Public Methods
+
+    @Test
+    func legacyURLInitializerMapsToAFileURLSource() {
+        let sourceURL = URL(fileURLWithPath: "/tmp/source.mp4")
+        let editingConfiguration = VideoEditingConfiguration(
+            trim: .init(lowerBound: 1, upperBound: 4)
+        )
+
+        let session = VideoEditorView.Session(
+            sourceVideoURL: sourceURL,
+            editingConfiguration: editingConfiguration
+        )
+
+        #expect(session.source == .fileURL(sourceURL))
+        #expect(session.sourceVideoURL == sourceURL)
+        #expect(session.editingConfiguration == editingConfiguration)
+    }
+
+    @Test
+    func sourceInitializerPreservesTheResolvedFileURLForURLBackedSessions() {
+        let sourceURL = URL(fileURLWithPath: "/tmp/source.mp4")
+
+        let session = VideoEditorView.Session(
+            source: .fileURL(sourceURL)
+        )
+
+        #expect(session.source == .fileURL(sourceURL))
+        #expect(session.sourceVideoURL == sourceURL)
+    }
+
+    @Test
+    func urlBackedSessionsRemainEquatableAfterIntroducingSource() {
+        let sourceURL = URL(fileURLWithPath: "/tmp/source.mp4")
+        let editingConfiguration = VideoEditingConfiguration(
+            playback: .init(rate: 1.4)
+        )
+
+        let legacySession = VideoEditorView.Session(
+            sourceVideoURL: sourceURL,
+            editingConfiguration: editingConfiguration
+        )
+        let sourceSession = VideoEditorView.Session(
+            source: .fileURL(sourceURL),
+            editingConfiguration: editingConfiguration
+        )
+
+        #expect(legacySession == sourceSession)
+    }
+
+}
+
 @Suite("VideoQualityTests")
 struct VideoQualityTests {
 

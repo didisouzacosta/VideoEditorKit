@@ -1,5 +1,7 @@
 import CoreGraphics
 import Foundation
+import PhotosUI
+import SwiftUI
 import Testing
 
 @testable import VideoEditorKit
@@ -11,13 +13,17 @@ struct RootViewModelTests {
     // MARK: - Public Methods
 
     @Test
-    func handleViewDisappearStopsTheLoadingState() {
+    func handleViewDisappearClearsAnyPresentedShareDestination() throws {
         let viewModel = RootViewModel()
-        viewModel.isLoading = true
+        let exportedVideoURL = try TestFixtures.createTemporaryFile(fileExtension: "mp4")
+
+        defer { FileManager.default.removeIfExists(for: exportedVideoURL) }
+
+        viewModel.shareDestination = .init(videoURL: exportedVideoURL)
 
         viewModel.handleViewDisappear()
 
-        #expect(viewModel.isLoading == false)
+        #expect(viewModel.shareDestination == nil)
     }
 
     @Test
@@ -50,6 +56,20 @@ struct RootViewModelTests {
                     sourceVideoURL: sourceURL,
                     editingConfiguration: editingConfiguration
                 )
+        )
+    }
+
+    @Test
+    func startEditorSessionWithAPhotosPickerSourceDefersTheResolvedSourceURL() {
+        let viewModel = RootViewModel()
+        let photosPickerItem = PhotosPickerItem(itemIdentifier: "root-view-model-test")
+
+        viewModel.startEditorSession(with: .photosPickerItem(photosPickerItem))
+
+        #expect(viewModel.currentSourceVideoURL == nil)
+        #expect(
+            viewModel.editorDestination?.session
+                == .init(source: .photosPickerItem(photosPickerItem))
         )
     }
 
@@ -205,20 +225,30 @@ struct RootViewModelTests {
     }
 
     @Test
-    func handleEditorDismissClearsThePickerSelectionWithoutDroppingTheCurrentSession() throws {
+    func handleEditorDismissKeepsTheCurrentEditingContextAvailableToTheHost() throws {
         let viewModel = RootViewModel()
         let sourceURL = try TestFixtures.createTemporaryFile(fileExtension: "mp4")
         let projectID = UUID()
 
         defer { FileManager.default.removeIfExists(for: sourceURL) }
 
-        viewModel.isLoading = true
         viewModel.startEditorSession(with: sourceURL, projectID: projectID)
         viewModel.handleEditorDismiss()
 
-        #expect(viewModel.isLoading == false)
         #expect(viewModel.currentProjectID == projectID)
         #expect(viewModel.currentSourceVideoURL == sourceURL)
+    }
+
+    @Test
+    func handleSourceVideoResolvedStoresTheResolvedOriginalVideoURL() throws {
+        let viewModel = RootViewModel()
+        let resolvedSourceURL = try TestFixtures.createTemporaryFile(fileExtension: "mp4")
+
+        defer { FileManager.default.removeIfExists(for: resolvedSourceURL) }
+
+        viewModel.handleSourceVideoResolved(resolvedSourceURL)
+
+        #expect(viewModel.currentSourceVideoURL == resolvedSourceURL)
     }
 
     @Test

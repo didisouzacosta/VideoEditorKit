@@ -35,7 +35,6 @@ final class RootViewModel {
 
     // MARK: - Public Properties
 
-    var isLoading = false
     var editorDestination: EditorDestination?
     var shareDestination: ShareDestination?
 
@@ -51,23 +50,21 @@ final class RootViewModel {
     // MARK: - Public Methods
 
     func handleViewDisappear() {
-        isLoading = false
         shareDestination = nil
     }
 
     func handleEditorDismiss() {
-        isLoading = false
         editorDestination = nil
         shareDestination = nil
     }
 
     func startEditorSession(
-        with url: URL,
+        with source: VideoEditorView.Session.Source,
         projectID: UUID? = nil,
         editingConfiguration: VideoEditingConfiguration? = nil
     ) {
         currentProjectID = projectID
-        currentSourceVideoURL = url
+        currentSourceVideoURL = source.fileURL
         latestEditorSaveState = editingConfiguration.map {
             .init(editingConfiguration: $0)
         }
@@ -76,9 +73,21 @@ final class RootViewModel {
         shareDestination = nil
         editorDestination = .init(
             session: .init(
-                sourceVideoURL: url,
+                source: source,
                 editingConfiguration: editingConfiguration
             )
+        )
+    }
+
+    func startEditorSession(
+        with url: URL,
+        projectID: UUID? = nil,
+        editingConfiguration: VideoEditingConfiguration? = nil
+    ) {
+        startEditorSession(
+            with: .fileURL(url),
+            projectID: projectID,
+            editingConfiguration: editingConfiguration
         )
     }
 
@@ -145,6 +154,10 @@ final class RootViewModel {
         if pendingSaveFingerprint == fingerprint {
             pendingSaveFingerprint = nil
         }
+    }
+
+    func handleSourceVideoResolved(_ url: URL) {
+        currentSourceVideoURL = url
     }
 
     func dismissShareDestination() {
