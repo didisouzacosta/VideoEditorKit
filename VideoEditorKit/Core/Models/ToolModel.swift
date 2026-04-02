@@ -9,6 +9,8 @@ import Foundation
 
 enum ToolEnum: Int, CaseIterable, Identifiable, Codable, Sendable {
 
+    // MARK: - Public Properties
+
     case cut = 0
     case speed = 1
     case presets = 2
@@ -21,6 +23,16 @@ enum ToolEnum: Int, CaseIterable, Identifiable, Codable, Sendable {
 
     static var all: [ToolEnum] {
         allCases.filter { $0 != .cut }
+    }
+
+    var order: Int {
+        switch self {
+        case .presets: 0
+        case .audio: 1
+        case .adjusts: 2
+        case .speed: 3
+        case .cut: 4
+        }
     }
 
     var title: String {
@@ -56,6 +68,7 @@ struct ToolAvailability: Hashable, Identifiable {
 
     let tool: ToolEnum
     let access: Access
+    let order: Int
 
     var id: ToolEnum {
         tool
@@ -71,21 +84,32 @@ struct ToolAvailability: Hashable, Identifiable {
 
     // MARK: - Initializer
 
-    init(_ tool: ToolEnum, access: Access = .enabled) {
+    init(
+        _ tool: ToolEnum,
+        access: Access = .enabled,
+        order: Int? = nil
+    ) {
         self.tool = tool
         self.access = access
+        self.order = order ?? tool.order
     }
 
-    static func enabled(_ tool: ToolEnum) -> Self {
-        .init(tool)
+    static func enabled(
+        _ tool: ToolEnum,
+        order: Int? = nil
+    ) -> Self {
+        .init(tool, order: order)
     }
 
-    static func blocked(_ tool: ToolEnum) -> Self {
-        .init(tool, access: .blocked)
+    static func blocked(
+        _ tool: ToolEnum,
+        order: Int? = nil
+    ) -> Self {
+        .init(tool, access: .blocked, order: order)
     }
 
     static func enabled(_ tools: [ToolEnum]) -> [Self] {
-        tools.map(Self.enabled)
+        tools.map { Self.enabled($0) }
     }
 
 }

@@ -299,7 +299,13 @@ extension VideoEditorView {
             tools: [ToolAvailability] = ToolAvailability.enabled(ToolEnum.all),
             onBlockedToolTap: ((ToolEnum) -> Void)? = nil
         ) {
-            self.tools = tools
+            self.tools = tools.sorted {
+                if $0.order == $1.order {
+                    return $0.tool.rawValue < $1.tool.rawValue
+                }
+
+                return $0.order < $1.order
+            }
             self.onBlockedToolTap = onBlockedToolTap
         }
 

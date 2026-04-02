@@ -26,18 +26,19 @@ struct ToolEnumTests {
 
     @Test
     func titlesAndSymbolsMatchTheCurrentCatalog() {
-        let expectations: [(tool: ToolEnum, title: String, image: String)] = [
-            (.cut, "Cut", "scissors"),
-            (.speed, "Speed", "timer"),
-            (.presets, "Presets", "aspectratio"),
-            (.audio, "Audio", "waveform"),
-            (.adjusts, "Adjusts", "circle.righthalf.filled"),
+        let expectations: [(tool: ToolEnum, title: String, image: String, order: Int)] = [
+            (.cut, "Cut", "scissors", 4),
+            (.speed, "Speed", "timer", 3),
+            (.presets, "Presets", "aspectratio", 0),
+            (.audio, "Audio", "waveform", 1),
+            (.adjusts, "Adjusts", "circle.righthalf.filled", 2),
         ]
 
         for expectation in expectations {
             #expect(expectation.tool.title == expectation.title)
             #expect(expectation.tool.image == expectation.image)
             #expect(expectation.tool.id == expectation.tool.rawValue)
+            #expect(expectation.tool.order == expectation.order)
         }
     }
 
@@ -55,21 +56,23 @@ struct VideoEditorConfigurationTests {
 
         #expect(visibleTools.map(\.tool) == [.speed, .adjusts])
         #expect(visibleTools.allSatisfy { $0.isEnabled })
+        #expect(visibleTools.map(\.order) == [3, 2])
         #expect(blockedTool.tool == .presets)
         #expect(blockedTool.isBlocked)
+        #expect(blockedTool.order == 0)
     }
 
     @Test
     func defaultConfigurationExposesAllVisibleToolsAsEnabled() {
         let configuration = VideoEditorView.Configuration()
 
-        #expect(configuration.tools.map(\.tool) == ToolEnum.all)
+        #expect(configuration.tools.map(\.tool) == [.presets, .audio, .adjusts, .speed])
         #expect(configuration.tools.allSatisfy { $0.access == .enabled })
-        #expect(configuration.visibleTools == ToolEnum.all)
+        #expect(configuration.visibleTools == [.presets, .audio, .adjusts, .speed])
     }
 
     @Test
-    func customConfigurationPreservesTheProvidedOrderAndAccessState() {
+    func customConfigurationSortsToolsByDisplayOrderWhileKeepingAccessState() {
         let configuration = VideoEditorView.Configuration(
             tools: [
                 .enabled(.adjusts),
@@ -78,7 +81,7 @@ struct VideoEditorConfigurationTests {
             ]
         )
 
-        #expect(configuration.tools.map(\.tool) == [.adjusts, .speed, .presets])
+        #expect(configuration.tools.map(\.tool) == [.presets, .adjusts, .speed])
         #expect(configuration.isVisible(.adjusts))
         #expect(configuration.isEnabled(.adjusts))
         #expect(configuration.availability(for: .adjusts)?.isBlocked == false)
@@ -87,6 +90,21 @@ struct VideoEditorConfigurationTests {
         #expect(configuration.isVisible(.audio) == false)
         #expect(configuration.isEnabled(.audio) == false)
         #expect(configuration.availability(for: .audio) == nil)
+    }
+
+    @Test
+    func customToolOrderOverridesTheDefaultDisplaySequence() {
+        let configuration = VideoEditorView.Configuration(
+            tools: [
+                .enabled(.speed, order: 0),
+                .enabled(.presets, order: 2),
+                .blocked(.audio, order: 1),
+            ]
+        )
+
+        #expect(configuration.tools.map(\.tool) == [.speed, .audio, .presets])
+        #expect(configuration.tools.map(\.order) == [0, 1, 2])
+        #expect(configuration.isBlocked(.audio))
     }
 
     @Test
