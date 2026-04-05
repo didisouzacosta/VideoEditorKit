@@ -7,7 +7,7 @@
 - Phase 3 completed
 - Phase 4 completed
 - Phase 5 completed
-- Phase 6 planned
+- Phase 6 completed
 
 ## Summary
 
@@ -180,12 +180,21 @@ Completed outcome:
 
 ## Phase 6
 
+Status: completed.
+
 Scope:
 
 - add transcript burn-in to the export pipeline
 - align active subtitle selection with timeline timing during export
 - verify stage ordering against frame, crop, and canvas behavior
 - add export-focused tests for the subtitle render plan
+
+Completed outcome:
+
+- the export pipeline now includes a dedicated transcript burn-in stage between color adjustments and canvas crop
+- transcript rendering uses projected timeline timing, so preview selection timing and export timing stay aligned
+- stage ordering is now explicit and testable through a pure render-stage plan
+- export-focused tests cover transcript-stage activation and the expected stage order relative to adjusts and crop
 
 ## Testing Notes
 
