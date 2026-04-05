@@ -64,6 +64,42 @@ struct ViewModifierSmokeTests {
     }
 
     @Test
+    func transcriptOverlayPreviewRendersInsideAHostingController() {
+        assertRenders(
+            TranscriptOverlayPreview(
+                segment: .init(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 10,
+                        sourceEndTime: 14,
+                        timelineStartTime: 5,
+                        timelineEndTime: 7
+                    ),
+                    originalText: "Original segment",
+                    editedText: "Edited segment"
+                ),
+                style: .init(
+                    id: UUID(),
+                    name: "Classic",
+                    fontFamily: "SF Pro Rounded",
+                    hasStroke: true,
+                    textColor: .white,
+                    strokeColor: .black
+                ),
+                overlayPosition: .bottom,
+                overlaySize: .medium,
+                isSelected: true,
+                containerSize: CGSize(width: 320, height: 180),
+                onSelect: {},
+                onDismissSelection: {},
+                onSelectPosition: { _ in },
+                onSelectSize: { _ in }
+            )
+            .frame(width: 320, height: 180)
+        )
+    }
+
+    @Test
     func editedVideoProjectCardRendersInsideAHostingController() {
         assertRenders(
             EditedVideoProjectCard(

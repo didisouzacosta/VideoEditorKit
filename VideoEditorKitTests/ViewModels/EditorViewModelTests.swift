@@ -403,6 +403,61 @@ struct EditorViewModelTests {
     }
 
     @Test
+    func updateTranscriptOverlayControlsPersistPositionAndSizeWithoutTouchingSelectionState() {
+        let viewModel = EditorViewModel()
+        viewModel.setTranscriptDocument(
+            TranscriptDocument(
+                segments: [
+                    EditableTranscriptSegment(
+                        id: UUID(),
+                        timeMapping: .init(
+                            sourceStartTime: 10,
+                            sourceEndTime: 14,
+                            timelineStartTime: 5,
+                            timelineEndTime: 7
+                        ),
+                        originalText: "Original segment",
+                        editedText: "Edited segment"
+                    )
+                ]
+            )
+        )
+        viewModel.setTranscriptOverlaySelection(true)
+
+        viewModel.updateTranscriptOverlayPosition(.top)
+        viewModel.updateTranscriptOverlaySize(.large)
+
+        #expect(viewModel.transcriptDocument?.overlayPosition == .top)
+        #expect(viewModel.transcriptDocument?.overlaySize == .large)
+        #expect(viewModel.presentationState.isTranscriptOverlaySelected)
+    }
+
+    @Test
+    func activeTranscriptSegmentUsesTimelineTimingInsteadOfSourceTiming() {
+        let viewModel = EditorViewModel()
+        viewModel.setTranscriptDocument(
+            TranscriptDocument(
+                segments: [
+                    EditableTranscriptSegment(
+                        id: UUID(),
+                        timeMapping: .init(
+                            sourceStartTime: 20,
+                            sourceEndTime: 40,
+                            timelineStartTime: 10,
+                            timelineEndTime: 20
+                        ),
+                        originalText: "Visible segment",
+                        editedText: "Visible segment"
+                    )
+                ]
+            )
+        )
+
+        #expect(viewModel.activeTranscriptSegment(at: 15)?.editedText == "Visible segment")
+        #expect(viewModel.activeTranscriptSegment(at: 5) == nil)
+    }
+
+    @Test
     func updateRateRemapsTranscriptDocumentUsingTheCurrentTrim() {
         let viewModel = EditorViewModel()
         var video = Video.mock

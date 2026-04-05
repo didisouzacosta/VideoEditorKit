@@ -16,6 +16,7 @@ final class EditorPresentationState {
     var selectedAudioTrack: VideoEditingConfiguration.SelectedTrack = .video
     var showVideoQualitySheet = false
     var showRecordView = false
+    var isTranscriptOverlaySelected = false
     var selectedTool: ToolEnum?
 
     private(set) var editingConfigurationRevision = 0

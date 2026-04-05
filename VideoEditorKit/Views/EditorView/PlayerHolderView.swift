@@ -107,6 +107,11 @@ extension PlayerHolderView {
                                         .allowsHitTesting(false)
                                 }
                             }
+                            .overlay {
+                                transcriptOverlay(
+                                    in: proxy.size
+                                )
+                            }
                             .overlay(alignment: .bottomTrailing) {
                                 trailingPlayerControls(cropSummary)
                                     .padding(.trailing, 16)
@@ -169,6 +174,47 @@ extension PlayerHolderView {
     ) -> some View {
         if cropSummary.shouldShowCanvasResetButton {
             resetCanvasButton
+        }
+    }
+
+    @ViewBuilder
+    private func transcriptOverlay(
+        in availableSize: CGSize
+    ) -> some View {
+        if let transcriptDocument = editorViewModel.transcriptDocument,
+            editorViewModel.transcriptState == .loaded,
+            let activeSegment = editorViewModel.activeTranscriptSegment(
+                at: videoPlayer.currentTime
+            )
+        {
+            let containerSize =
+                editorViewModel.currentVideo?.frameSize.width ?? 0 > 0
+                    && editorViewModel.currentVideo?.frameSize.height ?? 0 > 0
+                ? (editorViewModel.currentVideo?.frameSize ?? availableSize)
+                : availableSize
+
+            TranscriptOverlayPreview(
+                segment: activeSegment,
+                style: editorViewModel.transcriptStyle(for: activeSegment),
+                overlayPosition: transcriptDocument.overlayPosition,
+                overlaySize: transcriptDocument.overlaySize,
+                isSelected: editorViewModel.presentationState.isTranscriptOverlaySelected,
+                containerSize: containerSize,
+                onSelect: {
+                    editorViewModel.setTranscriptOverlaySelection(true)
+                },
+                onDismissSelection: {
+                    editorViewModel.setTranscriptOverlaySelection(false)
+                },
+                onSelectPosition: {
+                    editorViewModel.updateTranscriptOverlayPosition($0)
+                },
+                onSelectSize: {
+                    editorViewModel.updateTranscriptOverlaySize($0)
+                }
+            )
+        } else {
+            EmptyView()
         }
     }
 

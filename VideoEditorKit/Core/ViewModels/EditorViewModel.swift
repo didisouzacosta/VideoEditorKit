@@ -803,6 +803,48 @@ final class EditorViewModel {
         handleCanvasPreviewChange()
     }
 
+    func activeTranscriptSegment(
+        at timelineTime: Double
+    ) -> EditableTranscriptSegment? {
+        transcriptDocument?.segments.first {
+            guard let timelineRange = $0.timeMapping.timelineRange else { return false }
+            return timelineRange.contains(timelineTime)
+        }
+    }
+
+    func transcriptStyle(
+        for segment: EditableTranscriptSegment
+    ) -> TranscriptStyle? {
+        guard let styleID = segment.styleID else { return nil }
+        return transcriptDocument?.availableStyles.first(where: { $0.id == styleID })
+    }
+
+    func setTranscriptOverlaySelection(_ isSelected: Bool) {
+        presentationState.isTranscriptOverlaySelected = isSelected
+    }
+
+    func updateTranscriptOverlayPosition(
+        _ position: TranscriptOverlayPosition
+    ) {
+        guard var transcriptDocument else { return }
+        guard transcriptDocument.overlayPosition != position else { return }
+
+        transcriptDocument.overlayPosition = position
+        self.transcriptDocument = transcriptDocument
+        markEditingConfigurationChanged()
+    }
+
+    func updateTranscriptOverlaySize(
+        _ size: TranscriptOverlaySize
+    ) {
+        guard var transcriptDocument else { return }
+        guard transcriptDocument.overlaySize != size else { return }
+
+        transcriptDocument.overlaySize = size
+        self.transcriptDocument = transcriptDocument
+        markEditingConfigurationChanged()
+    }
+
     func playerContainerSize(in availableSize: CGSize) -> CGSize {
         VideoEditorLayoutResolver.playerContainerSize(
             in: availableSize
@@ -878,6 +920,7 @@ final class EditorViewModel {
         transcriptFeatureState = .idle
         transcriptState = .idle
         transcriptDocument = nil
+        presentationState.isTranscriptOverlaySelected = false
         markEditingConfigurationChanged()
     }
 
