@@ -4,7 +4,7 @@ import Testing
 @testable import VideoEditorKit
 
 @Suite("EditorTranscriptRemappingCoordinatorTests")
-struct EditorTranscriptRemappingCoordinatorTests {
+struct TranscriptRemappingCoordinatorTests {
 
     // MARK: - Public Methods
 

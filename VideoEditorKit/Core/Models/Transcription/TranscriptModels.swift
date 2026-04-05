@@ -27,7 +27,7 @@ struct EditableTranscriptSegment: Identifiable, Codable, Hashable, Sendable {
     var originalText: String
     var editedText: String
     var words: [EditableTranscriptWord] = []
-    var styleID: TranscriptStyle.ID?
+    var styleID: TranscriptStyle.StyleIdentifier?
 
 }
 
@@ -64,11 +64,11 @@ struct TranscriptTimeMapping: Codable, Hashable, Sendable {
 
 struct TranscriptStyle: Identifiable, Codable, Hashable, Sendable {
 
-    typealias ID = UUID
+    typealias StyleIdentifier = UUID
 
     // MARK: - Public Properties
 
-    let id: ID
+    let id: StyleIdentifier
     var name: String
     var fontFamily: String
     var isItalic = false
