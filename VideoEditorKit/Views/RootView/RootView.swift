@@ -105,6 +105,49 @@ extension RootView {
 
     // MARK: - Private Properties
 
+    static var defaultTranscriptionConfiguration: VideoEditorView.Configuration.TranscriptionConfiguration {
+        .init(
+            localModelDescriptor: TranscriptionKitHardcodedModels.preferredModel,
+            availableStyles: defaultTranscriptStyles,
+            preferredLocale: preferredTranscriptionLocale
+        )
+    }
+
+    static var defaultTranscriptStyles: [TranscriptStyle] {
+        [
+            .init(
+                id: UUID(uuidString: "7C5D2E8E-2C10-4EB5-B8E8-091C92242311") ?? UUID(),
+                name: "Classic",
+                fontFamily: "SF Pro Rounded",
+                hasStroke: true,
+                textAlignment: .center,
+                textColor: .white,
+                strokeColor: .black
+            ),
+            .init(
+                id: UUID(uuidString: "F596618D-6E2B-4A87-9D09-34A4A3A58F79") ?? UUID(),
+                name: "Clean",
+                fontFamily: "SF Pro Rounded",
+                textAlignment: .center,
+                textColor: .white
+            ),
+            .init(
+                id: UUID(uuidString: "5EE4E534-37A6-4200-9791-56543F1B2DB8") ?? UUID(),
+                name: "Punch",
+                fontFamily: "SF Pro Rounded",
+                isItalic: true,
+                hasStroke: true,
+                textAlignment: .center,
+                textColor: .white,
+                strokeColor: .black
+            ),
+        ]
+    }
+
+    static var preferredTranscriptionLocale: String? {
+        Locale.preferredLanguages.first ?? Locale.current.language.languageCode?.identifier
+    }
+
     private var blockedToolAlertBinding: Binding<Bool> {
         Binding(
             get: { blockedTool != nil },
@@ -119,6 +162,7 @@ extension RootView {
     private var editorConfiguration: VideoEditorView.Configuration {
         .init(
             tools: ToolAvailability.enabled(ToolEnum.all),
+            transcription: Self.defaultTranscriptionConfiguration,
             onBlockedToolTap: { tool in
                 blockedTool = tool
             }

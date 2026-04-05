@@ -569,6 +569,10 @@ extension VideoEditorView {
             let preferredLocale: String?
             let localModelDescriptor: RemoteModelDescriptor?
 
+            var isConfigured: Bool {
+                provider != nil
+            }
+
             // MARK: - Initializer
 
             init(
@@ -631,7 +635,10 @@ extension VideoEditorView {
             transcription: TranscriptionConfiguration = .init(),
             onBlockedToolTap: ((ToolEnum) -> Void)? = nil
         ) {
-            self.tools = tools.sorted {
+            self.tools = Self.resolvedTools(
+                from: tools,
+                transcription: transcription
+            ).sorted {
                 if $0.order == $1.order {
                     return $0.tool.rawValue < $1.tool.rawValue
                 }
@@ -662,6 +669,19 @@ extension VideoEditorView {
 
         func notifyBlockedToolTap(for tool: ToolEnum) {
             onBlockedToolTap?(tool)
+        }
+
+        // MARK: - Private Methods
+
+        private static func resolvedTools(
+            from tools: [ToolAvailability],
+            transcription: TranscriptionConfiguration
+        ) -> [ToolAvailability] {
+            guard !transcription.isConfigured else {
+                return tools
+            }
+
+            return tools.filter { $0.tool != .transcript }
         }
 
     }

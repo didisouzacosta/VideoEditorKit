@@ -110,6 +110,39 @@ struct VideoEditorConfigurationTests {
     }
 
     @Test
+    func transcriptToolIsHiddenWhenTranscriptionIsNotConfigured() {
+        let configuration = VideoEditorView.Configuration(
+            tools: ToolAvailability.enabled(ToolEnum.all),
+            transcription: .init(
+                provider: nil,
+                localModelDescriptor: nil
+            )
+        )
+
+        #expect(configuration.tools.map(\.tool) == [.presets, .audio, .adjusts, .speed])
+        #expect(configuration.visibleTools == [.presets, .audio, .adjusts, .speed])
+        #expect(configuration.isVisible(.transcript) == false)
+        #expect(configuration.isEnabled(.transcript) == false)
+    }
+
+    @Test
+    func transcriptToolIsFilteredEvenWhenExplicitlyProvidedWithoutTranscriptionConfiguration() {
+        let configuration = VideoEditorView.Configuration(
+            tools: [
+                .enabled(.transcript, order: 0),
+                .enabled(.speed, order: 1),
+            ],
+            transcription: .init(
+                provider: nil,
+                localModelDescriptor: nil
+            )
+        )
+
+        #expect(configuration.tools.map(\.tool) == [.speed])
+        #expect(configuration.visibleTools == [.speed])
+    }
+
+    @Test
     func blockedToolHandlerReceivesTheTappedTool() {
         var receivedTool: ToolEnum?
         let configuration = VideoEditorView.Configuration(
@@ -173,6 +206,18 @@ struct VideoEditorConfigurationTests {
         let inputs = await provider.recordedInputs()
         #expect(inputs.count == 1)
         #expect(inputs.first?.preferredLocale == "pt-BR")
+    }
+
+    @MainActor
+    @Test
+    func rootViewDefaultTranscriptionConfigurationPassesTheLocalModelStylesAndLocale() {
+        let configuration = RootView.defaultTranscriptionConfiguration
+
+        #expect(configuration.localModelDescriptor == TranscriptionKitHardcodedModels.preferredModel)
+        #expect(configuration.availableStyles == RootView.defaultTranscriptStyles)
+        #expect(configuration.availableStyles.count == 3)
+        #expect(configuration.preferredLocale == RootView.preferredTranscriptionLocale)
+        #expect(configuration.provider != nil)
     }
 
 }
