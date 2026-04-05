@@ -161,6 +161,221 @@ struct EditorViewModelTests {
     }
 
     @Test
+    func setTranscriptDocumentRemapsThePersistedTimelineToTheCurrentVideoState() {
+        let viewModel = EditorViewModel()
+        var video = Video.mock
+        video.rangeDuration = 20...80
+        video.updateRate(2)
+        viewModel.currentVideo = video
+
+        viewModel.setTranscriptDocument(
+            TranscriptDocument(
+                segments: [
+                    EditableTranscriptSegment(
+                        id: UUID(),
+                        timeMapping: .init(
+                            sourceStartTime: 10,
+                            sourceEndTime: 40,
+                            timelineStartTime: 10,
+                            timelineEndTime: 40
+                        ),
+                        originalText: "Original segment",
+                        editedText: "Edited segment"
+                    )
+                ]
+            )
+        )
+
+        #expect(viewModel.transcriptFeatureState == .loaded)
+        #expect(viewModel.transcriptDocument?.segments.first?.timeMapping.timelineRange == 10...20)
+    }
+
+    @Test
+    func transcribeCurrentVideoMapsProviderOutputIntoTheEditableTranscriptDocument() async {
+        let provider = RecordingTranscriptionProvider(
+            result: .success(
+                VideoTranscriptionResult(
+                    segments: [
+                        TranscriptionSegment(
+                            id: UUID(),
+                            startTime: 8,
+                            endTime: 12,
+                            text: "Ola mundo",
+                            words: [
+                                TranscriptionWord(
+                                    id: UUID(),
+                                    startTime: 8,
+                                    endTime: 9,
+                                    text: "Ola"
+                                )
+                            ]
+                        )
+                    ]
+                )
+            )
+        )
+        let style = TranscriptStyle(
+            id: UUID(),
+            name: "Classic",
+            fontFamily: "Avenir"
+        )
+        let viewModel = EditorViewModel()
+        var video = Video(url: URL(fileURLWithPath: "/tmp/transcription-source.mov"), rangeDuration: 0...20)
+        video.updateRate(2)
+        viewModel.currentVideo = video
+        viewModel.configureTranscription(
+            provider: provider,
+            availableStyles: [style],
+            preferredLocale: "pt-BR"
+        )
+
+        viewModel.transcribeCurrentVideo()
+        await waitForTranscriptState(on: viewModel, equals: .loaded)
+
+        let recordedInput = await provider.inputs().first
+        #expect(recordedInput?.assetIdentifier == video.url.absoluteString)
+        #expect(recordedInput?.preferredLocale == "pt-BR")
+        #expect(viewModel.transcriptState == .loaded)
+        #expect(viewModel.transcriptFeatureState == .loaded)
+        #expect(viewModel.transcriptDocument?.availableStyles == [style])
+        #expect(viewModel.transcriptDocument?.segments.first?.originalText == "Ola mundo")
+        #expect(viewModel.transcriptDocument?.segments.first?.editedText == "Ola mundo")
+        #expect(viewModel.transcriptDocument?.segments.first?.timeMapping.timelineRange == 4...6)
+        #expect(viewModel.transcriptDocument?.segments.first?.words.first?.editedText == "Ola")
+    }
+
+    @Test
+    func transcribeCurrentVideoFailsWhenProviderIsNotConfigured() {
+        let viewModel = EditorViewModel()
+        viewModel.currentVideo = Video(
+            url: URL(fileURLWithPath: "/tmp/transcription-source.mov"),
+            rangeDuration: 0...20
+        )
+
+        viewModel.transcribeCurrentVideo()
+
+        #expect(viewModel.transcriptState == .failed(.providerNotConfigured))
+        #expect(viewModel.transcriptFeatureState == .failed)
+        #expect(viewModel.transcriptDocument == nil)
+    }
+
+    @Test
+    func transcribeCurrentVideoFailsWhenProviderReturnsAnEmptyResult() async {
+        let provider = RecordingTranscriptionProvider(
+            result: .success(
+                VideoTranscriptionResult(segments: [])
+            )
+        )
+        let viewModel = EditorViewModel()
+        viewModel.currentVideo = Video(
+            url: URL(fileURLWithPath: "/tmp/transcription-source.mov"),
+            rangeDuration: 0...20
+        )
+        viewModel.configureTranscription(provider: provider)
+
+        viewModel.transcribeCurrentVideo()
+        await waitForTranscriptFailure(on: viewModel)
+
+        #expect(viewModel.transcriptState == .failed(.emptyResult))
+        #expect(viewModel.transcriptFeatureState == .failed)
+    }
+
+    @Test
+    func transcribeCurrentVideoMapsProviderFailuresIntoTranscriptState() async {
+        let provider = RecordingTranscriptionProvider(
+            result: .failure(.offline)
+        )
+        let viewModel = EditorViewModel()
+        viewModel.currentVideo = Video(
+            url: URL(fileURLWithPath: "/tmp/transcription-source.mov"),
+            rangeDuration: 0...20
+        )
+        viewModel.configureTranscription(provider: provider)
+
+        viewModel.transcribeCurrentVideo()
+        await waitForTranscriptFailure(on: viewModel)
+
+        #expect(
+            viewModel.transcriptState
+                == .failed(.providerFailure(message: TranscriptProviderProbeError.offline.localizedDescription))
+        )
+        #expect(viewModel.transcriptFeatureState == .failed)
+    }
+
+    @Test
+    func updateRateRemapsTranscriptDocumentUsingTheCurrentTrim() {
+        let viewModel = EditorViewModel()
+        var video = Video.mock
+        video.rangeDuration = 20...80
+        video.updateRate(1)
+        viewModel.currentVideo = video
+        viewModel.setTranscriptDocument(
+            TranscriptDocument(
+                segments: [
+                    EditableTranscriptSegment(
+                        id: UUID(),
+                        timeMapping: .init(
+                            sourceStartTime: 20,
+                            sourceEndTime: 40,
+                            timelineStartTime: 20,
+                            timelineEndTime: 40
+                        ),
+                        originalText: "Original segment",
+                        editedText: "Edited segment"
+                    )
+                ]
+            )
+        )
+
+        viewModel.updateRate(rate: 2)
+
+        #expect(abs(Double(viewModel.currentVideo?.rate ?? 0) - 2) < 0.0001)
+        #expect(viewModel.transcriptDocument?.segments.first?.timeMapping.timelineRange == 10...20)
+    }
+
+    @Test
+    func setCutRemapsTranscriptDocumentAndHidesSegmentsOutsideTheTrimmedRange() {
+        let viewModel = EditorViewModel()
+        var video = Video.mock
+        video.rangeDuration = 0...250
+        viewModel.currentVideo = video
+        viewModel.setTranscriptDocument(
+            TranscriptDocument(
+                segments: [
+                    EditableTranscriptSegment(
+                        id: UUID(),
+                        timeMapping: .init(
+                            sourceStartTime: 30,
+                            sourceEndTime: 50,
+                            timelineStartTime: 30,
+                            timelineEndTime: 50
+                        ),
+                        originalText: "Visible",
+                        editedText: "Visible"
+                    ),
+                    EditableTranscriptSegment(
+                        id: UUID(),
+                        timeMapping: .init(
+                            sourceStartTime: 5,
+                            sourceEndTime: 10,
+                            timelineStartTime: 5,
+                            timelineEndTime: 10
+                        ),
+                        originalText: "Hidden",
+                        editedText: "Hidden"
+                    ),
+                ]
+            )
+        )
+        viewModel.currentVideo?.rangeDuration = 20...60
+
+        viewModel.setCut()
+
+        #expect(viewModel.transcriptDocument?.segments.first?.timeMapping.timelineRange == 30...50)
+        #expect(viewModel.transcriptDocument?.segments.last?.timeMapping.timelineRange == nil)
+    }
+
+    @Test
     func handleRecordedVideoResetsTheSelectedAudioTrackAndLoadsThePlayer() {
         let viewModel = EditorViewModel()
         let videoPlayer = VideoPlayerManager()
@@ -928,6 +1143,7 @@ struct EditorViewModelTests {
         let videoPlayer = VideoPlayerManager()
         let audioURL = try TestFixtures.createTemporaryAudio()
         defer { FileManager.default.removeIfExists(for: audioURL) }
+        let transcriptSegmentID = try #require(UUID(uuidString: "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE"))
 
         let editingConfiguration = VideoEditingConfiguration(
             trim: .init(lowerBound: 8, upperBound: 24),
@@ -962,6 +1178,24 @@ struct EditorViewModelTests {
                     volume: 0.4
                 ),
                 selectedTrack: .recorded
+            ),
+            transcript: .init(
+                featureState: .loaded,
+                document: TranscriptDocument(
+                    segments: [
+                        EditableTranscriptSegment(
+                            id: transcriptSegmentID,
+                            timeMapping: .init(
+                                sourceStartTime: 6,
+                                sourceEndTime: 18,
+                                timelineStartTime: nil,
+                                timelineEndTime: nil
+                            ),
+                            originalText: "Original segment",
+                            editedText: "Edited segment"
+                        )
+                    ]
+                )
             ),
             presentation: .init(
                 .adjusts,
@@ -1000,6 +1234,12 @@ struct EditorViewModelTests {
         #expect(viewModel.currentVideo?.isAppliedTool(for: .presets) == true)
         #expect(viewModel.currentVideo?.isAppliedTool(for: .audio) == true)
         #expect(viewModel.currentVideo?.isAppliedTool(for: .adjusts) == true)
+        #expect(viewModel.transcriptFeatureState == .loaded)
+        #expect(viewModel.transcriptDocument?.segments.first?.id == transcriptSegmentID)
+        #expect(
+            viewModel.transcriptDocument?.segments.first?.timeMapping.timelineRange
+                == 5.333333333333333...12.0
+        )
     }
 
     @Test
@@ -1007,6 +1247,21 @@ struct EditorViewModelTests {
         let viewModel = EditorViewModel()
         let audioURL = try TestFixtures.createTemporaryAudio()
         defer { FileManager.default.removeIfExists(for: audioURL) }
+        let transcriptDocument = TranscriptDocument(
+            segments: [
+                EditableTranscriptSegment(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 10,
+                        sourceEndTime: 18,
+                        timelineStartTime: 10,
+                        timelineEndTime: 18
+                    ),
+                    originalText: "Original segment",
+                    editedText: "Edited segment"
+                )
+            ]
+        )
 
         var video = Video.mock
         video.rangeDuration = 4...18
@@ -1036,6 +1291,8 @@ struct EditorViewModelTests {
             width: 0.72,
             height: 0.6
         )
+        viewModel.transcriptFeatureState = .loaded
+        viewModel.transcriptDocument = transcriptDocument
         viewModel.cropPresentationState.socialVideoDestination = .youtubeShorts
         viewModel.cropPresentationState.showsSafeAreaOverlay = true
         viewModel.selectTool(.adjusts)
@@ -1053,6 +1310,8 @@ struct EditorViewModelTests {
         #expect(configuration?.frame.colorToken == "palette:orange")
         #expect(configuration?.audio.selectedTrack == .recorded)
         #expect(configuration?.audio.recordedClip?.url == audioURL)
+        #expect(configuration?.transcript.featureState == .loaded)
+        #expect(configuration?.transcript.document == transcriptDocument)
         #expect(configuration?.presentation.selectedTool == .adjusts)
         #expect(configuration?.presentation.socialVideoDestination == .youtubeShorts)
         #expect(configuration?.presentation.showsSafeAreaGuides == false)
@@ -1213,4 +1472,66 @@ private actor LoadedVideoURLProbe {
         recordedURLs
     }
 
+}
+
+private actor RecordingTranscriptionProvider: VideoTranscriptionProvider {
+
+    // MARK: - Private Properties
+
+    private let result: Result<VideoTranscriptionResult, TranscriptProviderProbeError>
+    private var recordedInputs = [VideoTranscriptionInput]()
+
+    // MARK: - Initializer
+
+    init(result: Result<VideoTranscriptionResult, TranscriptProviderProbeError>) {
+        self.result = result
+    }
+
+    // MARK: - Public Methods
+
+    func transcribeVideo(input: VideoTranscriptionInput) async throws -> VideoTranscriptionResult {
+        recordedInputs.append(input)
+        return try result.get()
+    }
+
+    func inputs() -> [VideoTranscriptionInput] {
+        recordedInputs
+    }
+
+}
+
+private enum TranscriptProviderProbeError: LocalizedError {
+    case offline
+
+    var errorDescription: String? {
+        switch self {
+        case .offline:
+            "offline"
+        }
+    }
+}
+
+@MainActor
+private func waitForTranscriptState(
+    on viewModel: EditorViewModel,
+    equals expectedState: TranscriptFeatureState
+) async {
+    for _ in 0..<20 {
+        if viewModel.transcriptState == expectedState {
+            return
+        }
+
+        try? await Task.sleep(for: .milliseconds(10))
+    }
+}
+
+@MainActor
+private func waitForTranscriptFailure(on viewModel: EditorViewModel) async {
+    for _ in 0..<20 {
+        if case .failed = viewModel.transcriptState {
+            return
+        }
+
+        try? await Task.sleep(for: .milliseconds(10))
+    }
 }

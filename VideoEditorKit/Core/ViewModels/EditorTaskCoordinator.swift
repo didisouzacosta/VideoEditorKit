@@ -17,10 +17,12 @@ final class EditorTaskCoordinator {
     private let sleep: Sleep
 
     private var loadVideoTask: Task<Void, Never>?
+    private var transcriptionTask: Task<Void, Never>?
     private var thumbnailsTask: Task<Void, Never>?
     private var exportSheetTask: Task<Void, Never>?
     private var toolResetTasks = [ToolEnum: Task<Void, Never>]()
     private var toolResetTokens = [ToolEnum: UUID]()
+    private var transcriptionToken: UUID?
     private var thumbnailLoadGeneration = 0
 
     // MARK: - Initializer
@@ -31,6 +33,7 @@ final class EditorTaskCoordinator {
 
     deinit {
         loadVideoTask?.cancel()
+        transcriptionTask?.cancel()
         thumbnailsTask?.cancel()
         exportSheetTask?.cancel()
 
@@ -46,6 +49,18 @@ final class EditorTaskCoordinator {
     ) {
         loadVideoTask?.cancel()
         loadVideoTask = Task { await operation() }
+    }
+
+    func replaceTranscriptionTask(
+        _ operation: @escaping @MainActor (UUID) async -> Void
+    ) {
+        cancelTranscriptionTask()
+
+        let token = UUID()
+        transcriptionToken = token
+        transcriptionTask = Task {
+            await operation(token)
+        }
     }
 
     func makeThumbnailLoadRequest(
@@ -89,6 +104,16 @@ final class EditorTaskCoordinator {
         thumbnailLoadGeneration += 1
     }
 
+    func acceptsTranscriptionTask(_ token: UUID) -> Bool {
+        !Task.isCancelled && transcriptionToken == token
+    }
+
+    func cancelTranscriptionTask() {
+        transcriptionTask?.cancel()
+        transcriptionTask = nil
+        transcriptionToken = nil
+    }
+
     func scheduleExporterPresentation(
         after delay: Duration,
         onFire: @escaping @MainActor () -> Void
@@ -111,6 +136,7 @@ final class EditorTaskCoordinator {
     func cancelDeferredTasks() {
         exportSheetTask?.cancel()
         exportSheetTask = nil
+        cancelTranscriptionTask()
         cancelPendingToolResetTasks()
     }
 

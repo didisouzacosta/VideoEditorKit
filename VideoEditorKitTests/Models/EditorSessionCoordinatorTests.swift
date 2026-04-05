@@ -70,6 +70,21 @@ struct EditorSessionCoordinatorTests {
     @MainActor
     func currentEditingConfigurationBuildsTheExportSnapshotFromSessionState() {
         let audioURL = URL(fileURLWithPath: "/tmp/export-audio.m4a")
+        let transcriptDocument = TranscriptDocument(
+            segments: [
+                EditableTranscriptSegment(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 8,
+                        sourceEndTime: 12,
+                        timelineStartTime: 8,
+                        timelineEndTime: 12
+                    ),
+                    originalText: "Original segment",
+                    editedText: "Edited segment"
+                )
+            ]
+        )
         var video = Video.mock
         video.rangeDuration = 4...18
         video.updateRate(1.75)
@@ -105,6 +120,8 @@ struct EditorSessionCoordinatorTests {
                 showsSafeAreaOverlay: true
             ),
             selectedAudioTrack: .recorded,
+            transcriptFeatureState: .loaded,
+            transcriptDocument: transcriptDocument,
             selectedTool: .adjusts,
             socialVideoDestination: .youtubeShorts,
             showsSafeAreaGuides: true,
@@ -117,6 +134,8 @@ struct EditorSessionCoordinatorTests {
         #expect(configuration?.crop.rotationDegrees == 180)
         #expect(configuration?.crop.isMirrored == true)
         #expect(configuration?.audio.selectedTrack == .recorded)
+        #expect(configuration?.transcript.featureState == .loaded)
+        #expect(configuration?.transcript.document == transcriptDocument)
         #expect(configuration?.presentation.selectedTool == .adjusts)
         #expect(configuration?.presentation.socialVideoDestination == .youtubeShorts)
         #expect(configuration?.presentation.showsSafeAreaGuides == false)

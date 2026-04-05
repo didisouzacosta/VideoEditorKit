@@ -17,6 +17,8 @@ struct PreparedEditorInitialLoadState: Equatable, Sendable {
     let selectedTool: ToolEnum?
     let cropEditingState: EditorCropEditingState
     let initialTimelineTime: Double?
+    let transcriptFeatureState: TranscriptFeaturePersistenceState
+    let transcriptDocument: TranscriptDocument?
 
 }
 
@@ -42,7 +44,9 @@ struct EditorInitialLoadCoordinator {
             selectedAudioTrack: .video,
             selectedTool: nil,
             cropEditingState: .initial,
-            initialTimelineTime: editingConfiguration?.playback.currentTimelineTime
+            initialTimelineTime: editingConfiguration?.playback.currentTimelineTime,
+            transcriptFeatureState: editingConfiguration?.transcript.featureState ?? .idle,
+            transcriptDocument: editingConfiguration?.transcript.document
         )
     }
 

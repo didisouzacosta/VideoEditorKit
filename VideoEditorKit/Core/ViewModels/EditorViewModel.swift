@@ -56,6 +56,9 @@ final class EditorViewModel {
 
     var currentVideo: Video?
     var frames = VideoFrames()
+    var transcriptState: TranscriptFeatureState = .idle
+    var transcriptFeatureState: TranscriptFeaturePersistenceState = .idle
+    var transcriptDocument: TranscriptDocument?
 
     var hasCurrentVideo: Bool {
         currentVideo != nil
@@ -99,11 +102,14 @@ final class EditorViewModel {
     private let dependencies: Dependencies
     private let taskCoordinator: EditorTaskCoordinator
 
+    private var availableTranscriptStyles = [TranscriptStyle]()
     private var enabledTools = Set(ToolEnum.all)
     private var hasLoadedSourceVideo = false
     private var lastPlayerContainerSize = CGSize(width: 1, height: 220)
     private var lastThumbnailDisplayScale: CGFloat = 1
     private var pendingEditingConfiguration: VideoEditingConfiguration?
+    private var preferredTranscriptLocale: String?
+    private var transcriptionProvider: (any VideoTranscriptionProvider)?
 
     // MARK: - Initializer
 
@@ -116,9 +122,11 @@ final class EditorViewModel {
 
     func setNewVideo(_ url: URL, containerSize: CGSize) {
         invalidateThumbnailRequests()
+        taskCoordinator.cancelTranscriptionTask()
         cancelPendingToolResetTasks()
         currentVideo = nil
         lastPlayerContainerSize = containerSize
+        syncTranscriptRuntimeState()
 
         taskCoordinator.replaceLoadVideoTask { [weak self] in
             guard let self else { return }
@@ -133,6 +141,7 @@ final class EditorViewModel {
 
             frames = video.videoFrames ?? VideoFrames()
             currentVideo = video
+            remapTranscriptDocumentIfNeeded()
 
             await self.restorePendingEditingPresentationState()
 
@@ -283,6 +292,7 @@ final class EditorViewModel {
         else { return }
 
         self.currentVideo = currentVideo
+        remapTranscriptDocumentIfNeeded()
         markEditingConfigurationChanged()
     }
 
@@ -296,6 +306,7 @@ final class EditorViewModel {
             selectedTool: presentationState.selectedTool
         )
         self.currentVideo = currentVideo
+        remapTranscriptDocumentIfNeeded()
         markEditingConfigurationChanged()
     }
 
@@ -308,6 +319,7 @@ final class EditorViewModel {
             tolerance: Constants.numericTolerance
         )
         self.currentVideo = currentVideo
+        remapTranscriptDocumentIfNeeded()
         markEditingConfigurationChanged()
     }
 
@@ -319,6 +331,7 @@ final class EditorViewModel {
             in: &currentVideo
         )
         self.currentVideo = currentVideo
+        remapTranscriptDocumentIfNeeded()
         markEditingConfigurationChanged()
     }
 
@@ -456,6 +469,7 @@ final class EditorViewModel {
                 in: &currentVideo
             )
             self.currentVideo = currentVideo
+            remapTranscriptDocumentIfNeeded()
         case .speed:
             let previousRate = currentVideo?.rate ?? 1
             videoPlayer.pause()
@@ -464,6 +478,7 @@ final class EditorViewModel {
                 in: &currentVideo
             )
             self.currentVideo = currentVideo
+            remapTranscriptDocumentIfNeeded()
             videoPlayer.syncPlaybackState(with: currentVideo, previousRate: previousRate)
         case .presets:
             currentVideo?.rotation = 0
@@ -667,6 +682,85 @@ final class EditorViewModel {
         }
     }
 
+    func configureTranscription(
+        provider: (any VideoTranscriptionProvider)?,
+        availableStyles: [TranscriptStyle] = [],
+        preferredLocale: String? = nil
+    ) {
+        transcriptionProvider = provider
+        self.availableTranscriptStyles = availableStyles
+        preferredTranscriptLocale = preferredLocale
+
+        guard var transcriptDocument else {
+            syncTranscriptRuntimeState()
+            return
+        }
+
+        guard transcriptDocument.availableStyles != availableStyles else {
+            syncTranscriptRuntimeState()
+            return
+        }
+
+        transcriptDocument.availableStyles = availableStyles
+        self.transcriptDocument = transcriptDocument
+        markEditingConfigurationChanged()
+        syncTranscriptRuntimeState()
+    }
+
+    func transcribeCurrentVideo() {
+        guard let transcriptionProvider else {
+            applyTranscriptFailure(.providerNotConfigured)
+            return
+        }
+
+        guard let currentVideo, currentVideo.url.isFileURL else {
+            applyTranscriptFailure(.invalidVideoSource)
+            return
+        }
+
+        let input = VideoTranscriptionInput(
+            assetIdentifier: currentVideo.url.absoluteString,
+            source: .fileURL(currentVideo.url),
+            preferredLocale: preferredTranscriptLocale
+        )
+
+        transcriptState = .loading
+        taskCoordinator.replaceTranscriptionTask { [weak self] token in
+            guard let self else { return }
+
+            do {
+                let result = try await transcriptionProvider.transcribeVideo(input: input)
+                guard taskCoordinator.acceptsTranscriptionTask(token) else { return }
+
+                guard !result.segments.isEmpty else {
+                    applyTranscriptFailure(.emptyResult)
+                    return
+                }
+
+                guard let currentVideo = self.currentVideo else {
+                    applyTranscriptFailure(.invalidVideoSource)
+                    return
+                }
+
+                let document = EditorTranscriptMappingCoordinator.makeDocument(
+                    from: result,
+                    availableStyles: availableTranscriptStyles,
+                    trimRange: currentVideo.rangeDuration,
+                    playbackRate: currentVideo.rate
+                )
+                applyTranscriptSuccess(document)
+            } catch is CancellationError {
+                guard taskCoordinator.acceptsTranscriptionTask(token) else { return }
+                applyTranscriptFailure(.cancelled)
+            } catch {
+                guard taskCoordinator.acceptsTranscriptionTask(token) else { return }
+                applyTranscriptFailure(
+                    .providerFailure(message: error.localizedDescription)
+                )
+            }
+        }
+    }
+
     func cancelDeferredTasks() {
         taskCoordinator.cancelDeferredTasks()
     }
@@ -678,6 +772,8 @@ final class EditorViewModel {
             freeformRect: cropPresentationState.freeformRect,
             canvasSnapshot: cropPresentationState.canvasEditorState.snapshot(),
             selectedAudioTrack: presentationState.selectedAudioTrack,
+            transcriptFeatureState: transcriptFeatureState,
+            transcriptDocument: transcriptDocument,
             selectedTool: presentationState.selectedTool,
             socialVideoDestination: cropPresentationState.socialVideoDestination,
             showsSafeAreaGuides: false,
@@ -723,10 +819,24 @@ final class EditorViewModel {
         presentationState.selectedTool = preparedState.selectedTool
         presentationState.selectedAudioTrack = preparedState.selectedAudioTrack
         cropPresentationState.apply(preparedState.cropEditingState)
+        transcriptFeatureState = preparedState.transcriptFeatureState
+        transcriptDocument = preparedState.transcriptDocument
+        syncTranscriptRuntimeState()
 
         if let currentTimelineTime = preparedState.initialTimelineTime {
             videoPlayer.currentTime = currentTimelineTime
         }
+    }
+
+    func setTranscriptDocument(
+        _ document: TranscriptDocument?,
+        featureState: TranscriptFeaturePersistenceState = .loaded
+    ) {
+        transcriptFeatureState = document == nil ? .idle : featureState
+        transcriptDocument = document
+        remapTranscriptDocumentIfNeeded()
+        syncTranscriptRuntimeState()
+        markEditingConfigurationChanged()
     }
 
     func applyPendingEditingConfiguration(
@@ -760,6 +870,8 @@ final class EditorViewModel {
         applyCropEditingState(restoredState.cropEditingState)
         presentationState.selectedAudioTrack = restoredState.selectedAudioTrack
         presentationState.selectedTool = restoredState.selectedTool
+        remapTranscriptDocumentIfNeeded()
+        syncTranscriptRuntimeState()
 
         pendingEditingConfiguration = nil
     }
@@ -800,6 +912,45 @@ final class EditorViewModel {
 
     private func applyCropEditingState(_ state: EditorCropEditingState) {
         cropPresentationState.apply(state)
+    }
+
+    private func remapTranscriptDocumentIfNeeded() {
+        guard let currentVideo else { return }
+
+        transcriptDocument = EditorTranscriptRemappingCoordinator.remap(
+            transcriptDocument,
+            trimRange: currentVideo.rangeDuration,
+            playbackRate: currentVideo.rate
+        )
+    }
+
+    private func applyTranscriptSuccess(_ document: TranscriptDocument) {
+        transcriptFeatureState = .loaded
+        transcriptDocument = document
+        transcriptState = .loaded
+        markEditingConfigurationChanged()
+    }
+
+    private func applyTranscriptFailure(_ error: TranscriptError) {
+        transcriptState = .failed(error)
+
+        guard transcriptDocument == nil else { return }
+
+        transcriptFeatureState = .failed
+        markEditingConfigurationChanged()
+    }
+
+    private func syncTranscriptRuntimeState() {
+        switch transcriptFeatureState {
+        case .idle:
+            transcriptState = .idle
+        case .loaded:
+            transcriptState = transcriptDocument == nil ? .idle : .loaded
+        case .failed:
+            transcriptState = .failed(
+                .providerFailure(message: "The previous transcription request failed.")
+            )
+        }
     }
 
     private func markEditingConfigurationChanged() {
