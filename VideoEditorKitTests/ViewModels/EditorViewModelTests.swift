@@ -303,6 +303,106 @@ struct EditorViewModelTests {
     }
 
     @Test
+    func updateTranscriptSegmentTextPreservesTimingAndOriginalText() {
+        let viewModel = EditorViewModel()
+        let segmentID = UUID()
+        viewModel.setTranscriptDocument(
+            TranscriptDocument(
+                segments: [
+                    EditableTranscriptSegment(
+                        id: segmentID,
+                        timeMapping: .init(
+                            sourceStartTime: 10,
+                            sourceEndTime: 14,
+                            timelineStartTime: 5,
+                            timelineEndTime: 7
+                        ),
+                        originalText: "Original segment",
+                        editedText: "Original segment"
+                    )
+                ]
+            )
+        )
+
+        viewModel.updateTranscriptSegmentText(
+            "Edited segment",
+            segmentID: segmentID
+        )
+
+        #expect(viewModel.transcriptDocument?.segments.first?.originalText == "Original segment")
+        #expect(viewModel.transcriptDocument?.segments.first?.editedText == "Edited segment")
+        #expect(viewModel.transcriptDocument?.segments.first?.timeMapping.sourceRange == 10...14)
+        #expect(viewModel.transcriptDocument?.segments.first?.timeMapping.timelineRange == 5...7)
+    }
+
+    @Test
+    func updateTranscriptSegmentStyleAssignsTheSegmentStyleWithoutChangingItsText() {
+        let viewModel = EditorViewModel()
+        let styleID = UUID()
+        let segmentID = UUID()
+        viewModel.setTranscriptDocument(
+            TranscriptDocument(
+                segments: [
+                    EditableTranscriptSegment(
+                        id: segmentID,
+                        timeMapping: .init(
+                            sourceStartTime: 10,
+                            sourceEndTime: 14,
+                            timelineStartTime: 5,
+                            timelineEndTime: 7
+                        ),
+                        originalText: "Original segment",
+                        editedText: "Edited segment"
+                    )
+                ],
+                availableStyles: [
+                    TranscriptStyle(
+                        id: styleID,
+                        name: "Classic",
+                        fontFamily: "Avenir"
+                    )
+                ]
+            )
+        )
+
+        viewModel.updateTranscriptSegmentStyle(
+            styleID,
+            segmentID: segmentID
+        )
+
+        #expect(viewModel.transcriptDocument?.segments.first?.styleID == styleID)
+        #expect(viewModel.transcriptDocument?.segments.first?.editedText == "Edited segment")
+    }
+
+    @Test
+    func resetTranscriptClearsTheDocumentAndReturnsToIdleState() {
+        let viewModel = EditorViewModel()
+        viewModel.setTranscriptDocument(
+            TranscriptDocument(
+                segments: [
+                    EditableTranscriptSegment(
+                        id: UUID(),
+                        timeMapping: .init(
+                            sourceStartTime: 10,
+                            sourceEndTime: 14,
+                            timelineStartTime: 5,
+                            timelineEndTime: 7
+                        ),
+                        originalText: "Original segment",
+                        editedText: "Edited segment"
+                    )
+                ]
+            )
+        )
+
+        viewModel.resetTranscript()
+
+        #expect(viewModel.transcriptDocument == nil)
+        #expect(viewModel.transcriptFeatureState == .idle)
+        #expect(viewModel.transcriptState == .idle)
+    }
+
+    @Test
     func updateRateRemapsTranscriptDocumentUsingTheCurrentTrim() {
         let viewModel = EditorViewModel()
         var video = Video.mock

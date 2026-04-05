@@ -16,6 +16,7 @@ struct ToolsSectionView: View {
             duration: 0.28,
             extraBounce: 0.04
         )
+        static let transcriptSheetHeight: CGFloat = 520
     }
 
     // MARK: - States
@@ -147,6 +148,8 @@ extension ToolsSectionView {
             320
         case .presets, .adjusts:
             380
+        case .transcript:
+            Constants.transcriptSheetHeight
         case .cut:
             420
         }
@@ -156,7 +159,7 @@ extension ToolsSectionView {
         switch tool {
         case .audio, .speed, .presets, .adjusts:
             .resizes
-        case .cut:
+        case .transcript, .cut:
             .scrolls
         }
     }
@@ -165,7 +168,7 @@ extension ToolsSectionView {
         switch tool {
         case .speed, .presets, .audio, .adjusts:
             true
-        case .cut:
+        case .transcript, .cut:
             false
         }
     }
@@ -186,7 +189,7 @@ extension ToolsSectionView {
                 )
         case .adjusts:
             return video.colorAdjusts != adjustsDraft
-        case .cut:
+        case .transcript, .cut:
             return false
         }
     }
@@ -234,6 +237,29 @@ extension ToolsSectionView {
             )
         case .adjusts:
             VideoAdjustsToolView($adjustsDraft)
+        case .transcript:
+            TranscriptToolView(
+                transcriptState: editorViewModel.transcriptState,
+                document: editorViewModel.transcriptDocument,
+                onTranscribe: {
+                    editorViewModel.transcribeCurrentVideo()
+                },
+                onRetry: {
+                    editorViewModel.transcribeCurrentVideo()
+                },
+                onUpdateSegmentText: { segmentID, text in
+                    editorViewModel.updateTranscriptSegmentText(
+                        text,
+                        segmentID: segmentID
+                    )
+                },
+                onUpdateSegmentStyle: { segmentID, styleID in
+                    editorViewModel.updateTranscriptSegmentStyle(
+                        styleID,
+                        segmentID: segmentID
+                    )
+                }
+            )
         case .cut:
             EmptyView()
         }
@@ -280,6 +306,8 @@ extension ToolsSectionView {
             )
         case .adjusts:
             adjustsDraft = video.colorAdjusts
+        case .transcript:
+            break
         case .cut:
             break
         }
@@ -293,6 +321,8 @@ extension ToolsSectionView {
                     videoPlayer: videoPlayer
                 )
             }
+        } else if tool == .transcript {
+            editorViewModel.resetTranscript()
         } else {
             editorViewModel.reset(
                 tool,
@@ -358,6 +388,8 @@ extension ToolsSectionView {
             editorViewModel.setAdjusts(adjustsDraft)
             videoPlayer.setColorAdjusts(adjustsDraft)
             editorViewModel.closeSelectedTool()
+        case .transcript:
+            break
         case .cut:
             break
         }

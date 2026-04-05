@@ -16,10 +16,11 @@ struct ToolEnumTests {
     func allExcludesCutWhileKeepingTheVisibleToolsOrder() {
         #expect(
             ToolEnum.all == [
-                .speed,
                 .presets,
                 .audio,
+                .transcript,
                 .adjusts,
+                .speed,
             ]
         )
     }
@@ -27,11 +28,12 @@ struct ToolEnumTests {
     @Test
     func titlesAndSymbolsMatchTheCurrentCatalog() {
         let expectations: [(tool: ToolEnum, title: String, image: String, order: Int)] = [
-            (.cut, "Cut", "scissors", 4),
-            (.speed, "Speed", "timer", 3),
+            (.cut, "Cut", "scissors", 5),
+            (.speed, "Speed", "timer", 4),
             (.presets, "Presets", "aspectratio", 0),
             (.audio, "Audio", "waveform", 1),
-            (.adjusts, "Adjusts", "circle.righthalf.filled", 2),
+            (.transcript, "Transcript", "captions.bubble", 2),
+            (.adjusts, "Adjusts", "circle.righthalf.filled", 3),
         ]
 
         for expectation in expectations {
@@ -56,7 +58,7 @@ struct VideoEditorConfigurationTests {
 
         #expect(visibleTools.map(\.tool) == [.speed, .adjusts])
         #expect(visibleTools.allSatisfy { $0.isEnabled })
-        #expect(visibleTools.map(\.order) == [3, 2])
+        #expect(visibleTools.map(\.order) == [4, 3])
         #expect(blockedTool.tool == .presets)
         #expect(blockedTool.isBlocked)
         #expect(blockedTool.order == 0)
@@ -66,9 +68,9 @@ struct VideoEditorConfigurationTests {
     func defaultConfigurationExposesAllVisibleToolsAsEnabled() {
         let configuration = VideoEditorView.Configuration()
 
-        #expect(configuration.tools.map(\.tool) == [.presets, .audio, .adjusts, .speed])
+        #expect(configuration.tools.map(\.tool) == [.presets, .audio, .transcript, .adjusts, .speed])
         #expect(configuration.tools.allSatisfy { $0.access == .enabled })
-        #expect(configuration.visibleTools == [.presets, .audio, .adjusts, .speed])
+        #expect(configuration.visibleTools == [.presets, .audio, .transcript, .adjusts, .speed])
     }
 
     @Test
