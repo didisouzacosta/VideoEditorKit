@@ -129,6 +129,81 @@ struct VideoEditorConfigurationTests {
         #expect(preset.tools == VideoEditorView.Configuration().tools)
     }
 
+    @Test
+    func transcriptionConfigurationBuildsALocalProviderWhenAModelDescriptorIsProvided() throws {
+        let remoteURL = try #require(
+            URL(string: "https://example.com/base.bin")
+        )
+        let configuration = VideoEditorView.Configuration.TranscriptionConfiguration(
+            localModelDescriptor: RemoteModelDescriptor(
+                id: "base",
+                remoteURL: remoteURL,
+                localFileName: "base.bin"
+            )
+        )
+
+        #expect(configuration.provider != nil)
+        #expect(configuration.localModelDescriptor?.id == "base")
+    }
+
+    @Test
+    func transcriptionConfigurationPrefersAnExplicitProviderOverTheLocalDefault() async throws {
+        let remoteURL = try #require(
+            URL(string: "https://example.com/base.bin")
+        )
+        let provider = ConfigurationProbeTranscriptionProvider()
+        let configuration = VideoEditorView.Configuration.TranscriptionConfiguration(
+            provider: provider,
+            localModelDescriptor: RemoteModelDescriptor(
+                id: "base",
+                remoteURL: remoteURL,
+                localFileName: "base.bin"
+            )
+        )
+
+        let result = try await configuration.provider?.transcribeVideo(
+            input: VideoTranscriptionInput(
+                assetIdentifier: "asset-1",
+                source: .fileURL(URL(fileURLWithPath: "/tmp/source.mov")),
+                preferredLocale: "pt-BR"
+            )
+        )
+
+        #expect(result?.segments.first?.text == "probe")
+        let inputs = await provider.recordedInputs()
+        #expect(inputs.count == 1)
+        #expect(inputs.first?.preferredLocale == "pt-BR")
+    }
+
+}
+
+private actor ConfigurationProbeTranscriptionProvider: VideoTranscriptionProvider {
+
+    // MARK: - Private Properties
+
+    private var inputs: [VideoTranscriptionInput] = []
+
+    // MARK: - Public Methods
+
+    func transcribeVideo(input: VideoTranscriptionInput) async throws -> VideoTranscriptionResult {
+        inputs.append(input)
+
+        return VideoTranscriptionResult(
+            segments: [
+                TranscriptionSegment(
+                    id: UUID(),
+                    startTime: 0,
+                    endTime: 1,
+                    text: "probe"
+                )
+            ]
+        )
+    }
+
+    func recordedInputs() -> [VideoTranscriptionInput] {
+        inputs
+    }
+
 }
 
 @Suite("VideoEditorSessionTests")

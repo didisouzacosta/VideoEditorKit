@@ -567,17 +567,42 @@ extension VideoEditorView {
             let provider: (any VideoTranscriptionProvider)?
             let availableStyles: [TranscriptStyle]
             let preferredLocale: String?
+            let localModelDescriptor: RemoteModelDescriptor?
 
             // MARK: - Initializer
 
             init(
                 provider: (any VideoTranscriptionProvider)? = nil,
+                localModelDescriptor: RemoteModelDescriptor? = TranscriptionKitHardcodedModels.preferredModel,
                 availableStyles: [TranscriptStyle] = [],
                 preferredLocale: String? = nil
             ) {
-                self.provider = provider
+                self.provider = Self.resolvedProvider(
+                    explicitProvider: provider,
+                    localModelDescriptor: localModelDescriptor
+                )
                 self.availableStyles = availableStyles
                 self.preferredLocale = preferredLocale
+                self.localModelDescriptor = localModelDescriptor
+            }
+
+            // MARK: - Private Methods
+
+            private static func resolvedProvider(
+                explicitProvider: (any VideoTranscriptionProvider)?,
+                localModelDescriptor: RemoteModelDescriptor?
+            ) -> (any VideoTranscriptionProvider)? {
+                if let explicitProvider {
+                    return explicitProvider
+                }
+
+                guard let localModelDescriptor else {
+                    return nil
+                }
+
+                return LocalTranscriptionVideoProvider(
+                    modelDescriptor: localModelDescriptor
+                )
             }
 
         }

@@ -34,8 +34,15 @@ struct TranscriptionKitPhase1Tests {
 
     @Test
     func hardcodedModelCatalogStartsCentralizedInOneEasyToFindSurface() {
-        #expect(TranscriptionKitHardcodedModels.availableModels.isEmpty)
-        #expect(TranscriptionKitHardcodedModels.preferredModel == nil)
+        let preferredModel = TranscriptionKitHardcodedModels.preferredModel
+
+        #expect(TranscriptionKitHardcodedModels.availableModels.count == 1)
+        #expect(preferredModel?.id == "ggml-base")
+        #expect(
+            preferredModel?.remoteURL.absoluteString
+                == "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin"
+        )
+        #expect(preferredModel?.localFileName == "ggml-base.bin")
     }
 
     @Test
