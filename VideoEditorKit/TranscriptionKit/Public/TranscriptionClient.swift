@@ -23,8 +23,8 @@ public actor TranscriptionClient: TranscriptionProviding {
     public init(
         statusReporter: (any TranscriptionStatusReporting)? = nil
     ) {
-        self.modelStore = PlaceholderModelStore()
-        self.modelDownloader = PlaceholderModelDownloader()
+        self.modelStore = TranscriptionModelStore()
+        self.modelDownloader = URLSessionModelDownloader()
         self.mediaExtractor = PlaceholderMediaExtractor()
         self.audioPreparer = PlaceholderAudioPreparer()
         self.whisperBridge = PlaceholderWhisperBridge()
@@ -53,6 +53,10 @@ public actor TranscriptionClient: TranscriptionProviding {
         try validate(request)
         report(.idle)
 
+        _ = try await ensureModelIsAvailable(
+            for: request.model
+        )
+
         let extractedAudio = try await mediaExtractor.extractAudioIfNeeded(
             from: request.media
         )
@@ -61,12 +65,6 @@ public actor TranscriptionClient: TranscriptionProviding {
             at: extractedAudio.audioURL
         )
 
-        let modelURL = try modelStore.localModelURL(
-            for: request.model
-        )
-
-        _ = modelURL
-        _ = modelDownloader
         _ = whisperBridge
 
         throw TranscriptionError.transcriptionFailed(
@@ -94,6 +92,37 @@ public actor TranscriptionClient: TranscriptionProviding {
 
         guard !request.model.localFileName.isEmpty else {
             throw TranscriptionError.modelNotFound
+        }
+    }
+
+    private func ensureModelIsAvailable(
+        for descriptor: RemoteModelDescriptor
+    ) async throws -> URL {
+        switch try modelStore.cachedModelState(for: descriptor) {
+        case .valid(let localURL):
+            return localURL
+        case .missing, .invalid:
+            let temporaryURL = try modelStore.temporaryDownloadURL(
+                for: descriptor
+            )
+
+            report(.downloading(progress: 0))
+
+            try await modelDownloader.downloadModel(
+                from: descriptor.remoteURL,
+                to: temporaryURL
+            ) { [weak self] progress in
+                Task {
+                    await self?.report(
+                        .downloading(progress: progress)
+                    )
+                }
+            }
+
+            return try modelStore.installDownloadedModel(
+                from: temporaryURL,
+                for: descriptor
+            )
         }
     }
 

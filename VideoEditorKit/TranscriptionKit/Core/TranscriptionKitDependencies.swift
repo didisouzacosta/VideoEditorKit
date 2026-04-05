@@ -9,6 +9,12 @@ import Foundation
 
 protocol TranscriptionModelStoring: Sendable {
     func localModelURL(for descriptor: RemoteModelDescriptor) throws -> URL
+    func temporaryDownloadURL(for descriptor: RemoteModelDescriptor) throws -> URL
+    func cachedModelState(for descriptor: RemoteModelDescriptor) throws -> CachedTranscriptionModelState
+    func installDownloadedModel(
+        from temporaryURL: URL,
+        for descriptor: RemoteModelDescriptor
+    ) throws -> URL
 }
 
 protocol ModelDownloading: Sendable {
@@ -17,6 +23,27 @@ protocol ModelDownloading: Sendable {
         to temporaryURL: URL,
         progress: @escaping @Sendable (Double?) -> Void
     ) async throws
+}
+
+enum CachedTranscriptionModelState: Sendable, Equatable {
+    case missing
+    case valid(URL)
+    case invalid(
+        URL,
+        issue: TranscriptionModelValidationIssue
+    )
+}
+
+enum TranscriptionModelValidationIssue: Sendable, Equatable {
+    case emptyFile
+    case unexpectedFileSize(
+        expected: Int64,
+        actual: Int64
+    )
+    case unexpectedSHA256(
+        expected: String,
+        actual: String
+    )
 }
 
 protocol MediaExtracting: Sendable {
@@ -113,34 +140,6 @@ struct RawWhisperWord: Sendable, Hashable {
     let startTime: TimeInterval
     let endTime: TimeInterval
     let text: String
-
-}
-
-struct PlaceholderModelStore: TranscriptionModelStoring {
-
-    // MARK: - Public Methods
-
-    func localModelURL(for descriptor: RemoteModelDescriptor) throws -> URL {
-        URL(fileURLWithPath: NSTemporaryDirectory())
-            .appendingPathComponent(descriptor.localFileName)
-    }
-
-}
-
-struct PlaceholderModelDownloader: ModelDownloading {
-
-    // MARK: - Public Methods
-
-    func downloadModel(
-        from remoteURL: URL,
-        to temporaryURL: URL,
-        progress: @escaping @Sendable (Double?) -> Void
-    ) async throws {
-        progress(nil)
-        throw TranscriptionError.modelDownloadFailed(
-            message: "Phase 1 scaffolding only. Model downloading is not implemented yet."
-        )
-    }
 
 }
 

@@ -3,7 +3,7 @@
 ## Status
 
 - Phase 1 completed
-- Phase 2 pending
+- Phase 2 completed
 - Phase 3 pending
 - Phase 4 pending
 - Phase 5 pending
@@ -64,6 +64,8 @@ Acceptance:
 
 ## Phase 2: Model Store and Download
 
+Status: completed.
+
 Scope:
 
 - implement local model path resolution
@@ -81,6 +83,21 @@ Acceptance:
 - valid local models are reused
 - invalid models are rejected
 - download progress can be observed
+
+Delivered files:
+
+- `VideoEditorKit/TranscriptionKit/Infrastructure/TranscriptionModelStore.swift`
+- `VideoEditorKit/TranscriptionKit/Infrastructure/URLSessionModelDownloader.swift`
+- `VideoEditorKitTests/TranscriptionKit/TranscriptionModelStoreTests.swift`
+- `VideoEditorKitTests/TranscriptionKit/URLSessionModelDownloaderTests.swift`
+
+Completed outcome:
+
+- model cache resolution now uses a dedicated local directory under `Application Support/TranscriptionKit`
+- cached models are validated by file size and optional SHA-256 metadata
+- downloaded model files are installed atomically into the cache
+- the default `TranscriptionClient` now guarantees model availability before later transcription stages
+- the URL-session downloader reports observable progress and writes into a temporary destination
 
 ## Phase 3: Media Extraction and Audio Preparation
 
