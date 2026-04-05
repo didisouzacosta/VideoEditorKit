@@ -179,7 +179,7 @@ struct TranscriptionModelStore: TranscriptionModelStoring {
         let digest = SHA256.hash(data: data)
         return
             digest
-            .map { String(format: "%02x", $0) }
+            .map(\.hexByteString)
             .joined()
     }
 
@@ -190,6 +190,17 @@ struct TranscriptionModelStore: TranscriptionModelStoring {
         case .emptyFile, .unexpectedFileSize, .unexpectedSHA256:
             .modelIntegrityCheckFailed
         }
+    }
+
+}
+
+extension UInt8 {
+
+    // MARK: - Private Properties
+
+    fileprivate var hexByteString: String {
+        let hex = String(self, radix: 16, uppercase: false)
+        return hex.count == 1 ? "0\(hex)" : hex
     }
 
 }

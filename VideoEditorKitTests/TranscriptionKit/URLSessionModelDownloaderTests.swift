@@ -10,7 +10,9 @@ struct URLSessionModelDownloaderTests {
 
     @Test
     func downloaderWritesTheDownloadedModelAndReportsCompletionProgress() async throws {
-        let remoteURL = URL(string: "https://example.com/base-success.bin")!
+        let remoteURL = try #require(
+            URL(string: "https://example.com/base-success.bin")
+        )
         let session = makeSession(
             for: remoteURL
         ) { _ in
@@ -45,7 +47,9 @@ struct URLSessionModelDownloaderTests {
 
     @Test
     func downloaderMapsNonSuccessfulHTTPResponsesToTypedErrors() async throws {
-        let remoteURL = URL(string: "https://example.com/base-missing.bin")!
+        let remoteURL = try #require(
+            URL(string: "https://example.com/base-missing.bin")
+        )
         let session = makeSession(
             for: remoteURL
         ) { _ in
