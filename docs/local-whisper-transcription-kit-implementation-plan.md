@@ -4,7 +4,7 @@
 
 - Phase 1 completed
 - Phase 2 completed
-- Phase 3 pending
+- Phase 3 completed
 - Phase 4 pending
 - Phase 5 pending
 - Phase 6 pending
@@ -101,6 +101,8 @@ Completed outcome:
 
 ## Phase 3: Media Extraction and Audio Preparation
 
+Status: completed.
+
 Scope:
 
 - implement media validation
@@ -117,6 +119,23 @@ Acceptance:
 
 - audio and video inputs converge into the same prepared-audio pipeline
 - invalid media sources fail with typed errors
+
+Delivered files:
+
+- `VideoEditorKit/TranscriptionKit/Infrastructure/AVFoundationMediaExtractor.swift`
+- `VideoEditorKit/TranscriptionKit/Infrastructure/AVFoundationAudioPreparer.swift`
+- `VideoEditorKitTests/TranscriptionKit/AVFoundationMediaExtractorTests.swift`
+- `VideoEditorKitTests/TranscriptionKit/AVFoundationAudioPreparerTests.swift`
+- `VideoEditorKitTests/TranscriptionKit/TranscriptionClientPhase3Tests.swift`
+- `VideoEditorKitTests/TranscriptionKit/TranscriptionKitTestMediaFactory.swift`
+
+Completed outcome:
+
+- local `audioFile` and `videoFile` inputs now converge through the same extraction and preparation pipeline
+- `videoFile` sources extract audio internally with `AVFoundation`, without leaking editor-specific types
+- prepared audio is normalized into a local PCM `.caf` file for the future Whisper bridge stage
+- temporary extracted and prepared files are already cleaned up by `TranscriptionClient` on failure paths before the bridge exists
+- the default `TranscriptionClient` now points to the real media extractor and audio preparer instead of phase-one placeholders
 
 ## Phase 4: Whisper Bridge
 

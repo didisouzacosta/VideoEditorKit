@@ -25,8 +25,8 @@ public actor TranscriptionClient: TranscriptionProviding {
     ) {
         self.modelStore = TranscriptionModelStore()
         self.modelDownloader = URLSessionModelDownloader()
-        self.mediaExtractor = PlaceholderMediaExtractor()
-        self.audioPreparer = PlaceholderAudioPreparer()
+        self.mediaExtractor = AVFoundationMediaExtractor()
+        self.audioPreparer = AVFoundationAudioPreparer()
         self.whisperBridge = PlaceholderWhisperBridge()
         self.statusReporter = statusReporter
     }
@@ -57,13 +57,30 @@ public actor TranscriptionClient: TranscriptionProviding {
             for: request.model
         )
 
+        report(.preparingAudio)
+
         let extractedAudio = try await mediaExtractor.extractAudioIfNeeded(
             from: request.media
         )
+        let shouldCleanupExtractedAudio = extractedAudio.wasExtractedFromVideo
 
-        _ = try await audioPreparer.prepareAudio(
+        defer {
+            if shouldCleanupExtractedAudio {
+                removeTemporaryFileIfNeeded(
+                    at: extractedAudio.audioURL
+                )
+            }
+        }
+
+        let preparedAudio = try await audioPreparer.prepareAudio(
             at: extractedAudio.audioURL
         )
+
+        defer {
+            removeTemporaryFileIfNeeded(
+                at: preparedAudio.fileURL
+            )
+        }
 
         _ = whisperBridge
 
@@ -92,6 +109,24 @@ public actor TranscriptionClient: TranscriptionProviding {
 
         guard !request.model.localFileName.isEmpty else {
             throw TranscriptionError.modelNotFound
+        }
+    }
+
+    private func removeTemporaryFileIfNeeded(
+        at fileURL: URL
+    ) {
+        guard FileManager.default.fileExists(atPath: fileURL.path()) else {
+            return
+        }
+
+        do {
+            try FileManager.default.removeItem(
+                at: fileURL
+            )
+        } catch {
+            assertionFailure(
+                "Failed to remove temporary transcription file at \(fileURL.lastPathComponent): \(error.localizedDescription)"
+            )
         }
     }
 
