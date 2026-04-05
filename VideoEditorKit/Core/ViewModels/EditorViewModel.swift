@@ -503,6 +503,8 @@ final class EditorViewModel {
 
             self.currentVideo = currentVideo
             videoPlayer.clearColorAdjusts()
+        case .transcript:
+            resetTranscript()
         }
 
         markEditingConfigurationChanged()
@@ -836,6 +838,46 @@ final class EditorViewModel {
         transcriptDocument = document
         remapTranscriptDocumentIfNeeded()
         syncTranscriptRuntimeState()
+        markEditingConfigurationChanged()
+    }
+
+    func updateTranscriptSegmentText(
+        _ text: String,
+        segmentID: UUID
+    ) {
+        guard var transcriptDocument else { return }
+        guard let segmentIndex = transcriptDocument.segments.firstIndex(where: { $0.id == segmentID }) else {
+            return
+        }
+
+        guard transcriptDocument.segments[segmentIndex].editedText != text else { return }
+
+        transcriptDocument.segments[segmentIndex].editedText = text
+        self.transcriptDocument = transcriptDocument
+        markEditingConfigurationChanged()
+    }
+
+    func updateTranscriptSegmentStyle(
+        _ styleID: TranscriptStyle.StyleIdentifier?,
+        segmentID: UUID
+    ) {
+        guard var transcriptDocument else { return }
+        guard let segmentIndex = transcriptDocument.segments.firstIndex(where: { $0.id == segmentID }) else {
+            return
+        }
+
+        guard transcriptDocument.segments[segmentIndex].styleID != styleID else { return }
+
+        transcriptDocument.segments[segmentIndex].styleID = styleID
+        self.transcriptDocument = transcriptDocument
+        markEditingConfigurationChanged()
+    }
+
+    func resetTranscript() {
+        taskCoordinator.cancelTranscriptionTask()
+        transcriptFeatureState = .idle
+        transcriptState = .idle
+        transcriptDocument = nil
         markEditingConfigurationChanged()
     }
 

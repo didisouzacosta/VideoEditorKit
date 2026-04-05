@@ -15,6 +15,7 @@ enum ToolEnum: Int, CaseIterable, Identifiable, Codable, Sendable {
     case speed = 1
     case presets = 2
     case audio = 3
+    case transcript = 4
     case adjusts = 6
 
     var id: Int {
@@ -22,16 +23,19 @@ enum ToolEnum: Int, CaseIterable, Identifiable, Codable, Sendable {
     }
 
     static var all: [ToolEnum] {
-        allCases.filter { $0 != .cut }
+        allCases
+            .filter { $0 != .cut }
+            .sorted { $0.order < $1.order }
     }
 
     var order: Int {
         switch self {
         case .presets: 0
         case .audio: 1
-        case .adjusts: 2
-        case .speed: 3
-        case .cut: 4
+        case .transcript: 2
+        case .adjusts: 3
+        case .speed: 4
+        case .cut: 5
         }
     }
 
@@ -41,6 +45,7 @@ enum ToolEnum: Int, CaseIterable, Identifiable, Codable, Sendable {
         case .speed: "Speed"
         case .presets: "Presets"
         case .audio: "Audio"
+        case .transcript: "Transcript"
         case .adjusts: "Adjusts"
         }
     }
@@ -51,6 +56,7 @@ enum ToolEnum: Int, CaseIterable, Identifiable, Codable, Sendable {
         case .speed: "timer"
         case .presets: "aspectratio"
         case .audio: "waveform"
+        case .transcript: "captions.bubble"
         case .adjusts: "circle.righthalf.filled"
         }
     }
