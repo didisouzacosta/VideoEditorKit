@@ -464,45 +464,15 @@ final class EditorViewModel {
     ) {
         switch tool {
         case .cut:
-            guard var currentVideo else { break }
-            EditorPlaybackEditingCoordinator.restoreDefaultCut(
-                in: &currentVideo
-            )
-            self.currentVideo = currentVideo
-            remapTranscriptDocumentIfNeeded()
+            resetToolCut()
         case .speed:
-            let previousRate = currentVideo?.rate ?? 1
-            videoPlayer.pause()
-            guard var currentVideo else { break }
-            EditorPlaybackEditingCoordinator.restoreDefaultRate(
-                in: &currentVideo
-            )
-            self.currentVideo = currentVideo
-            remapTranscriptDocumentIfNeeded()
-            videoPlayer.syncPlaybackState(with: currentVideo, previousRate: previousRate)
+            resetToolSpeed(videoPlayer: videoPlayer)
         case .presets:
-            currentVideo?.rotation = 0
-            currentVideo?.isMirror = false
-            applyCropEditingState(.initial)
+            resetToolPresets()
         case .audio:
-            presentationState.selectedAudioTrack = .video
-            if currentVideo?.audio != nil {
-                removeAudio(using: videoPlayer)
-                return
-            }
-
-            currentVideo?.setVolume(1.0)
-            videoPlayer.setVolume(true, value: 1.0)
+            resetToolAudio(videoPlayer: videoPlayer)
         case .adjusts:
-            guard var currentVideo else { break }
-            guard
-                EditorAppearanceEditingCoordinator.restoreDefaultAdjusts(
-                    in: &currentVideo
-                )
-            else { break }
-
-            self.currentVideo = currentVideo
-            videoPlayer.clearColorAdjusts()
+            resetToolAdjusts(videoPlayer: videoPlayer)
         case .transcript:
             resetTranscript()
         }
@@ -803,6 +773,48 @@ final class EditorViewModel {
         handleCanvasPreviewChange()
     }
 
+    func activeTranscriptSegment(
+        at timelineTime: Double
+    ) -> EditableTranscriptSegment? {
+        transcriptDocument?.segments.first {
+            guard let timelineRange = $0.timeMapping.timelineRange else { return false }
+            return timelineRange.contains(timelineTime)
+        }
+    }
+
+    func transcriptStyle(
+        for segment: EditableTranscriptSegment
+    ) -> TranscriptStyle? {
+        guard let styleID = segment.styleID else { return nil }
+        return transcriptDocument?.availableStyles.first(where: { $0.id == styleID })
+    }
+
+    func setTranscriptOverlaySelection(_ isSelected: Bool) {
+        presentationState.isTranscriptOverlaySelected = isSelected
+    }
+
+    func updateTranscriptOverlayPosition(
+        _ position: TranscriptOverlayPosition
+    ) {
+        guard var transcriptDocument else { return }
+        guard transcriptDocument.overlayPosition != position else { return }
+
+        transcriptDocument.overlayPosition = position
+        self.transcriptDocument = transcriptDocument
+        markEditingConfigurationChanged()
+    }
+
+    func updateTranscriptOverlaySize(
+        _ size: TranscriptOverlaySize
+    ) {
+        guard var transcriptDocument else { return }
+        guard transcriptDocument.overlaySize != size else { return }
+
+        transcriptDocument.overlaySize = size
+        self.transcriptDocument = transcriptDocument
+        markEditingConfigurationChanged()
+    }
+
     func playerContainerSize(in availableSize: CGSize) -> CGSize {
         VideoEditorLayoutResolver.playerContainerSize(
             in: availableSize
@@ -878,6 +890,7 @@ final class EditorViewModel {
         transcriptFeatureState = .idle
         transcriptState = .idle
         transcriptDocument = nil
+        presentationState.isTranscriptOverlaySelected = false
         markEditingConfigurationChanged()
     }
 
@@ -946,6 +959,59 @@ final class EditorViewModel {
             for: video,
             fallbackContainerSize: lastPlayerContainerSize
         )
+    }
+
+    private func resetToolCut() {
+        guard var currentVideo else { return }
+
+        EditorPlaybackEditingCoordinator.restoreDefaultCut(
+            in: &currentVideo
+        )
+        self.currentVideo = currentVideo
+        remapTranscriptDocumentIfNeeded()
+    }
+
+    private func resetToolSpeed(videoPlayer: VideoPlayerManager) {
+        let previousRate = currentVideo?.rate ?? 1
+        videoPlayer.pause()
+        guard var currentVideo else { return }
+
+        EditorPlaybackEditingCoordinator.restoreDefaultRate(
+            in: &currentVideo
+        )
+        self.currentVideo = currentVideo
+        remapTranscriptDocumentIfNeeded()
+        videoPlayer.syncPlaybackState(with: currentVideo, previousRate: previousRate)
+    }
+
+    private func resetToolPresets() {
+        currentVideo?.rotation = 0
+        currentVideo?.isMirror = false
+        applyCropEditingState(.initial)
+    }
+
+    private func resetToolAudio(videoPlayer: VideoPlayerManager) {
+        presentationState.selectedAudioTrack = .video
+
+        if currentVideo?.audio != nil {
+            removeAudio(using: videoPlayer)
+            return
+        }
+
+        currentVideo?.setVolume(1.0)
+        videoPlayer.setVolume(true, value: 1.0)
+    }
+
+    private func resetToolAdjusts(videoPlayer: VideoPlayerManager) {
+        guard var currentVideo else { return }
+        guard
+            EditorAppearanceEditingCoordinator.restoreDefaultAdjusts(
+                in: &currentVideo
+            )
+        else { return }
+
+        self.currentVideo = currentVideo
+        videoPlayer.clearColorAdjusts()
     }
 
     private var cropEditingState: EditorCropEditingState {

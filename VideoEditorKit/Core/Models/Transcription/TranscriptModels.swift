@@ -99,13 +99,13 @@ enum TranscriptTextAlignment: String, Codable, Hashable, Sendable {
     case trailing
 }
 
-enum TranscriptOverlayPosition: String, Codable, Hashable, Sendable {
+enum TranscriptOverlayPosition: String, Codable, Hashable, Sendable, CaseIterable {
     case top
     case center
     case bottom
 }
 
-enum TranscriptOverlaySize: String, Codable, Hashable, Sendable {
+enum TranscriptOverlaySize: String, Codable, Hashable, Sendable, CaseIterable {
     case small
     case medium
     case large

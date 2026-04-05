@@ -338,56 +338,13 @@ extension ToolsSectionView {
 
         switch tool {
         case .speed:
-            editorViewModel.handleRateChange(
-                Float(speedDraft),
-                videoPlayer: videoPlayer
-            )
-            editorViewModel.closeSelectedTool()
+            applySpeedTool()
         case .presets:
-            if presetDraft == editorViewModel.cropPresentationSummary.selectedPreset {
-                editorViewModel.closeSelectedTool()
-            } else {
-                withAnimation(Constants.settleAnimation) {
-                    editorViewModel.selectCropFormat(presetDraft)
-                }
-            }
+            applyPresetsTool()
         case .audio:
-            let committedAudioDraft = AudioToolDraft(
-                video: video,
-                selectedTrack: editorViewModel.presentationState.selectedAudioTrack
-            )
-
-            guard audioDraft != committedAudioDraft else {
-                editorViewModel.closeSelectedTool()
-                return
-            }
-
-            editorViewModel.selectAudioTrack(audioDraft.selectedTrack)
-            commitAudioVolumeIfNeeded(
-                committedValue: video.volume,
-                draftValue: audioDraft.videoVolume,
-                track: .video
-            )
-
-            if video.audio != nil {
-                commitAudioVolumeIfNeeded(
-                    committedValue: video.audio?.volume ?? 1,
-                    draftValue: audioDraft.recordedVolume,
-                    track: .recorded
-                )
-            }
-
-            editorViewModel.selectAudioTrack(audioDraft.selectedTrack)
-            editorViewModel.closeSelectedTool()
+            applyAudioTool(for: video)
         case .adjusts:
-            guard adjustsDraft != video.colorAdjusts else {
-                editorViewModel.closeSelectedTool()
-                return
-            }
-
-            editorViewModel.setAdjusts(adjustsDraft)
-            videoPlayer.setColorAdjusts(adjustsDraft)
-            editorViewModel.closeSelectedTool()
+            applyAdjustsTool(for: video)
         case .transcript:
             break
         case .cut:
@@ -407,6 +364,66 @@ extension ToolsSectionView {
             draftValue,
             videoPlayer: videoPlayer
         )
+    }
+
+    private func applySpeedTool() {
+        editorViewModel.handleRateChange(
+            Float(speedDraft),
+            videoPlayer: videoPlayer
+        )
+        editorViewModel.closeSelectedTool()
+    }
+
+    private func applyPresetsTool() {
+        guard presetDraft != editorViewModel.cropPresentationSummary.selectedPreset else {
+            editorViewModel.closeSelectedTool()
+            return
+        }
+
+        withAnimation(Constants.settleAnimation) {
+            editorViewModel.selectCropFormat(presetDraft)
+        }
+    }
+
+    private func applyAudioTool(for video: Video) {
+        let committedAudioDraft = AudioToolDraft(
+            video: video,
+            selectedTrack: editorViewModel.presentationState.selectedAudioTrack
+        )
+
+        guard audioDraft != committedAudioDraft else {
+            editorViewModel.closeSelectedTool()
+            return
+        }
+
+        editorViewModel.selectAudioTrack(audioDraft.selectedTrack)
+        commitAudioVolumeIfNeeded(
+            committedValue: video.volume,
+            draftValue: audioDraft.videoVolume,
+            track: .video
+        )
+
+        if video.audio != nil {
+            commitAudioVolumeIfNeeded(
+                committedValue: video.audio?.volume ?? 1,
+                draftValue: audioDraft.recordedVolume,
+                track: .recorded
+            )
+        }
+
+        editorViewModel.selectAudioTrack(audioDraft.selectedTrack)
+        editorViewModel.closeSelectedTool()
+    }
+
+    private func applyAdjustsTool(for video: Video) {
+        guard adjustsDraft != video.colorAdjusts else {
+            editorViewModel.closeSelectedTool()
+            return
+        }
+
+        editorViewModel.setAdjusts(adjustsDraft)
+        videoPlayer.setColorAdjusts(adjustsDraft)
+        editorViewModel.closeSelectedTool()
     }
 
 }

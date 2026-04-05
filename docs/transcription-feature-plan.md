@@ -5,8 +5,8 @@
 - Phase 1 completed
 - Phase 2 completed
 - Phase 3 completed
-- Phase 4 planned
-- Phase 5 planned
+- Phase 4 completed
+- Phase 5 completed
 - Phase 6 planned
 
 ## Summary
@@ -143,6 +143,8 @@ Completed outcome:
 
 ## Phase 4
 
+Status: completed.
+
 Scope:
 
 - add the transcript tool to the toolbar and tool sheet flow
@@ -151,7 +153,15 @@ Scope:
 - optionally support word-level text edits without changing timing
 - support visual style assignment
 
+Completed outcome:
+
+- the transcript tool is now part of the editor toolbar and sheet flow
+- the editor can show transcript segments, edit segment text, assign styles, and reset the transcript document
+- text editing remains timing-safe because only `editedText` changes while time mappings stay intact
+
 ## Phase 5
+
+Status: completed.
 
 Scope:
 
@@ -160,6 +170,13 @@ Scope:
 - add contextual controls for vertical position and simplified size
 - add a pure layout resolver for width and font sizing
 - ensure crop only limits visible area, without mutating transcript content
+
+Completed outcome:
+
+- the active transcript segment now renders as an overlay on top of the player canvas using timeline timing
+- the preview supports direct overlay selection, a subtle dimmed background, a visible selection border, and contextual controls for position and size
+- a pure layout resolver now calculates safe horizontal width, vertical placement, and adaptive font sizing for the overlay preview
+- the overlay selection state stays transient in presentation state while position and size persist in the transcript document
 
 ## Phase 6
 
