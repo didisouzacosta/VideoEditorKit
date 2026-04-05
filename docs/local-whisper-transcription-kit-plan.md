@@ -2,8 +2,8 @@
 
 ## Status
 
-- Implemented incrementally through Phase 4
-- Ready for the concrete Whisper runtime wiring in the next steps
+- Implemented incrementally through Phase 6
+- Ready for concrete Whisper runtime registration and host-side model selection
 
 ## Summary
 
@@ -19,6 +19,8 @@ At the current stage, the repository already includes:
 - model caching and download infrastructure
 - internal audio extraction and preparation for audio and video inputs
 - a dedicated Objective-C++ bridge boundary prepared for future concrete `whisper.cpp` runtime registration
+- end-to-end local orchestration from request to normalized transcription output
+- a `VideoTranscriptionProvider` adapter that plugs the local component into the existing editor contract
 
 ## Current Repo Reality
 

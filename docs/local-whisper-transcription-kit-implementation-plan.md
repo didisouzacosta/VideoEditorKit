@@ -6,8 +6,8 @@
 - Phase 2 completed
 - Phase 3 completed
 - Phase 4 completed
-- Phase 5 pending
-- Phase 6 pending
+- Phase 5 completed
+- Phase 6 completed
 
 ## Implementation Goal
 
@@ -184,6 +184,8 @@ Implementation note:
 
 ## Phase 5: Full Orchestration
 
+Status: completed.
+
 Scope:
 
 - connect validation, model guarantee, extraction, audio preparation, bridge, cleanup, and normalization
@@ -200,7 +202,25 @@ Acceptance:
 - one async call executes the local transcription flow end to end
 - output is normalized and stable
 
+Delivered files:
+
+- `VideoEditorKit/TranscriptionKit/Public/TranscriptionClient.swift`
+- `VideoEditorKit/TranscriptionKit/Core/TranscriptionNormalizationCoordinator.swift`
+- `VideoEditorKitTests/TranscriptionKit/TranscriptionClientTestDoubles.swift`
+- `VideoEditorKitTests/TranscriptionKit/TranscriptionClientPhase3Tests.swift`
+- `VideoEditorKitTests/TranscriptionKit/TranscriptionClientPhase5Tests.swift`
+
+Completed outcome:
+
+- `TranscriptionClient` now executes the full local pipeline: request validation, model guarantee, media extraction, audio preparation, bridge invocation, normalization, and temporary-file cleanup
+- the client now emits a stable status progression for cached and downloaded-model flows, including `preparingAudio`, `transcribing`, and `completed`
+- bridge output is normalized through a dedicated pure coordinator before leaving the component, keeping output ordering, whitespace, times, and fallback text stable
+- typed errors are preserved across model, audio, transcription, and cancellation paths instead of leaking raw infrastructure errors
+- cleanup of extracted audio, prepared audio, and temporary model downloads now happens on both success and failure paths
+
 ## Phase 6: Adapter to VideoEditorKit
+
+Status: completed.
 
 Scope:
 
@@ -216,6 +236,18 @@ Acceptance:
 
 - editor can use local Whisper transcription through the existing provider protocol
 - no structural change is required in the current editor architecture
+
+Delivered files:
+
+- `VideoEditorKit/Core/Models/Transcription/LocalTranscriptionVideoProvider.swift`
+- `VideoEditorKitTests/Models/LocalTranscriptionVideoProviderTests.swift`
+
+Completed outcome:
+
+- `VideoEditorKit` now has a dedicated adapter that conforms to `VideoTranscriptionProvider` while delegating local work to any `TranscriptionProviding`
+- the adapter converts editor video inputs into `TranscriptionKit` requests without teaching the editor about model descriptors, media extraction, or normalization internals
+- normalized segments and words are mapped back into the editor contract with preserved IDs and timing
+- the host can keep hardcoded model URLs localized in `TranscriptionKitHardcodedModels.swift` and inject the chosen `RemoteModelDescriptor` into the adapter without changing editor architecture
 
 ## Notes
 

@@ -16,6 +16,7 @@ public actor TranscriptionClient: TranscriptionProviding {
     private let mediaExtractor: any MediaExtracting
     private let audioPreparer: any AudioPreparing
     private let whisperBridge: any WhisperBridging
+    private let normalizationCoordinator: TranscriptionNormalizationCoordinator
     private let statusReporter: (any TranscriptionStatusReporting)?
 
     // MARK: - Initializer
@@ -28,6 +29,7 @@ public actor TranscriptionClient: TranscriptionProviding {
         self.mediaExtractor = AVFoundationMediaExtractor()
         self.audioPreparer = AVFoundationAudioPreparer()
         self.whisperBridge = WhisperBridge()
+        self.normalizationCoordinator = TranscriptionNormalizationCoordinator()
         self.statusReporter = statusReporter
     }
 
@@ -37,6 +39,7 @@ public actor TranscriptionClient: TranscriptionProviding {
         mediaExtractor: some MediaExtracting,
         audioPreparer: some AudioPreparing,
         whisperBridge: some WhisperBridging,
+        normalizationCoordinator: TranscriptionNormalizationCoordinator = .init(),
         statusReporter: (any TranscriptionStatusReporting)? = nil
     ) {
         self.modelStore = modelStore
@@ -44,50 +47,70 @@ public actor TranscriptionClient: TranscriptionProviding {
         self.mediaExtractor = mediaExtractor
         self.audioPreparer = audioPreparer
         self.whisperBridge = whisperBridge
+        self.normalizationCoordinator = normalizationCoordinator
         self.statusReporter = statusReporter
     }
 
     // MARK: - Public Methods
 
     public func transcribe(_ request: TranscriptionRequest) async throws -> NormalizedTranscription {
-        try validate(request)
-        report(.idle)
+        do {
+            try Task.checkCancellation()
+            try validate(request)
+            report(.idle)
 
-        _ = try await ensureModelIsAvailable(
-            for: request.model
-        )
+            let modelURL = try await ensureModelIsAvailable(
+                for: request.model
+            )
 
-        report(.preparingAudio)
+            report(.preparingAudio)
 
-        let extractedAudio = try await mediaExtractor.extractAudioIfNeeded(
-            from: request.media
-        )
-        let shouldCleanupExtractedAudio = extractedAudio.wasExtractedFromVideo
+            let extractedAudio = try await extractAudio(
+                from: request.media
+            )
+            let shouldCleanupExtractedAudio = extractedAudio.wasExtractedFromVideo
 
-        defer {
-            if shouldCleanupExtractedAudio {
+            defer {
+                if shouldCleanupExtractedAudio {
+                    removeTemporaryFileIfNeeded(
+                        at: extractedAudio.audioURL
+                    )
+                }
+            }
+
+            let preparedAudio = try await prepareAudio(
+                at: extractedAudio.audioURL
+            )
+
+            defer {
                 removeTemporaryFileIfNeeded(
-                    at: extractedAudio.audioURL
+                    at: preparedAudio.fileURL
                 )
             }
-        }
 
-        let preparedAudio = try await audioPreparer.prepareAudio(
-            at: extractedAudio.audioURL
-        )
+            report(.transcribing)
 
-        defer {
-            removeTemporaryFileIfNeeded(
-                at: preparedAudio.fileURL
+            let rawResult = try await transcribePreparedAudio(
+                preparedAudio,
+                modelURL: modelURL,
+                request: request
+            )
+            let normalizedResult = normalizationCoordinator.normalize(
+                rawResult,
+                fallbackDuration: preparedAudio.duration ?? extractedAudio.duration
+            )
+
+            report(.completed)
+            return normalizedResult
+        } catch is CancellationError {
+            throw TranscriptionError.cancelled
+        } catch let error as TranscriptionError {
+            throw error
+        } catch {
+            throw TranscriptionError.transcriptionFailed(
+                message: error.localizedDescription
             )
         }
-
-        _ = whisperBridge
-
-        throw TranscriptionError.transcriptionFailed(
-            message:
-                "Phase 1 scaffolding only. End-to-end transcription orchestration will be completed in later phases."
-        )
     }
 
     // MARK: - Private Methods
@@ -133,30 +156,104 @@ public actor TranscriptionClient: TranscriptionProviding {
     private func ensureModelIsAvailable(
         for descriptor: RemoteModelDescriptor
     ) async throws -> URL {
-        switch try modelStore.cachedModelState(for: descriptor) {
-        case .valid(let localURL):
-            return localURL
-        case .missing, .invalid:
-            let temporaryURL = try modelStore.temporaryDownloadURL(
-                for: descriptor
-            )
+        do {
+            switch try modelStore.cachedModelState(for: descriptor) {
+            case .valid(let localURL):
+                return localURL
+            case .missing, .invalid:
+                let temporaryURL = try modelStore.temporaryDownloadURL(
+                    for: descriptor
+                )
+                let reporter = statusReporter
 
-            report(.downloading(progress: 0))
+                defer {
+                    removeTemporaryFileIfNeeded(
+                        at: temporaryURL
+                    )
+                }
 
-            try await modelDownloader.downloadModel(
-                from: descriptor.remoteURL,
-                to: temporaryURL
-            ) { [weak self] progress in
-                Task {
-                    await self?.report(
+                report(.downloading(progress: 0))
+
+                try await modelDownloader.downloadModel(
+                    from: descriptor.remoteURL,
+                    to: temporaryURL
+                ) { progress in
+                    reporter?.report(
                         .downloading(progress: progress)
                     )
                 }
-            }
 
-            return try modelStore.installDownloadedModel(
-                from: temporaryURL,
-                for: descriptor
+                return try modelStore.installDownloadedModel(
+                    from: temporaryURL,
+                    for: descriptor
+                )
+            }
+        } catch is CancellationError {
+            throw TranscriptionError.cancelled
+        } catch let error as TranscriptionError {
+            throw error
+        } catch {
+            throw TranscriptionError.modelDownloadFailed(
+                message: error.localizedDescription
+            )
+        }
+    }
+
+    private func extractAudio(
+        from source: TranscriptionMediaSource
+    ) async throws -> ExtractedAudioSource {
+        do {
+            return try await mediaExtractor.extractAudioIfNeeded(
+                from: source
+            )
+        } catch is CancellationError {
+            throw TranscriptionError.cancelled
+        } catch let error as TranscriptionError {
+            throw error
+        } catch {
+            throw TranscriptionError.audioPreparationFailed(
+                message: error.localizedDescription
+            )
+        }
+    }
+
+    private func prepareAudio(
+        at audioURL: URL
+    ) async throws -> PreparedAudio {
+        do {
+            return try await audioPreparer.prepareAudio(
+                at: audioURL
+            )
+        } catch is CancellationError {
+            throw TranscriptionError.cancelled
+        } catch let error as TranscriptionError {
+            throw error
+        } catch {
+            throw TranscriptionError.audioPreparationFailed(
+                message: error.localizedDescription
+            )
+        }
+    }
+
+    private func transcribePreparedAudio(
+        _ preparedAudio: PreparedAudio,
+        modelURL: URL,
+        request: TranscriptionRequest
+    ) async throws -> RawWhisperTranscriptionResult {
+        do {
+            return try await whisperBridge.transcribe(
+                preparedAudio: preparedAudio,
+                modelURL: modelURL,
+                language: request.language,
+                task: request.task
+            )
+        } catch is CancellationError {
+            throw TranscriptionError.cancelled
+        } catch let error as TranscriptionError {
+            throw error
+        } catch {
+            throw TranscriptionError.transcriptionFailed(
+                message: error.localizedDescription
             )
         }
     }

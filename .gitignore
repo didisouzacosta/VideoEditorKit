@@ -1,2 +1,5 @@
+.cache/*
+!.cache/.gitkeep
+
 VideoEditorKit.xcodeproj/project.xcworkspace/xcshareddata/
 VideoEditorKit.xcodeproj/project.xcworkspace/xcuserdata/

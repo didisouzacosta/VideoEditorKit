@@ -6,6 +6,7 @@ cd "$repo_root"
 
 swift_format_configuration=".swift-format"
 swiftlint_configuration=".swiftlint.yml"
+swiftlint_cache_directory=".cache/swiftlint"
 default_paths="VideoEditorKit VideoEditorKitTests"
 
 if ! command -v swift >/dev/null 2>&1; then
@@ -27,6 +28,9 @@ if ! command -v swiftlint >/dev/null 2>&1; then
   echo "lint-swift: 'swiftlint' is not installed. Install it with 'brew install swiftlint'." >&2
   exit 1
 fi
+
+mkdir -p "$swiftlint_cache_directory"
+export SWIFTLINT_CACHE_PATH="$repo_root/$swiftlint_cache_directory"
 
 swift format lint \
   --strict \

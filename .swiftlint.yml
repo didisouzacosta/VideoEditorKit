@@ -1,3 +1,5 @@
+cache_path: .cache/swiftlint
+
 included:
   - VideoEditorKit
   - VideoEditorKitTests
