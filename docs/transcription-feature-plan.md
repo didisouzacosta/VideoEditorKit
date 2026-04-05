@@ -4,7 +4,7 @@
 
 - Phase 1 completed
 - Phase 2 completed
-- Phase 3 planned
+- Phase 3 completed
 - Phase 4 planned
 - Phase 5 planned
 - Phase 6 planned
@@ -124,6 +124,8 @@ Completed outcome:
 
 ## Phase 3
 
+Status: completed.
+
 Scope:
 
 - expose provider injection through `VideoEditorView.Configuration`
@@ -131,6 +133,13 @@ Scope:
 - trigger async transcription from the current source video
 - map provider output into the internal editable model
 - support loading, success, and failure state
+
+Completed outcome:
+
+- the host app can now inject a transcription provider, available styles, and preferred locale through the editor configuration
+- `EditorViewModel` now owns a runtime transcript state with loading, loaded, and failure handling
+- the editor can transcribe the current source file asynchronously and map provider output into the persisted editable transcript document
+- provider-not-configured, empty-result, invalid-source, and provider-failure paths are covered in Swift Testing
 
 ## Phase 4
 

@@ -328,6 +328,11 @@ struct VideoEditorView: View {
         guard let resolvedSourceVideoURL else { return }
 
         editorViewModel.setToolAvailability(configuration.tools)
+        editorViewModel.configureTranscription(
+            provider: configuration.transcription.provider,
+            availableStyles: configuration.transcription.availableStyles,
+            preferredLocale: configuration.transcription.preferredLocale
+        )
         editorViewModel.setSourceVideoIfNeeded(
             resolvedSourceVideoURL,
             editingConfiguration: session.editingConfiguration,
@@ -555,6 +560,28 @@ extension VideoEditorView {
 
     struct Configuration {
 
+        struct TranscriptionConfiguration {
+
+            // MARK: - Public Properties
+
+            let provider: (any VideoTranscriptionProvider)?
+            let availableStyles: [TranscriptStyle]
+            let preferredLocale: String?
+
+            // MARK: - Initializer
+
+            init(
+                provider: (any VideoTranscriptionProvider)? = nil,
+                availableStyles: [TranscriptStyle] = [],
+                preferredLocale: String? = nil
+            ) {
+                self.provider = provider
+                self.availableStyles = availableStyles
+                self.preferredLocale = preferredLocale
+            }
+
+        }
+
         // MARK: - Public Properties
 
         static var allToolsEnabled: Self {
@@ -562,6 +589,7 @@ extension VideoEditorView {
         }
 
         let tools: [ToolAvailability]
+        let transcription: TranscriptionConfiguration
 
         // MARK: - Private Properties
 
@@ -575,6 +603,7 @@ extension VideoEditorView {
 
         init(
             tools: [ToolAvailability] = ToolAvailability.enabled(ToolEnum.all),
+            transcription: TranscriptionConfiguration = .init(),
             onBlockedToolTap: ((ToolEnum) -> Void)? = nil
         ) {
             self.tools = tools.sorted {
@@ -584,6 +613,7 @@ extension VideoEditorView {
 
                 return $0.order < $1.order
             }
+            self.transcription = transcription
             self.onBlockedToolTap = onBlockedToolTap
         }
 

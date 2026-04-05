@@ -191,6 +191,118 @@ struct EditorViewModelTests {
     }
 
     @Test
+    func transcribeCurrentVideoMapsProviderOutputIntoTheEditableTranscriptDocument() async {
+        let provider = RecordingTranscriptionProvider(
+            result: .success(
+                VideoTranscriptionResult(
+                    segments: [
+                        TranscriptionSegment(
+                            id: UUID(),
+                            startTime: 8,
+                            endTime: 12,
+                            text: "Ola mundo",
+                            words: [
+                                TranscriptionWord(
+                                    id: UUID(),
+                                    startTime: 8,
+                                    endTime: 9,
+                                    text: "Ola"
+                                )
+                            ]
+                        )
+                    ]
+                )
+            )
+        )
+        let style = TranscriptStyle(
+            id: UUID(),
+            name: "Classic",
+            fontFamily: "Avenir"
+        )
+        let viewModel = EditorViewModel()
+        var video = Video(url: URL(fileURLWithPath: "/tmp/transcription-source.mov"), rangeDuration: 0...20)
+        video.updateRate(2)
+        viewModel.currentVideo = video
+        viewModel.configureTranscription(
+            provider: provider,
+            availableStyles: [style],
+            preferredLocale: "pt-BR"
+        )
+
+        viewModel.transcribeCurrentVideo()
+        await waitForTranscriptState(on: viewModel, equals: .loaded)
+
+        let recordedInput = await provider.inputs().first
+        #expect(recordedInput?.assetIdentifier == video.url.absoluteString)
+        #expect(recordedInput?.preferredLocale == "pt-BR")
+        #expect(viewModel.transcriptState == .loaded)
+        #expect(viewModel.transcriptFeatureState == .loaded)
+        #expect(viewModel.transcriptDocument?.availableStyles == [style])
+        #expect(viewModel.transcriptDocument?.segments.first?.originalText == "Ola mundo")
+        #expect(viewModel.transcriptDocument?.segments.first?.editedText == "Ola mundo")
+        #expect(viewModel.transcriptDocument?.segments.first?.timeMapping.timelineRange == 4...6)
+        #expect(viewModel.transcriptDocument?.segments.first?.words.first?.editedText == "Ola")
+    }
+
+    @Test
+    func transcribeCurrentVideoFailsWhenProviderIsNotConfigured() {
+        let viewModel = EditorViewModel()
+        viewModel.currentVideo = Video(
+            url: URL(fileURLWithPath: "/tmp/transcription-source.mov"),
+            rangeDuration: 0...20
+        )
+
+        viewModel.transcribeCurrentVideo()
+
+        #expect(viewModel.transcriptState == .failed(.providerNotConfigured))
+        #expect(viewModel.transcriptFeatureState == .failed)
+        #expect(viewModel.transcriptDocument == nil)
+    }
+
+    @Test
+    func transcribeCurrentVideoFailsWhenProviderReturnsAnEmptyResult() async {
+        let provider = RecordingTranscriptionProvider(
+            result: .success(
+                VideoTranscriptionResult(segments: [])
+            )
+        )
+        let viewModel = EditorViewModel()
+        viewModel.currentVideo = Video(
+            url: URL(fileURLWithPath: "/tmp/transcription-source.mov"),
+            rangeDuration: 0...20
+        )
+        viewModel.configureTranscription(provider: provider)
+
+        viewModel.transcribeCurrentVideo()
+        await waitForTranscriptFailure(on: viewModel)
+
+        #expect(viewModel.transcriptState == .failed(.emptyResult))
+        #expect(viewModel.transcriptFeatureState == .failed)
+    }
+
+    @Test
+    func transcribeCurrentVideoMapsProviderFailuresIntoTranscriptState() async {
+        let provider = RecordingTranscriptionProvider(
+            result: .failure(.offline)
+        )
+        let viewModel = EditorViewModel()
+        viewModel.currentVideo = Video(
+            url: URL(fileURLWithPath: "/tmp/transcription-source.mov"),
+            rangeDuration: 0...20
+        )
+        viewModel.configureTranscription(provider: provider)
+
+        viewModel.transcribeCurrentVideo()
+        await waitForTranscriptFailure(on: viewModel)
+
+        #expect(
+            viewModel.transcriptState
+                == .failed(.providerFailure(message: TranscriptProviderProbeError.offline.localizedDescription))
+        )
+        #expect(viewModel.transcriptFeatureState == .failed)
+    }
+
+    @Test
     func updateRateRemapsTranscriptDocumentUsingTheCurrentTrim() {
         let viewModel = EditorViewModel()
         var video = Video.mock
@@ -1360,4 +1472,66 @@ private actor LoadedVideoURLProbe {
         recordedURLs
     }
 
+}
+
+private actor RecordingTranscriptionProvider: VideoTranscriptionProvider {
+
+    // MARK: - Private Properties
+
+    private let result: Result<VideoTranscriptionResult, TranscriptProviderProbeError>
+    private var recordedInputs = [VideoTranscriptionInput]()
+
+    // MARK: - Initializer
+
+    init(result: Result<VideoTranscriptionResult, TranscriptProviderProbeError>) {
+        self.result = result
+    }
+
+    // MARK: - Public Methods
+
+    func transcribeVideo(input: VideoTranscriptionInput) async throws -> VideoTranscriptionResult {
+        recordedInputs.append(input)
+        return try result.get()
+    }
+
+    func inputs() -> [VideoTranscriptionInput] {
+        recordedInputs
+    }
+
+}
+
+private enum TranscriptProviderProbeError: LocalizedError {
+    case offline
+
+    var errorDescription: String? {
+        switch self {
+        case .offline:
+            "offline"
+        }
+    }
+}
+
+@MainActor
+private func waitForTranscriptState(
+    on viewModel: EditorViewModel,
+    equals expectedState: TranscriptFeatureState
+) async {
+    for _ in 0..<20 {
+        if viewModel.transcriptState == expectedState {
+            return
+        }
+
+        try? await Task.sleep(for: .milliseconds(10))
+    }
+}
+
+@MainActor
+private func waitForTranscriptFailure(on viewModel: EditorViewModel) async {
+    for _ in 0..<20 {
+        if case .failed = viewModel.transcriptState {
+            return
+        }
+
+        try? await Task.sleep(for: .milliseconds(10))
+    }
 }

@@ -116,3 +116,18 @@ enum TranscriptFeaturePersistenceState: String, Codable, Equatable, Sendable {
     case loaded
     case failed
 }
+
+enum TranscriptFeatureState: Sendable, Equatable {
+    case idle
+    case loading
+    case loaded
+    case failed(TranscriptError)
+}
+
+enum TranscriptError: Error, Sendable, Equatable {
+    case providerNotConfigured
+    case invalidVideoSource
+    case emptyResult
+    case cancelled
+    case providerFailure(message: String)
+}
