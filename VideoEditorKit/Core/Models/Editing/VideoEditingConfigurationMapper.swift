@@ -18,6 +18,8 @@ enum VideoEditingConfigurationMapper {
         freeformRect: VideoEditingConfiguration.FreeformRect? = nil,
         canvasSnapshot: VideoCanvasSnapshot = .initial,
         selectedAudioTrack: VideoEditingConfiguration.SelectedTrack = .video,
+        transcriptFeatureState: TranscriptFeaturePersistenceState = .idle,
+        transcriptDocument: TranscriptDocument? = nil,
         selectedTool: ToolEnum? = nil,
         socialVideoDestination: VideoEditingConfiguration.SocialVideoDestination? = nil,
         showsSafeAreaGuides: Bool = false,
@@ -61,6 +63,10 @@ enum VideoEditingConfigurationMapper {
                     )
                 },
                 selectedTrack: selectedAudioTrack
+            ),
+            transcript: .init(
+                featureState: transcriptFeatureState,
+                document: transcriptDocument
             ),
             presentation: .init(
                 selectedTool,

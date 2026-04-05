@@ -12,6 +12,11 @@ struct VideoEditingConfigurationTests {
 
     @Test
     func configurationCodableRoundTripPreservesSerializableEditingState() throws {
+        let segmentID = try #require(UUID(uuidString: "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE"))
+        let wordID = try #require(UUID(uuidString: "11111111-2222-3333-4444-555555555555"))
+        let segmentStyleID = try #require(UUID(uuidString: "99999999-8888-7777-6666-555555555555"))
+        let availableStyleID = try #require(UUID(uuidString: "ABCDEFAB-CDEF-ABCD-EFAB-CDEFABCDEFAB"))
+
         let configuration = VideoEditingConfiguration(
             trim: .init(lowerBound: 4, upperBound: 22),
             playback: .init(
@@ -46,6 +51,52 @@ struct VideoEditingConfigurationTests {
                 ),
                 selectedTrack: .recorded
             ),
+            transcript: .init(
+                featureState: .loaded,
+                document: TranscriptDocument(
+                    segments: [
+                        EditableTranscriptSegment(
+                            id: segmentID,
+                            timeMapping: .init(
+                                sourceStartTime: 4,
+                                sourceEndTime: 6,
+                                timelineStartTime: 0,
+                                timelineEndTime: 1
+                            ),
+                            originalText: "Original segment",
+                            editedText: "Edited segment",
+                            words: [
+                                EditableTranscriptWord(
+                                    id: wordID,
+                                    timeMapping: .init(
+                                        sourceStartTime: 4,
+                                        sourceEndTime: 4.5,
+                                        timelineStartTime: 0,
+                                        timelineEndTime: 0.25
+                                    ),
+                                    originalText: "Original",
+                                    editedText: "Edited"
+                                )
+                            ],
+                            styleID: segmentStyleID
+                        )
+                    ],
+                    availableStyles: [
+                        TranscriptStyle(
+                            id: availableStyleID,
+                            name: "Classic",
+                            fontFamily: "Avenir Next",
+                            isItalic: true,
+                            hasStroke: true,
+                            textAlignment: .center,
+                            textColor: .white,
+                            strokeColor: .black
+                        )
+                    ],
+                    overlayPosition: .center,
+                    overlaySize: .large
+                )
+            ),
             presentation: .init(
                 .adjusts,
                 socialVideoDestination: .tikTok,
@@ -64,6 +115,8 @@ struct VideoEditingConfigurationTests {
 
     @Test
     func continuousSaveFingerprintIgnoresTransientEditingPresentationState() {
+        let segmentID = UUID(uuidString: "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE")
+
         let baseline = VideoEditingConfiguration(
             trim: .init(lowerBound: 4, upperBound: 22),
             playback: .init(
@@ -105,6 +158,29 @@ struct VideoEditingConfigurationTests {
                     volume: 0.8
                 ),
                 selectedTrack: .recorded
+            ),
+            transcript: .init(
+                featureState: .loaded,
+                document: TranscriptDocument(
+                    segments: segmentID.map {
+                        [
+                            EditableTranscriptSegment(
+                                id: $0,
+                                timeMapping: .init(
+                                    sourceStartTime: 4,
+                                    sourceEndTime: 6,
+                                    timelineStartTime: 0,
+                                    timelineEndTime: 1
+                                ),
+                                originalText: "Original segment",
+                                editedText: "Edited segment"
+                            )
+                        ]
+                    } ?? [],
+                    availableStyles: [],
+                    overlayPosition: .bottom,
+                    overlaySize: .medium
+                )
             ),
             presentation: .init(
                 .adjusts,
@@ -178,6 +254,32 @@ struct VideoEditingConfigurationTests {
         #expect(abs(configuration.adjusts.brightness - 0.15) < 0.0001)
         #expect(abs(configuration.adjusts.contrast - 0.35) < 0.0001)
         #expect(abs(configuration.adjusts.saturation - 0.6) < 0.0001)
+        #expect(configuration.transcript == .init())
+    }
+
+    @Test
+    func versionOneConfigurationMigratesToCurrentSchemaWithDefaultTranscript() throws {
+        let json = """
+            {
+              "version": 1,
+              "trim": {
+                "lowerBound": 2,
+                "upperBound": 8
+              },
+              "audio": {
+                "selectedTrack": "recorded"
+              }
+            }
+            """
+            .data(using: .utf8)
+
+        let data = try #require(json)
+        let configuration = try JSONDecoder().decode(VideoEditingConfiguration.self, from: data)
+
+        #expect(configuration.version == VideoEditingConfiguration.currentSchemaVersion.rawValue)
+        #expect(configuration.schemaVersion == .current)
+        #expect(configuration.audio.selectedTrack == .recorded)
+        #expect(configuration.transcript == .init())
     }
 
     @Test
@@ -198,6 +300,7 @@ struct VideoEditingConfigurationTests {
 
         #expect(configuration.presentation.selectedTool == nil)
         #expect(configuration.presentation.socialVideoDestination == nil)
+        #expect(configuration.transcript == .init())
     }
 
     @Test
@@ -267,6 +370,21 @@ struct VideoEditingConfigurationTests {
     func makeConfigurationCapturesCurrentEditableVideoState() throws {
         let audioURL = try TestFixtures.createTemporaryAudio()
         defer { FileManager.default.removeIfExists(for: audioURL) }
+        let transcriptDocument = TranscriptDocument(
+            segments: [
+                EditableTranscriptSegment(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 5,
+                        sourceEndTime: 15,
+                        timelineStartTime: 5,
+                        timelineEndTime: 15
+                    ),
+                    originalText: "Original segment",
+                    editedText: "Edited segment"
+                )
+            ]
+        )
 
         var video = Video.mock
         video.rangeDuration = 5...15
@@ -307,6 +425,8 @@ struct VideoEditingConfigurationTests {
                 showsSafeAreaOverlay: true
             ),
             selectedAudioTrack: .recorded,
+            transcriptFeatureState: .loaded,
+            transcriptDocument: transcriptDocument,
             selectedTool: .adjusts,
             socialVideoDestination: .youtubeShorts,
             showsSafeAreaGuides: true,
@@ -337,6 +457,8 @@ struct VideoEditingConfigurationTests {
         #expect(configuration.audio.recordedClip?.url == audioURL)
         #expect(abs(Double(configuration.audio.recordedClip?.volume ?? 0) - 0.4) < 0.0001)
         #expect(configuration.audio.selectedTrack == .recorded)
+        #expect(configuration.transcript.featureState == .loaded)
+        #expect(configuration.transcript.document == transcriptDocument)
         #expect(configuration.presentation.selectedTool == .adjusts)
         #expect(configuration.presentation.socialVideoDestination == .youtubeShorts)
         #expect(configuration.presentation.showsSafeAreaGuides == false)

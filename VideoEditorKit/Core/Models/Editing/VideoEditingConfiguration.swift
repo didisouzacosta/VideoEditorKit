@@ -22,6 +22,7 @@ struct VideoEditingConfiguration: Codable, Equatable, Sendable {
     var adjusts = Adjusts()
     var frame = Frame()
     var audio = Audio()
+    var transcript = Transcript()
     var presentation = Presentation()
 
     // MARK: - Private Properties
@@ -37,11 +38,13 @@ struct VideoEditingConfiguration: Codable, Equatable, Sendable {
         case adjusts
         case frame
         case audio
+        case transcript
         case presentation
     }
 
     enum SchemaVersion: Int, Codable, Equatable, Sendable {
-        case current = 1
+        case v1 = 1
+        case current = 2
     }
 
     var schemaVersion: SchemaVersion? {
@@ -59,6 +62,7 @@ struct VideoEditingConfiguration: Codable, Equatable, Sendable {
         adjusts: Adjusts = .init(),
         frame: Frame = .init(),
         audio: Audio = .init(),
+        transcript: Transcript = .init(),
         presentation: Presentation = .init()
     ) {
         self.version = version
@@ -69,6 +73,7 @@ struct VideoEditingConfiguration: Codable, Equatable, Sendable {
         self.adjusts = adjusts
         self.frame = frame
         self.audio = audio
+        self.transcript = transcript
         self.presentation = presentation
     }
 
@@ -100,6 +105,7 @@ struct VideoEditingConfiguration: Codable, Equatable, Sendable {
         try container.encode(adjusts, forKey: .adjusts)
         try container.encode(frame, forKey: .frame)
         try container.encode(audio, forKey: .audio)
+        try container.encode(transcript, forKey: .transcript)
         try container.encode(presentation, forKey: .presentation)
     }
 
@@ -120,6 +126,7 @@ struct VideoEditingConfiguration: Codable, Equatable, Sendable {
             adjusts: decodedAdjusts,
             frame: try container.decodeIfPresent(Frame.self, forKey: .frame) ?? .init(),
             audio: try container.decodeIfPresent(Audio.self, forKey: .audio) ?? .init(),
+            transcript: try container.decodeIfPresent(Transcript.self, forKey: .transcript) ?? .init(),
             presentation: try container.decodeIfPresent(Presentation.self, forKey: .presentation) ?? .init()
         )
     }
@@ -132,6 +139,9 @@ struct VideoEditingConfiguration: Codable, Equatable, Sendable {
         }
 
         switch schemaVersion {
+        case .v1:
+            return preservingVersion(Self.currentSchemaVersion.rawValue)
+                .clearingOpaquePayload()
         case .current:
             return preservingVersion(Self.currentSchemaVersion.rawValue)
                 .clearingOpaquePayload()
@@ -237,6 +247,15 @@ extension VideoEditingConfiguration {
         var url: URL
         var duration: Double
         var volume: Float = 1
+
+    }
+
+    struct Transcript: Codable, Equatable, Sendable {
+
+        // MARK: - Public Properties
+
+        var featureState: TranscriptFeaturePersistenceState = .idle
+        var document: TranscriptDocument?
 
     }
 

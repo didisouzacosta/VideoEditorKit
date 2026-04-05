@@ -56,6 +56,8 @@ final class EditorViewModel {
 
     var currentVideo: Video?
     var frames = VideoFrames()
+    var transcriptFeatureState: TranscriptFeaturePersistenceState = .idle
+    var transcriptDocument: TranscriptDocument?
 
     var hasCurrentVideo: Bool {
         currentVideo != nil
@@ -133,6 +135,7 @@ final class EditorViewModel {
 
             frames = video.videoFrames ?? VideoFrames()
             currentVideo = video
+            remapTranscriptDocumentIfNeeded()
 
             await self.restorePendingEditingPresentationState()
 
@@ -283,6 +286,7 @@ final class EditorViewModel {
         else { return }
 
         self.currentVideo = currentVideo
+        remapTranscriptDocumentIfNeeded()
         markEditingConfigurationChanged()
     }
 
@@ -296,6 +300,7 @@ final class EditorViewModel {
             selectedTool: presentationState.selectedTool
         )
         self.currentVideo = currentVideo
+        remapTranscriptDocumentIfNeeded()
         markEditingConfigurationChanged()
     }
 
@@ -308,6 +313,7 @@ final class EditorViewModel {
             tolerance: Constants.numericTolerance
         )
         self.currentVideo = currentVideo
+        remapTranscriptDocumentIfNeeded()
         markEditingConfigurationChanged()
     }
 
@@ -319,6 +325,7 @@ final class EditorViewModel {
             in: &currentVideo
         )
         self.currentVideo = currentVideo
+        remapTranscriptDocumentIfNeeded()
         markEditingConfigurationChanged()
     }
 
@@ -456,6 +463,7 @@ final class EditorViewModel {
                 in: &currentVideo
             )
             self.currentVideo = currentVideo
+            remapTranscriptDocumentIfNeeded()
         case .speed:
             let previousRate = currentVideo?.rate ?? 1
             videoPlayer.pause()
@@ -464,6 +472,7 @@ final class EditorViewModel {
                 in: &currentVideo
             )
             self.currentVideo = currentVideo
+            remapTranscriptDocumentIfNeeded()
             videoPlayer.syncPlaybackState(with: currentVideo, previousRate: previousRate)
         case .presets:
             currentVideo?.rotation = 0
@@ -678,6 +687,8 @@ final class EditorViewModel {
             freeformRect: cropPresentationState.freeformRect,
             canvasSnapshot: cropPresentationState.canvasEditorState.snapshot(),
             selectedAudioTrack: presentationState.selectedAudioTrack,
+            transcriptFeatureState: transcriptFeatureState,
+            transcriptDocument: transcriptDocument,
             selectedTool: presentationState.selectedTool,
             socialVideoDestination: cropPresentationState.socialVideoDestination,
             showsSafeAreaGuides: false,
@@ -723,10 +734,22 @@ final class EditorViewModel {
         presentationState.selectedTool = preparedState.selectedTool
         presentationState.selectedAudioTrack = preparedState.selectedAudioTrack
         cropPresentationState.apply(preparedState.cropEditingState)
+        transcriptFeatureState = preparedState.transcriptFeatureState
+        transcriptDocument = preparedState.transcriptDocument
 
         if let currentTimelineTime = preparedState.initialTimelineTime {
             videoPlayer.currentTime = currentTimelineTime
         }
+    }
+
+    func setTranscriptDocument(
+        _ document: TranscriptDocument?,
+        featureState: TranscriptFeaturePersistenceState = .loaded
+    ) {
+        transcriptFeatureState = document == nil ? .idle : featureState
+        transcriptDocument = document
+        remapTranscriptDocumentIfNeeded()
+        markEditingConfigurationChanged()
     }
 
     func applyPendingEditingConfiguration(
@@ -760,6 +783,7 @@ final class EditorViewModel {
         applyCropEditingState(restoredState.cropEditingState)
         presentationState.selectedAudioTrack = restoredState.selectedAudioTrack
         presentationState.selectedTool = restoredState.selectedTool
+        remapTranscriptDocumentIfNeeded()
 
         pendingEditingConfiguration = nil
     }
@@ -800,6 +824,16 @@ final class EditorViewModel {
 
     private func applyCropEditingState(_ state: EditorCropEditingState) {
         cropPresentationState.apply(state)
+    }
+
+    private func remapTranscriptDocumentIfNeeded() {
+        guard let currentVideo else { return }
+
+        transcriptDocument = EditorTranscriptRemappingCoordinator.remap(
+            transcriptDocument,
+            trimRange: currentVideo.rangeDuration,
+            playbackRate: currentVideo.rate
+        )
     }
 
     private func markEditingConfigurationChanged() {

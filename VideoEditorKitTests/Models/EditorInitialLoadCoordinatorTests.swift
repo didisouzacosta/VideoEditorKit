@@ -1,4 +1,5 @@
 import CoreGraphics
+import Foundation
 import Testing
 
 @testable import VideoEditorKit
@@ -22,6 +23,37 @@ struct EditorInitialLoadCoordinatorTests {
         #expect(preparedState.selectedTool == nil)
         #expect(preparedState.cropEditingState == .initial)
         #expect(preparedState.initialTimelineTime == 12)
+        #expect(preparedState.transcriptFeatureState == .idle)
+        #expect(preparedState.transcriptDocument == nil)
+    }
+
+    @Test
+    func prepareRestoresPersistedTranscriptState() {
+        let configuration = VideoEditingConfiguration(
+            transcript: .init(
+                featureState: TranscriptFeaturePersistenceState.loaded,
+                document: TranscriptDocument(
+                    segments: [
+                        EditableTranscriptSegment(
+                            id: UUID(),
+                            timeMapping: .init(
+                                sourceStartTime: 8,
+                                sourceEndTime: 12,
+                                timelineStartTime: 8,
+                                timelineEndTime: 12
+                            ),
+                            originalText: "Original",
+                            editedText: "Edited"
+                        )
+                    ]
+                )
+            )
+        )
+
+        let preparedState = EditorInitialLoadCoordinator.prepare(configuration)
+
+        #expect(preparedState.transcriptFeatureState == .loaded)
+        #expect(preparedState.transcriptDocument == configuration.transcript.document)
     }
 
     @Test

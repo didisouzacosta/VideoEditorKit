@@ -161,6 +161,109 @@ struct EditorViewModelTests {
     }
 
     @Test
+    func setTranscriptDocumentRemapsThePersistedTimelineToTheCurrentVideoState() {
+        let viewModel = EditorViewModel()
+        var video = Video.mock
+        video.rangeDuration = 20...80
+        video.updateRate(2)
+        viewModel.currentVideo = video
+
+        viewModel.setTranscriptDocument(
+            TranscriptDocument(
+                segments: [
+                    EditableTranscriptSegment(
+                        id: UUID(),
+                        timeMapping: .init(
+                            sourceStartTime: 10,
+                            sourceEndTime: 40,
+                            timelineStartTime: 10,
+                            timelineEndTime: 40
+                        ),
+                        originalText: "Original segment",
+                        editedText: "Edited segment"
+                    )
+                ]
+            )
+        )
+
+        #expect(viewModel.transcriptFeatureState == .loaded)
+        #expect(viewModel.transcriptDocument?.segments.first?.timeMapping.timelineRange == 10...20)
+    }
+
+    @Test
+    func updateRateRemapsTranscriptDocumentUsingTheCurrentTrim() {
+        let viewModel = EditorViewModel()
+        var video = Video.mock
+        video.rangeDuration = 20...80
+        video.updateRate(1)
+        viewModel.currentVideo = video
+        viewModel.setTranscriptDocument(
+            TranscriptDocument(
+                segments: [
+                    EditableTranscriptSegment(
+                        id: UUID(),
+                        timeMapping: .init(
+                            sourceStartTime: 20,
+                            sourceEndTime: 40,
+                            timelineStartTime: 20,
+                            timelineEndTime: 40
+                        ),
+                        originalText: "Original segment",
+                        editedText: "Edited segment"
+                    )
+                ]
+            )
+        )
+
+        viewModel.updateRate(rate: 2)
+
+        #expect(abs(Double(viewModel.currentVideo?.rate ?? 0) - 2) < 0.0001)
+        #expect(viewModel.transcriptDocument?.segments.first?.timeMapping.timelineRange == 10...20)
+    }
+
+    @Test
+    func setCutRemapsTranscriptDocumentAndHidesSegmentsOutsideTheTrimmedRange() {
+        let viewModel = EditorViewModel()
+        var video = Video.mock
+        video.rangeDuration = 0...250
+        viewModel.currentVideo = video
+        viewModel.setTranscriptDocument(
+            TranscriptDocument(
+                segments: [
+                    EditableTranscriptSegment(
+                        id: UUID(),
+                        timeMapping: .init(
+                            sourceStartTime: 30,
+                            sourceEndTime: 50,
+                            timelineStartTime: 30,
+                            timelineEndTime: 50
+                        ),
+                        originalText: "Visible",
+                        editedText: "Visible"
+                    ),
+                    EditableTranscriptSegment(
+                        id: UUID(),
+                        timeMapping: .init(
+                            sourceStartTime: 5,
+                            sourceEndTime: 10,
+                            timelineStartTime: 5,
+                            timelineEndTime: 10
+                        ),
+                        originalText: "Hidden",
+                        editedText: "Hidden"
+                    ),
+                ]
+            )
+        )
+        viewModel.currentVideo?.rangeDuration = 20...60
+
+        viewModel.setCut()
+
+        #expect(viewModel.transcriptDocument?.segments.first?.timeMapping.timelineRange == 30...50)
+        #expect(viewModel.transcriptDocument?.segments.last?.timeMapping.timelineRange == nil)
+    }
+
+    @Test
     func handleRecordedVideoResetsTheSelectedAudioTrackAndLoadsThePlayer() {
         let viewModel = EditorViewModel()
         let videoPlayer = VideoPlayerManager()
@@ -928,6 +1031,7 @@ struct EditorViewModelTests {
         let videoPlayer = VideoPlayerManager()
         let audioURL = try TestFixtures.createTemporaryAudio()
         defer { FileManager.default.removeIfExists(for: audioURL) }
+        let transcriptSegmentID = try #require(UUID(uuidString: "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE"))
 
         let editingConfiguration = VideoEditingConfiguration(
             trim: .init(lowerBound: 8, upperBound: 24),
@@ -962,6 +1066,24 @@ struct EditorViewModelTests {
                     volume: 0.4
                 ),
                 selectedTrack: .recorded
+            ),
+            transcript: .init(
+                featureState: .loaded,
+                document: TranscriptDocument(
+                    segments: [
+                        EditableTranscriptSegment(
+                            id: transcriptSegmentID,
+                            timeMapping: .init(
+                                sourceStartTime: 6,
+                                sourceEndTime: 18,
+                                timelineStartTime: nil,
+                                timelineEndTime: nil
+                            ),
+                            originalText: "Original segment",
+                            editedText: "Edited segment"
+                        )
+                    ]
+                )
             ),
             presentation: .init(
                 .adjusts,
@@ -1000,6 +1122,12 @@ struct EditorViewModelTests {
         #expect(viewModel.currentVideo?.isAppliedTool(for: .presets) == true)
         #expect(viewModel.currentVideo?.isAppliedTool(for: .audio) == true)
         #expect(viewModel.currentVideo?.isAppliedTool(for: .adjusts) == true)
+        #expect(viewModel.transcriptFeatureState == .loaded)
+        #expect(viewModel.transcriptDocument?.segments.first?.id == transcriptSegmentID)
+        #expect(
+            viewModel.transcriptDocument?.segments.first?.timeMapping.timelineRange
+                == 5.333333333333333...12.0
+        )
     }
 
     @Test
@@ -1007,6 +1135,21 @@ struct EditorViewModelTests {
         let viewModel = EditorViewModel()
         let audioURL = try TestFixtures.createTemporaryAudio()
         defer { FileManager.default.removeIfExists(for: audioURL) }
+        let transcriptDocument = TranscriptDocument(
+            segments: [
+                EditableTranscriptSegment(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 10,
+                        sourceEndTime: 18,
+                        timelineStartTime: 10,
+                        timelineEndTime: 18
+                    ),
+                    originalText: "Original segment",
+                    editedText: "Edited segment"
+                )
+            ]
+        )
 
         var video = Video.mock
         video.rangeDuration = 4...18
@@ -1036,6 +1179,8 @@ struct EditorViewModelTests {
             width: 0.72,
             height: 0.6
         )
+        viewModel.transcriptFeatureState = .loaded
+        viewModel.transcriptDocument = transcriptDocument
         viewModel.cropPresentationState.socialVideoDestination = .youtubeShorts
         viewModel.cropPresentationState.showsSafeAreaOverlay = true
         viewModel.selectTool(.adjusts)
@@ -1053,6 +1198,8 @@ struct EditorViewModelTests {
         #expect(configuration?.frame.colorToken == "palette:orange")
         #expect(configuration?.audio.selectedTrack == .recorded)
         #expect(configuration?.audio.recordedClip?.url == audioURL)
+        #expect(configuration?.transcript.featureState == .loaded)
+        #expect(configuration?.transcript.document == transcriptDocument)
         #expect(configuration?.presentation.selectedTool == .adjusts)
         #expect(configuration?.presentation.socialVideoDestination == .youtubeShorts)
         #expect(configuration?.presentation.showsSafeAreaGuides == false)
