@@ -2,8 +2,8 @@
 
 ## Status
 
-- Drafted
-- Not implemented
+- Implemented incrementally through Phase 4
+- Ready for the concrete Whisper runtime wiring in the next steps
 
 ## Summary
 
@@ -12,6 +12,13 @@ The current editor already supports a host-injected transcription contract throu
 The next step should be a separate reusable component, tentatively named `TranscriptionKit`, responsible for local offline transcription with Whisper. This component should stay independent from `VideoEditorKit`, accept media files as input, extract audio when the input is a video, download and cache a model on demand, run inference locally, and return a normalized result that can be adapted back into the editor's existing provider contract.
 
 This document refines the initial plan into an implementation roadmap that matches the real codebase and keeps the editor decoupled from the Whisper engine.
+
+At the current stage, the repository already includes:
+
+- the isolated `TranscriptionKit` namespace and public API
+- model caching and download infrastructure
+- internal audio extraction and preparation for audio and video inputs
+- a dedicated Objective-C++ bridge boundary prepared for future concrete `whisper.cpp` runtime registration
 
 ## Current Repo Reality
 

@@ -5,7 +5,7 @@
 - Phase 1 completed
 - Phase 2 completed
 - Phase 3 completed
-- Phase 4 pending
+- Phase 4 completed
 - Phase 5 pending
 - Phase 6 pending
 
@@ -139,12 +139,14 @@ Completed outcome:
 
 ## Phase 4: Whisper Bridge
 
+Status: completed.
+
 Scope:
 
-- integrate `whisper.cpp`
 - add Objective-C++ bridge files
 - define raw result DTOs
 - isolate all bridge-specific logic from orchestration and normalization
+- prepare a narrow runtime registration boundary for the future concrete `whisper.cpp` integration
 
 Expected files:
 
@@ -154,8 +156,31 @@ Expected files:
 
 Acceptance:
 
-- bridge can load a model and run inference over prepared audio
+- bridge boundary compiles inside the current app target
+- Swift orchestration stays independent from Objective-C++ and C++ details
 - no product or editor rules live in bridge code
+
+Delivered files:
+
+- `VideoEditorKit/VideoEditorKit-Bridging-Header.h`
+- `VideoEditorKit/TranscriptionKit/Bridge/WhisperBridge.h`
+- `VideoEditorKit/TranscriptionKit/Bridge/WhisperBridge.hpp`
+- `VideoEditorKit/TranscriptionKit/Bridge/WhisperBridge.mm`
+- `VideoEditorKit/TranscriptionKit/Bridge/WhisperBridge.swift`
+- `VideoEditorKitTests/TranscriptionKit/WhisperBridgeTests.swift`
+
+Completed outcome:
+
+- the app target now includes a dedicated Objective-C++ bridge boundary for future `whisper.cpp` wiring
+- `TranscriptionClient` now defaults to the real `WhisperBridge` instead of the earlier placeholder bridge seam
+- bridge-specific DTOs and error mapping stay isolated from orchestration, download, extraction, and normalization layers
+- the C++ side exposes a runtime-registration seam so the future concrete `whisper.cpp` runtime can be plugged in without reshaping the Swift API
+- when no runtime is registered yet, the bridge fails with a typed transcription error instead of crashing or leaking C++ details
+
+Implementation note:
+
+- This phase intentionally stops at a bridge-ready boundary because the repository still does not vendor or link a concrete `whisper.cpp` runtime.
+- The next runtime step should plug a real implementation into `RegisterWhisperRuntime(...)` without changing the public Swift API.
 
 ## Phase 5: Full Orchestration
 

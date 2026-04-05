@@ -27,7 +27,7 @@ public actor TranscriptionClient: TranscriptionProviding {
         self.modelDownloader = URLSessionModelDownloader()
         self.mediaExtractor = AVFoundationMediaExtractor()
         self.audioPreparer = AVFoundationAudioPreparer()
-        self.whisperBridge = PlaceholderWhisperBridge()
+        self.whisperBridge = WhisperBridge()
         self.statusReporter = statusReporter
     }
 
