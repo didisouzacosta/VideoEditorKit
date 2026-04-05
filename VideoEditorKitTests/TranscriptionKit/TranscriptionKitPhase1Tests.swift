@@ -11,9 +11,10 @@ struct TranscriptionKitPhase1Tests {
     @Test
     func requestSupportsVideoMediaSourcesWithoutLeakingEditorTypes() {
         let mediaURL = URL(fileURLWithPath: "/tmp/source.mp4")
+        let remoteURL = URL(filePath: "/tmp/base.bin")
         let model = RemoteModelDescriptor(
             id: "base",
-            remoteURL: URL(string: "https://example.com/base.bin")!,
+            remoteURL: remoteURL,
             localFileName: "base.bin"
         )
 
