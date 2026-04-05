@@ -239,6 +239,7 @@ extension ToolsSectionView {
             VideoAdjustsToolView($adjustsDraft)
         case .transcript:
             TranscriptToolView(
+                isTranscriptionAvailable: editorViewModel.isTranscriptionAvailable,
                 transcriptState: editorViewModel.transcriptState,
                 document: editorViewModel.transcriptDocument,
                 onTranscribe: {

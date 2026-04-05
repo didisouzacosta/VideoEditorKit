@@ -260,6 +260,27 @@ struct EditorViewModelTests {
     }
 
     @Test
+    func configureTranscriptionExposesAvailabilityImmediately() {
+        let viewModel = EditorViewModel()
+
+        #expect(viewModel.isTranscriptionAvailable == false)
+
+        viewModel.configureTranscription(
+            provider: RecordingTranscriptionProvider(
+                result: .success(
+                    VideoTranscriptionResult(segments: [])
+                )
+            )
+        )
+
+        #expect(viewModel.isTranscriptionAvailable)
+
+        viewModel.configureTranscription(provider: nil)
+
+        #expect(viewModel.isTranscriptionAvailable == false)
+    }
+
+    @Test
     func transcribeCurrentVideoFailsWhenProviderReturnsAnEmptyResult() async {
         let provider = RecordingTranscriptionProvider(
             result: .success(

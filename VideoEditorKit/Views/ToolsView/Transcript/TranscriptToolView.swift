@@ -12,6 +12,7 @@ struct TranscriptToolView: View {
 
     // MARK: - Public Properties
 
+    let isTranscriptionAvailable: Bool
     let transcriptState: TranscriptFeatureState
     let document: TranscriptDocument?
     let onTranscribe: () -> Void
@@ -42,12 +43,19 @@ struct TranscriptToolView: View {
     }
 
     private var idleView: some View {
-        statusView(
-            title: "Create a transcript",
-            message: "Generate timed text from the current source video and edit it segment by segment.",
-            actionTitle: "Transcribe",
-            action: onTranscribe
-        )
+        if isTranscriptionAvailable {
+            statusView(
+                title: "Create a transcript",
+                message: "Generate timed text from the current source video and edit it segment by segment.",
+                actionTitle: "Transcribe",
+                action: onTranscribe
+            )
+        } else {
+            statusView(
+                title: "Transcription unavailable",
+                message: "No transcription provider is configured for this editor session."
+            )
+        }
     }
 
     private var loadingView: some View {
@@ -93,19 +101,26 @@ struct TranscriptToolView: View {
     }
 
     private func failureView(for error: TranscriptError) -> some View {
-        statusView(
-            title: "Unable to transcribe",
-            message: errorMessage(for: error),
-            actionTitle: "Try again",
-            action: onRetry
-        )
+        if error == .providerNotConfigured {
+            statusView(
+                title: "Transcription unavailable",
+                message: errorMessage(for: error)
+            )
+        } else {
+            statusView(
+                title: "Unable to transcribe",
+                message: errorMessage(for: error),
+                actionTitle: "Try again",
+                action: onRetry
+            )
+        }
     }
 
     private func statusView(
         title: String,
         message: String,
-        actionTitle: String,
-        action: @escaping () -> Void
+        actionTitle: String? = nil,
+        action: (() -> Void)? = nil
     ) -> some View {
         VStack(spacing: 16) {
             Text(title)
@@ -116,8 +131,10 @@ struct TranscriptToolView: View {
                 .foregroundStyle(Theme.secondary)
                 .multilineTextAlignment(.center)
 
-            Button(actionTitle, action: action)
-                .buttonStyle(.borderedProminent)
+            if let actionTitle, let action {
+                Button(actionTitle, action: action)
+                    .buttonStyle(.borderedProminent)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(.vertical, 40)

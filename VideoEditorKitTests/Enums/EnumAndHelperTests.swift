@@ -16,9 +16,9 @@ struct ToolEnumTests {
     func allExcludesCutWhileKeepingTheVisibleToolsOrder() {
         #expect(
             ToolEnum.all == [
+                .transcript,
                 .presets,
                 .audio,
-                .transcript,
                 .adjusts,
                 .speed,
             ]
@@ -30,9 +30,9 @@ struct ToolEnumTests {
         let expectations: [(tool: ToolEnum, title: String, image: String, order: Int)] = [
             (.cut, "Cut", "scissors", 5),
             (.speed, "Speed", "timer", 4),
-            (.presets, "Presets", "aspectratio", 0),
-            (.audio, "Audio", "waveform", 1),
-            (.transcript, "Transcript", "captions.bubble", 2),
+            (.presets, "Presets", "aspectratio", 1),
+            (.audio, "Audio", "waveform", 2),
+            (.transcript, "Transcript", "captions.bubble", 0),
             (.adjusts, "Adjusts", "circle.righthalf.filled", 3),
         ]
 
@@ -61,16 +61,16 @@ struct VideoEditorConfigurationTests {
         #expect(visibleTools.map(\.order) == [4, 3])
         #expect(blockedTool.tool == .presets)
         #expect(blockedTool.isBlocked)
-        #expect(blockedTool.order == 0)
+        #expect(blockedTool.order == 1)
     }
 
     @Test
     func defaultConfigurationExposesAllVisibleToolsAsEnabled() {
         let configuration = VideoEditorView.Configuration()
 
-        #expect(configuration.tools.map(\.tool) == [.presets, .audio, .transcript, .adjusts, .speed])
+        #expect(configuration.tools.map(\.tool) == [.transcript, .presets, .audio, .adjusts, .speed])
         #expect(configuration.tools.allSatisfy { $0.access == .enabled })
-        #expect(configuration.visibleTools == [.presets, .audio, .transcript, .adjusts, .speed])
+        #expect(configuration.visibleTools == [.transcript, .presets, .audio, .adjusts, .speed])
     }
 
     @Test

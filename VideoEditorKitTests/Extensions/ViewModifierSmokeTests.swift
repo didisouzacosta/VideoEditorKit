@@ -100,6 +100,21 @@ struct ViewModifierSmokeTests {
     }
 
     @Test
+    func transcriptToolViewRendersUnavailableStateInsideAHostingController() {
+        assertRenders(
+            TranscriptToolView(
+                isTranscriptionAvailable: false,
+                transcriptState: .idle,
+                document: nil,
+                onTranscribe: {},
+                onRetry: {},
+                onUpdateSegmentText: { _, _ in },
+                onUpdateSegmentStyle: { _, _ in }
+            )
+        )
+    }
+
+    @Test
     func editedVideoProjectCardRendersInsideAHostingController() {
         assertRenders(
             EditedVideoProjectCard(

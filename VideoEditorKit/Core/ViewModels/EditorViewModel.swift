@@ -64,6 +64,10 @@ final class EditorViewModel {
         currentVideo != nil
     }
 
+    var isTranscriptionAvailable: Bool {
+        transcriptionProvider != nil
+    }
+
     var exportVideo: Video? {
         EditorSessionCoordinator.exportVideo(
             currentVideo: currentVideo,

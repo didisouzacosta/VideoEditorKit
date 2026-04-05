@@ -30,9 +30,9 @@ enum ToolEnum: Int, CaseIterable, Identifiable, Codable, Sendable {
 
     var order: Int {
         switch self {
-        case .presets: 0
-        case .audio: 1
-        case .transcript: 2
+        case .transcript: 0
+        case .presets: 1
+        case .audio: 2
         case .adjusts: 3
         case .speed: 4
         case .cut: 5
