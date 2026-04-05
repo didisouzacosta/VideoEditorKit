@@ -186,4 +186,62 @@ struct VideoEditorTests {
         #expect(presetName == AVAssetExportPresetPassthrough)
     }
 
+    @Test
+    func resolvedRenderStagesPlacesTranscriptBetweenAdjustsAndCrop() {
+        let stages = VideoEditor.resolvedRenderStages(
+            usesAdjustsStage: true,
+            usesTranscriptStage: true,
+            usesCropStage: true
+        )
+
+        #expect(stages == [.base, .adjusts, .transcript, .crop])
+    }
+
+    @Test
+    func requiresTranscriptStageOnlyWhenALoadedTimelineSegmentExists() {
+        let loadedConfiguration = VideoEditingConfiguration(
+            transcript: .init(
+                featureState: .loaded,
+                document: TranscriptDocument(
+                    segments: [
+                        EditableTranscriptSegment(
+                            id: UUID(),
+                            timeMapping: .init(
+                                sourceStartTime: 4,
+                                sourceEndTime: 8,
+                                timelineStartTime: 2,
+                                timelineEndTime: 6
+                            ),
+                            originalText: "Hello",
+                            editedText: "Hello"
+                        )
+                    ]
+                )
+            )
+        )
+        let missingTimelineConfiguration = VideoEditingConfiguration(
+            transcript: .init(
+                featureState: .loaded,
+                document: TranscriptDocument(
+                    segments: [
+                        EditableTranscriptSegment(
+                            id: UUID(),
+                            timeMapping: .init(
+                                sourceStartTime: 4,
+                                sourceEndTime: 8,
+                                timelineStartTime: nil,
+                                timelineEndTime: nil
+                            ),
+                            originalText: "Hello",
+                            editedText: "Hello"
+                        )
+                    ]
+                )
+            )
+        )
+
+        #expect(VideoEditor.requiresTranscriptStage(loadedConfiguration))
+        #expect(VideoEditor.requiresTranscriptStage(missingTimelineConfiguration) == false)
+    }
+
 }

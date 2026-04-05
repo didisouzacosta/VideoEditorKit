@@ -26,7 +26,13 @@ enum VideoEditor {
         )
 
         let usesAdjustsStage = !adjusts.isEmpty
+        let usesTranscriptStage = requiresTranscriptStage(editingConfiguration)
         let usesCanvasStage = requiresCanvasStage(editingConfiguration)
+        let renderStages = resolvedRenderStages(
+            usesAdjustsStage: usesAdjustsStage,
+            usesTranscriptStage: usesTranscriptStage,
+            usesCropStage: usesCanvasStage
+        )
 
         do {
             let url = try await resizeAndLayerOperation(
@@ -35,8 +41,7 @@ enum VideoEditor {
                 videoQuality: videoQuality,
                 progressRange: progressRange(
                     for: .base,
-                    usesAdjustsStage: usesAdjustsStage,
-                    usesCropStage: usesCanvasStage
+                    activeStages: renderStages
                 ),
                 onProgress: onProgress
             )
@@ -46,18 +51,25 @@ enum VideoEditor {
                 fromUrl: url,
                 progressRange: progressRange(
                     for: .adjusts,
-                    usesAdjustsStage: usesAdjustsStage,
-                    usesCropStage: usesCanvasStage
+                    activeStages: renderStages
+                ),
+                onProgress: onProgress
+            )
+            let transcribedURL = try await applyTranscriptOperation(
+                editingConfiguration: editingConfiguration,
+                fromUrl: adjustedURL,
+                progressRange: progressRange(
+                    for: .transcript,
+                    activeStages: renderStages
                 ),
                 onProgress: onProgress
             )
             let croppedURL = try await applyCanvasOperation(
                 editingConfiguration: editingConfiguration,
-                fromUrl: adjustedURL,
+                fromUrl: transcribedURL,
                 progressRange: progressRange(
                     for: .crop,
-                    usesAdjustsStage: usesAdjustsStage,
-                    usesCropStage: usesCanvasStage
+                    activeStages: renderStages
                 ),
                 onProgress: onProgress
             )
@@ -247,16 +259,114 @@ enum VideoEditor {
 
         return outputURL
     }
+
+    private static func applyTranscriptOperation(
+        editingConfiguration: VideoEditingConfiguration,
+        fromUrl: URL,
+        progressRange: ClosedRange<Double>,
+        onProgress: ProgressHandler?
+    ) async throws -> URL {
+        guard let transcriptDocument = editingConfiguration.transcript.document else {
+            await reportProgress(progressRange.upperBound, via: onProgress)
+            return fromUrl
+        }
+
+        let renderSegments = resolvedTranscriptRenderSegments(
+            from: transcriptDocument
+        )
+        guard !renderSegments.isEmpty else {
+            await reportProgress(progressRange.upperBound, via: onProgress)
+            return fromUrl
+        }
+
+        let asset = AVURLAsset(url: fromUrl)
+        guard let videoTrack = try await asset.loadTracks(withMediaType: .video).first else {
+            throw ExporterError.unknow
+        }
+
+        let naturalSize = try await videoTrack.load(.naturalSize)
+        let preferredTransform = try await videoTrack.load(.preferredTransform)
+        let trackTimeRange = try await videoTrack.load(.timeRange)
+        let presentationSize = resolvedPresentationSize(
+            naturalSize: naturalSize,
+            preferredTransform: preferredTransform
+        )
+        let instruction = videoCompositionInstructionForTrackWithSizeAndTime(
+            preferredTransform: preferredTransform,
+            naturalSize: naturalSize,
+            presentationSize: presentationSize,
+            renderSize: presentationSize,
+            track: videoTrack,
+            isMirror: false
+        )
+        let animationTool = createTranscriptAnimationTool(
+            transcriptDocument,
+            renderSegments: renderSegments,
+            renderSize: presentationSize
+        )
+        let videoComposition = AVVideoComposition(
+            configuration: .init(
+                animationTool: animationTool,
+                frameDuration: CMTime(value: 1, timescale: 30),
+                instructions: [
+                    AVVideoCompositionInstruction(
+                        configuration: .init(
+                            layerInstructions: [instruction],
+                            timeRange: trackTimeRange
+                        )
+                    )
+                ],
+                renderSize: presentationSize
+            )
+        )
+        let outputURL = createTempPath()
+
+        guard
+            let session = AVAssetExportSession(
+                asset: asset,
+                presetName: resolvedExportPresetName(
+                    appliesVideoComposition: true,
+                    isSimulatorEnvironment: isSimulator
+                )
+            )
+        else {
+            assertionFailure("Unable to create transcript export session.")
+            throw ExporterError.cannotCreateExportSession
+        }
+
+        session.videoComposition = videoComposition
+
+        try await export(
+            session,
+            to: outputURL,
+            as: .mp4,
+            progressRange: progressRange,
+            onProgress: onProgress
+        )
+
+        return outputURL
+    }
 }
 
 extension VideoEditor {
 
     // MARK: - Private Properties
 
-    private enum RenderStage {
+    enum RenderStage: Equatable {
         case base
         case adjusts
+        case transcript
         case crop
+    }
+
+    private struct TranscriptRenderSegment: Equatable {
+
+        // MARK: - Public Properties
+
+        let text: String
+        let timeRange: ClosedRange<Double>
+        let style: TranscriptStyle
+
     }
 
     private static var isSimulator: Bool {
@@ -446,6 +556,28 @@ extension VideoEditor {
             : AVAssetExportPresetPassthrough
     }
 
+    static func resolvedRenderStages(
+        usesAdjustsStage: Bool,
+        usesTranscriptStage: Bool,
+        usesCropStage: Bool
+    ) -> [RenderStage] {
+        var stages: [RenderStage] = [.base]
+
+        if usesAdjustsStage {
+            stages.append(.adjusts)
+        }
+
+        if usesTranscriptStage {
+            stages.append(.transcript)
+        }
+
+        if usesCropStage {
+            stages.append(.crop)
+        }
+
+        return stages
+    }
+
     private static func requiresCanvasStage(
         _ editingConfiguration: VideoEditingConfiguration
     ) -> Bool {
@@ -457,6 +589,17 @@ extension VideoEditor {
             || editingConfiguration.crop.isMirrored
             || abs(normalizedRotation) > 0.001
             || editingConfiguration.presentation.socialVideoDestination != nil
+    }
+
+    static func requiresTranscriptStage(
+        _ editingConfiguration: VideoEditingConfiguration
+    ) -> Bool {
+        guard editingConfiguration.transcript.featureState == .loaded else { return false }
+        guard let transcriptDocument = editingConfiguration.transcript.document else { return false }
+
+        return resolvedTranscriptRenderSegments(
+            from: transcriptDocument
+        ).isEmpty == false
     }
 
     private static func preferredCanvasRenderSize(
@@ -659,6 +802,36 @@ extension VideoEditor {
         )
     }
 
+    private static func createTranscriptAnimationTool(
+        _ transcriptDocument: TranscriptDocument,
+        renderSegments: [TranscriptRenderSegment],
+        renderSize: CGSize
+    ) -> AVVideoCompositionCoreAnimationTool {
+        let videoLayer = CALayer()
+        videoLayer.frame = CGRect(origin: .zero, size: renderSize)
+
+        let outputLayer = CALayer()
+        outputLayer.frame = CGRect(origin: .zero, size: renderSize)
+        outputLayer.addSublayer(videoLayer)
+
+        for segment in renderSegments {
+            let overlayLayer = makeTranscriptTextLayer(
+                for: segment,
+                overlayPosition: transcriptDocument.overlayPosition,
+                overlaySize: transcriptDocument.overlaySize,
+                renderSize: renderSize
+            )
+            outputLayer.addSublayer(overlayLayer)
+        }
+
+        return AVVideoCompositionCoreAnimationTool(
+            configuration: .init(
+                postProcessingAsVideoLayer: videoLayer,
+                containingLayer: outputLayer
+            )
+        )
+    }
+
     private static func setTimeScaleAndAddTracks(
         to composition: AVMutableComposition,
         from asset: AVAsset,
@@ -782,25 +955,17 @@ extension VideoEditor {
 
     private static func progressRange(
         for stage: RenderStage,
-        usesAdjustsStage: Bool,
-        usesCropStage: Bool
+        activeStages: [RenderStage]
     ) -> ClosedRange<Double> {
-        switch (usesAdjustsStage, usesCropStage, stage) {
-        case (false, false, .base):
-            0...1
-        case (true, false, .base), (false, true, .base):
-            0...0.7
-        case (false, true, .crop), (true, false, .adjusts):
-            0.7...1
-        case (true, true, .base):
-            0...0.55
-        case (true, true, .adjusts):
-            0.55...0.8
-        case (true, true, .crop):
-            0.8...1
-        default:
-            1...1
-        }
+        guard let index = activeStages.firstIndex(of: stage) else { return 1...1 }
+        let stageWidth = 1 / Double(activeStages.count)
+        let lowerBound = Double(index) * stageWidth
+        let upperBound =
+            index == activeStages.count - 1
+            ? 1
+            : Double(index + 1) * stageWidth
+
+        return lowerBound...upperBound
     }
 
     private static func videoCompositionInstructionForTrackWithSizeAndTime(
@@ -918,6 +1083,164 @@ extension VideoEditor {
         CGSize(
             width: max(round(size.width / 2) * 2, 2),
             height: max(round(size.height / 2) * 2, 2)
+        )
+    }
+
+    private static func resolvedTranscriptRenderSegments(
+        from transcriptDocument: TranscriptDocument
+    ) -> [TranscriptRenderSegment] {
+        transcriptDocument.segments.compactMap { segment in
+            let trimmedText = segment.editedText.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard trimmedText.isEmpty == false else { return nil }
+            guard let timeRange = segment.timeMapping.timelineRange else { return nil }
+            guard timeRange.upperBound > timeRange.lowerBound else { return nil }
+
+            return TranscriptRenderSegment(
+                text: trimmedText,
+                timeRange: timeRange,
+                style: resolvedTranscriptStyle(
+                    for: segment,
+                    availableStyles: transcriptDocument.availableStyles
+                )
+            )
+        }
+    }
+
+    private static func resolvedTranscriptStyle(
+        for segment: EditableTranscriptSegment,
+        availableStyles: [TranscriptStyle]
+    ) -> TranscriptStyle {
+        if let styleID = segment.styleID,
+            let style = availableStyles.first(where: { $0.id == styleID })
+        {
+            return style
+        }
+
+        return TranscriptStyle(
+            id: UUID(),
+            name: "Default",
+            fontFamily: "SF Pro Rounded"
+        )
+    }
+
+    private static func makeTranscriptTextLayer(
+        for segment: TranscriptRenderSegment,
+        overlayPosition: TranscriptOverlayPosition,
+        overlaySize: TranscriptOverlaySize,
+        renderSize: CGSize
+    ) -> CALayer {
+        let layout = TranscriptOverlayLayoutResolver.resolve(
+            videoWidth: renderSize.width,
+            videoHeight: renderSize.height,
+            selectedPosition: overlayPosition,
+            selectedSize: overlaySize,
+            text: segment.text
+        )
+        let textLayer = CATextLayer()
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.alignment = resolvedTextAlignment(
+            for: segment.style.textAlignment
+        )
+        let font = resolvedTranscriptFont(
+            style: segment.style,
+            fontSize: layout.fontSize
+        )
+        var attributes: [NSAttributedString.Key: Any] = [
+            .font: font,
+            .foregroundColor: resolvedUIColor(segment.style.textColor),
+            .paragraphStyle: paragraphStyle,
+        ]
+
+        if segment.style.hasStroke, let strokeColor = segment.style.strokeColor {
+            attributes[.strokeColor] = resolvedUIColor(strokeColor)
+            attributes[.strokeWidth] = -3
+        }
+
+        textLayer.string = NSAttributedString(
+            string: segment.text,
+            attributes: attributes
+        )
+        textLayer.frame = layout.overlayFrame.insetBy(dx: -12, dy: 0)
+        textLayer.alignmentMode = resolvedCATextAlignment(
+            for: segment.style.textAlignment
+        )
+        textLayer.isWrapped = true
+        textLayer.contentsScale = 2
+        textLayer.opacity = 0
+        textLayer.add(
+            resolvedTranscriptOpacityAnimation(
+                for: segment.timeRange
+            ),
+            forKey: "transcript-opacity-\(segment.text.hashValue)"
+        )
+
+        return textLayer
+    }
+
+    private static func resolvedTranscriptOpacityAnimation(
+        for timeRange: ClosedRange<Double>
+    ) -> CAKeyframeAnimation {
+        let animation = CAKeyframeAnimation(keyPath: "opacity")
+        animation.beginTime = AVCoreAnimationBeginTimeAtZero + timeRange.lowerBound
+        animation.duration = max(timeRange.upperBound - timeRange.lowerBound, 1 / 30)
+        animation.values = [0, 1, 1, 0]
+        animation.keyTimes = [0, 0.001, 0.999, 1]
+        animation.isRemovedOnCompletion = false
+        animation.fillMode = .both
+        return animation
+    }
+
+    private static func resolvedTranscriptFont(
+        style: TranscriptStyle,
+        fontSize: CGFloat
+    ) -> UIFont {
+        let resolvedFont =
+            UIFont(name: style.fontFamily, size: fontSize)
+            ?? UIFont.systemFont(ofSize: fontSize)
+
+        guard style.isItalic else { return resolvedFont }
+
+        guard
+            let italicDescriptor = resolvedFont.fontDescriptor.withSymbolicTraits(.traitItalic)
+        else {
+            return UIFont.italicSystemFont(ofSize: fontSize)
+        }
+
+        return UIFont(descriptor: italicDescriptor, size: fontSize)
+    }
+
+    private static func resolvedTextAlignment(
+        for alignment: TranscriptTextAlignment
+    ) -> NSTextAlignment {
+        switch alignment {
+        case .leading:
+            .left
+        case .center:
+            .center
+        case .trailing:
+            .right
+        }
+    }
+
+    private static func resolvedCATextAlignment(
+        for alignment: TranscriptTextAlignment
+    ) -> CATextLayerAlignmentMode {
+        switch alignment {
+        case .leading:
+            .left
+        case .center:
+            .center
+        case .trailing:
+            .right
+        }
+    }
+
+    private static func resolvedUIColor(_ color: RGBAColor) -> UIColor {
+        UIColor(
+            red: color.red,
+            green: color.green,
+            blue: color.blue,
+            alpha: color.alpha
         )
     }
 
