@@ -248,6 +248,7 @@ struct EditorViewModelTests {
 
         #expect(viewModel.transcriptFeatureState == .loaded)
         #expect(viewModel.transcriptDocument == viewModel.transcriptDraftDocument)
+        #expect(viewModel.currentVideo?.isAppliedTool(for: .transcript) == true)
     }
 
     @Test
@@ -716,6 +717,7 @@ struct EditorViewModelTests {
         #expect(viewModel.transcriptDocument == nil)
         #expect(viewModel.transcriptFeatureState == .idle)
         #expect(viewModel.transcriptState == .idle)
+        #expect(viewModel.currentVideo?.isAppliedTool(for: .transcript) == false)
     }
 
     @Test
@@ -1705,6 +1707,7 @@ struct EditorViewModelTests {
         #expect(viewModel.currentVideo?.isAppliedTool(for: .presets) == true)
         #expect(viewModel.currentVideo?.isAppliedTool(for: .audio) == true)
         #expect(viewModel.currentVideo?.isAppliedTool(for: .adjusts) == true)
+        #expect(viewModel.currentVideo?.isAppliedTool(for: .transcript) == true)
         #expect(viewModel.transcriptFeatureState == .loaded)
         #expect(viewModel.transcriptDocument?.segments.first?.id == transcriptSegmentID)
         #expect(

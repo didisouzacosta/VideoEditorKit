@@ -163,6 +163,10 @@ enum VideoEditingConfigurationMapper {
             restoredTools.append(.adjusts)
         }
 
+        if configuration.transcript.featureState == .loaded, configuration.transcript.document != nil {
+            restoredTools.append(.transcript)
+        }
+
         return restoredTools.map(\.rawValue)
     }
 

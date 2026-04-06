@@ -896,6 +896,7 @@ final class EditorViewModel {
         transcriptDocument = document
         transcriptDraftDocument = document
         remapTranscriptDocumentIfNeeded()
+        syncTranscriptAppliedToolState()
         syncTranscriptRuntimeState()
         markEditingConfigurationChanged()
     }
@@ -941,6 +942,7 @@ final class EditorViewModel {
         transcriptDocument = transcriptDraftDocument
         transcriptFeatureState = transcriptDocument == nil ? .idle : .loaded
         presentationState.isTranscriptOverlaySelected = false
+        syncTranscriptAppliedToolState()
         syncTranscriptRuntimeState()
         markEditingConfigurationChanged()
     }
@@ -952,6 +954,7 @@ final class EditorViewModel {
         transcriptDocument = nil
         transcriptDraftDocument = nil
         presentationState.isTranscriptOverlaySelected = false
+        syncTranscriptAppliedToolState()
         markEditingConfigurationChanged()
     }
 
@@ -1226,6 +1229,18 @@ final class EditorViewModel {
     private func discardUnappliedTranscriptChanges() {
         transcriptDraftDocument = transcriptDocument
         syncTranscriptRuntimeState()
+    }
+
+    private func syncTranscriptAppliedToolState() {
+        guard var currentVideo else { return }
+
+        if transcriptFeatureState == .loaded, transcriptDocument != nil {
+            currentVideo.appliedTool(for: .transcript)
+        } else {
+            currentVideo.removeTool(for: .transcript)
+        }
+
+        self.currentVideo = currentVideo
     }
 
     private func markEditingConfigurationChanged() {

@@ -531,6 +531,7 @@ struct VideoEditingConfigurationTests {
         #expect(video.isAppliedTool(for: .presets))
         #expect(video.isAppliedTool(for: .audio))
         #expect(video.isAppliedTool(for: .adjusts))
+        #expect(video.isAppliedTool(for: .transcript))
         #expect(VideoEditingConfigurationMapper.selectedAudioTrack(from: configuration) == .recorded)
     }
 
