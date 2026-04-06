@@ -65,11 +65,16 @@ enum VideoEditingConfigurationMapper {
                 selectedTrack: selectedAudioTrack
             ),
             transcript: .init(
-                featureState: transcriptFeatureState,
+                featureState: persistedTranscriptFeatureState(
+                    transcriptFeatureState,
+                    document: transcriptDocument
+                ),
                 document: transcriptDocument
             ),
             presentation: .init(
-                selectedTool,
+                persistedPresentationTool(
+                    from: selectedTool
+                ),
                 socialVideoDestination: socialVideoDestination,
                 showsSafeAreaGuides: false
             )
@@ -159,6 +164,27 @@ enum VideoEditingConfigurationMapper {
         }
 
         return restoredTools.map(\.rawValue)
+    }
+
+    private static func persistedPresentationTool(
+        from selectedTool: ToolEnum?
+    ) -> ToolEnum? {
+        guard selectedTool != .transcript else {
+            return nil
+        }
+
+        return selectedTool
+    }
+
+    private static func persistedTranscriptFeatureState(
+        _ featureState: TranscriptFeaturePersistenceState,
+        document: TranscriptDocument?
+    ) -> TranscriptFeaturePersistenceState {
+        guard document != nil else {
+            return .idle
+        }
+
+        return .loaded
     }
 
 }

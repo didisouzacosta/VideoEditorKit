@@ -564,49 +564,28 @@ extension VideoEditorView {
 
             // MARK: - Public Properties
 
-            let provider: (any VideoTranscriptionProvider)?
             let availableStyles: [TranscriptStyle]
             let preferredLocale: String?
-            let localModelDescriptor: RemoteModelDescriptor?
+            private let explicitProvider: (any VideoTranscriptionProvider)?
 
             var isConfigured: Bool {
-                provider != nil
+                explicitProvider != nil
+            }
+
+            var provider: (any VideoTranscriptionProvider)? {
+                explicitProvider
             }
 
             // MARK: - Initializer
 
             init(
                 provider: (any VideoTranscriptionProvider)? = nil,
-                localModelDescriptor: RemoteModelDescriptor? = TranscriptionKitHardcodedModels.preferredModel,
                 availableStyles: [TranscriptStyle] = [],
                 preferredLocale: String? = nil
             ) {
-                self.provider = Self.resolvedProvider(
-                    explicitProvider: provider,
-                    localModelDescriptor: localModelDescriptor
-                )
+                explicitProvider = provider
                 self.availableStyles = availableStyles
                 self.preferredLocale = preferredLocale
-                self.localModelDescriptor = localModelDescriptor
-            }
-
-            // MARK: - Private Methods
-
-            private static func resolvedProvider(
-                explicitProvider: (any VideoTranscriptionProvider)?,
-                localModelDescriptor: RemoteModelDescriptor?
-            ) -> (any VideoTranscriptionProvider)? {
-                if let explicitProvider {
-                    return explicitProvider
-                }
-
-                guard let localModelDescriptor else {
-                    return nil
-                }
-
-                return LocalTranscriptionVideoProvider(
-                    modelDescriptor: localModelDescriptor
-                )
             }
 
         }

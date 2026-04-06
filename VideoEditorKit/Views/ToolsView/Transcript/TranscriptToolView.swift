@@ -195,7 +195,9 @@ private struct TranscriptSegmentCard: View {
                 "Transcript segment",
                 text: Binding(
                     get: { segment.editedText },
-                    set: onUpdateText
+                    set: { newValue in
+                        onUpdateText(newValue)
+                    }
                 ),
                 axis: .vertical
             )
@@ -220,7 +222,9 @@ private struct TranscriptSegmentCard: View {
     private var styleSelection: Binding<TranscriptStyle.StyleIdentifier?> {
         Binding(
             get: { segment.styleID },
-            set: onUpdateStyle
+            set: { newValue in
+                onUpdateStyle(newValue)
+            }
         )
     }
 

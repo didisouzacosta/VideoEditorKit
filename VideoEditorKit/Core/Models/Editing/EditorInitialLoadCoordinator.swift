@@ -39,14 +39,20 @@ struct EditorInitialLoadCoordinator {
     static func prepare(
         _ editingConfiguration: VideoEditingConfiguration?
     ) -> PreparedEditorInitialLoadState {
-        PreparedEditorInitialLoadState(
+        let transcriptDocument = editingConfiguration?.transcript.document
+        let transcriptFeatureState = normalizedTranscriptFeatureState(
+            editingConfiguration?.transcript.featureState ?? .idle,
+            document: transcriptDocument
+        )
+
+        return PreparedEditorInitialLoadState(
             pendingEditingConfiguration: editingConfiguration,
             selectedAudioTrack: .video,
             selectedTool: nil,
             cropEditingState: .initial,
             initialTimelineTime: editingConfiguration?.playback.currentTimelineTime,
-            transcriptFeatureState: editingConfiguration?.transcript.featureState ?? .idle,
-            transcriptDocument: editingConfiguration?.transcript.document
+            transcriptFeatureState: transcriptFeatureState,
+            transcriptDocument: transcriptDocument
         )
     }
 
@@ -92,6 +98,19 @@ struct EditorInitialLoadCoordinator {
             selectedAudioTrack: resolvedState.selectedAudioTrack,
             selectedTool: resolvedState.selectedTool
         )
+    }
+
+    // MARK: - Private Methods
+
+    private static func normalizedTranscriptFeatureState(
+        _ featureState: TranscriptFeaturePersistenceState,
+        document: TranscriptDocument?
+    ) -> TranscriptFeaturePersistenceState {
+        guard document != nil else {
+            return .idle
+        }
+
+        return .loaded
     }
 
 }

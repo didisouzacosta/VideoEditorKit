@@ -535,6 +535,28 @@ struct VideoEditingConfigurationTests {
     }
 
     @Test
+    func makeConfigurationDoesNotPersistTranscriptAsTheSelectedSheet() {
+        let configuration = VideoEditingConfigurationMapper.makeConfiguration(
+            from: Video.mock,
+            selectedTool: .transcript
+        )
+
+        #expect(configuration.presentation.selectedTool == nil)
+    }
+
+    @Test
+    func makeConfigurationDoesNotPersistTranscriptFailuresWithoutASavedDocument() {
+        let configuration = VideoEditingConfigurationMapper.makeConfiguration(
+            from: Video.mock,
+            transcriptFeatureState: .failed,
+            transcriptDocument: nil
+        )
+
+        #expect(configuration.transcript.featureState == .idle)
+        #expect(configuration.transcript.document == nil)
+    }
+
+    @Test
     func decodeMissingSafeAreaGuidesDefaultsToHiddenForSavedSocialDestinations() throws {
         let json = """
             {

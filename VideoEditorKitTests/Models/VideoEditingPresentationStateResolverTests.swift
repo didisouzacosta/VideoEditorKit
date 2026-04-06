@@ -129,4 +129,18 @@ struct VideoEditingPresentationResolverTests {
         #expect(resolvedState.selectedTool == .audio)
     }
 
+    @Test
+    func resolveDoesNotRestoreTranscriptAsTheInitiallyOpenedTool() async {
+        let resolvedState = await VideoEditingPresentationStateResolver.resolve(
+            from: VideoEditingConfiguration(
+                presentation: .init(.transcript)
+            ),
+            referenceSize: CGSize(width: 1920, height: 1080),
+            hasRecordedAudioTrack: false,
+            enabledTools: Set([.transcript, .audio])
+        )
+
+        #expect(resolvedState.selectedTool == nil)
+    }
+
 }

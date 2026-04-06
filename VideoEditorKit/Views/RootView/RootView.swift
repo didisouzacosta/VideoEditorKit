@@ -107,7 +107,6 @@ extension RootView {
 
     static var defaultTranscriptionConfiguration: VideoEditorView.Configuration.TranscriptionConfiguration {
         .init(
-            localModelDescriptor: TranscriptionKitHardcodedModels.preferredModel,
             availableStyles: defaultTranscriptStyles,
             preferredLocale: preferredTranscriptionLocale
         )

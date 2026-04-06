@@ -57,6 +57,21 @@ struct EditorInitialLoadCoordinatorTests {
     }
 
     @Test
+    func prepareIgnoresPersistedTranscriptFailuresWhenThereIsNoSavedTranscript() {
+        let configuration = VideoEditingConfiguration(
+            transcript: .init(
+                featureState: .failed,
+                document: nil
+            )
+        )
+
+        let preparedState = EditorInitialLoadCoordinator.prepare(configuration)
+
+        #expect(preparedState.transcriptFeatureState == .idle)
+        #expect(preparedState.transcriptDocument == nil)
+    }
+
+    @Test
     @MainActor
     func applyPendingEditingConfigurationAppliesMappedStateAndResolvedLayout() {
         let configuration = VideoEditingConfiguration(

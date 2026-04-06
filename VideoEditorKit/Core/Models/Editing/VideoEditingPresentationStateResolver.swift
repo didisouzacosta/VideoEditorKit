@@ -204,6 +204,10 @@ struct VideoEditingPresentationStateResolver {
             return nil
         }
 
+        guard selectedTool != .transcript else {
+            return nil
+        }
+
         guard enabledTools.contains(selectedTool) else {
             return nil
         }

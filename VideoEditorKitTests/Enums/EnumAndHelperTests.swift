@@ -68,9 +68,9 @@ struct VideoEditorConfigurationTests {
     func defaultConfigurationExposesAllVisibleToolsAsEnabled() {
         let configuration = VideoEditorView.Configuration()
 
-        #expect(configuration.tools.map(\.tool) == [.transcript, .presets, .audio, .adjusts, .speed])
+        #expect(configuration.tools.map(\.tool) == [.presets, .audio, .adjusts, .speed])
         #expect(configuration.tools.allSatisfy { $0.access == .enabled })
-        #expect(configuration.visibleTools == [.transcript, .presets, .audio, .adjusts, .speed])
+        #expect(configuration.visibleTools == [.presets, .audio, .adjusts, .speed])
     }
 
     @Test
@@ -114,8 +114,7 @@ struct VideoEditorConfigurationTests {
         let configuration = VideoEditorView.Configuration(
             tools: ToolAvailability.enabled(ToolEnum.all),
             transcription: .init(
-                provider: nil,
-                localModelDescriptor: nil
+                provider: nil
             )
         )
 
@@ -133,8 +132,7 @@ struct VideoEditorConfigurationTests {
                 .enabled(.speed, order: 1),
             ],
             transcription: .init(
-                provider: nil,
-                localModelDescriptor: nil
+                provider: nil
             )
         )
 
@@ -163,35 +161,12 @@ struct VideoEditorConfigurationTests {
     }
 
     @Test
-    func transcriptionConfigurationBuildsALocalProviderWhenAModelDescriptorIsProvided() throws {
-        let remoteURL = try #require(
-            URL(string: "https://example.com/base.bin")
-        )
-        let configuration = VideoEditorView.Configuration.TranscriptionConfiguration(
-            localModelDescriptor: RemoteModelDescriptor(
-                id: "base",
-                remoteURL: remoteURL,
-                localFileName: "base.bin"
-            )
-        )
-
-        #expect(configuration.provider != nil)
-        #expect(configuration.localModelDescriptor?.id == "base")
-    }
-
-    @Test
-    func transcriptionConfigurationPrefersAnExplicitProviderOverTheLocalDefault() async throws {
-        let remoteURL = try #require(
-            URL(string: "https://example.com/base.bin")
-        )
+    func transcriptionConfigurationUsesAnExplicitProviderWhenAvailable() async throws {
         let provider = ConfigurationProbeTranscriptionProvider()
         let configuration = VideoEditorView.Configuration.TranscriptionConfiguration(
             provider: provider,
-            localModelDescriptor: RemoteModelDescriptor(
-                id: "base",
-                remoteURL: remoteURL,
-                localFileName: "base.bin"
-            )
+            availableStyles: [],
+            preferredLocale: nil
         )
 
         let result = try await configuration.provider?.transcribeVideo(
@@ -210,14 +185,14 @@ struct VideoEditorConfigurationTests {
 
     @MainActor
     @Test
-    func rootViewDefaultTranscriptionConfigurationPassesTheLocalModelStylesAndLocale() {
+    func rootViewDefaultTranscriptionConfigurationKeepsStylesAndLocaleWithoutALocalProvider() {
         let configuration = RootView.defaultTranscriptionConfiguration
 
-        #expect(configuration.localModelDescriptor == TranscriptionKitHardcodedModels.preferredModel)
         #expect(configuration.availableStyles == RootView.defaultTranscriptStyles)
         #expect(configuration.availableStyles.count == 3)
         #expect(configuration.preferredLocale == RootView.preferredTranscriptionLocale)
-        #expect(configuration.provider != nil)
+        #expect(configuration.provider == nil)
+        #expect(configuration.isConfigured == false)
     }
 
 }
