@@ -154,6 +154,11 @@ struct OpenAIWhisperTranscriptionComponentTests {
 
     @Test
     func transcribeVideoFailsWithInvalidVideoSourceForRemoteURLs() async {
+        guard let remoteVideoURL = URL(string: "https://example.com/video.mov") else {
+            Issue.record("Expected the non-file video URL fixture to be valid.")
+            return
+        }
+
         let component = OpenAIWhisperTranscriptionComponent(
             dependencies: .init(
                 extractAudio: { _ in
@@ -175,7 +180,7 @@ struct OpenAIWhisperTranscriptionComponentTests {
             _ = try await component.transcribeVideo(
                 input: .init(
                     assetIdentifier: "asset-id",
-                    source: .fileURL(URL(string: "https://example.com/video.mov")!),
+                    source: .fileURL(remoteVideoURL),
                     preferredLocale: nil
                 )
             )

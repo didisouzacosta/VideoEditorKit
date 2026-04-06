@@ -66,9 +66,13 @@ struct VideoAudioExtractionServiceTests {
     @Test
     func extractAudioRejectsNonFileURLs() async {
         let service = VideoAudioExtractionService()
+        guard let remoteURL = URL(string: "https://example.com/video.mp4") else {
+            Issue.record("Expected the non-file video URL fixture to be valid.")
+            return
+        }
 
         do {
-            _ = try await service.extractAudio(from: URL(string: "https://example.com/video.mp4")!)
+            _ = try await service.extractAudio(from: remoteURL)
             Issue.record("Expected extraction to reject non-file URLs.")
         } catch let error as VideoAudioExtractionService.ExtractionError {
             #expect(error == .invalidVideoSource)

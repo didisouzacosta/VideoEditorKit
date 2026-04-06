@@ -32,7 +32,9 @@ struct OpenAIWhisperAPIClientTests {
                         }
                         """.utf8
                     ),
-                    HTTPURLResponse(url: endpoint, statusCode: 200, httpVersion: nil, headerFields: nil)!
+                    try #require(
+                        HTTPURLResponse(url: endpoint, statusCode: 200, httpVersion: nil, headerFields: nil)
+                    )
                 )
             )
         )
@@ -89,7 +91,9 @@ struct OpenAIWhisperAPIClientTests {
             result: .success(
                 (
                     Data(#"{"text":"hello","segments":[],"words":[]}"#.utf8),
-                    HTTPURLResponse(url: endpoint, statusCode: 200, httpVersion: nil, headerFields: nil)!
+                    try #require(
+                        HTTPURLResponse(url: endpoint, statusCode: 200, httpVersion: nil, headerFields: nil)
+                    )
                 )
             )
         )
@@ -122,7 +126,9 @@ struct OpenAIWhisperAPIClientTests {
             result: .success(
                 (
                     Data(#"{"text":"hello","segments":[],"words":[]}"#.utf8),
-                    HTTPURLResponse(url: endpoint, statusCode: 200, httpVersion: nil, headerFields: nil)!
+                    try #require(
+                        HTTPURLResponse(url: endpoint, statusCode: 200, httpVersion: nil, headerFields: nil)
+                    )
                 )
             )
         )
@@ -157,7 +163,9 @@ struct OpenAIWhisperAPIClientTests {
             result: .success(
                 (
                     Data(#"{"text":"hello","segments":[],"words":[]}"#.utf8),
-                    HTTPURLResponse(url: endpoint, statusCode: 200, httpVersion: nil, headerFields: nil)!
+                    try #require(
+                        HTTPURLResponse(url: endpoint, statusCode: 200, httpVersion: nil, headerFields: nil)
+                    )
                 )
             )
         )
@@ -191,7 +199,9 @@ struct OpenAIWhisperAPIClientTests {
             result: .success(
                 (
                     Data(#"{"error":{"message":"invalid api key"}}"#.utf8),
-                    HTTPURLResponse(url: endpoint, statusCode: 401, httpVersion: nil, headerFields: nil)!
+                    try #require(
+                        HTTPURLResponse(url: endpoint, statusCode: 401, httpVersion: nil, headerFields: nil)
+                    )
                 )
             )
         )
@@ -215,6 +225,11 @@ struct OpenAIWhisperAPIClientTests {
 
     @Test
     func createTranscriptionRejectsNonFileAudioURLs() async {
+        guard let remoteAudioURL = URL(string: "https://example.com/audio.m4a") else {
+            Issue.record("Expected the non-file audio URL fixture to be valid.")
+            return
+        }
+
         let session = RecordingHTTPSession(
             result: .failure(CocoaError(.fileNoSuchFile))
         )
@@ -226,7 +241,7 @@ struct OpenAIWhisperAPIClientTests {
         do {
             _ = try await client.createTranscription(
                 request: .init(
-                    audioFileURL: URL(string: "https://example.com/audio.m4a")!
+                    audioFileURL: remoteAudioURL
                 )
             )
             Issue.record("Expected the client to reject non-file audio URLs.")
