@@ -9,10 +9,6 @@ import Foundation
 
 struct OpenAIWhisperResponseMapper {
 
-    // MARK: - Initializer
-
-    init() {}
-
     // MARK: - Public Methods
 
     func map(_ response: OpenAIWhisperVerboseTranscriptionResponseDTO) -> VideoTranscriptionResult {

@@ -66,13 +66,20 @@ struct OpenAIWhisperAPIClient {
     private let endpoint: URL
     private let multipartBuilder: OpenAIWhisperMultipartFormDataBuilder
     private let decoder: JSONDecoder
+    private static let defaultEndpoint: URL = {
+        guard let endpoint = URL(string: "https://api.openai.com/v1/audio/transcriptions") else {
+            preconditionFailure("The default Whisper transcription endpoint must be a valid URL.")
+        }
+
+        return endpoint
+    }()
 
     // MARK: - Initializer
 
     init(
         apiKey: String,
         session: any HTTPSession = URLSession.shared,
-        endpoint: URL = URL(string: "https://api.openai.com/v1/audio/transcriptions")!,
+        endpoint: URL = Self.defaultEndpoint,
         multipartBuilder: OpenAIWhisperMultipartFormDataBuilder = .init(),
         decoder: JSONDecoder = JSONDecoder()
     ) {
