@@ -88,12 +88,7 @@ struct ViewModifierSmokeTests {
                 ),
                 overlayPosition: .bottom,
                 overlaySize: .medium,
-                isSelected: true,
-                containerSize: CGSize(width: 320, height: 180),
-                onSelect: {},
-                onDismissSelection: {},
-                onSelectPosition: { _ in },
-                onSelectSize: { _ in }
+                containerSize: CGSize(width: 320, height: 180)
             )
             .frame(width: 320, height: 180)
         )
@@ -109,7 +104,9 @@ struct ViewModifierSmokeTests {
                 onTranscribe: {},
                 onRetry: {},
                 onUpdateSegmentText: { _, _ in },
-                onUpdateSegmentStyle: { _, _ in }
+                onUpdateStyle: { _ in },
+                onUpdatePosition: { _ in },
+                onUpdateSize: { _ in }
             )
         )
     }

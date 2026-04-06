@@ -583,7 +583,7 @@ struct EditorViewModelTests {
     }
 
     @Test
-    func updateTranscriptSegmentStyleAssignsTheSegmentStyleWithoutChangingItsText() {
+    func updateTranscriptStyleAssignsDocumentLevelStyleWithoutChangingSegmentText() {
         let viewModel = EditorViewModel()
         let styleID = UUID()
         let segmentID = UUID()
@@ -612,13 +612,10 @@ struct EditorViewModelTests {
             )
         )
 
-        viewModel.updateTranscriptSegmentStyle(
-            styleID,
-            segmentID: segmentID
-        )
+        viewModel.updateTranscriptStyle(styleID)
 
-        #expect(viewModel.transcriptDocument?.segments.first?.styleID == nil)
-        #expect(viewModel.transcriptDraftDocument?.segments.first?.styleID == styleID)
+        #expect(viewModel.transcriptDocument?.selectedStyleID == nil)
+        #expect(viewModel.transcriptDraftDocument?.selectedStyleID == styleID)
         #expect(viewModel.transcriptDraftDocument?.segments.first?.editedText == "Edited segment")
     }
 
@@ -721,7 +718,7 @@ struct EditorViewModelTests {
     }
 
     @Test
-    func updateTranscriptOverlayControlsPersistPositionAndSizeWithoutTouchingSelectionState() {
+    func updateTranscriptOverlayControlsPersistPositionAndSizeInDraft() {
         let viewModel = EditorViewModel()
         viewModel.setTranscriptDocument(
             TranscriptDocument(
@@ -740,14 +737,15 @@ struct EditorViewModelTests {
                 ]
             )
         )
-        viewModel.setTranscriptOverlaySelection(true)
+        viewModel.prepareTranscriptDraft()
 
         viewModel.updateTranscriptOverlayPosition(.top)
         viewModel.updateTranscriptOverlaySize(.large)
 
-        #expect(viewModel.transcriptDocument?.overlayPosition == .top)
-        #expect(viewModel.transcriptDocument?.overlaySize == .large)
-        #expect(viewModel.presentationState.isTranscriptOverlaySelected)
+        #expect(viewModel.transcriptDocument?.overlayPosition == .bottom)
+        #expect(viewModel.transcriptDocument?.overlaySize == .medium)
+        #expect(viewModel.transcriptDraftDocument?.overlayPosition == .top)
+        #expect(viewModel.transcriptDraftDocument?.overlaySize == .large)
     }
 
     @Test

@@ -79,13 +79,10 @@ extension ToolsSectionView {
                     toolContent(tool, video)
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .topLeading)
-            .padding(.horizontal, 20)
-            .padding(.top, 16)
-            .padding(.bottom, requiresExplicitApply(tool) ? 20 : 24)
-
-            if requiresExplicitApply(tool) {
-                applyFooter(tool)
+            .safeAreaBar(edge: .bottom) {
+                if requiresExplicitApply(tool) {
+                    applyFooter(tool)
+                }
             }
         }
         .navigationTitle(tool.title)
@@ -258,11 +255,14 @@ extension ToolsSectionView {
                         segmentID: segmentID
                     )
                 },
-                onUpdateSegmentStyle: { segmentID, styleID in
-                    editorViewModel.updateTranscriptSegmentStyle(
-                        styleID,
-                        segmentID: segmentID
-                    )
+                onUpdateStyle: { styleID in
+                    editorViewModel.updateTranscriptStyle(styleID)
+                },
+                onUpdatePosition: { position in
+                    editorViewModel.updateTranscriptOverlayPosition(position)
+                },
+                onUpdateSize: { size in
+                    editorViewModel.updateTranscriptOverlaySize(size)
                 }
             )
         case .cut:

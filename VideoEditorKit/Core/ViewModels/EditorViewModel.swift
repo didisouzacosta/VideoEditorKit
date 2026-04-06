@@ -803,7 +803,11 @@ final class EditorViewModel {
     func activeTranscriptSegment(
         at timelineTime: Double
     ) -> EditableTranscriptSegment? {
-        transcriptDocument?.segments.first {
+        let doc =
+            presentationState.selectedTool == .transcript
+            ? (transcriptDraftDocument ?? transcriptDocument)
+            : transcriptDocument
+        return doc?.segments.first {
             guard let timelineRange = $0.timeMapping.timelineRange else { return false }
             return timelineRange.contains(timelineTime)
         }
@@ -812,52 +816,43 @@ final class EditorViewModel {
     func transcriptStyle(
         for segment: EditableTranscriptSegment
     ) -> TranscriptStyle? {
-        guard let styleID = segment.styleID else { return nil }
-        return transcriptDocument?.availableStyles.first(where: { $0.id == styleID })
-    }
-
-    func setTranscriptOverlaySelection(_ isSelected: Bool) {
-        presentationState.isTranscriptOverlaySelected = isSelected
+        let doc =
+            presentationState.selectedTool == .transcript
+            ? (transcriptDraftDocument ?? transcriptDocument)
+            : transcriptDocument
+        let effectiveStyleID = doc?.selectedStyleID ?? segment.styleID
+        guard let effectiveStyleID else { return nil }
+        return doc?.availableStyles.first(where: { $0.id == effectiveStyleID })
     }
 
     func updateTranscriptOverlayPosition(
         _ position: TranscriptOverlayPosition
     ) {
-        if presentationState.selectedTool == .transcript, transcriptDraftDocument != nil {
-            updateTranscriptDraftDocument { transcriptDocument in
-                guard transcriptDocument.overlayPosition != position else { return false }
-                transcriptDocument.overlayPosition = position
-                return true
-            }
-            return
+        updateTranscriptDraftDocument { transcriptDocument in
+            guard transcriptDocument.overlayPosition != position else { return false }
+            transcriptDocument.overlayPosition = position
+            return true
         }
-
-        guard var transcriptDocument else { return }
-        guard transcriptDocument.overlayPosition != position else { return }
-
-        transcriptDocument.overlayPosition = position
-        self.transcriptDocument = transcriptDocument
-        markEditingConfigurationChanged()
     }
 
     func updateTranscriptOverlaySize(
         _ size: TranscriptOverlaySize
     ) {
-        if presentationState.selectedTool == .transcript, transcriptDraftDocument != nil {
-            updateTranscriptDraftDocument { transcriptDocument in
-                guard transcriptDocument.overlaySize != size else { return false }
-                transcriptDocument.overlaySize = size
-                return true
-            }
-            return
+        updateTranscriptDraftDocument { transcriptDocument in
+            guard transcriptDocument.overlaySize != size else { return false }
+            transcriptDocument.overlaySize = size
+            return true
         }
+    }
 
-        guard var transcriptDocument else { return }
-        guard transcriptDocument.overlaySize != size else { return }
-
-        transcriptDocument.overlaySize = size
-        self.transcriptDocument = transcriptDocument
-        markEditingConfigurationChanged()
+    func updateTranscriptStyle(
+        _ styleID: TranscriptStyle.StyleIdentifier?
+    ) {
+        updateTranscriptDraftDocument { transcriptDocument in
+            guard transcriptDocument.selectedStyleID != styleID else { return false }
+            transcriptDocument.selectedStyleID = styleID
+            return true
+        }
     }
 
     func playerContainerSize(in availableSize: CGSize) -> CGSize {
@@ -917,22 +912,6 @@ final class EditorViewModel {
         }
     }
 
-    func updateTranscriptSegmentStyle(
-        _ styleID: TranscriptStyle.StyleIdentifier?,
-        segmentID: UUID
-    ) {
-        updateTranscriptDraftDocument { transcriptDocument in
-            guard let segmentIndex = transcriptDocument.segments.firstIndex(where: { $0.id == segmentID }) else {
-                return false
-            }
-
-            guard transcriptDocument.segments[segmentIndex].styleID != styleID else { return false }
-
-            transcriptDocument.segments[segmentIndex].styleID = styleID
-            return true
-        }
-    }
-
     func prepareTranscriptDraft() {
         transcriptDraftDocument = transcriptDocument
         syncTranscriptRuntimeState()
@@ -941,7 +920,6 @@ final class EditorViewModel {
     func applyTranscriptChanges() {
         transcriptDocument = transcriptDraftDocument
         transcriptFeatureState = transcriptDocument == nil ? .idle : .loaded
-        presentationState.isTranscriptOverlaySelected = false
         syncTranscriptAppliedToolState()
         syncTranscriptRuntimeState()
         markEditingConfigurationChanged()
@@ -953,7 +931,6 @@ final class EditorViewModel {
         transcriptState = .idle
         transcriptDocument = nil
         transcriptDraftDocument = nil
-        presentationState.isTranscriptOverlaySelected = false
         syncTranscriptAppliedToolState()
         markEditingConfigurationChanged()
     }

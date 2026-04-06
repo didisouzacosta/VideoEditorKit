@@ -181,7 +181,12 @@ extension PlayerHolderView {
     private func transcriptOverlay(
         in availableSize: CGSize
     ) -> some View {
-        if let transcriptDocument = editorViewModel.transcriptDocument,
+        let effectiveDocument =
+            editorViewModel.presentationState.selectedTool == .transcript
+            ? (editorViewModel.transcriptDraftDocument ?? editorViewModel.transcriptDocument)
+            : editorViewModel.transcriptDocument
+
+        if let transcriptDocument = effectiveDocument,
             editorViewModel.transcriptState == .loaded,
             let activeSegment = editorViewModel.activeTranscriptSegment(
                 at: videoPlayer.currentTime
@@ -198,20 +203,7 @@ extension PlayerHolderView {
                 style: editorViewModel.transcriptStyle(for: activeSegment),
                 overlayPosition: transcriptDocument.overlayPosition,
                 overlaySize: transcriptDocument.overlaySize,
-                isSelected: editorViewModel.presentationState.isTranscriptOverlaySelected,
-                containerSize: containerSize,
-                onSelect: {
-                    editorViewModel.setTranscriptOverlaySelection(true)
-                },
-                onDismissSelection: {
-                    editorViewModel.setTranscriptOverlaySelection(false)
-                },
-                onSelectPosition: {
-                    editorViewModel.updateTranscriptOverlayPosition($0)
-                },
-                onSelectSize: {
-                    editorViewModel.updateTranscriptOverlaySize($0)
-                }
+                containerSize: containerSize
             )
         } else {
             EmptyView()

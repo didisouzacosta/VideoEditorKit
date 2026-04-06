@@ -15,6 +15,7 @@ struct TranscriptDocument: Codable, Hashable, Sendable {
     var availableStyles: [TranscriptStyle] = []
     var overlayPosition: TranscriptOverlayPosition = .bottom
     var overlaySize: TranscriptOverlaySize = .medium
+    var selectedStyleID: TranscriptStyle.StyleIdentifier?
 
 }
 

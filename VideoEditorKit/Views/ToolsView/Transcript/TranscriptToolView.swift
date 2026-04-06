@@ -7,7 +7,6 @@
 
 import SwiftUI
 
-@MainActor
 struct TranscriptToolView: View {
 
     // MARK: - Public Properties
@@ -18,12 +17,23 @@ struct TranscriptToolView: View {
     let onTranscribe: () -> Void
     let onRetry: () -> Void
     let onUpdateSegmentText: (UUID, String) -> Void
-    let onUpdateSegmentStyle: (UUID, TranscriptStyle.StyleIdentifier?) -> Void
+    let onUpdateStyle: (TranscriptStyle.StyleIdentifier?) -> Void
+    let onUpdatePosition: (TranscriptOverlayPosition) -> Void
+    let onUpdateSize: (TranscriptOverlaySize) -> Void
 
     // MARK: - Body
 
     var body: some View {
         content
+            .navigationDestination(for: UUID.self) { segmentID in
+                if let document,
+                    let segment = document.segments.first(where: { $0.id == segmentID })
+                {
+                    TranscriptSegmentEditView(segment) { newText in
+                        onUpdateSegmentText(segmentID, newText)
+                    }
+                }
+            }
     }
 
     // MARK: - Private Properties
@@ -77,18 +87,17 @@ struct TranscriptToolView: View {
     @ViewBuilder
     private var loadedView: some View {
         if let document, !document.segments.isEmpty {
-            ScrollView {
-                LazyVStack(spacing: 12) {
+            List {
+                Section("Style") {
+                    styleSection(document)
+                }
+
+                Section("Transcription") {
                     ForEach(document.segments) { segment in
-                        TranscriptSegmentCard(
-                            segment: segment,
-                            availableStyles: document.availableStyles,
-                            onUpdateText: { onUpdateSegmentText(segment.id, $0) },
-                            onUpdateStyle: { onUpdateSegmentStyle(segment.id, $0) }
-                        )
+                        TranscriptSegmentRow(segment: segment)
                     }
                 }
-                .padding(.vertical, 4)
+                .listRowSpacing(8)
             }
         } else {
             statusView(
@@ -98,6 +107,100 @@ struct TranscriptToolView: View {
                 action: onTranscribe
             )
         }
+    }
+
+    // MARK: - Private Methods
+
+    private func styleSection(_ document: TranscriptDocument) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if !document.availableStyles.isEmpty {
+                stylePicker(document)
+            }
+
+            positionPicker(document)
+
+            sizePicker(document)
+        }
+    }
+
+    private func stylePicker(_ document: TranscriptDocument) -> some View {
+        HStack {
+            Text("Font")
+                .font(.subheadline)
+                .foregroundStyle(Theme.secondary)
+
+            Spacer()
+
+            Picker("Style", selection: styleSelection) {
+                Text("Default").tag(nil as TranscriptStyle.StyleIdentifier?)
+
+                ForEach(document.availableStyles) { style in
+                    Text(style.name)
+                        .tag(style.id as TranscriptStyle.StyleIdentifier?)
+                }
+            }
+            .labelsHidden()
+            .pickerStyle(.menu)
+        }
+    }
+
+    private func positionPicker(_ document: TranscriptDocument) -> some View {
+        HStack {
+            Text("Position")
+                .font(.subheadline)
+                .foregroundStyle(Theme.secondary)
+
+            Spacer()
+
+            Picker("Position", selection: positionSelection) {
+                Text("Top").tag(TranscriptOverlayPosition.top)
+                Text("Center").tag(TranscriptOverlayPosition.center)
+                Text("Bottom").tag(TranscriptOverlayPosition.bottom)
+            }
+            .labelsHidden()
+            .pickerStyle(.segmented)
+            .frame(width: 200)
+        }
+    }
+
+    private func sizePicker(_ document: TranscriptDocument) -> some View {
+        HStack {
+            Text("Size")
+                .font(.subheadline)
+                .foregroundStyle(Theme.secondary)
+
+            Spacer()
+
+            Picker("Size", selection: sizeSelection) {
+                Text("S").tag(TranscriptOverlaySize.small)
+                Text("M").tag(TranscriptOverlaySize.medium)
+                Text("L").tag(TranscriptOverlaySize.large)
+            }
+            .labelsHidden()
+            .pickerStyle(.segmented)
+            .frame(width: 200)
+        }
+    }
+
+    private var styleSelection: Binding<TranscriptStyle.StyleIdentifier?> {
+        Binding(
+            get: { document?.selectedStyleID },
+            set: { onUpdateStyle($0) }
+        )
+    }
+
+    private var positionSelection: Binding<TranscriptOverlayPosition> {
+        Binding(
+            get: { document?.overlayPosition ?? .bottom },
+            set: { onUpdatePosition($0) }
+        )
+    }
+
+    private var sizeSelection: Binding<TranscriptOverlaySize> {
+        Binding(
+            get: { document?.overlaySize ?? .medium },
+            set: { onUpdateSize($0) }
+        )
     }
 
     private func failureView(for error: TranscriptError) -> some View {
@@ -153,89 +256,6 @@ struct TranscriptToolView: View {
         case .providerFailure(let message):
             message
         }
-    }
-
-}
-
-private struct TranscriptSegmentCard: View {
-
-    // MARK: - Public Properties
-
-    let segment: EditableTranscriptSegment
-    let availableStyles: [TranscriptStyle]
-    let onUpdateText: (String) -> Void
-    let onUpdateStyle: (TranscriptStyle.StyleIdentifier?) -> Void
-
-    // MARK: - Body
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .firstTextBaseline, spacing: 12) {
-                Text(segmentTimeLabel)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(Theme.secondary)
-
-                Spacer(minLength: 0)
-
-                if !availableStyles.isEmpty {
-                    Picker("Style", selection: styleSelection) {
-                        Text("Default").tag(nil as TranscriptStyle.StyleIdentifier?)
-
-                        ForEach(availableStyles) { style in
-                            Text(style.name)
-                                .tag(style.id as TranscriptStyle.StyleIdentifier?)
-                        }
-                    }
-                    .labelsHidden()
-                    .pickerStyle(.menu)
-                }
-            }
-
-            TextField(
-                "Transcript segment",
-                text: Binding(
-                    get: { segment.editedText },
-                    set: { newValue in
-                        onUpdateText(newValue)
-                    }
-                ),
-                axis: .vertical
-            )
-            .textFieldStyle(.roundedBorder)
-            .lineLimit(2...6)
-
-            if segment.originalText != segment.editedText {
-                Text("Original: \(segment.originalText)")
-                    .font(.caption)
-                    .foregroundStyle(Theme.secondary)
-            }
-        }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(Color(uiColor: .secondarySystemBackground))
-        )
-    }
-
-    // MARK: - Private Properties
-
-    private var styleSelection: Binding<TranscriptStyle.StyleIdentifier?> {
-        Binding(
-            get: { segment.styleID },
-            set: { newValue in
-                onUpdateStyle(newValue)
-            }
-        )
-    }
-
-    private var segmentTimeLabel: String {
-        "\(formattedTime(segment.timeMapping.sourceStartTime)) - \(formattedTime(segment.timeMapping.sourceEndTime))"
-    }
-
-    // MARK: - Private Methods
-
-    private func formattedTime(_ value: Double) -> String {
-        value.formatterTimeString()
     }
 
 }
