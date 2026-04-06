@@ -59,6 +59,7 @@ final class EditorViewModel {
     var transcriptState: TranscriptFeatureState = .idle
     var transcriptFeatureState: TranscriptFeaturePersistenceState = .idle
     var transcriptDocument: TranscriptDocument?
+    var transcriptDraftDocument: TranscriptDocument?
 
     var hasCurrentVideo: Bool {
         currentVideo != nil
@@ -113,6 +114,7 @@ final class EditorViewModel {
     private var lastThumbnailDisplayScale: CGFloat = 1
     private var pendingEditingConfiguration: VideoEditingConfiguration?
     private var preferredTranscriptLocale: String?
+    private var transcriptionComponent: (any VideoTranscriptionComponentProtocol)?
     private var transcriptionProvider: (any VideoTranscriptionProvider)?
 
     // MARK: - Initializer
@@ -126,9 +128,10 @@ final class EditorViewModel {
 
     func setNewVideo(_ url: URL, containerSize: CGSize) {
         invalidateThumbnailRequests()
-        taskCoordinator.cancelTranscriptionTask()
+        cancelActiveTranscription()
         cancelPendingToolResetTasks()
         currentVideo = nil
+        transcriptDraftDocument = nil
         lastPlayerContainerSize = containerSize
         syncTranscriptRuntimeState()
 
@@ -494,11 +497,19 @@ final class EditorViewModel {
             )
         else { return }
 
+        if presentationState.selectedTool == .transcript, selectedTool != .transcript {
+            discardUnappliedTranscriptChanges()
+        }
+
         presentationState.selectedTool = selectedTool
         markEditingConfigurationChanged()
     }
 
     func closeSelectedTool() {
+        if presentationState.selectedTool == .transcript {
+            discardUnappliedTranscriptChanges()
+        }
+
         presentationState.selectedTool = EditorToolSelectionCoordinator.closeSelectedTool()
         markEditingConfigurationChanged()
     }
@@ -664,22 +675,31 @@ final class EditorViewModel {
         preferredLocale: String? = nil
     ) {
         transcriptionProvider = provider
+        transcriptionComponent = provider as? any VideoTranscriptionComponentProtocol
         self.availableTranscriptStyles = availableStyles
         preferredTranscriptLocale = preferredLocale
 
-        guard var transcriptDocument else {
-            syncTranscriptRuntimeState()
-            return
+        var didChangeCommittedDocument = false
+
+        if var transcriptDocument,
+            transcriptDocument.availableStyles != availableStyles
+        {
+            transcriptDocument.availableStyles = availableStyles
+            self.transcriptDocument = transcriptDocument
+            didChangeCommittedDocument = true
         }
 
-        guard transcriptDocument.availableStyles != availableStyles else {
-            syncTranscriptRuntimeState()
-            return
+        if var transcriptDraftDocument,
+            transcriptDraftDocument.availableStyles != availableStyles
+        {
+            transcriptDraftDocument.availableStyles = availableStyles
+            self.transcriptDraftDocument = transcriptDraftDocument
         }
 
-        transcriptDocument.availableStyles = availableStyles
-        self.transcriptDocument = transcriptDocument
-        markEditingConfigurationChanged()
+        if didChangeCommittedDocument {
+            markEditingConfigurationChanged()
+        }
+
         syncTranscriptRuntimeState()
     }
 
@@ -699,13 +719,17 @@ final class EditorViewModel {
             source: .fileURL(currentVideo.url),
             preferredLocale: preferredTranscriptLocale
         )
+        let transcriptionComponent = self.transcriptionComponent
 
-        transcriptState = .loading
         taskCoordinator.replaceTranscriptionTask { [weak self] token in
             guard let self else { return }
 
             do {
-                let result = try await transcriptionProvider.transcribeVideo(input: input)
+                let result = try await performTranscription(
+                    input: input,
+                    provider: transcriptionProvider,
+                    component: transcriptionComponent
+                )
                 guard taskCoordinator.acceptsTranscriptionTask(token) else { return }
 
                 guard !result.segments.isEmpty else {
@@ -725,19 +749,18 @@ final class EditorViewModel {
                     playbackRate: currentVideo.rate
                 )
                 applyTranscriptSuccess(document)
-            } catch is CancellationError {
-                guard taskCoordinator.acceptsTranscriptionTask(token) else { return }
-                applyTranscriptFailure(.cancelled)
             } catch {
                 guard taskCoordinator.acceptsTranscriptionTask(token) else { return }
-                applyTranscriptFailure(
-                    .providerFailure(message: error.localizedDescription)
+                await applyTranscriptionFailure(
+                    error,
+                    using: transcriptionComponent
                 )
             }
         }
     }
 
     func cancelDeferredTasks() {
+        cancelActiveTranscription()
         taskCoordinator.cancelDeferredTasks()
     }
 
@@ -800,6 +823,15 @@ final class EditorViewModel {
     func updateTranscriptOverlayPosition(
         _ position: TranscriptOverlayPosition
     ) {
+        if presentationState.selectedTool == .transcript, transcriptDraftDocument != nil {
+            updateTranscriptDraftDocument { transcriptDocument in
+                guard transcriptDocument.overlayPosition != position else { return false }
+                transcriptDocument.overlayPosition = position
+                return true
+            }
+            return
+        }
+
         guard var transcriptDocument else { return }
         guard transcriptDocument.overlayPosition != position else { return }
 
@@ -811,6 +843,15 @@ final class EditorViewModel {
     func updateTranscriptOverlaySize(
         _ size: TranscriptOverlaySize
     ) {
+        if presentationState.selectedTool == .transcript, transcriptDraftDocument != nil {
+            updateTranscriptDraftDocument { transcriptDocument in
+                guard transcriptDocument.overlaySize != size else { return false }
+                transcriptDocument.overlaySize = size
+                return true
+            }
+            return
+        }
+
         guard var transcriptDocument else { return }
         guard transcriptDocument.overlaySize != size else { return }
 
@@ -839,6 +880,7 @@ final class EditorViewModel {
         cropPresentationState.apply(preparedState.cropEditingState)
         transcriptFeatureState = preparedState.transcriptFeatureState
         transcriptDocument = preparedState.transcriptDocument
+        transcriptDraftDocument = preparedState.transcriptDocument
         syncTranscriptRuntimeState()
 
         if let currentTimelineTime = preparedState.initialTimelineTime {
@@ -852,6 +894,7 @@ final class EditorViewModel {
     ) {
         transcriptFeatureState = document == nil ? .idle : featureState
         transcriptDocument = document
+        transcriptDraftDocument = document
         remapTranscriptDocumentIfNeeded()
         syncTranscriptRuntimeState()
         markEditingConfigurationChanged()
@@ -861,39 +904,53 @@ final class EditorViewModel {
         _ text: String,
         segmentID: UUID
     ) {
-        guard var transcriptDocument else { return }
-        guard let segmentIndex = transcriptDocument.segments.firstIndex(where: { $0.id == segmentID }) else {
-            return
+        updateTranscriptDraftDocument { transcriptDocument in
+            guard let segmentIndex = transcriptDocument.segments.firstIndex(where: { $0.id == segmentID }) else {
+                return false
+            }
+
+            guard transcriptDocument.segments[segmentIndex].editedText != text else { return false }
+
+            transcriptDocument.segments[segmentIndex].editedText = text
+            return true
         }
-
-        guard transcriptDocument.segments[segmentIndex].editedText != text else { return }
-
-        transcriptDocument.segments[segmentIndex].editedText = text
-        self.transcriptDocument = transcriptDocument
-        markEditingConfigurationChanged()
     }
 
     func updateTranscriptSegmentStyle(
         _ styleID: TranscriptStyle.StyleIdentifier?,
         segmentID: UUID
     ) {
-        guard var transcriptDocument else { return }
-        guard let segmentIndex = transcriptDocument.segments.firstIndex(where: { $0.id == segmentID }) else {
-            return
+        updateTranscriptDraftDocument { transcriptDocument in
+            guard let segmentIndex = transcriptDocument.segments.firstIndex(where: { $0.id == segmentID }) else {
+                return false
+            }
+
+            guard transcriptDocument.segments[segmentIndex].styleID != styleID else { return false }
+
+            transcriptDocument.segments[segmentIndex].styleID = styleID
+            return true
         }
+    }
 
-        guard transcriptDocument.segments[segmentIndex].styleID != styleID else { return }
+    func prepareTranscriptDraft() {
+        transcriptDraftDocument = transcriptDocument
+        syncTranscriptRuntimeState()
+    }
 
-        transcriptDocument.segments[segmentIndex].styleID = styleID
-        self.transcriptDocument = transcriptDocument
+    func applyTranscriptChanges() {
+        transcriptDocument = transcriptDraftDocument
+        transcriptFeatureState = transcriptDocument == nil ? .idle : .loaded
+        presentationState.isTranscriptOverlaySelected = false
+        syncTranscriptRuntimeState()
         markEditingConfigurationChanged()
     }
 
     func resetTranscript() {
-        taskCoordinator.cancelTranscriptionTask()
+        cancelActiveTranscription()
         transcriptFeatureState = .idle
         transcriptState = .idle
         transcriptDocument = nil
+        transcriptDraftDocument = nil
         presentationState.isTranscriptOverlaySelected = false
         markEditingConfigurationChanged()
     }
@@ -1034,28 +1091,120 @@ final class EditorViewModel {
             trimRange: currentVideo.rangeDuration,
             playbackRate: currentVideo.rate
         )
+        transcriptDraftDocument = EditorTranscriptRemappingCoordinator.remap(
+            transcriptDraftDocument,
+            trimRange: currentVideo.rangeDuration,
+            playbackRate: currentVideo.rate
+        )
+    }
+
+    private func cancelActiveTranscription() {
+        taskCoordinator.cancelTranscriptionTask()
+
+        guard let transcriptionComponent else { return }
+
+        Task {
+            await transcriptionComponent.cancelCurrentTranscription()
+        }
+    }
+
+    private func performTranscription(
+        input: VideoTranscriptionInput,
+        provider: any VideoTranscriptionProvider,
+        component: (any VideoTranscriptionComponentProtocol)?
+    ) async throws -> VideoTranscriptionResult {
+        guard let component else {
+            transcriptState = .loading
+            return try await provider.transcribeVideo(input: input)
+        }
+
+        let loadingObserverTask = Task { [weak self] in
+            while !Task.isCancelled {
+                let runtimeState = await component.state
+                self?.applyRuntimeTranscriptState(runtimeState)
+
+                guard runtimeState == .idle else { return }
+
+                try? await Task.sleep(for: .milliseconds(10))
+            }
+        }
+        defer {
+            loadingObserverTask.cancel()
+        }
+
+        let transcriptionResult = try await provider.transcribeVideo(input: input)
+        await refreshTranscriptState(using: component)
+        return transcriptionResult
     }
 
     private func applyTranscriptSuccess(_ document: TranscriptDocument) {
-        transcriptFeatureState = .loaded
-        transcriptDocument = document
+        transcriptDraftDocument = document
         transcriptState = .loaded
-        markEditingConfigurationChanged()
     }
 
-    private func applyTranscriptFailure(_ error: TranscriptError) {
-        transcriptState = .failed(error)
+    private func applyTranscriptFailure(
+        _ error: TranscriptError,
+        runtimeState: TranscriptFeatureState? = nil
+    ) {
+        transcriptState = runtimeState ?? .failed(error)
+    }
 
-        guard transcriptDocument == nil else { return }
+    private func applyTranscriptionFailure(
+        _ error: Error,
+        using component: (any VideoTranscriptionComponentProtocol)?
+    ) async {
+        let runtimeState = await runtimeTranscriptState(using: component)
+        let transcriptError = resolvedTranscriptError(
+            from: error,
+            runtimeState: runtimeState
+        )
+        applyTranscriptFailure(
+            transcriptError,
+            runtimeState: runtimeState
+        )
+    }
 
-        transcriptFeatureState = .failed
-        markEditingConfigurationChanged()
+    private func refreshTranscriptState(
+        using component: any VideoTranscriptionComponentProtocol
+    ) async {
+        transcriptState = await component.state
+    }
+
+    private func applyRuntimeTranscriptState(
+        _ state: TranscriptFeatureState
+    ) {
+        transcriptState = state
+    }
+
+    private func runtimeTranscriptState(
+        using component: (any VideoTranscriptionComponentProtocol)?
+    ) async -> TranscriptFeatureState? {
+        guard let component else { return nil }
+        return await component.state
+    }
+
+    private func resolvedTranscriptError(
+        from error: Error,
+        runtimeState: TranscriptFeatureState?
+    ) -> TranscriptError {
+        if case .failed(let transcriptError) = runtimeState {
+            return transcriptError
+        }
+
+        return switch error {
+        case let transcriptError as TranscriptError:
+            transcriptError
+        case is CancellationError:
+            TranscriptError.cancelled
+        default:
+            TranscriptError.providerFailure(message: error.localizedDescription)
+        }
     }
 
     private func syncTranscriptRuntimeState() {
         switch transcriptFeatureState {
         case .idle:
-            transcriptState = .idle
+            transcriptState = transcriptDraftDocument == nil ? .idle : .loaded
         case .loaded:
             transcriptState = transcriptDocument == nil ? .idle : .loaded
         case .failed:
@@ -1063,6 +1212,20 @@ final class EditorViewModel {
                 .providerFailure(message: "The previous transcription request failed.")
             )
         }
+    }
+
+    private func updateTranscriptDraftDocument(
+        _ transform: (inout TranscriptDocument) -> Bool
+    ) {
+        guard var transcriptDraftDocument else { return }
+        guard transform(&transcriptDraftDocument) else { return }
+
+        self.transcriptDraftDocument = transcriptDraftDocument
+    }
+
+    private func discardUnappliedTranscriptChanges() {
+        transcriptDraftDocument = transcriptDocument
+        syncTranscriptRuntimeState()
     }
 
     private func markEditingConfigurationChanged() {

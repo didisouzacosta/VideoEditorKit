@@ -191,7 +191,7 @@ struct EditorViewModelTests {
     }
 
     @Test
-    func transcribeCurrentVideoMapsProviderOutputIntoTheEditableTranscriptDocument() async {
+    func transcribeCurrentVideoMapsProviderOutputIntoATranscriptDraftUntilApply() async {
         let provider = RecordingTranscriptionProvider(
             result: .success(
                 VideoTranscriptionResult(
@@ -236,12 +236,236 @@ struct EditorViewModelTests {
         #expect(recordedInput?.assetIdentifier == video.url.absoluteString)
         #expect(recordedInput?.preferredLocale == "pt-BR")
         #expect(viewModel.transcriptState == .loaded)
+        #expect(viewModel.transcriptFeatureState == .idle)
+        #expect(viewModel.transcriptDocument == nil)
+        #expect(viewModel.transcriptDraftDocument?.availableStyles == [style])
+        #expect(viewModel.transcriptDraftDocument?.segments.first?.originalText == "Ola mundo")
+        #expect(viewModel.transcriptDraftDocument?.segments.first?.editedText == "Ola mundo")
+        #expect(viewModel.transcriptDraftDocument?.segments.first?.timeMapping.timelineRange == 4...6)
+        #expect(viewModel.transcriptDraftDocument?.segments.first?.words.first?.editedText == "Ola")
+
+        viewModel.applyTranscriptChanges()
+
         #expect(viewModel.transcriptFeatureState == .loaded)
-        #expect(viewModel.transcriptDocument?.availableStyles == [style])
-        #expect(viewModel.transcriptDocument?.segments.first?.originalText == "Ola mundo")
-        #expect(viewModel.transcriptDocument?.segments.first?.editedText == "Ola mundo")
-        #expect(viewModel.transcriptDocument?.segments.first?.timeMapping.timelineRange == 4...6)
-        #expect(viewModel.transcriptDocument?.segments.first?.words.first?.editedText == "Ola")
+        #expect(viewModel.transcriptDocument == viewModel.transcriptDraftDocument)
+    }
+
+    @Test
+    func transcribeCurrentVideoReflectsTheStatefulComponentLoadingAndLoadedStates() async {
+        let component = StatefulTranscriptionComponentProbe(
+            success: VideoTranscriptionResult(
+                segments: [
+                    TranscriptionSegment(
+                        id: UUID(),
+                        startTime: 4,
+                        endTime: 8,
+                        text: "Segmento carregado"
+                    )
+                ]
+            )
+        )
+        let viewModel = EditorViewModel()
+        viewModel.currentVideo = Video(
+            url: URL(fileURLWithPath: "/tmp/transcription-source.mov"),
+            rangeDuration: 0...20
+        )
+        viewModel.configureTranscription(provider: component)
+
+        viewModel.transcribeCurrentVideo()
+        await waitForTranscriptState(on: viewModel, equals: .loading)
+
+        #expect(viewModel.transcriptState == .loading)
+        #expect(await component.inputs().count == 1)
+
+        await component.finish()
+        await waitForTranscriptState(on: viewModel, equals: .loaded)
+
+        #expect(viewModel.transcriptState == .loaded)
+        #expect(viewModel.transcriptFeatureState == .idle)
+        #expect(viewModel.transcriptDocument == nil)
+        #expect(viewModel.transcriptDraftDocument?.segments.first?.originalText == "Segmento carregado")
+    }
+
+    @Test
+    func transcribeCurrentVideoReflectsTheStatefulComponentFailureState() async {
+        let component = StatefulTranscriptionComponentProbe(
+            failure: .providerFailure(message: "offline")
+        )
+        let viewModel = EditorViewModel()
+        viewModel.currentVideo = Video(
+            url: URL(fileURLWithPath: "/tmp/transcription-source.mov"),
+            rangeDuration: 0...20
+        )
+        viewModel.configureTranscription(provider: component)
+
+        viewModel.transcribeCurrentVideo()
+        await waitForTranscriptState(on: viewModel, equals: .loading)
+        await component.finish()
+        await waitForTranscriptFailure(on: viewModel)
+
+        #expect(
+            viewModel.transcriptState
+                == .failed(.providerFailure(message: "offline"))
+        )
+        #expect(viewModel.transcriptFeatureState == .idle)
+    }
+
+    @Test
+    func transcribeCurrentVideoWithTheOpenAIWhisperComponentMapsTheResponseIntoATranscriptDraft()
+        async throws
+    {
+        let cleanupRecorder = TranscriptionCleanupRecorder()
+        let requestProbe = OpenAIWhisperEditorRequestProbe()
+        let extractedAudioURL = URL(fileURLWithPath: "/tmp/editor-openai-whisper-success.m4a")
+        let style = TranscriptStyle(
+            id: UUID(),
+            name: "Classic",
+            fontFamily: "Avenir"
+        )
+        let component = OpenAIWhisperTranscriptionComponent(
+            dependencies: .init(
+                extractAudio: { _ in extractedAudioURL },
+                removeExtractedAudio: { cleanupRecorder.remove($0) },
+                createTranscription: { request in
+                    await requestProbe.record(request)
+                    await requestProbe.waitForResume()
+
+                    return OpenAIWhisperVerboseTranscriptionResponseDTO(
+                        text: "ola mundo",
+                        segments: [
+                            .init(id: 0, start: 8, end: 12, text: "ola mundo")
+                        ],
+                        words: [
+                            .init(start: 8, end: 9, word: "ola"),
+                            .init(start: 10, end: 12, word: "mundo"),
+                        ]
+                    )
+                },
+                mapResponse: { response in
+                    OpenAIWhisperResponseMapper().map(response)
+                }
+            )
+        )
+        let viewModel = EditorViewModel()
+        var video = Video(
+            url: URL(fileURLWithPath: "/tmp/transcription-source.mov"),
+            rangeDuration: 0...20
+        )
+        video.updateRate(2)
+        viewModel.currentVideo = video
+        viewModel.configureTranscription(
+            provider: component,
+            availableStyles: [style],
+            preferredLocale: "pt-BR"
+        )
+
+        viewModel.transcribeCurrentVideo()
+        await waitForTranscriptState(on: viewModel, equals: .loading)
+
+        let capturedRequest = try #require(await requestProbe.lastRequest())
+        #expect(capturedRequest.audioFileURL == extractedAudioURL)
+        #expect(capturedRequest.language == "pt-BR")
+        #expect(capturedRequest.model == "whisper-1")
+        #expect(viewModel.transcriptState == .loading)
+
+        await requestProbe.resume()
+        await waitForTranscriptState(on: viewModel, equals: .loaded)
+
+        #expect(await component.state == .loaded)
+        #expect(cleanupRecorder.urls == [extractedAudioURL])
+        #expect(viewModel.transcriptState == .loaded)
+        #expect(viewModel.transcriptFeatureState == .idle)
+        #expect(viewModel.transcriptDocument == nil)
+        #expect(viewModel.transcriptDraftDocument?.availableStyles == [style])
+        #expect(viewModel.transcriptDraftDocument?.segments.first?.originalText == "ola mundo")
+        #expect(viewModel.transcriptDraftDocument?.segments.first?.editedText == "ola mundo")
+        #expect(viewModel.transcriptDraftDocument?.segments.first?.timeMapping.timelineRange == 4...6)
+        #expect(viewModel.transcriptDraftDocument?.segments.first?.words.map(\.editedText) == ["ola", "mundo"])
+
+        viewModel.applyTranscriptChanges()
+
+        #expect(viewModel.transcriptFeatureState == .loaded)
+        #expect(viewModel.transcriptDocument == viewModel.transcriptDraftDocument)
+    }
+
+    @Test
+    func transcribeCurrentVideoWithTheOpenAIWhisperComponentPropagatesProviderFailuresToTheEditorState() async {
+        let cleanupRecorder = TranscriptionCleanupRecorder()
+        let extractedAudioURL = URL(fileURLWithPath: "/tmp/editor-openai-whisper-failure.m4a")
+        let component = OpenAIWhisperTranscriptionComponent(
+            dependencies: .init(
+                extractAudio: { _ in extractedAudioURL },
+                removeExtractedAudio: { cleanupRecorder.remove($0) },
+                createTranscription: { _ in
+                    throw OpenAIWhisperAPIClient.ClientError.unsuccessfulStatusCode(
+                        401,
+                        "invalid api key"
+                    )
+                },
+                mapResponse: { response in
+                    OpenAIWhisperResponseMapper().map(response)
+                }
+            )
+        )
+        let viewModel = EditorViewModel()
+        viewModel.currentVideo = Video(
+            url: URL(fileURLWithPath: "/tmp/transcription-source.mov"),
+            rangeDuration: 0...20
+        )
+        viewModel.configureTranscription(
+            provider: component,
+            preferredLocale: "pt-BR"
+        )
+
+        viewModel.transcribeCurrentVideo()
+        await waitForTranscriptFailure(on: viewModel)
+
+        #expect(await component.state == .failed(.providerFailure(message: "invalid api key")))
+        #expect(cleanupRecorder.urls == [extractedAudioURL])
+        #expect(viewModel.transcriptState == .failed(.providerFailure(message: "invalid api key")))
+        #expect(viewModel.transcriptFeatureState == .idle)
+        #expect(viewModel.transcriptDocument == nil)
+        #expect(viewModel.transcriptDraftDocument == nil)
+    }
+
+    @Test
+    func resetTranscriptCancelsTheOpenAIWhisperComponentAndReturnsTheEditorToIdleState() async {
+        let cleanupRecorder = TranscriptionCleanupRecorder()
+        let startProbe = OpenAIWhisperEditorStartProbe()
+        let extractedAudioURL = URL(fileURLWithPath: "/tmp/editor-openai-whisper-cancel.m4a")
+        let component = OpenAIWhisperTranscriptionComponent(
+            dependencies: .init(
+                extractAudio: { _ in extractedAudioURL },
+                removeExtractedAudio: { cleanupRecorder.remove($0) },
+                createTranscription: { _ in
+                    await startProbe.markStarted()
+                    try await Task.sleep(for: .seconds(60))
+                    return OpenAIWhisperVerboseTranscriptionResponseDTO(text: "never finishes")
+                },
+                mapResponse: { response in
+                    OpenAIWhisperResponseMapper().map(response)
+                }
+            )
+        )
+        let viewModel = EditorViewModel()
+        viewModel.currentVideo = Video(
+            url: URL(fileURLWithPath: "/tmp/transcription-source.mov"),
+            rangeDuration: 0...20
+        )
+        viewModel.configureTranscription(provider: component)
+
+        viewModel.transcribeCurrentVideo()
+        await waitForTranscriptState(on: viewModel, equals: .loading)
+        await startProbe.waitUntilStarted()
+
+        viewModel.resetTranscript()
+        await waitForComponentState(of: component, equals: .failed(.cancelled))
+
+        #expect(cleanupRecorder.urls == [extractedAudioURL])
+        #expect(viewModel.transcriptState == .idle)
+        #expect(viewModel.transcriptFeatureState == .idle)
+        #expect(viewModel.transcriptDocument == nil)
+        #expect(viewModel.transcriptDraftDocument == nil)
     }
 
     @Test
@@ -255,7 +479,7 @@ struct EditorViewModelTests {
         viewModel.transcribeCurrentVideo()
 
         #expect(viewModel.transcriptState == .failed(.providerNotConfigured))
-        #expect(viewModel.transcriptFeatureState == .failed)
+        #expect(viewModel.transcriptFeatureState == .idle)
         #expect(viewModel.transcriptDocument == nil)
     }
 
@@ -298,7 +522,7 @@ struct EditorViewModelTests {
         await waitForTranscriptFailure(on: viewModel)
 
         #expect(viewModel.transcriptState == .failed(.emptyResult))
-        #expect(viewModel.transcriptFeatureState == .failed)
+        #expect(viewModel.transcriptFeatureState == .idle)
     }
 
     @Test
@@ -320,7 +544,7 @@ struct EditorViewModelTests {
             viewModel.transcriptState
                 == .failed(.providerFailure(message: TranscriptProviderProbeError.offline.localizedDescription))
         )
-        #expect(viewModel.transcriptFeatureState == .failed)
+        #expect(viewModel.transcriptFeatureState == .idle)
     }
 
     @Test
@@ -351,9 +575,10 @@ struct EditorViewModelTests {
         )
 
         #expect(viewModel.transcriptDocument?.segments.first?.originalText == "Original segment")
-        #expect(viewModel.transcriptDocument?.segments.first?.editedText == "Edited segment")
-        #expect(viewModel.transcriptDocument?.segments.first?.timeMapping.sourceRange == 10...14)
-        #expect(viewModel.transcriptDocument?.segments.first?.timeMapping.timelineRange == 5...7)
+        #expect(viewModel.transcriptDocument?.segments.first?.editedText == "Original segment")
+        #expect(viewModel.transcriptDraftDocument?.segments.first?.editedText == "Edited segment")
+        #expect(viewModel.transcriptDraftDocument?.segments.first?.timeMapping.sourceRange == 10...14)
+        #expect(viewModel.transcriptDraftDocument?.segments.first?.timeMapping.timelineRange == 5...7)
     }
 
     @Test
@@ -391,8 +616,78 @@ struct EditorViewModelTests {
             segmentID: segmentID
         )
 
-        #expect(viewModel.transcriptDocument?.segments.first?.styleID == styleID)
-        #expect(viewModel.transcriptDocument?.segments.first?.editedText == "Edited segment")
+        #expect(viewModel.transcriptDocument?.segments.first?.styleID == nil)
+        #expect(viewModel.transcriptDraftDocument?.segments.first?.styleID == styleID)
+        #expect(viewModel.transcriptDraftDocument?.segments.first?.editedText == "Edited segment")
+    }
+
+    @Test
+    func closeSelectedToolDiscardsUnappliedTranscriptDraftChanges() {
+        let viewModel = EditorViewModel()
+        let segmentID = UUID()
+        viewModel.setTranscriptDocument(
+            TranscriptDocument(
+                segments: [
+                    EditableTranscriptSegment(
+                        id: segmentID,
+                        timeMapping: .init(
+                            sourceStartTime: 10,
+                            sourceEndTime: 14,
+                            timelineStartTime: 5,
+                            timelineEndTime: 7
+                        ),
+                        originalText: "Original segment",
+                        editedText: "Original segment"
+                    )
+                ]
+            )
+        )
+        viewModel.selectTool(.transcript)
+
+        viewModel.updateTranscriptSegmentText(
+            "Edited segment",
+            segmentID: segmentID
+        )
+        viewModel.closeSelectedTool()
+
+        #expect(viewModel.transcriptDocument?.segments.first?.editedText == "Original segment")
+        #expect(viewModel.transcriptDraftDocument?.segments.first?.editedText == "Original segment")
+        #expect(viewModel.presentationState.selectedTool == nil)
+    }
+
+    @Test
+    func currentEditingConfigurationIgnoresUnappliedTranscriptDraftChanges() {
+        let viewModel = EditorViewModel()
+        let segmentID = UUID()
+        let transcriptDocument = TranscriptDocument(
+            segments: [
+                EditableTranscriptSegment(
+                    id: segmentID,
+                    timeMapping: .init(
+                        sourceStartTime: 10,
+                        sourceEndTime: 14,
+                        timelineStartTime: 5,
+                        timelineEndTime: 7
+                    ),
+                    originalText: "Original segment",
+                    editedText: "Original segment"
+                )
+            ]
+        )
+        viewModel.currentVideo = Video.mock
+        viewModel.setTranscriptDocument(transcriptDocument)
+        viewModel.selectTool(.transcript)
+
+        viewModel.updateTranscriptSegmentText(
+            "Edited segment",
+            segmentID: segmentID
+        )
+
+        let configuration = viewModel.currentEditingConfiguration()
+
+        #expect(configuration?.transcript.featureState == .loaded)
+        #expect(configuration?.transcript.document?.segments.first?.editedText == "Original segment")
+        #expect(viewModel.transcriptDraftDocument?.segments.first?.editedText == "Edited segment")
     }
 
     @Test
@@ -1676,6 +1971,160 @@ private actor RecordingTranscriptionProvider: VideoTranscriptionProvider {
 
 }
 
+private actor StatefulTranscriptionComponentProbe: VideoTranscriptionComponentProtocol {
+
+    // MARK: - Public Properties
+
+    var state: TranscriptFeatureState {
+        currentState
+    }
+
+    // MARK: - Private Properties
+
+    private let outcome: Outcome
+    private var continuation: CheckedContinuation<Void, Never>?
+    private var currentState: TranscriptFeatureState = .idle
+    private var recordedInputs = [VideoTranscriptionInput]()
+
+    // MARK: - Initializer
+
+    init(success result: VideoTranscriptionResult) {
+        outcome = .success(result)
+    }
+
+    init(failure error: TranscriptError) {
+        outcome = .failure(error)
+    }
+
+    // MARK: - Public Methods
+
+    func transcribeVideo(input: VideoTranscriptionInput) async throws -> VideoTranscriptionResult {
+        recordedInputs.append(input)
+        currentState = .loading
+
+        await withCheckedContinuation { continuation in
+            self.continuation = continuation
+        }
+
+        switch outcome {
+        case .success(let result):
+            currentState = .loaded
+            return result
+        case .failure(let error):
+            currentState = .failed(error)
+            throw error
+        }
+    }
+
+    func cancelCurrentTranscription() async {
+        currentState = .failed(.cancelled)
+        finish()
+    }
+
+    func finish() {
+        continuation?.resume()
+        continuation = nil
+    }
+
+    func inputs() -> [VideoTranscriptionInput] {
+        recordedInputs
+    }
+
+}
+
+private final class TranscriptionCleanupRecorder: @unchecked Sendable {
+
+    // MARK: - Private Properties
+
+    private let lock = NSLock()
+    private var recordedURLs = [URL]()
+
+    // MARK: - Public Properties
+
+    var urls: [URL] {
+        lock.lock()
+        defer { lock.unlock() }
+        return recordedURLs
+    }
+
+    // MARK: - Public Methods
+
+    func remove(_ url: URL) {
+        lock.lock()
+        recordedURLs.append(url)
+        lock.unlock()
+    }
+
+}
+
+private actor OpenAIWhisperEditorRequestProbe {
+
+    // MARK: - Private Properties
+
+    private var requests = [OpenAIWhisperAPIClient.Request]()
+    private var continuation: CheckedContinuation<Void, Never>?
+    private var hasResumed = false
+
+    // MARK: - Public Methods
+
+    func record(_ request: OpenAIWhisperAPIClient.Request) {
+        requests.append(request)
+    }
+
+    func waitForResume() async {
+        guard hasResumed == false else { return }
+
+        await withCheckedContinuation { continuation in
+            self.continuation = continuation
+        }
+    }
+
+    func resume() {
+        hasResumed = true
+        continuation?.resume()
+        continuation = nil
+    }
+
+    func lastRequest() -> OpenAIWhisperAPIClient.Request? {
+        requests.last
+    }
+
+}
+
+private actor OpenAIWhisperEditorStartProbe {
+
+    // MARK: - Private Properties
+
+    private var hasStarted = false
+    private var continuation: CheckedContinuation<Void, Never>?
+
+    // MARK: - Public Methods
+
+    func markStarted() {
+        hasStarted = true
+        continuation?.resume()
+        continuation = nil
+    }
+
+    func waitUntilStarted() async {
+        guard hasStarted == false else { return }
+
+        await withCheckedContinuation { continuation in
+            self.continuation = continuation
+        }
+    }
+
+}
+
+extension StatefulTranscriptionComponentProbe {
+
+    fileprivate enum Outcome {
+        case success(VideoTranscriptionResult)
+        case failure(TranscriptError)
+    }
+
+}
+
 private enum TranscriptProviderProbeError: LocalizedError {
     case offline
 
@@ -1694,6 +2143,19 @@ private func waitForTranscriptState(
 ) async {
     for _ in 0..<20 {
         if viewModel.transcriptState == expectedState {
+            return
+        }
+
+        try? await Task.sleep(for: .milliseconds(10))
+    }
+}
+
+private func waitForComponentState(
+    of component: OpenAIWhisperTranscriptionComponent,
+    equals expectedState: TranscriptFeatureState
+) async {
+    for _ in 0..<50 {
+        if await component.state == expectedState {
             return
         }
 

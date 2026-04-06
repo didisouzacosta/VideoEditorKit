@@ -105,7 +105,6 @@ struct ViewModifierSmokeTests {
             TranscriptToolView(
                 isTranscriptionAvailable: false,
                 transcriptState: .idle,
-                loadingStatus: nil,
                 document: nil,
                 onTranscribe: {},
                 onRetry: {},

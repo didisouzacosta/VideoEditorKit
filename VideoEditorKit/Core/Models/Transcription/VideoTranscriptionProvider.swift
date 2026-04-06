@@ -11,6 +11,11 @@ protocol VideoTranscriptionProvider: Sendable {
     func transcribeVideo(input: VideoTranscriptionInput) async throws -> VideoTranscriptionResult
 }
 
+protocol VideoTranscriptionComponentProtocol: VideoTranscriptionProvider {
+    var state: TranscriptFeatureState { get async }
+    func cancelCurrentTranscription() async
+}
+
 struct VideoTranscriptionInput: Hashable, Sendable {
 
     // MARK: - Public Properties

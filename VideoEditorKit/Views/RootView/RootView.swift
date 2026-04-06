@@ -32,6 +32,9 @@ struct RootView: View {
 
     private enum Constants {
         static let editingStateSaveDebounceInNanoseconds: UInt64 = 250_000_000
+        static let openAIAPIKeyEnvironmentName = "OPENAI_API_KEY"
+        static let openAIAPIKeyInfoDictionaryName = "OPENAI_API_KEY"
+        static let openAIAPIKeyUserDefaultsName = "OPENAI_API_KEY"
     }
 
     // MARK: - Body
@@ -107,8 +110,9 @@ extension RootView {
 
     static var defaultTranscriptionConfiguration: VideoEditorView.Configuration.TranscriptionConfiguration {
         .init(
+            provider: defaultTranscriptionProvider,
             availableStyles: defaultTranscriptStyles,
-            preferredLocale: preferredTranscriptionLocale
+            preferredLocale: nil
         )
     }
 
@@ -143,8 +147,23 @@ extension RootView {
         ]
     }
 
-    static var preferredTranscriptionLocale: String? {
-        Locale.preferredLanguages.first ?? Locale.current.language.languageCode?.identifier
+    private static var defaultTranscriptionProvider: (any VideoTranscriptionProvider)? {
+        guard let apiKey = resolvedOpenAIAPIKey() else { return nil }
+
+        return OpenAIWhisperTranscriptionComponent(apiKey)
+    }
+
+    private static func resolvedOpenAIAPIKey() -> String? {
+        let candidates = [
+            ProcessInfo.processInfo.environment[Constants.openAIAPIKeyEnvironmentName],
+            Bundle.main.object(forInfoDictionaryKey: Constants.openAIAPIKeyInfoDictionaryName) as? String,
+            UserDefaults.standard.string(forKey: Constants.openAIAPIKeyUserDefaultsName),
+        ]
+
+        return
+            candidates
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .first(where: { !$0.isEmpty })
     }
 
     private var blockedToolAlertBinding: Binding<Bool> {

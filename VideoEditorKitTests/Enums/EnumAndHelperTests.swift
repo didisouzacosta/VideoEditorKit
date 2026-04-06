@@ -185,14 +185,57 @@ struct VideoEditorConfigurationTests {
 
     @MainActor
     @Test
-    func rootViewDefaultTranscriptionConfigurationKeepsStylesAndLocaleWithoutALocalProvider() {
+    func rootViewDefaultTranscriptionConfigurationUsesAudioLanguageAutodetectionWithoutALocalProvider() {
         let configuration = RootView.defaultTranscriptionConfiguration
 
         #expect(configuration.availableStyles == RootView.defaultTranscriptStyles)
         #expect(configuration.availableStyles.count == 3)
-        #expect(configuration.preferredLocale == RootView.preferredTranscriptionLocale)
+        #expect(configuration.preferredLocale == nil)
         #expect(configuration.provider == nil)
         #expect(configuration.isConfigured == false)
+    }
+
+    @MainActor
+    @Test
+    func rootViewDefaultTranscriptionConfigurationBuildsTheProviderWhenTheAPIKeyIsInTheEnvironment() {
+        let environmentKey = "OPENAI_API_KEY"
+        let previousValue = ProcessInfo.processInfo.environment[environmentKey]
+
+        setenv(environmentKey, "test-openai-api-key", 1)
+        defer {
+            if let previousValue {
+                setenv(environmentKey, previousValue, 1)
+            } else {
+                unsetenv(environmentKey)
+            }
+        }
+
+        let configuration = RootView.defaultTranscriptionConfiguration
+
+        #expect(configuration.provider != nil)
+        #expect(configuration.isConfigured)
+    }
+
+    @MainActor
+    @Test
+    func rootViewDefaultTranscriptionConfigurationBuildsTheProviderWhenTheAPIKeyIsInUserDefaults() {
+        let defaultsKey = "OPENAI_API_KEY"
+        let previousValue = UserDefaults.standard.string(forKey: defaultsKey)
+
+        unsetenv(defaultsKey)
+        UserDefaults.standard.set("test-openai-api-key", forKey: defaultsKey)
+        defer {
+            if let previousValue {
+                UserDefaults.standard.set(previousValue, forKey: defaultsKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: defaultsKey)
+            }
+        }
+
+        let configuration = RootView.defaultTranscriptionConfiguration
+
+        #expect(configuration.provider != nil)
+        #expect(configuration.isConfigured)
     }
 
 }

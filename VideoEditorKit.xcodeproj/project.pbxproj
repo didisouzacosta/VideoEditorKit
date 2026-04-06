@@ -29,9 +29,19 @@
 		FC233DAD5E07B50EE39B6940 /* VideoEditorKitTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = VideoEditorKitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		A98C85AE2F8366C300FC0873 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 5ACFF96A29E944FA00827A37 /* VideoEditorKit */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		A98D11C12F71D8890025159E /* VideoEditorKitTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = VideoEditorKitTests; sourceTree = "<group>"; };
-		A98D13292F71DE7C0025159E /* VideoEditorKit */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = VideoEditorKit; sourceTree = "<group>"; };
+		A98D13292F71DE7C0025159E /* VideoEditorKit */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (A98C85AE2F8366C300FC0873 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = VideoEditorKit; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -350,6 +360,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = VideoEditorKit/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = sdfsdfsdf;
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = sdfsdf;
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = sdfsdfsdfsdf;
@@ -385,6 +396,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = VideoEditorKit/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = sdfsdfsdf;
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = sdfsdf;
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = sdfsdfsdfsdf;

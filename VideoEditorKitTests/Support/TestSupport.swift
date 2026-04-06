@@ -12,6 +12,8 @@ enum TestFixtureError: Error {
 
     case unableToCreatePixelBuffer
     case unableToCreateContext
+    case unableToCreateCompositionTrack
+    case unableToCreateExportSession
     case failedToAppendFrame
     case failedToFinishWriting
 
@@ -166,6 +168,85 @@ enum TestFixtures {
             }
         }
 
+        return outputURL
+    }
+
+    static func createTemporaryVideoWithAudio(
+        size: CGSize = CGSize(width: 48, height: 24),
+        frameCount: Int = 30,
+        framesPerSecond: Int32 = 30,
+        color: UIColor = .systemRed,
+        transform: CGAffineTransform = .identity,
+        drawFrame: VideoFrameDrawer? = nil
+    ) async throws -> URL {
+        let resolvedFrameCount = max(frameCount, 1)
+        let duration = TimeInterval(resolvedFrameCount) / TimeInterval(framesPerSecond)
+        let videoURL = try await createTemporaryVideo(
+            size: size,
+            frameCount: resolvedFrameCount,
+            framesPerSecond: framesPerSecond,
+            color: color,
+            transform: transform,
+            drawFrame: drawFrame
+        )
+        let audioURL = try createTemporaryAudio(duration: duration)
+        let outputURL = temporaryURL(fileExtension: "mp4")
+
+        defer {
+            FileManager.default.removeIfExists(for: videoURL)
+            FileManager.default.removeIfExists(for: audioURL)
+        }
+
+        let videoAsset = AVURLAsset(url: videoURL)
+        let audioAsset = AVURLAsset(url: audioURL)
+        let composition = AVMutableComposition()
+        let videoDuration = try await videoAsset.load(.duration)
+
+        guard
+            let sourceVideoTrack = try await videoAsset.loadTracks(withMediaType: .video).first,
+            let compositionVideoTrack = composition.addMutableTrack(
+                withMediaType: .video,
+                preferredTrackID: kCMPersistentTrackID_Invalid
+            )
+        else {
+            throw TestFixtureError.unableToCreateCompositionTrack
+        }
+
+        try compositionVideoTrack.insertTimeRange(
+            CMTimeRange(start: .zero, duration: videoDuration),
+            of: sourceVideoTrack,
+            at: .zero
+        )
+        compositionVideoTrack.preferredTransform = try await sourceVideoTrack.load(.preferredTransform)
+
+        guard
+            let sourceAudioTrack = try await audioAsset.loadTracks(withMediaType: .audio).first,
+            let compositionAudioTrack = composition.addMutableTrack(
+                withMediaType: .audio,
+                preferredTrackID: kCMPersistentTrackID_Invalid
+            )
+        else {
+            throw TestFixtureError.unableToCreateCompositionTrack
+        }
+
+        try compositionAudioTrack.insertTimeRange(
+            CMTimeRange(start: .zero, duration: videoDuration),
+            of: sourceAudioTrack,
+            at: .zero
+        )
+
+        guard
+            let exportSession = AVAssetExportSession(
+                asset: composition,
+                presetName: AVAssetExportPresetHighestQuality
+            )
+        else {
+            throw TestFixtureError.unableToCreateExportSession
+        }
+
+        exportSession.shouldOptimizeForNetworkUse = false
+
+        try await exportSession.export(to: outputURL, as: .mp4)
         return outputURL
     }
 

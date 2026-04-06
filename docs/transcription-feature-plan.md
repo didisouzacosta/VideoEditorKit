@@ -1,216 +1,340 @@
-# Transcription Feature Plan
+# Plano Unico de Integracao de Transcricao com OpenAI Whisper
 
-## Status
+## Objetivo
 
-- Phase 1 completed
-- Phase 2 completed
-- Phase 3 completed
-- Phase 4 completed
-- Phase 5 completed
-- Phase 6 completed
+Adicionar ao app um componente de transcricao remoto que:
 
-## Summary
+- extraia o audio do video local automaticamente
+- envie esse audio para a API de transcricao da OpenAI
+- receba a resposta do modelo Whisper remoto
+- converta a resposta para `VideoTranscriptionResult`
+- atualize o estado da transcricao entre `idle`, `loading`, `loaded` e `failed`
+- mantenha a `EditorViewModel` apenas como ponto de orquestracao do editor, sem concentrar regras de rede e extracao
 
-The editor should support audio transcription as a host-integrated capability instead of owning a concrete transcription provider.
+Esse passa a ser o unico plano oficial de transcricao do projeto.
 
-For the current app architecture, the safest path is:
+## Status de implementacao
 
-- inject a provider contract through the editor configuration
-- persist transcription inside `VideoEditingConfiguration`
-- keep transcription content, style, and overlay layout separate
-- preserve source timing and derive timeline timing for preview and export
-- remap transcript timing automatically when trim or speed changes
+- planejamento documentado
+- Fase 1 concluida
+- Fase 2 concluida
+- Fase 3 concluida
+- Fase 4 concluida
+- Fase 5 concluida
+- Fase 6 concluida
 
-This keeps the feature aligned with the existing app-first architecture while preparing it for a future, more modular editor.
+## Estado atual relevante
 
-## Current Code Reality
+O projeto ja possui a base funcional de transcricao no editor:
 
-- The editor session already persists its full resumable state through `VideoEditingConfiguration` in [VideoEditingConfiguration.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorKit/Core/Models/Editing/VideoEditingConfiguration.swift).
-- The editing session is autosaved through [VideoEditorView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorKit/Views/EditorView/VideoEditorView.swift), [RootView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorKit/Views/RootView/RootView.swift), and [EditedVideoProjectsStore.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorKit/AppShell/Persistence/EditedVideoProjectsStore.swift).
-- The editor preview is composed in [PlayerHolderView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorKit/Views/EditorView/PlayerHolderView.swift) on top of `VideoCanvasPreviewView`.
-- Export already runs through staged rendering in [VideoEditor.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorKit/Core/Models/Enums/VideoEditor.swift).
-- `EditorViewModel` is the current orchestration point for editing state in [EditorViewModel.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorKit/Core/ViewModels/EditorViewModel.swift).
+- contrato [`VideoTranscriptionProvider`](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorKit/Core/Models/Transcription/VideoTranscriptionProvider.swift)
+- tipos `VideoTranscriptionInput`, `VideoTranscriptionResult`, `TranscriptionSegment` e `TranscriptionWord`
+- disparo de transcricao em [`EditorViewModel.transcribeCurrentVideo()`](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorKit/Core/ViewModels/EditorViewModel.swift#L697)
+- injecao do provider via [`VideoEditorView.Configuration.TranscriptionConfiguration`](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorKit/Views/EditorView/VideoEditorView.swift#L563)
+- configuracao padrao em [`RootView.defaultTranscriptionConfiguration`](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorKit/Views/RootView/RootView.swift#L108)
 
-Because of that, transcription should start as a new persisted editing domain plus a new preview/export surface, not as a standalone subsystem outside the editor state flow.
+O gap atual nao e de UI nem de persistencia. O gap e a ausencia de um provider remoto concreto que faca:
 
-## Product Decisions Confirmed
+- extracao de audio
+- upload multipart
+- autenticacao com a OpenAI
+- decodificacao da resposta
+- mapeamento para o modelo interno
 
-- The editor keeps a mapper between source time and playback/export time.
-- The internal transcript model preserves source timing and projected timeline timing.
-- Trim and speed changes remap transcript timing automatically instead of invalidating the transcript.
+## Decisao de arquitetura
 
-## Architecture Direction
+Criar um componente unico em `VideoEditorKit/TranscriptionKit/` chamado `OpenAIWhisperTranscriptionComponent`.
 
-### Provider layer
+Esse componente sera o ponto de entrada da feature e devera:
 
-- `VideoTranscriptionProvider`
-- `VideoTranscriptionInput`
-- `VideoTranscriptionResult`
-- provider output remains in source time
+- conformar `VideoTranscriptionProvider`
+- receber um `VideoTranscriptionInput`
+- extrair o audio do video local
+- chamar a API remota da OpenAI
+- mapear a resposta para `VideoTranscriptionResult`
+- publicar o estado atual da operacao
+- limpar arquivos temporarios ao final
 
-### Transcript domain layer
+## Responsabilidades do componente
 
-- `TranscriptDocument`
-- `EditableTranscriptSegment`
-- `EditableTranscriptWord`
-- `TranscriptStyle`
-- `TranscriptOverlayPosition`
-- `TranscriptOverlaySize`
-- `TranscriptTimeMapping`
+### 1. Extracao de audio
 
-### Mapping and remapping layer
+O componente deve assumir integralmente a responsabilidade de extrair audio a partir de `VideoTranscriptionSource.fileURL`.
 
-- `EditorTranscriptMappingCoordinator`
-- `EditorTranscriptRemappingCoordinator`
-- `TranscriptTimeMapper`
+Regras:
 
-### Presentation layer
+- aceitar apenas `URL` local de arquivo
+- exportar um audio temporario em formato compativel com a API
+- preferir `.m4a`
+- falhar com erro explicito quando o asset nao tiver faixa de audio ou quando a exportacao falhar
+- apagar o arquivo temporario depois do envio ou em caso de erro
 
-- transcript tool sheet for segments and text editing
-- overlay selection state in presentation-only state
-- direct overlay controls for position and size in preview
+### 2. Consumo da API da OpenAI
 
-### Export layer
+O componente deve fazer a chamada HTTP para o endpoint de transcricao da OpenAI.
 
-- transcript burn-in stage integrated into the existing render pipeline
-- export uses remapped timeline timing so preview and export stay aligned
+Regras:
 
-## Phase Plan
+- usar `POST /v1/audio/transcriptions`
+- enviar multipart form data
+- incluir `file`
+- incluir `model`
+- incluir `language` quando `preferredLocale` existir
+- pedir resposta em formato adequado para obter segmentos temporais
+- tratar erros HTTP, erros de autenticacao e payload invalido
 
-## Phase 1
+### 3. Mapeamento de resposta
 
-Status: completed.
+O componente deve transformar a resposta remota em tipos internos do editor.
 
-Scope:
+Regras:
 
-- document the feature roadmap
-- add persistable transcript domain types
-- extend `VideoEditingConfiguration` with a transcript payload
-- bump the editing configuration schema version
-- add migration and round-trip coverage in Swift Testing
+- converter cada segmento remoto para `TranscriptionSegment`
+- preservar tempo de inicio e fim em segundos
+- preencher `words` quando a resposta trouxer granularidade por palavra
+- normalizar textos vazios ou espacamentos invalidos antes de devolver o resultado
 
-Out of scope:
+### 4. Estado da transcricao
 
-- no provider invocation yet
-- no transcript tool UI yet
-- no preview overlay yet
-- no export burn-in yet
+O componente deve ser responsavel pelo estado da operacao.
 
-Completed outcome:
+Estados esperados:
 
-- the editor can now persist transcription-ready data inside the resumable editing configuration
-- schema migration covers projects saved before the transcript payload existed
-- the transcript model is ready for source-time and timeline-time remapping
+- `idle`
+- `loading`
+- `loaded`
+- `failed(TranscriptError)`
 
-## Phase 2
+Regra de integracao:
 
-Status: completed.
+- a `EditorViewModel` nao deve decidir transicoes de estado da operacao remota
+- a `EditorViewModel` deve refletir o estado produzido pelo componente para a UI do editor
 
-Scope:
+## Contrato recomendado
 
-- add `TranscriptTimeMapper`
-- add `EditorTranscriptMappingCoordinator`
-- add `EditorTranscriptRemappingCoordinator`
-- support source-time to timeline-time projection
-- support automatic remapping when trim or speed changes
-- cover the remapping rules with pure tests
+O contrato atual pode ser evoluido para explicitar a responsabilidade de estado no proprio componente.
 
-Completed outcome:
+Direcao recomendada:
 
-- provider-shaped transcription output can now be mapped into the internal editable transcript document
-- source timing is preserved while projected timeline timing is derived from trim and playback rate
-- transcript timing is remapped automatically as the current editor session changes cut or speed
-- pure Swift tests now cover source-time projection, provider-result mapping, remapping, and restored editor state
+```swift
+protocol VideoTranscriptionComponentProtocol: Sendable {
+    var state: TranscriptFeatureState { get async }
+    func transcribeVideo(input: VideoTranscriptionInput) async throws -> VideoTranscriptionResult
+    func cancelCurrentTranscription() async
+}
+```
 
-## Phase 3
+Compatibilidade:
 
-Status: completed.
+- `OpenAIWhisperTranscriptionComponent` pode conformar tanto `VideoTranscriptionProvider` quanto `VideoTranscriptionComponentProtocol`
+- a migracao pode ser incremental para evitar quebrar testes e pontos de injecao existentes
 
-Scope:
+## Estrutura proposta
 
-- expose provider injection through `VideoEditorView.Configuration`
-- add transcript state to `EditorViewModel`
-- trigger async transcription from the current source video
-- map provider output into the internal editable model
-- support loading, success, and failure state
+Arquivos esperados em `VideoEditorKit/TranscriptionKit/`:
 
-Completed outcome:
+- `OpenAIWhisperTranscriptionComponent.swift`
+- `VideoAudioExtractionService.swift`
+- `OpenAIWhisperAPIClient.swift`
+- `OpenAIWhisperMultipartFormDataBuilder.swift`
+- `OpenAIWhisperResponseDTO.swift`
+- `OpenAIWhisperResponseMapper.swift`
 
-- the host app can now inject a transcription provider, available styles, and preferred locale through the editor configuration
-- `EditorViewModel` now owns a runtime transcript state with loading, loaded, and failure handling
-- the editor can transcribe the current source file asynchronously and map provider output into the persisted editable transcript document
-- provider-not-configured, empty-result, invalid-source, and provider-failure paths are covered in Swift Testing
+Separacao de responsabilidades:
 
-## Phase 4
+- `OpenAIWhisperTranscriptionComponent`
+  coordena o fluxo completo e o estado
+- `VideoAudioExtractionService`
+  extrai o audio do video
+- `OpenAIWhisperAPIClient`
+  monta e envia a request
+- `OpenAIWhisperMultipartFormDataBuilder`
+  encapsula o corpo multipart
+- `OpenAIWhisperResponseDTO`
+  descreve o JSON remoto
+- `OpenAIWhisperResponseMapper`
+  converte DTO em `VideoTranscriptionResult`
 
-Status: completed.
+## Fluxo da operacao
 
-Scope:
+1. Receber `VideoTranscriptionInput`.
+2. Validar a origem do video.
+3. Atualizar o estado para `loading`.
+4. Extrair audio para arquivo temporario.
+5. Enviar o arquivo para a OpenAI.
+6. Decodificar a resposta da API.
+7. Mapear a resposta para `VideoTranscriptionResult`.
+8. Atualizar o estado para `loaded`.
+9. Entregar o resultado ao editor.
+10. Remover o arquivo temporario.
 
-- add the transcript tool to the toolbar and tool sheet flow
-- show transcript segments in a list
-- allow text editing per segment
-- optionally support word-level text edits without changing timing
-- support visual style assignment
+Em caso de falha:
 
-Completed outcome:
+1. Encerrar a operacao.
+2. Atualizar o estado para `failed`.
+3. Remover o arquivo temporario se ele existir.
 
-- the transcript tool is now part of the editor toolbar and sheet flow
-- the editor can show transcript segments, edit segment text, assign styles, and reset the transcript document
-- text editing remains timing-safe because only `editedText` changes while time mappings stay intact
+## Integracao com o editor
 
-## Phase 5
+### `EditorViewModel`
 
-Status: completed.
+`EditorViewModel` continua como orquestrador do editor, mas deve parar de carregar detalhes internos da transcricao remota.
 
-Scope:
+Ela deve:
 
-- add transcript overlay preview on top of the player canvas
-- support direct selection of the subtitle overlay
-- add contextual controls for vertical position and simplified size
-- add a pure layout resolver for width and font sizing
-- ensure crop only limits visible area, without mutating transcript content
+- disparar a transcricao do video atual
+- aguardar o `VideoTranscriptionResult`
+- aplicar `EditorTranscriptMappingCoordinator.makeDocument(...)`
+- refletir o estado vindo do componente
 
-Completed outcome:
+Ela nao deve:
 
-- the active transcript segment now renders as an overlay on top of the player canvas using timeline timing
-- the preview supports direct overlay selection, a subtle dimmed background, a visible selection border, and contextual controls for position and size
-- a pure layout resolver now calculates safe horizontal width, vertical placement, and adaptive font sizing for the overlay preview
-- the overlay selection state stays transient in presentation state while position and size persist in the transcript document
+- extrair audio
+- montar request HTTP
+- conhecer multipart
+- interpretar JSON da OpenAI
 
-## Phase 6
+### `VideoEditorView.Configuration`
 
-Status: completed.
+`VideoEditorView.Configuration.TranscriptionConfiguration` continua sendo o ponto de injecao do provider concreto.
 
-Scope:
+### `RootView`
 
-- add transcript burn-in to the export pipeline
-- align active subtitle selection with timeline timing during export
-- verify stage ordering against frame, crop, and canvas behavior
-- add export-focused tests for the subtitle render plan
+`RootView.defaultTranscriptionConfiguration` deve passar a construir o componente remoto real quando a configuracao da API estiver disponivel.
 
-Completed outcome:
+## Configuracao e segredo
 
-- the export pipeline now includes a dedicated transcript burn-in stage between color adjustments and canvas crop
-- transcript rendering uses projected timeline timing, so preview selection timing and export timing stay aligned
-- stage ordering is now explicit and testable through a pure render-stage plan
-- export-focused tests cover transcript-stage activation and the expected stage order relative to adjusts and crop
+A chave da OpenAI nao deve ficar hardcoded.
 
-## Testing Notes
+Diretrizes:
 
-The most important invariants for the feature are:
+- injetar a API key por configuracao
+- manter o segredo fora do codigo fonte versionado
+- falhar cedo quando a chave nao estiver configurada
 
-- provider output source timing is preserved
-- textual edits never change timing
-- trim and speed changes only remap projected timeline timing
-- preview and export use the same projected timeline timing
-- transcript persistence survives project reopen without losing style or overlay choices
+## Erros esperados
 
-For the first two phases, the minimum test suite should cover:
+O componente deve mapear falhas para erros consistentes do dominio:
+
+- provider nao configurado
+- origem de video invalida
+- video sem audio extraivel
+- falha na exportacao de audio
+- erro de rede
+- autenticacao invalida
+- resposta remota vazia
+- resposta remota invalida
+- operacao cancelada
 
-- `VideoEditingConfiguration` schema migration
-- transcript codable round-trip
-- source-time to timeline-time mapping
-- remapping after trim changes
-- remapping after playback-rate changes
-- filtering or hiding segments that fall fully outside the trimmed range
+Quando possivel, o erro deve chegar como `TranscriptError.providerFailure(message:)` com mensagem clara e adequada para exibicao ou diagnostico.
+
+## Testes obrigatorios
+
+Toda implementacao deve vir acompanhada de testes em `Swift Testing`.
+
+Cobertura minima:
+
+- extracao de audio com fixture local
+- limpeza do arquivo temporario em sucesso e falha
+- request multipart com campos obrigatorios
+- envio do locale opcional
+- mapeamento de segmentos da resposta remota
+- mapeamento de words quando existirem
+- transicao de estado `idle -> loading -> loaded`
+- transicao de estado `idle -> loading -> failed`
+- cancelamento da transcricao em andamento
+- integracao da `EditorViewModel` com o componente sem regressao do fluxo atual
+
+## Plano de implementacao
+
+### Fase 1
+
+- criar o `VideoAudioExtractionService`
+- criar fixtures e testes de extracao
+- status atual: concluida
+
+### Fase 2
+
+- criar `OpenAIWhisperAPIClient`
+- criar builder multipart
+- adicionar testes de request e decodificacao
+- status atual: concluida
+- entregas:
+- `OpenAIWhisperAPIClient.swift`
+- `OpenAIWhisperMultipartFormDataBuilder.swift`
+- `OpenAIWhisperResponseDTO.swift`
+- `OpenAIWhisperAPIClientTests.swift`
+- `OpenAIWhisperMultipartFormDataBuilderTests.swift`
+- verificacao automatica:
+- `xcodebuild build-for-testing` com `TEST BUILD SUCCEEDED`
+- `xcodebuild test-without-building` para as suites de `TranscriptionKit` com `9` testes passando
+
+### Fase 3
+
+- criar `OpenAIWhisperResponseMapper`
+- validar mapeamento para `VideoTranscriptionResult`
+- status atual: concluida
+- entregas:
+- `OpenAIWhisperResponseMapper.swift`
+- `OpenAIWhisperResponseMapperTests.swift`
+- verificacao automatica:
+- `xcodebuild build-for-testing` com `TEST BUILD SUCCEEDED`
+- `xcodebuild test-without-building` para as suites de `TranscriptionKit` com `13` testes passando
+
+### Fase 4
+
+- criar `OpenAIWhisperTranscriptionComponent`
+- integrar extracao, client, mapper, limpeza de temporarios e estado
+- status atual: concluida
+- entregas:
+- `OpenAIWhisperTranscriptionComponent.swift`
+- `VideoTranscriptionComponentProtocol`
+- `OpenAIWhisperTranscriptionComponentTests.swift`
+- verificacao automatica:
+- `xcodebuild build-for-testing` com `TEST BUILD SUCCEEDED`
+- `xcodebuild test-without-building` para as suites de `TranscriptionKit` com `17` testes passando
+
+### Fase 5
+
+- injetar o componente remoto em `VideoEditorView.Configuration`
+- ajustar `RootView` para construir a configuracao real
+- adaptar `EditorViewModel` para refletir o estado do componente
+- entregas:
+- `RootView.swift` agora injeta `OpenAIWhisperTranscriptionComponent` quando `OPENAI_API_KEY` estiver presente no ambiente
+- `EditorViewModel.swift` agora reconhece `VideoTranscriptionComponentProtocol`, reflete o estado produzido pelo componente stateful e cancela operacoes remotas em trocas de video e resets
+- `EditorViewModelTests.swift` cobre os caminhos de `loading -> loaded` e `loading -> failed` com um componente stateful de teste
+- verificacao automatica:
+- a tentativa de `xcodebuild build-for-testing` e `xcodebuild test-without-building` nesta fase ficou bloqueada por uma falha externa do `swift-plugin-server` do Xcode, afetando macros de `SwiftData`, `Observation` e `#Preview`
+- status atual: concluida
+
+### Fase 6
+
+- cobrir integracao ponta a ponta com testes do fluxo do editor
+- validar caminhos de sucesso, falha e cancelamento
+- entregas:
+- `EditorViewModelTests.swift` agora cobre o fluxo do editor com `OpenAIWhisperTranscriptionComponent` real usando seams de teste para sucesso, falha e cancelamento
+- o caminho de sucesso valida extracao encadeada, request para a API, mapeamento para `TranscriptDocument` e limpeza do audio temporario
+- o caminho de falha valida propagacao de erro do provider para o estado da UI do editor e limpeza do audio temporario
+- o caminho de cancelamento valida que `resetTranscript()` cancela o componente remoto em andamento e retorna o editor para `idle`
+- verificacao automatica:
+- a tentativa de `xcodebuild build-for-testing` e `xcodebuild test-without-building` continua bloqueada por uma falha externa do `swift-plugin-server` do Xcode, afetando macros de `SwiftData`, `Observation` e `#Preview`
+- status atual: concluida
+
+## Criterios de aceite
+
+O trabalho sera considerado concluido quando:
+
+- existir um unico componente de transcricao remoto plugavel no editor
+- esse componente extrair audio do video sem ajuda externa da view model
+- esse componente consumir a API da OpenAI com autenticacao valida
+- esse componente devolver `VideoTranscriptionResult` compativel com o fluxo atual
+- o estado da transcricao for atualizado pelo proprio componente
+- a UI do editor refletir corretamente loading, erro e sucesso
+- os testes cobrirem os principais caminhos de sucesso, falha e cancelamento
+
+## Fonte oficial da API
+
+Ao implementar a integracao, usar como referencia a documentacao oficial atual da OpenAI para audio e speech-to-text:
+
+- [Audio and speech](https://platform.openai.com/docs/guides/audio/quickstart)
+- [Whisper model](https://developers.openai.com/api/docs/models/whisper-1)

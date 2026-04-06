@@ -38,6 +38,7 @@ struct PlayerView: UIViewControllerRepresentable {
         let controller = AVPlayerViewController()
         controller.player = player
         controller.showsPlaybackControls = showControls
+        controller.allowsVideoFrameAnalysis = false
         controller.videoGravity = videoGravity
         controller.view.backgroundColor = .clear
         controller.view.isUserInteractionEnabled = showControls
@@ -48,6 +49,7 @@ struct PlayerView: UIViewControllerRepresentable {
     func updateUIViewController(_ uiViewController: AVPlayerViewController, context: Context) {
         uiViewController.player = player
         uiViewController.showsPlaybackControls = showControls
+        uiViewController.allowsVideoFrameAnalysis = false
         uiViewController.videoGravity = videoGravity
         uiViewController.view.backgroundColor = .clear
         uiViewController.view.isUserInteractionEnabled = showControls

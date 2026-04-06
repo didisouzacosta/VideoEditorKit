@@ -166,9 +166,9 @@ extension ToolsSectionView {
 
     private func requiresExplicitApply(_ tool: ToolEnum) -> Bool {
         switch tool {
-        case .speed, .presets, .audio, .adjusts:
+        case .speed, .presets, .audio, .adjusts, .transcript:
             true
-        case .transcript, .cut:
+        case .cut:
             false
         }
     }
@@ -189,7 +189,11 @@ extension ToolsSectionView {
                 )
         case .adjusts:
             return video.colorAdjusts != adjustsDraft
-        case .transcript, .cut:
+        case .transcript:
+            return
+                editorViewModel.transcriptState == .loaded
+                && editorViewModel.transcriptDraftDocument != editorViewModel.transcriptDocument
+        case .cut:
             return false
         }
     }
@@ -241,7 +245,7 @@ extension ToolsSectionView {
             TranscriptToolView(
                 isTranscriptionAvailable: editorViewModel.isTranscriptionAvailable,
                 transcriptState: editorViewModel.transcriptState,
-                document: editorViewModel.transcriptDocument,
+                document: editorViewModel.transcriptDraftDocument,
                 onTranscribe: {
                     editorViewModel.transcribeCurrentVideo()
                 },
@@ -308,7 +312,7 @@ extension ToolsSectionView {
         case .adjusts:
             adjustsDraft = video.colorAdjusts
         case .transcript:
-            break
+            editorViewModel.prepareTranscriptDraft()
         case .cut:
             break
         }
@@ -347,7 +351,7 @@ extension ToolsSectionView {
         case .adjusts:
             applyAdjustsTool(for: video)
         case .transcript:
-            break
+            applyTranscriptTool()
         case .cut:
             break
         }
@@ -424,6 +428,11 @@ extension ToolsSectionView {
 
         editorViewModel.setAdjusts(adjustsDraft)
         videoPlayer.setColorAdjusts(adjustsDraft)
+        editorViewModel.closeSelectedTool()
+    }
+
+    private func applyTranscriptTool() {
+        editorViewModel.applyTranscriptChanges()
         editorViewModel.closeSelectedTool()
     }
 
