@@ -1687,11 +1687,9 @@ extension VideoEditor {
         from segment: EditableTranscriptSegment,
         timelineOffset: Double
     ) -> [TranscriptRenderWord]? {
-        let reconciledWords = TranscriptWordEditingCoordinator.reconcileWords(
-            segment.words,
-            with: segment.editedText
+        let renderableWords = TranscriptWordEditingCoordinator.resolvedWords(
+            for: segment
         )
-        let renderableWords = reconciledWords ?? segment.words
         let words: [TranscriptRenderWord] = renderableWords.compactMap { word in
             let trimmedText = word.editedText.trimmingCharacters(in: .whitespacesAndNewlines)
 
@@ -1713,16 +1711,6 @@ extension VideoEditor {
         }
 
         guard words.isEmpty == false else { return nil }
-
-        if reconciledWords == nil {
-            let joinedWordText = words.map { $0.text }.joined(separator: " ")
-            guard
-                normalizedTranscriptText(segment.editedText)
-                    == normalizedTranscriptText(joinedWordText)
-            else {
-                return nil
-            }
-        }
 
         return words
     }
@@ -1754,15 +1742,6 @@ extension VideoEditor {
             : upperBound
 
         return resolvedLowerBound...resolvedUpperBound
-    }
-
-    private static func normalizedTranscriptText(
-        _ text: String
-    ) -> String {
-        text
-            .components(separatedBy: .whitespacesAndNewlines)
-            .filter { $0.isEmpty == false }
-            .joined(separator: " ")
     }
 
     private static func makeTranscriptOverlayLayer(

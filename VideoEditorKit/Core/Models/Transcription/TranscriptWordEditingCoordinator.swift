@@ -29,6 +29,7 @@ enum TranscriptWordEditingCoordinator {
         )
 
         guard tokens.isEmpty == false else { return nil }
+        guard words.isEmpty == false else { return nil }
 
         if tokens.count == words.count {
             return wordsUpdated(
@@ -44,24 +45,47 @@ enum TranscriptWordEditingCoordinator {
             tokenAnchors: tokenKeys
         )
 
-        switch tokens.count {
-        case ..<words.count:
-            guard matches.count == tokens.count else { return nil }
-        case (words.count + 1)...:
-            guard matches.count == words.count else { return nil }
-        default:
-            break
-        }
+        let resolvedTokens: [String]
 
-        let groupedTokens = groupedTokens(
-            tokens: tokens,
-            words: words,
-            matches: matches
-        )
+        if matches.count == words.count {
+            resolvedTokens = groupedTokens(
+                tokens: tokens,
+                words: words,
+                matches: matches
+            )
+        } else {
+            resolvedTokens = fallbackGroupedTokens(
+                tokens: tokens,
+                words: words,
+                matches: matches
+            )
+        }
 
         return wordsUpdated(
             from: words,
-            with: groupedTokens
+            with: resolvedTokens
+        )
+    }
+
+    static func resolvedWords(
+        for segment: EditableTranscriptSegment
+    ) -> [EditableTranscriptWord] {
+        let tokens = mergedWordTokens(
+            from: segment.editedText
+        )
+
+        guard tokens.isEmpty == false else { return [] }
+
+        if let reconciledWords = reconcileWords(
+            segment.words,
+            with: segment.editedText
+        ) {
+            return reconciledWords
+        }
+
+        return syntheticWords(
+            from: tokens,
+            segmentTimeMapping: segment.timeMapping
         )
     }
 
@@ -217,6 +241,219 @@ enum TranscriptWordEditingCoordinator {
         }
 
         return groupedTokens.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+    }
+
+    private static func fallbackGroupedTokens(
+        tokens: [String],
+        words: [EditableTranscriptWord],
+        matches: [TokenMatch]
+    ) -> [String] {
+        guard words.isEmpty == false else { return [] }
+
+        let sortedMatches = matches.sorted { lhs, rhs in
+            lhs.wordIndex < rhs.wordIndex
+        }
+        var groupedTokens = Array(
+            repeating: "",
+            count: words.count
+        )
+
+        if sortedMatches.isEmpty {
+            applyDistributedTokens(
+                tokens,
+                to: 0..<words.count,
+                in: &groupedTokens
+            )
+            return
+                groupedTokens
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+        }
+
+        for match in sortedMatches {
+            groupedTokens[match.wordIndex] = tokens[match.tokenIndex]
+        }
+
+        if let firstMatch = sortedMatches.first {
+            let leadingTokens = Array(tokens[..<firstMatch.tokenIndex])
+            applyDistributedTokens(
+                leadingTokens,
+                to: 0..<firstMatch.wordIndex,
+                in: &groupedTokens
+            )
+
+            if leadingTokens.isEmpty == false, firstMatch.wordIndex == 0 {
+                groupedTokens[firstMatch.wordIndex] = combinedText(
+                    leadingTokens.joined(separator: " "),
+                    groupedTokens[firstMatch.wordIndex]
+                )
+            }
+        }
+
+        for index in sortedMatches.indices.dropLast() {
+            let currentMatch = sortedMatches[index]
+            let nextMatch = sortedMatches[index + 1]
+            let intermediateTokens = Array(
+                tokens[(currentMatch.tokenIndex + 1)..<nextMatch.tokenIndex]
+            )
+            let intermediateSlots = (currentMatch.wordIndex + 1)..<nextMatch.wordIndex
+
+            applyDistributedTokens(
+                intermediateTokens,
+                to: intermediateSlots,
+                in: &groupedTokens
+            )
+
+            if intermediateTokens.isEmpty == false, intermediateSlots.isEmpty {
+                groupedTokens[currentMatch.wordIndex] = combinedText(
+                    groupedTokens[currentMatch.wordIndex],
+                    intermediateTokens.joined(separator: " ")
+                )
+            }
+        }
+
+        if let lastMatch = sortedMatches.last {
+            let trailingTokens = Array(tokens[(lastMatch.tokenIndex + 1)...])
+            let trailingSlots = (lastMatch.wordIndex + 1)..<words.count
+
+            applyDistributedTokens(
+                trailingTokens,
+                to: trailingSlots,
+                in: &groupedTokens
+            )
+
+            if trailingTokens.isEmpty == false, trailingSlots.isEmpty {
+                groupedTokens[lastMatch.wordIndex] = combinedText(
+                    groupedTokens[lastMatch.wordIndex],
+                    trailingTokens.joined(separator: " ")
+                )
+            }
+        }
+
+        return groupedTokens.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+    }
+
+    private static func applyDistributedTokens(
+        _ tokens: [String],
+        to slotRange: Range<Int>,
+        in groupedTokens: inout [String]
+    ) {
+        guard tokens.isEmpty == false else { return }
+        guard slotRange.isEmpty == false else { return }
+
+        let tokenGroups = distributedTokenGroups(
+            tokens: tokens,
+            slotCount: slotRange.count
+        )
+
+        for (offset, slotIndex) in slotRange.enumerated() {
+            let tokenGroup = tokenGroups[offset]
+            guard tokenGroup.isEmpty == false else { continue }
+            groupedTokens[slotIndex] = tokenGroup
+        }
+    }
+
+    private static func distributedTokenGroups(
+        tokens: [String],
+        slotCount: Int
+    ) -> [String] {
+        guard slotCount > 0 else { return [] }
+        guard tokens.isEmpty == false else {
+            return Array(
+                repeating: "",
+                count: slotCount
+            )
+        }
+
+        let baseCount = tokens.count / slotCount
+        let remainder = tokens.count % slotCount
+        var groups = [String]()
+        var tokenCursor = 0
+
+        for slotIndex in 0..<slotCount {
+            let tokenCount = baseCount + (slotIndex < remainder ? 1 : 0)
+            guard tokenCount > 0 else {
+                groups.append("")
+                continue
+            }
+
+            let nextCursor = min(
+                tokenCursor + tokenCount,
+                tokens.count
+            )
+            groups.append(
+                tokens[tokenCursor..<nextCursor]
+                    .joined(separator: " ")
+            )
+            tokenCursor = nextCursor
+        }
+
+        return groups
+    }
+
+    private static func syntheticWords(
+        from tokens: [String],
+        segmentTimeMapping: TranscriptTimeMapping
+    ) -> [EditableTranscriptWord] {
+        let sourceRanges = distributedRanges(
+            count: tokens.count,
+            within: segmentTimeMapping.sourceRange
+        )
+        let timelineRanges = segmentTimeMapping.timelineRange.map {
+            distributedRanges(
+                count: tokens.count,
+                within: $0
+            )
+        }
+
+        return tokens.enumerated().map { index, token in
+            let sourceRange = sourceRanges[index]
+            let timelineRange = timelineRanges?[index]
+
+            return EditableTranscriptWord(
+                id: UUID(),
+                timeMapping: .init(
+                    sourceStartTime: sourceRange.lowerBound,
+                    sourceEndTime: sourceRange.upperBound,
+                    timelineStartTime: timelineRange?.lowerBound,
+                    timelineEndTime: timelineRange?.upperBound
+                ),
+                originalText: token,
+                editedText: token
+            )
+        }
+    }
+
+    private static func distributedRanges(
+        count: Int,
+        within range: ClosedRange<Double>
+    ) -> [ClosedRange<Double>] {
+        guard count > 0 else { return [] }
+
+        let duration = max(
+            range.upperBound - range.lowerBound,
+            0
+        )
+
+        return (0..<count).map { index in
+            let start = range.lowerBound + (duration * Double(index) / Double(count))
+            let end =
+                if index == count - 1 {
+                    range.upperBound
+                } else {
+                    range.lowerBound + (duration * Double(index + 1) / Double(count))
+                }
+
+            return start...end
+        }
+    }
+
+    private static func combinedText(
+        _ leadingText: String,
+        _ trailingText: String
+    ) -> String {
+        guard leadingText.isEmpty == false else { return trailingText }
+        guard trailingText.isEmpty == false else { return leadingText }
+        return "\(leadingText) \(trailingText)"
     }
 
 }

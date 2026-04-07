@@ -747,6 +747,41 @@ struct EditorViewModelTests {
     }
 
     @Test
+    func exportEditingConfigurationUsesUnappliedTranscriptDraftChanges() {
+        let viewModel = EditorViewModel()
+        let segmentID = UUID()
+        let transcriptDocument = TranscriptDocument(
+            segments: [
+                EditableTranscriptSegment(
+                    id: segmentID,
+                    timeMapping: .init(
+                        sourceStartTime: 10,
+                        sourceEndTime: 14,
+                        timelineStartTime: 5,
+                        timelineEndTime: 7
+                    ),
+                    originalText: "Original segment",
+                    editedText: "Original segment"
+                )
+            ]
+        )
+        viewModel.currentVideo = Video.mock
+        viewModel.setTranscriptDocument(transcriptDocument)
+        viewModel.selectTool(.transcript)
+
+        viewModel.updateTranscriptSegmentText(
+            "Edited segment",
+            segmentID: segmentID
+        )
+
+        let configuration = viewModel.exportEditingConfiguration()
+
+        #expect(configuration?.transcript.featureState == .loaded)
+        #expect(configuration?.transcript.document?.segments.first?.editedText == "Edited segment")
+        #expect(viewModel.transcriptDocument?.segments.first?.editedText == "Original segment")
+    }
+
+    @Test
     func resetTranscriptClearsTheDocumentAndReturnsToIdleState() {
         let viewModel = EditorViewModel()
         viewModel.currentVideo = Video(

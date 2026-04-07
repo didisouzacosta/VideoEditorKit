@@ -550,7 +550,7 @@ struct VideoEditorTests {
     }
 
     @Test
-    func resolvedTranscriptRenderSegmentsFallBackToBlockRenderingWhenEditedTextNoLongerMatchesWords() {
+    func resolvedTranscriptRenderSegmentsKeepTimedWordBlocksWhenEditedTextIsHeavilyRewritten() {
         let transcriptDocument = TranscriptDocument(
             segments: [
                 EditableTranscriptSegment(
@@ -596,7 +596,7 @@ struct VideoEditorTests {
         )
 
         #expect(renderSegments.count == 1)
-        #expect(renderSegments.first?.words.isEmpty == true)
+        #expect(renderSegments.first?.words.map(\.text) == ["greetings brave", "world"])
     }
 
     @Test
@@ -700,6 +700,40 @@ struct VideoEditorTests {
 
         #expect(renderSegments.count == 1)
         #expect(renderSegments.first?.words.map(\.text) == ["hello brave", "world"])
+    }
+
+    @Test
+    func resolvedTranscriptRenderSegmentsCreateTimedSyntheticWordsWhenPerWordTimingIsUnavailable() {
+        let transcriptDocument = TranscriptDocument(
+            segments: [
+                EditableTranscriptSegment(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 4,
+                        sourceEndTime: 8,
+                        timelineStartTime: 2,
+                        timelineEndTime: 6
+                    ),
+                    originalText: "hello world",
+                    editedText: "greetings brave world"
+                )
+            ]
+        )
+
+        let renderSegments = VideoEditor.resolvedTranscriptRenderSegments(
+            from: transcriptDocument
+        )
+        let timeRanges = renderSegments.first?.words.map(\.timeRange) ?? []
+
+        #expect(renderSegments.count == 1)
+        #expect(renderSegments.first?.words.map(\.text) == ["greetings", "brave", "world"])
+        #expect(timeRanges.count == 3)
+        #expect(abs(timeRanges[0].lowerBound - 2) < 0.0001)
+        #expect(abs(timeRanges[0].upperBound - 3.3333333333333335) < 0.0001)
+        #expect(abs(timeRanges[1].lowerBound - 3.3333333333333335) < 0.0001)
+        #expect(abs(timeRanges[1].upperBound - 4.666666666666667) < 0.0001)
+        #expect(abs(timeRanges[2].lowerBound - 4.666666666666667) < 0.0001)
+        #expect(abs(timeRanges[2].upperBound - 6) < 0.0001)
     }
 
     @Test

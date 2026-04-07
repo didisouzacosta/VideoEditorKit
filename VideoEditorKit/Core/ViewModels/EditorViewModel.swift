@@ -783,10 +783,30 @@ final class EditorViewModel {
             return nil
         }
 
-        return activeSegment.words.first(where: {
+        return TranscriptWordEditingCoordinator.resolvedWords(
+            for: activeSegment
+        ).first(where: {
             guard let timelineRange = $0.timeMapping.timelineRange else { return false }
             return timelineTime >= timelineRange.lowerBound && timelineTime < timelineRange.upperBound
         })
+    }
+
+    func exportEditingConfiguration(
+        currentTimelineTime: Double? = nil
+    ) -> VideoEditingConfiguration? {
+        EditorSessionCoordinator.currentEditingConfiguration(
+            from: currentVideo,
+            frames: frames,
+            freeformRect: cropPresentationState.freeformRect,
+            canvasSnapshot: cropPresentationState.canvasEditorState.snapshot(),
+            selectedAudioTrack: presentationState.selectedAudioTrack,
+            transcriptFeatureState: transcriptFeatureState,
+            transcriptDocument: effectiveTranscriptDocument,
+            selectedTool: presentationState.selectedTool,
+            socialVideoDestination: cropPresentationState.socialVideoDestination,
+            showsSafeAreaGuides: false,
+            currentTimelineTime: currentTimelineTime
+        )
     }
 
     func updateTranscriptOverlayPosition(

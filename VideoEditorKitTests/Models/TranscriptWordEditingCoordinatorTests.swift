@@ -184,7 +184,7 @@ struct TranscriptWordEditingCoordinatorTests {
     }
 
     @Test
-    func reconcileWordsReturnsNilWhenTheEditedSegmentBecomesACompletelyDifferentSentence() {
+    func reconcileWordsRedistributesTokensAcrossExistingWordTimingsWhenTheSentenceIsCompletelyRewritten() {
         let words = [
             EditableTranscriptWord(
                 id: UUID(),
@@ -215,11 +215,11 @@ struct TranscriptWordEditingCoordinatorTests {
             with: "greetings from another realm"
         )
 
-        #expect(reconciledWords == nil)
+        #expect(reconciledWords?.map(\.editedText) == ["greetings from", "another realm"])
     }
 
     @Test
-    func reconcileWordsReturnsNilWhenOnlyOneOriginalWordStillMatchesInALongerRewrite() {
+    func reconcileWordsKeepsTimedWordBlocksWhenOnlyOneOriginalWordStillMatchesInALongerRewrite() {
         let words = [
             EditableTranscriptWord(
                 id: UUID(),
@@ -250,7 +250,36 @@ struct TranscriptWordEditingCoordinatorTests {
             with: "greetings brave world"
         )
 
-        #expect(reconciledWords == nil)
+        #expect(reconciledWords?.map(\.editedText) == ["greetings brave", "world"])
+    }
+
+    @Test
+    func resolvedWordsCreatesSyntheticTimingBlocksWhenTheSegmentHasNoPerWordTimings() {
+        let segment = EditableTranscriptSegment(
+            id: UUID(),
+            timeMapping: .init(
+                sourceStartTime: 10,
+                sourceEndTime: 14,
+                timelineStartTime: 2,
+                timelineEndTime: 6
+            ),
+            originalText: "hello world",
+            editedText: "greetings brave world"
+        )
+
+        let resolvedWords = TranscriptWordEditingCoordinator.resolvedWords(
+            for: segment
+        )
+        let timelineRanges = resolvedWords.compactMap(\.timeMapping.timelineRange)
+
+        #expect(resolvedWords.map(\.editedText) == ["greetings", "brave", "world"])
+        #expect(timelineRanges.count == 3)
+        #expect(abs(timelineRanges[0].lowerBound - 2) < 0.0001)
+        #expect(abs(timelineRanges[0].upperBound - 3.3333333333333335) < 0.0001)
+        #expect(abs(timelineRanges[1].lowerBound - 3.3333333333333335) < 0.0001)
+        #expect(abs(timelineRanges[1].upperBound - 4.666666666666667) < 0.0001)
+        #expect(abs(timelineRanges[2].lowerBound - 4.666666666666667) < 0.0001)
+        #expect(abs(timelineRanges[2].upperBound - 6) < 0.0001)
     }
 
 }

@@ -225,11 +225,9 @@ enum TranscriptOverlayLayoutResolver {
         }
 
         let resolvedStyle = resolvedStyle(for: style)
-        let renderableWords =
-            TranscriptWordEditingCoordinator.reconcileWords(
-                segment.words,
-                with: segment.editedText
-            ) ?? segment.words
+        let renderableWords = TranscriptWordEditingCoordinator.resolvedWords(
+            for: segment
+        )
         let metrics = resolveBaseMetrics(
             videoWidth: videoWidth,
             videoHeight: videoHeight,
@@ -977,10 +975,9 @@ enum TranscriptOverlayLayoutResolver {
     private static func resolvedRenderableWords(
         for segment: EditableTranscriptSegment
     ) -> [EditableTranscriptWord] {
-        TranscriptWordEditingCoordinator.reconcileWords(
-            segment.words,
-            with: segment.editedText
-        ) ?? segment.words
+        TranscriptWordEditingCoordinator.resolvedWords(
+            for: segment
+        )
     }
 
     private static func shouldUseWordBlocks(

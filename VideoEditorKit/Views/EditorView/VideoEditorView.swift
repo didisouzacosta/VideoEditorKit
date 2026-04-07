@@ -97,7 +97,7 @@ struct VideoEditorView: View {
         ) {
             if let video = editorViewModel.currentVideo {
                 let editingConfiguration =
-                    editorViewModel.currentEditingConfiguration(
+                    editorViewModel.exportEditingConfiguration(
                         currentTimelineTime: videoPlayer.currentTime
                     ) ?? .initial
 

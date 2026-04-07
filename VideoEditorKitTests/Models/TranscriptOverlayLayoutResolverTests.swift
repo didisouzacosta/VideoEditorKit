@@ -604,6 +604,56 @@ struct TranscriptOverlayLayoutResolverTests {
     }
 
     @Test
+    func resolveRenderPlanKeepsWordBlocksWhenTheSegmentIsHeavilyRewritten() {
+        let segment = EditableTranscriptSegment(
+            id: UUID(),
+            timeMapping: .init(
+                sourceStartTime: 0,
+                sourceEndTime: 2,
+                timelineStartTime: 0,
+                timelineEndTime: 2
+            ),
+            originalText: "hello world",
+            editedText: "greetings brave world",
+            words: [
+                .init(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 0,
+                        sourceEndTime: 1,
+                        timelineStartTime: 0,
+                        timelineEndTime: 1
+                    ),
+                    originalText: "hello",
+                    editedText: "hello"
+                ),
+                .init(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 1,
+                        sourceEndTime: 2,
+                        timelineStartTime: 1,
+                        timelineEndTime: 2
+                    ),
+                    originalText: "world",
+                    editedText: "world"
+                ),
+            ]
+        )
+
+        let renderPlan = TranscriptOverlayLayoutResolver.resolveRenderPlan(
+            videoWidth: 480,
+            videoHeight: 854,
+            selectedPosition: .bottom,
+            selectedSize: .medium,
+            segment: segment
+        )
+
+        #expect(renderPlan.usesWordBlocks)
+        #expect(renderPlan.wordBlocks.map(\.text) == ["greetings brave", "world"])
+    }
+
+    @Test
     func resolveActiveWordRenderPlansUseTheFullAvailableCaptionWidthForTheVisibleWord() throws {
         let segment = EditableTranscriptSegment(
             id: UUID(),
