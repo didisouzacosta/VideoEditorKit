@@ -2,7 +2,7 @@
 import CoreGraphics
 import CoreVideo
 import Foundation
-import UIKit
+import SwiftUI
 
 @testable import VideoEditorKit
 

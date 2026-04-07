@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import UIKit
 
 struct RangedSliderView: View {
 
@@ -317,9 +316,7 @@ struct RangedSliderView: View {
     }
 
     private func triggerDragStartHaptic() {
-        let generator = UIImpactFeedbackGenerator(style: .light)
-        generator.prepare()
-        generator.impactOccurred(intensity: 0.75)
+        ImpactHaptics.light(intensity: 0.75)
     }
 
     private func triggerDragEndHapticIfNeeded(
@@ -327,10 +324,7 @@ struct RangedSliderView: View {
         currentRange: ClosedRange<Double>?
     ) {
         guard initialRange != currentRange else { return }
-
-        let generator = UIImpactFeedbackGenerator(style: .soft)
-        generator.prepare()
-        generator.impactOccurred(intensity: 1)
+        ImpactHaptics.soft(intensity: 1)
     }
 
 }

@@ -27,7 +27,8 @@ struct TranscriptOverlayPreview: View {
             previewCanvasSize: previewCanvasSize,
             selectedPosition: overlayPosition,
             selectedSize: overlaySize,
-            text: segment.editedText
+            text: segment.editedText,
+            style: resolvedStyle
         )
 
         overlayCard(layout: previewLayout)
@@ -52,14 +53,14 @@ struct TranscriptOverlayPreview: View {
         }
     }
 
-    private var multilineAlignment: TextAlignment {
-        switch resolvedStyle.textAlignment {
-        case .leading:
-            .leading
+    private var overlayAlignment: Alignment {
+        switch overlayPosition {
+        case .top:
+            .top
         case .center:
             .center
-        case .trailing:
-            .trailing
+        case .bottom:
+            .bottom
         }
     }
 
@@ -72,55 +73,103 @@ struct TranscriptOverlayPreview: View {
             if resolvedStyle.hasStroke, let strokeColor = resolvedStyle.strokeColor {
                 strokedText(
                     color: Color(rgba: strokeColor),
-                    fontSize: layout.fontSize
+                    fontSize: layout.fontSize,
+                    targetWidth: layout.textFrame.width
                 )
             }
 
-            overlayText(fontSize: layout.fontSize)
+            overlayText(
+                fontSize: layout.fontSize,
+                targetWidth: layout.textFrame.width
+            )
         }
+        .frame(width: layout.textFrame.width, alignment: frameAlignment)
+        .fixedSize(horizontal: false, vertical: true)
         .frame(
-            width: layout.overlayFrame.width,
-            height: layout.overlayFrame.height,
-            alignment: frameAlignment
+            maxWidth: .infinity,
+            maxHeight: .infinity,
+            alignment: overlayAlignment
         )
-        .position(
-            x: layout.overlayFrame.midX,
-            y: layout.overlayFrame.midY
-        )
+        .padding(.top, topPadding(for: layout))
+        .padding(.bottom, bottomPadding(for: layout))
     }
 
-    private func overlayText(fontSize: CGFloat) -> some View {
+    private func overlayText(
+        fontSize: CGFloat,
+        targetWidth: CGFloat
+    ) -> some View {
         Text(segment.editedText)
             .font(.custom(resolvedStyle.fontFamily, size: fontSize))
-            .foregroundStyle(Color(rgba: resolvedStyle.textColor))
             .italic(resolvedStyle.isItalic)
+            .foregroundStyle(Color(rgba: resolvedStyle.textColor))
             .multilineTextAlignment(multilineAlignment)
+            .lineLimit(nil)
             .fixedSize(horizontal: false, vertical: true)
             .frame(
-                maxWidth: .infinity,
-                maxHeight: .infinity,
+                width: targetWidth,
                 alignment: frameAlignment
             )
     }
 
     private func strokedText(
         color: Color,
-        fontSize: CGFloat
+        fontSize: CGFloat,
+        targetWidth: CGFloat
     ) -> some View {
         ZStack {
-            overlayText(fontSize: fontSize)
-                .foregroundStyle(color)
-                .offset(x: -1, y: 0)
-            overlayText(fontSize: fontSize)
-                .foregroundStyle(color)
-                .offset(x: 1, y: 0)
-            overlayText(fontSize: fontSize)
-                .foregroundStyle(color)
-                .offset(x: 0, y: -1)
-            overlayText(fontSize: fontSize)
-                .foregroundStyle(color)
-                .offset(x: 0, y: 1)
+            overlayText(
+                fontSize: fontSize,
+                targetWidth: targetWidth
+            )
+            .foregroundStyle(color)
+            .offset(x: -1, y: 0)
+
+            overlayText(
+                fontSize: fontSize,
+                targetWidth: targetWidth
+            )
+            .foregroundStyle(color)
+            .offset(x: 1, y: 0)
+
+            overlayText(
+                fontSize: fontSize,
+                targetWidth: targetWidth
+            )
+            .foregroundStyle(color)
+            .offset(x: 0, y: -1)
+
+            overlayText(
+                fontSize: fontSize,
+                targetWidth: targetWidth
+            )
+            .foregroundStyle(color)
+            .offset(x: 0, y: 1)
         }
+    }
+
+    private var multilineAlignment: TextAlignment {
+        switch resolvedStyle.textAlignment {
+        case .leading:
+            .leading
+        case .center:
+            .center
+        case .trailing:
+            .trailing
+        }
+    }
+
+    private func topPadding(
+        for layout: TranscriptOverlayLayoutResolver.Layout
+    ) -> CGFloat {
+        guard overlayPosition == .top else { return 0 }
+        return max(layout.textFrame.minY, 0)
+    }
+
+    private func bottomPadding(
+        for layout: TranscriptOverlayLayoutResolver.Layout
+    ) -> CGFloat {
+        guard overlayPosition == .bottom else { return 0 }
+        return max(previewCanvasSize.height - layout.textFrame.maxY, 0)
     }
 
 }

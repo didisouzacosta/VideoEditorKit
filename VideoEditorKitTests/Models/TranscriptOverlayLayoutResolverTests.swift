@@ -1,4 +1,5 @@
 import CoreGraphics
+import Foundation
 import Testing
 
 @testable import VideoEditorKit
@@ -102,8 +103,8 @@ struct TranscriptOverlayLayoutResolverTests {
             text: "Bottom aligned caption"
         )
 
-        #expect(abs((1920 - portraitLayout.overlayFrame.maxY) - 19.2) < 0.0001)
-        #expect(abs((1080 - squareLayout.overlayFrame.maxY) - 10.8) < 0.0001)
+        #expect(abs((1920 - portraitLayout.overlayFrame.maxY) - 16) < 0.0001)
+        #expect(abs((1080 - squareLayout.overlayFrame.maxY) - 16) < 0.0001)
     }
 
     @Test
@@ -137,8 +138,123 @@ struct TranscriptOverlayLayoutResolverTests {
             text: "Bottom aligned caption"
         )
 
-        #expect(abs((480 - previewLayout.overlayFrame.maxY) - 4.8) < 0.0001)
+        #expect(abs((480 - previewLayout.overlayFrame.maxY) - 4) < 0.0001)
         #expect(previewLayout.fontSize > 0)
+    }
+
+    @Test
+    func resolveMeasuresTheRealTextHeightForCenteredMultilineSegments() {
+        let layout = TranscriptOverlayLayoutResolver.resolve(
+            videoWidth: 1080,
+            videoHeight: 1920,
+            selectedPosition: .center,
+            selectedSize: .medium,
+            text: """
+                Edmure, da criacao do universo ao surgimento
+                dos elfos e homens, conheca a saga das
+                Silmarils
+                """
+        )
+
+        #expect(abs(layout.overlayFrame.midY - 960) < 0.0001)
+        #expect(layout.overlayFrame.height > 0)
+    }
+
+    @Test
+    func resolveUsesUniformSixteenPointInsetsForBottomOverlaysOnASocialCanvas() {
+        let layout = TranscriptOverlayLayoutResolver.resolve(
+            videoWidth: 1080,
+            videoHeight: 1920,
+            selectedPosition: .bottom,
+            selectedSize: .medium,
+            text: "Bottom aligned caption"
+        )
+
+        #expect(abs(layout.overlayFrame.minX - 16) < 0.0001)
+        #expect(abs((1080 - layout.overlayFrame.maxX) - 16) < 0.0001)
+        #expect(abs((1920 - layout.overlayFrame.maxY) - 16) < 0.0001)
+    }
+
+    @Test
+    func resolveAppliesInternalPaddingToTheTranscriptTextFrame() {
+        let layout = TranscriptOverlayLayoutResolver.resolve(
+            videoWidth: 1080,
+            videoHeight: 1920,
+            selectedPosition: .bottom,
+            selectedSize: .medium,
+            text: "Bottom aligned caption"
+        )
+
+        #expect(abs(layout.textFrame.minX - 28) < 0.0001)
+        #expect(abs((1080 - layout.textFrame.maxX) - 28) < 0.0001)
+        #expect(abs(layout.textFrame.minY - (layout.overlayFrame.minY + 16)) < 0.0001)
+        #expect(abs(layout.overlayFrame.maxY - layout.textFrame.maxY - 16) < 0.0001)
+    }
+
+    @Test
+    func resolveMeasuresMultilineHeightUsingThePaddedTextWidth() {
+        let layout = TranscriptOverlayLayoutResolver.resolve(
+            videoWidth: 1080,
+            videoHeight: 1920,
+            selectedPosition: .bottom,
+            selectedSize: .medium,
+            text:
+                "Edmure, da criacao do universo ao surgimento dos elfos e homens, conheca a saga das Silmarils"
+        )
+
+        let measuredTextHeight = TranscriptTextStyleResolver.measuredTextHeight(
+            text: "Edmure, da criacao do universo ao surgimento dos elfos e homens, conheca a saga das Silmarils",
+            style: TranscriptStyle(
+                id: UUID(uuidString: "E5A04D11-329A-4C8E-B266-1E6A60A6F9F9") ?? UUID(),
+                name: "Default",
+                fontFamily: "SF Pro Rounded"
+            ),
+            fontSize: layout.fontSize,
+            targetWidth: layout.textFrame.width
+        )
+
+        #expect(abs(layout.textFrame.height - measuredTextHeight) < 0.0001)
+        #expect(abs(layout.overlayFrame.height - (measuredTextHeight + 32)) < 0.0001)
+        #expect(abs((1920 - layout.overlayFrame.maxY) - 16) < 0.0001)
+    }
+
+    @Test
+    func resolveUsesUniformSixteenPointInsetsForTopOverlaysOnASocialCanvas() {
+        let layout = TranscriptOverlayLayoutResolver.resolve(
+            videoWidth: 1080,
+            videoHeight: 1920,
+            selectedPosition: .top,
+            selectedSize: .medium,
+            text: "Top aligned caption"
+        )
+
+        #expect(abs(layout.overlayFrame.minX - 16) < 0.0001)
+        #expect(abs((1080 - layout.overlayFrame.maxX) - 16) < 0.0001)
+        #expect(abs(layout.overlayFrame.minY - 16) < 0.0001)
+    }
+
+    @Test
+    func resolveKeepsBottomAnchorAtSixteenPointsForShortAndLongSegments() {
+        let shortLayout = TranscriptOverlayLayoutResolver.resolve(
+            videoWidth: 1080,
+            videoHeight: 1920,
+            selectedPosition: .bottom,
+            selectedSize: .medium,
+            text: "Short caption"
+        )
+        let longLayout = TranscriptOverlayLayoutResolver.resolve(
+            videoWidth: 1080,
+            videoHeight: 1920,
+            selectedPosition: .bottom,
+            selectedSize: .medium,
+            text:
+                "This is a much longer transcript segment that should still remain anchored to the bottom edge with the same sixteen point margin even when the text expands into multiple visual lines in the social preset canvas."
+        )
+
+        #expect(abs((1920 - shortLayout.overlayFrame.maxY) - 16) < 0.0001)
+        #expect(abs((1920 - longLayout.overlayFrame.maxY) - 16) < 0.0001)
+        #expect(abs(shortLayout.overlayFrame.minX - 16) < 0.0001)
+        #expect(abs(longLayout.overlayFrame.minX - 16) < 0.0001)
     }
 
 }

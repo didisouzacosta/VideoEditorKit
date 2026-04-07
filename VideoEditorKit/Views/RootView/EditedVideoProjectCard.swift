@@ -5,8 +5,8 @@
 //  Created by Codex on 28.03.2026.
 //
 
+import ImageIO
 import SwiftUI
-import UIKit
 
 struct EditedVideoProjectCard: View {
 
@@ -104,7 +104,7 @@ struct EditedVideoProjectCard: View {
         if let resolvedThumbnailImage {
             Rectangle()
                 .overlay {
-                    Image(uiImage: resolvedThumbnailImage)
+                    Image(decorative: resolvedThumbnailImage, scale: 1)
                         .resizable()
                         .scaledToFill()
                 }
@@ -125,9 +125,15 @@ struct EditedVideoProjectCard: View {
         }
     }
 
-    private var resolvedThumbnailImage: UIImage? {
+    private var resolvedThumbnailImage: CGImage? {
         guard let thumbnailData = project.thumbnailData else { return nil }
-        return UIImage(data: thumbnailData)
+        guard
+            let imageSource = CGImageSourceCreateWithData(thumbnailData as CFData, nil)
+        else {
+            return nil
+        }
+
+        return CGImageSourceCreateImageAtIndex(imageSource, 0, nil)
     }
 
 }
@@ -154,49 +160,7 @@ private enum EditedVideoProjectCardPreviewFixture {
     private static let encodedEditingConfiguration =
         (try? JSONEncoder().encode(VideoEditingConfiguration.initial)) ?? Data()
 
-    private static let thumbnailData: Data? = {
-        let size = CGSize(width: 240, height: 240)
-        let renderer = UIGraphicsImageRenderer(size: size)
-        let image = renderer.image { context in
-            let colors =
-                [
-                    UIColor.systemOrange.cgColor,
-                    UIColor.systemPink.cgColor,
-                    UIColor.systemIndigo.cgColor,
-                ] as CFArray
-            let colorSpace = CGColorSpaceCreateDeviceRGB()
-            let gradient = CGGradient(colorsSpace: colorSpace, colors: colors, locations: [0, 0.45, 1])
-
-            context.cgContext.setFillColor(UIColor.black.cgColor)
-            context.cgContext.fill(CGRect(origin: .zero, size: size))
-
-            if let gradient {
-                context.cgContext.drawLinearGradient(
-                    gradient,
-                    start: CGPoint(x: 0, y: 0),
-                    end: CGPoint(x: size.width, y: size.height),
-                    options: []
-                )
-            }
-
-            let symbolConfiguration = UIImage.SymbolConfiguration(pointSize: 80, weight: .bold)
-            let playImage = UIImage(
-                systemName: "play.rectangle.fill",
-                withConfiguration: symbolConfiguration
-            )?.withTintColor(.white, renderingMode: .alwaysOriginal)
-
-            playImage?.draw(
-                in: CGRect(
-                    x: 76,
-                    y: 76,
-                    width: 88,
-                    height: 88
-                )
-            )
-        }
-
-        return image.pngData()
-    }()
+    private static let thumbnailData: Data? = nil
 
 }
 

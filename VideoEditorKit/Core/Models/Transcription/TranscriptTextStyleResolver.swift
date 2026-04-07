@@ -6,9 +6,15 @@
 //
 
 import QuartzCore
-import UIKit
+import SwiftUI
 
 enum TranscriptTextStyleResolver {
+
+    // MARK: - Private Properties
+
+    private static let measurementOptions: NSStringDrawingOptions = [
+        .usesLineFragmentOrigin
+    ]
 
     // MARK: - Public Methods
 
@@ -21,6 +27,7 @@ enum TranscriptTextStyleResolver {
         paragraphStyle.alignment = resolvedTextAlignment(
             for: style.textAlignment
         )
+        paragraphStyle.lineBreakMode = .byWordWrapping
 
         var attributes: [NSAttributedString.Key: Any] = [
             .font: resolvedFont(
@@ -39,6 +46,42 @@ enum TranscriptTextStyleResolver {
         return NSAttributedString(
             string: text,
             attributes: attributes
+        )
+    }
+
+    static func measuredTextHeight(
+        text: String,
+        style: TranscriptStyle,
+        fontSize: CGFloat,
+        targetWidth: CGFloat
+    ) -> CGFloat {
+        let resolvedFont = resolvedFont(
+            style: style,
+            fontSize: fontSize
+        )
+        let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard trimmedText.isEmpty == false else {
+            return ceil(resolvedFont.lineHeight)
+        }
+
+        let attributedText = attributedString(
+            text: trimmedText,
+            style: style,
+            fontSize: fontSize
+        )
+        let measurementRect = attributedText.boundingRect(
+            with: CGSize(
+                width: max(targetWidth, 1),
+                height: .greatestFiniteMagnitude
+            ),
+            options: measurementOptions,
+            context: nil
+        )
+
+        return max(
+            ceil(measurementRect.height),
+            ceil(resolvedFont.lineHeight)
         )
     }
 

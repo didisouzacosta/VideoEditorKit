@@ -8,7 +8,6 @@
 import AVFoundation
 import Foundation
 import SwiftData
-import UIKit
 
 @MainActor
 struct EditedVideoProjectsStore {

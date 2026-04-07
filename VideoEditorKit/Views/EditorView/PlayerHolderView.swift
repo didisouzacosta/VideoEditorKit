@@ -108,13 +108,6 @@ extension PlayerHolderView {
                     } overlay: {
                         Color.clear
                             .allFrame()
-                            .overlay(alignment: .bottom) {
-                                if cropSummary.shouldShowCropPresetBadge {
-                                    cropPresetBadge(cropSummary)
-                                        .padding(.bottom, 16)
-                                        .allowsHitTesting(false)
-                                }
-                            }
                             .overlay {
                                 transcriptOverlay(
                                     canvasLayout: transcriptCanvasLayout
@@ -141,20 +134,6 @@ extension PlayerHolderView {
                 }
             }
         }
-    }
-
-    private func cropPresetBadge(
-        _ cropSummary: EditorCropPresentationSummary
-    ) -> some View {
-        Text(cropSummary.badgeText)
-            .font(.caption2.weight(.bold))
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .capsuleControl(
-                prominent: true,
-                tint: .black.opacity(0.82)
-            )
-            .foregroundStyle(.white)
     }
 
     private var resetCanvasButton: some View {

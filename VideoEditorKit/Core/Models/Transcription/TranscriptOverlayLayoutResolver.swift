@@ -11,12 +11,13 @@ import Foundation
 enum TranscriptOverlayLayoutResolver {
 
     private enum Constants {
-        static let horizontalInset: CGFloat = 16
-        static let minimumVerticalInset: CGFloat = 8
-        static let verticalInsetRatio: CGFloat = 0.01
+        static let uniformInset: CGFloat = 16
         static let minimumFontSize: CGFloat = 14
-        static let textHorizontalPadding: CGFloat = 0
-        static let minimumLineCount = 1
+        static let textHorizontalInset: CGFloat = 12
+        static let textVerticalInset: CGFloat = 16
+        static let defaultStyleID =
+            UUID(uuidString: "E5A04D11-329A-4C8E-B266-1E6A60A6F9F9")
+            ?? UUID()
     }
 
     struct Layout: Equatable {
@@ -24,11 +25,17 @@ enum TranscriptOverlayLayoutResolver {
         // MARK: - Public Properties
 
         let overlayFrame: CGRect
+        let textFrame: CGRect
         let controlsAnchor: CGPoint
         let targetWidth: CGFloat
         let fontSize: CGFloat
 
     }
+
+    // MARK: - Private Properties
+
+    private static let textHeightPadding = Constants.textVerticalInset * 2
+    private static let textWidthPadding = Constants.textHorizontalInset * 2
 
     // MARK: - Public Methods
 
@@ -37,9 +44,21 @@ enum TranscriptOverlayLayoutResolver {
         videoHeight: CGFloat,
         selectedPosition: TranscriptOverlayPosition,
         selectedSize: TranscriptOverlaySize,
-        text: String
+        text: String,
+        style: TranscriptStyle? = nil
     ) -> Layout {
-        let availableWidth = max(videoWidth - (Constants.horizontalInset * 2), 0)
+        guard videoWidth > 0, videoHeight > 0 else {
+            return Layout(
+                overlayFrame: .zero,
+                textFrame: .zero,
+                controlsAnchor: .zero,
+                targetWidth: 0,
+                fontSize: 0
+            )
+        }
+
+        let resolvedStyle = resolvedStyle(for: style)
+        let availableWidth = max(videoWidth - (Constants.uniformInset * 2), 0)
         let widthMultiplier: CGFloat
         let baseFontRatio: CGFloat
 
@@ -56,49 +75,54 @@ enum TranscriptOverlayLayoutResolver {
         }
 
         let targetWidth = availableWidth * widthMultiplier
+        let textWidth = max(targetWidth - textWidthPadding, 1)
         let baseFontSize = max(videoHeight * baseFontRatio, Constants.minimumFontSize)
-        let verticalInset = max(
-            videoHeight * Constants.verticalInsetRatio,
-            Constants.minimumVerticalInset
-        )
         let maximumOverlayHeight = max(
-            videoHeight - (verticalInset * 2),
-            baseFontSize * 2.2
+            videoHeight - (Constants.uniformInset * 2),
+            baseFontSize
         )
+        let maximumTextHeight = max(maximumOverlayHeight - textHeightPadding, baseFontSize)
         let fontSize = fittedFontSize(
             startingFrom: baseFontSize,
             for: text,
-            targetWidth: targetWidth,
-            maximumOverlayHeight: maximumOverlayHeight
+            textWidth: textWidth,
+            maximumTextHeight: maximumTextHeight,
+            style: resolvedStyle
         )
-        let estimatedLineHeight = fontSize * 1.35
-        let estimatedLineCount = estimatedLineCount(
+        let measuredTextHeight = measuredTextHeight(
             for: text,
-            targetWidth: targetWidth,
-            fontSize: fontSize
+            textWidth: textWidth,
+            fontSize: fontSize,
+            style: resolvedStyle
         )
-        let verticalPadding = max(fontSize * 0.4, 8)
-        let requestedOverlayHeight = estimatedLineHeight * CGFloat(estimatedLineCount) + verticalPadding
+        let requestedOverlayHeight = measuredTextHeight + textHeightPadding
         let overlayHeight = min(requestedOverlayHeight, maximumOverlayHeight)
         let overlayY: CGFloat
 
         switch selectedPosition {
         case .top:
-            overlayY = verticalInset
+            overlayY = Constants.uniformInset
         case .center:
             overlayY = (videoHeight - overlayHeight) / 2
         case .bottom:
-            overlayY = videoHeight - overlayHeight - verticalInset
+            overlayY = videoHeight - overlayHeight - Constants.uniformInset
         }
 
-        let maximumOverlayY = max(videoHeight - overlayHeight - verticalInset, verticalInset)
-        let clampedOverlayY = min(max(overlayY, verticalInset), maximumOverlayY)
+        let maximumOverlayY = max(
+            videoHeight - overlayHeight - Constants.uniformInset,
+            Constants.uniformInset
+        )
+        let clampedOverlayY = min(max(overlayY, Constants.uniformInset), maximumOverlayY)
 
         let overlayFrame = CGRect(
-            x: max((videoWidth - targetWidth) / 2, Constants.horizontalInset),
+            x: Constants.uniformInset,
             y: clampedOverlayY,
             width: targetWidth,
             height: overlayHeight
+        )
+        let textFrame = overlayFrame.insetBy(
+            dx: Constants.textHorizontalInset,
+            dy: Constants.textVerticalInset
         )
         let controlsY = max(overlayFrame.minY - 34, 14)
         let fallbackControlsY = min(overlayFrame.maxY + 34, videoHeight - 14)
@@ -106,6 +130,7 @@ enum TranscriptOverlayLayoutResolver {
 
         return Layout(
             overlayFrame: overlayFrame,
+            textFrame: textFrame,
             controlsAnchor: CGPoint(
                 x: overlayFrame.midX,
                 y: preferredControlsY
@@ -120,7 +145,8 @@ enum TranscriptOverlayLayoutResolver {
         previewCanvasSize: CGSize,
         selectedPosition: TranscriptOverlayPosition,
         selectedSize: TranscriptOverlaySize,
-        text: String
+        text: String,
+        style: TranscriptStyle? = nil
     ) -> Layout {
         guard exportCanvasSize.width > 0, exportCanvasSize.height > 0 else {
             return resolve(
@@ -128,7 +154,8 @@ enum TranscriptOverlayLayoutResolver {
                 videoHeight: previewCanvasSize.height,
                 selectedPosition: selectedPosition,
                 selectedSize: selectedSize,
-                text: text
+                text: text,
+                style: style
             )
         }
 
@@ -137,7 +164,8 @@ enum TranscriptOverlayLayoutResolver {
             videoHeight: exportCanvasSize.height,
             selectedPosition: selectedPosition,
             selectedSize: selectedSize,
-            text: text
+            text: text,
+            style: style
         )
 
         return scaled(
@@ -157,6 +185,7 @@ enum TranscriptOverlayLayoutResolver {
         guard previewCanvasSize.width > 0, previewCanvasSize.height > 0 else {
             return Layout(
                 overlayFrame: .zero,
+                textFrame: .zero,
                 controlsAnchor: .zero,
                 targetWidth: 0,
                 fontSize: 0
@@ -172,9 +201,16 @@ enum TranscriptOverlayLayoutResolver {
             width: layout.overlayFrame.width * widthScale,
             height: layout.overlayFrame.height * heightScale
         )
+        let textFrame = CGRect(
+            x: layout.textFrame.minX * widthScale,
+            y: layout.textFrame.minY * heightScale,
+            width: layout.textFrame.width * widthScale,
+            height: layout.textFrame.height * heightScale
+        )
 
         return Layout(
             overlayFrame: overlayFrame,
+            textFrame: textFrame,
             controlsAnchor: CGPoint(
                 x: layout.controlsAnchor.x * widthScale,
                 y: layout.controlsAnchor.y * heightScale
@@ -184,59 +220,61 @@ enum TranscriptOverlayLayoutResolver {
         )
     }
 
-    private static func estimatedLineCount(
-        for text: String,
-        targetWidth: CGFloat,
-        fontSize: CGFloat
-    ) -> Int {
-        let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard trimmedText.isEmpty == false else { return Constants.minimumLineCount }
-
-        let effectiveTextWidth = max(targetWidth - Constants.textHorizontalPadding, fontSize)
-        let estimatedCharacterWidth = max(fontSize * 0.58, 1)
-        let charactersPerLine = max(
-            Int((effectiveTextWidth / estimatedCharacterWidth).rounded(.down)),
-            1
-        )
-        let explicitLineCount = max(trimmedText.components(separatedBy: .newlines).count, 1)
-        let wrappedLineCount = Int(
-            ceil(CGFloat(trimmedText.count) / CGFloat(charactersPerLine))
-        )
-
-        return max(explicitLineCount, wrappedLineCount, Constants.minimumLineCount)
-    }
-
     private static func fittedFontSize(
         startingFrom baseFontSize: CGFloat,
         for text: String,
-        targetWidth: CGFloat,
-        maximumOverlayHeight: CGFloat
+        textWidth: CGFloat,
+        maximumTextHeight: CGFloat,
+        style: TranscriptStyle
     ) -> CGFloat {
         var fontSize = baseFontSize
-        var lineCount = estimatedLineCount(
+        var estimatedHeight = measuredTextHeight(
             for: text,
-            targetWidth: targetWidth,
-            fontSize: fontSize
+            textWidth: textWidth,
+            fontSize: fontSize,
+            style: style
         )
-        var verticalPadding = max(fontSize * 0.4, 8)
-        var estimatedHeight = (fontSize * 1.35 * CGFloat(lineCount)) + verticalPadding
 
-        guard estimatedHeight > maximumOverlayHeight else { return fontSize }
+        guard estimatedHeight > maximumTextHeight else { return fontSize }
 
         let minimumFontSize = Constants.minimumFontSize
 
-        while estimatedHeight > maximumOverlayHeight, fontSize > minimumFontSize {
+        while estimatedHeight > maximumTextHeight, fontSize > minimumFontSize {
             fontSize = max(fontSize - 1, minimumFontSize)
-            lineCount = estimatedLineCount(
+            estimatedHeight = measuredTextHeight(
                 for: text,
-                targetWidth: targetWidth,
-                fontSize: fontSize
+                textWidth: textWidth,
+                fontSize: fontSize,
+                style: style
             )
-            verticalPadding = max(fontSize * 0.4, 8)
-            estimatedHeight = (fontSize * 1.35 * CGFloat(lineCount)) + verticalPadding
         }
 
         return fontSize
+    }
+
+    private static func measuredTextHeight(
+        for text: String,
+        textWidth: CGFloat,
+        fontSize: CGFloat,
+        style: TranscriptStyle
+    ) -> CGFloat {
+        TranscriptTextStyleResolver.measuredTextHeight(
+            text: text,
+            style: style,
+            fontSize: fontSize,
+            targetWidth: textWidth
+        )
+    }
+
+    private static func resolvedStyle(
+        for style: TranscriptStyle?
+    ) -> TranscriptStyle {
+        style
+            ?? TranscriptStyle(
+                id: Constants.defaultStyleID,
+                name: "Default",
+                fontFamily: "SF Pro Rounded"
+            )
     }
 
 }

@@ -1,6 +1,6 @@
 import Foundation
+import SwiftUI
 import Testing
-import UIKit
 
 @testable import VideoEditorKit
 
@@ -21,6 +21,7 @@ struct VideoEditingThumbnailRendererTests {
                 context.fill(CGRect(origin: .zero, size: size))
             }
         )
+
         let editingConfiguration = VideoEditingConfiguration(
             trim: .init(lowerBound: 1.2, upperBound: 2.0)
         )
@@ -32,6 +33,7 @@ struct VideoEditingThumbnailRendererTests {
             editingConfiguration: editingConfiguration,
             maximumSize: CGSize(width: 80, height: 80)
         )
+
         let thumbnailImage = try #require(thumbnailData.flatMap(UIImage.init(data:)))
         let sampledColor = try #require(
             thumbnailImage.sampledColor(

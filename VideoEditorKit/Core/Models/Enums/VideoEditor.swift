@@ -6,8 +6,8 @@
 //
 
 import AVFoundation
+import CoreImage
 import Foundation
-import UIKit
 
 enum VideoEditor {
 
@@ -802,7 +802,7 @@ extension VideoEditor {
 
         let bgLayer = CALayer()
         bgLayer.frame = CGRect(origin: .zero, size: size)
-        bgLayer.backgroundColor = UIColor(videoFrame.frameColor).cgColor
+        bgLayer.backgroundColor = videoFrame.frameColor.cgColor
         outputLayer.addSublayer(bgLayer)
 
         videoLayer.frame = CGRect(origin: centerPoint, size: scaleSize)
@@ -1166,7 +1166,8 @@ extension VideoEditor {
             videoHeight: renderSize.height,
             selectedPosition: overlayPosition,
             selectedSize: overlaySize,
-            text: segment.text
+            text: segment.text,
+            style: segment.style
         )
         let textLayer = CATextLayer()
         textLayer.string = TranscriptTextStyleResolver.attributedString(
@@ -1174,7 +1175,7 @@ extension VideoEditor {
             style: segment.style,
             fontSize: layout.fontSize
         )
-        textLayer.frame = layout.overlayFrame
+        textLayer.frame = layout.textFrame
         textLayer.alignmentMode = TranscriptTextStyleResolver.resolvedCATextAlignment(
             for: segment.style.textAlignment
         )

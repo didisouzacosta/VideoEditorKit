@@ -378,6 +378,7 @@ Para mudanças futuras neste repositório, usar o padrão abaixo como baseline:
 - em `init` de views e componentes, parâmetros que alimentam `Binding` e `State` devem vir antes dos demais
 - no corpo do `init`, atribuições de `Binding` e `State` devem ficar agrupadas e separadas visualmente das demais propriedades por uma linha em branco
 - em SwiftUI, preferir sempre uma única fonte de verdade para valores editáveis; evitar espelhar o mesmo dado simultaneamente em `@State` e `@Binding` ou em estado observável equivalente
+- a camada `Views/` deve usar `SwiftUI` como regra; não importar `UIKit` diretamente em views. Quando uma bridge UIKit for inevitável, isolá-la fora de `Views/` e expor apenas uma API SwiftUI para consumo
 - não criar sincronização bidirecional com `onChange` apenas para manter `draft` e valor real em paralelo; por padrão, preferir um único caminho de escrita com helper puro quando necessário
 - só introduzir `@State` local para edição quando ele representar estado transitório real de UI, desacoplado da fonte persistida ou do preview, como fluxos explícitos de aplicar/cancelar
 - quando um draft local for inevitável, documentar claramente a fronteira de commit desse estado e cobrir com testes a ausência de propagação duplicada ou reentrância
