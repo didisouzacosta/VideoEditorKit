@@ -408,6 +408,15 @@ extension VideoEditor {
 
     }
 
+    struct TranscriptActiveWordRasterLayout: Equatable {
+
+        // MARK: - Public Properties
+
+        let frame: CGRect
+        let textFrame: CGRect
+
+    }
+
     private struct TranscriptRasterizedFrame {
 
         // MARK: - Public Properties
@@ -1171,16 +1180,24 @@ extension VideoEditor {
                 }
 
                 guard let text = timelineState.text else { return nil }
+                guard
+                    let rasterLayout = resolvedActiveWordRasterLayout(
+                        for: timelineState,
+                        text: text
+                    )
+                else {
+                    return nil
+                }
 
                 let containerFrame = CGRect(
                     origin: .zero,
-                    size: timelineState.frame.size
+                    size: rasterLayout.frame.size
                 )
                 let relativeTextFrame = CGRect(
-                    x: timelineState.textFrame.minX - timelineState.frame.minX,
-                    y: timelineState.textFrame.minY - timelineState.frame.minY,
-                    width: timelineState.textFrame.width,
-                    height: timelineState.textFrame.height
+                    x: rasterLayout.textFrame.minX - rasterLayout.frame.minX,
+                    y: rasterLayout.textFrame.minY - rasterLayout.frame.minY,
+                    width: rasterLayout.textFrame.width,
+                    height: rasterLayout.textFrame.height
                 )
                 let contentsScale = TranscriptTextStyleResolver.resolvedTextLayerContentsScale(
                     for: timelineState.fontSize
@@ -1202,12 +1219,82 @@ extension VideoEditor {
 
                 return TranscriptRasterizedFrame(
                     time: timelineState.time,
-                    frame: timelineState.frame,
+                    frame: rasterLayout.frame,
                     contentsScale: contentsScale,
                     image: image
                 )
             }
         }
+    }
+
+    static func resolvedActiveWordRasterLayout(
+        for timelineState: TranscriptActiveWordTimelineState,
+        text: String
+    ) -> TranscriptActiveWordRasterLayout? {
+        guard timelineState.isHidden == false else { return nil }
+        guard timelineState.frame.isEmpty == false else { return nil }
+        guard timelineState.textFrame.isEmpty == false else { return nil }
+
+        let measuredTextWidth = min(
+            TranscriptTextStyleResolver.measuredWordWidth(
+                text: text,
+                style: timelineState.style,
+                fontSize: timelineState.fontSize
+            ),
+            timelineState.textFrame.width
+        )
+        let measuredTextHeight = min(
+            TranscriptTextStyleResolver.resolvedLineHeight(
+                style: timelineState.style,
+                fontSize: timelineState.fontSize
+            ),
+            timelineState.textFrame.height
+        )
+        let strokePadding = resolvedActiveWordStrokePadding(
+            for: timelineState.fontSize
+        )
+        let horizontalInset = min(
+            TranscriptWordHighlightStyle.horizontalInset,
+            max((timelineState.textFrame.width - measuredTextWidth) / 2, 0)
+        )
+        let occupiedTextWidth = min(
+            measuredTextWidth + (horizontalInset * 2),
+            timelineState.textFrame.width
+        )
+        let textOriginX =
+            timelineState.textFrame.minX
+            + transcriptHorizontalOffset(
+                for: timelineState.style.textAlignment,
+                availableWidth: timelineState.textFrame.width,
+                occupiedWidth: occupiedTextWidth
+            )
+            + horizontalInset
+        let textRect = CGRect(
+            x: textOriginX,
+            y: timelineState.textFrame.minY,
+            width: measuredTextWidth,
+            height: measuredTextHeight
+        )
+        let expandedFrame = textRect.insetBy(
+            dx: -strokePadding,
+            dy: -strokePadding
+        )
+        let containerFrame = expandedFrame.intersection(timelineState.frame)
+
+        guard containerFrame.isNull == false, containerFrame.isEmpty == false else {
+            return nil
+        }
+
+        let visibleTextFrame = textRect.intersection(containerFrame)
+
+        guard visibleTextFrame.isNull == false, visibleTextFrame.isEmpty == false else {
+            return nil
+        }
+
+        return TranscriptActiveWordRasterLayout(
+            frame: containerFrame,
+            textFrame: visibleTextFrame
+        )
     }
 
     private static func applyRasterizedFrame(
@@ -1373,6 +1460,34 @@ extension VideoEditor {
     ) async {
         guard let onProgress else { return }
         await onProgress(progress.clamped(to: 0...1))
+    }
+
+    private static func transcriptHorizontalOffset(
+        for alignment: TranscriptTextAlignment,
+        availableWidth: CGFloat,
+        occupiedWidth: CGFloat
+    ) -> CGFloat {
+        switch alignment {
+        case .leading:
+            0
+        case .center:
+            max((availableWidth - occupiedWidth) / 2, 0)
+        case .trailing:
+            max(availableWidth - occupiedWidth, 0)
+        }
+    }
+
+    private static func resolvedActiveWordStrokePadding(
+        for fontSize: CGFloat
+    ) -> CGFloat {
+        let offsets = TranscriptTextStyleResolver.resolvedStrokeOffsets(
+            for: fontSize
+        )
+        let maximumOffset = offsets.reduce(0 as CGFloat) { currentMaximum, offset in
+            max(currentMaximum, max(abs(offset.width), abs(offset.height)))
+        }
+
+        return ceil(maximumOffset)
     }
 
     private static func getTimeRange(for duration: Double, with timeRange: ClosedRange<Double>)

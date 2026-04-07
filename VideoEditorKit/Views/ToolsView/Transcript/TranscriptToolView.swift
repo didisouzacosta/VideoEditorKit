@@ -154,9 +154,9 @@ struct TranscriptToolView: View {
             Spacer()
 
             Picker("Size", selection: sizeSelection) {
-                Text("S").tag(TranscriptOverlaySize.small)
-                Text("M").tag(TranscriptOverlaySize.medium)
-                Text("L").tag(TranscriptOverlaySize.large)
+                Text("Small").tag(TranscriptOverlaySize.small)
+                Text("Medium").tag(TranscriptOverlaySize.medium)
+                Text("Large").tag(TranscriptOverlaySize.large)
             }
             .labelsHidden()
             .pickerStyle(.segmented)

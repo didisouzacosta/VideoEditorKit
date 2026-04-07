@@ -441,6 +441,49 @@ struct VideoEditorTests {
     }
 
     @Test
+    func resolvedActiveWordRasterLayoutKeepsCenteredAlignmentWhileReducingTheExportFrame() throws {
+        let timelineState = VideoEditor.TranscriptActiveWordTimelineState(
+            time: 0,
+            text: "Edmure,",
+            frame: CGRect(x: 16, y: 1733, width: 1048, height: 52),
+            textFrame: CGRect(x: 48, y: 1765, width: 984, height: 20),
+            fontSize: 20,
+            style: .defaultCaptionStyle
+        )
+
+        let rasterLayout = try #require(
+            VideoEditor.resolvedActiveWordRasterLayout(
+                for: timelineState,
+                text: "Edmure,"
+            )
+        )
+
+        #expect(rasterLayout.frame.width < timelineState.frame.width)
+        #expect(abs(rasterLayout.frame.midX - timelineState.frame.midX) < 0.0001)
+        #expect(rasterLayout.textFrame.width < timelineState.textFrame.width)
+        #expect(abs(rasterLayout.textFrame.midX - timelineState.textFrame.midX) < 0.0001)
+    }
+
+    @Test
+    func resolvedActiveWordRasterLayoutReturnsNilForHiddenStates() {
+        let timelineState = VideoEditor.TranscriptActiveWordTimelineState(
+            time: 1,
+            text: nil,
+            frame: .zero,
+            textFrame: .zero,
+            fontSize: 0,
+            style: .defaultCaptionStyle
+        )
+
+        let rasterLayout = VideoEditor.resolvedActiveWordRasterLayout(
+            for: timelineState,
+            text: "unused"
+        )
+
+        #expect(rasterLayout == nil)
+    }
+
+    @Test
     func resolvedTranscriptRenderSegmentsFallBackToBlockRenderingWhenEditedTextNoLongerMatchesWords() {
         let transcriptDocument = TranscriptDocument(
             segments: [
