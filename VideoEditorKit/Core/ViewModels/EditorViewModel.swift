@@ -872,6 +872,21 @@ final class EditorViewModel {
         }
     }
 
+    func revertTranscriptSegmentText(
+        segmentID: UUID
+    ) {
+        updateTranscriptDraftDocument { transcriptDocument in
+            guard let segmentIndex = transcriptDocument.segments.firstIndex(where: { $0.id == segmentID }) else {
+                return false
+            }
+
+            guard transcriptDocument.segments[segmentIndex].isEdited else { return false }
+
+            transcriptDocument.segments[segmentIndex].revertEdits()
+            return true
+        }
+    }
+
     func prepareTranscriptDraft() {
         transcriptDraftDocument = transcriptDocument
         syncTranscriptRuntimeState()

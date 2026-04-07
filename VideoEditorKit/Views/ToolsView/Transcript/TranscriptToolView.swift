@@ -20,7 +20,9 @@ struct TranscriptToolView: View {
     let document: TranscriptDocument?
     let onTranscribe: () -> Void
     let onRetry: () -> Void
+    let onCopyTranscript: (String) -> Void
     let onUpdateSegmentText: (UUID, String) -> Void
+    let onRevertSegmentText: (UUID) -> Void
     let onUpdatePosition: (TranscriptOverlayPosition) -> Void
     let onUpdateSize: (TranscriptOverlaySize) -> Void
 
@@ -95,7 +97,7 @@ struct TranscriptToolView: View {
                     styleSection(document)
                 }
 
-                Section("Transcription") {
+                Section {
                     ForEach(document.segments) { segment in
                         Button {
                             selectedSegmentID = segment.id
@@ -104,6 +106,8 @@ struct TranscriptToolView: View {
                         }
                         .buttonStyle(.plain)
                     }
+                } header: {
+                    transcriptionSectionHeader(document)
                 }
             }
             .listRowSpacing(8)
@@ -164,6 +168,25 @@ struct TranscriptToolView: View {
         }
     }
 
+    private func transcriptionSectionHeader(
+        _ document: TranscriptDocument
+    ) -> some View {
+        HStack {
+            Text("Transcription")
+
+            Spacer()
+
+            Button {
+                onCopyTranscript(document.plainText)
+            } label: {
+                Label("Copy", systemImage: "doc.on.doc")
+                    .labelStyle(.titleAndIcon)
+            }
+            .buttonStyle(.borderless)
+            .disabled(document.hasCopyableText == false)
+        }
+    }
+
     private var positionSelection: Binding<TranscriptOverlayPosition> {
         Binding(
             get: { document?.overlayPosition ?? .bottom },
@@ -211,9 +234,15 @@ struct TranscriptToolView: View {
             let document,
             let segment = document.segments.first(where: { $0.id == selectedSegmentID })
         {
-            TranscriptSegmentEditView(segment) { newText in
-                onUpdateSegmentText(selectedSegmentID, newText)
-            }
+            TranscriptSegmentEditView(
+                segment,
+                onUpdateText: { newText in
+                    onUpdateSegmentText(selectedSegmentID, newText)
+                },
+                onRevertText: {
+                    onRevertSegmentText(selectedSegmentID)
+                }
+            )
         } else {
             statusView(
                 title: "Segment unavailable",

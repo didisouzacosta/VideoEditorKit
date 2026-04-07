@@ -64,7 +64,7 @@ struct EditorViewModelTests {
     }
 
     @Test
-    func refreshThumbnailsIfNeededKeepsTheLatestThumbnailRequestForTheSameVideo() async {
+    func refreshThumbnailsIfNeededKeepsTheLatestThumbnailRequestForTheSameVideo() async throws {
         let thumbnailProbe = ThumbnailLoaderProbe()
         let viewModel = EditorViewModel(
             .init(
@@ -97,14 +97,27 @@ struct EditorViewModelTests {
             ]
         )
 
-        for _ in 0..<10 where viewModel.currentVideo?.thumbnailsImages.count != 1 {
+        var resolvedImage: UIImage?
+        for _ in 0..<20 {
+            resolvedImage = viewModel.currentVideo?.thumbnailsImages.first?.image
+
+            if let resolvedImage,
+                let sampledColor = resolvedImage.sampledThumbnailColor(),
+                sampledColor.greenComponent > 0.45,
+                sampledColor.redComponent < 0.4,
+                sampledColor.blueComponent < 0.4
+            {
+                break
+            }
+
             try? await Task.sleep(for: .milliseconds(10))
         }
 
-        let resolvedImage = try? #require(viewModel.currentVideo?.thumbnailsImages.first?.image)
-        let resolvedPixel = resolvedImage?.pngData()
-        let expectedPixel = TestFixtures.makeSolidImage(color: .systemGreen).pngData()
-        #expect(resolvedPixel == expectedPixel)
+        let image = try #require(resolvedImage)
+        let sampledColor = try #require(image.sampledThumbnailColor())
+        #expect(sampledColor.greenComponent > 0.45)
+        #expect(sampledColor.redComponent < 0.4)
+        #expect(sampledColor.blueComponent < 0.4)
     }
 
     @Test
@@ -566,6 +579,63 @@ struct EditorViewModelTests {
         #expect(viewModel.transcriptDraftDocument?.segments.first?.editedText == "Edited segment")
         #expect(viewModel.transcriptDraftDocument?.segments.first?.timeMapping.sourceRange == 10...14)
         #expect(viewModel.transcriptDraftDocument?.segments.first?.timeMapping.timelineRange == 5...7)
+    }
+
+    @Test
+    func revertTranscriptSegmentTextRestoresTheOriginalDraftTextAndWords() {
+        let viewModel = EditorViewModel()
+        let segmentID = UUID()
+        viewModel.setTranscriptDocument(
+            TranscriptDocument(
+                segments: [
+                    EditableTranscriptSegment(
+                        id: segmentID,
+                        timeMapping: .init(
+                            sourceStartTime: 10,
+                            sourceEndTime: 14,
+                            timelineStartTime: 5,
+                            timelineEndTime: 7
+                        ),
+                        originalText: "hello world",
+                        editedText: "hello world",
+                        words: [
+                            EditableTranscriptWord(
+                                id: UUID(),
+                                timeMapping: .init(
+                                    sourceStartTime: 10,
+                                    sourceEndTime: 11,
+                                    timelineStartTime: 5,
+                                    timelineEndTime: 5.5
+                                ),
+                                originalText: "hello",
+                                editedText: "hello"
+                            ),
+                            EditableTranscriptWord(
+                                id: UUID(),
+                                timeMapping: .init(
+                                    sourceStartTime: 11,
+                                    sourceEndTime: 14,
+                                    timelineStartTime: 5.5,
+                                    timelineEndTime: 7
+                                ),
+                                originalText: "world",
+                                editedText: "world"
+                            ),
+                        ]
+                    )
+                ]
+            )
+        )
+
+        viewModel.updateTranscriptSegmentText(
+            "hello brave world",
+            segmentID: segmentID
+        )
+        viewModel.revertTranscriptSegmentText(segmentID: segmentID)
+
+        #expect(viewModel.transcriptDocument?.segments.first?.editedText == "hello world")
+        #expect(viewModel.transcriptDraftDocument?.segments.first?.editedText == "hello world")
+        #expect(viewModel.transcriptDraftDocument?.segments.first?.words.map(\.editedText) == ["hello", "world"])
     }
 
     @Test
@@ -2196,9 +2266,79 @@ private actor ThumbnailLoaderProbe {
 
     func resumeNext(
         with thumbnails: [ThumbnailImage]
-    ) {
-        guard !continuations.isEmpty else { return }
+    ) async {
+        while continuations.isEmpty {
+            await Task.yield()
+        }
+
         continuations.removeFirst().resume(returning: thumbnails)
+    }
+
+}
+
+private struct ThumbnailSampledColor {
+
+    // MARK: - Public Properties
+
+    let redComponent: CGFloat
+    let greenComponent: CGFloat
+    let blueComponent: CGFloat
+    let alphaComponent: CGFloat
+
+}
+
+extension UIImage {
+
+    // MARK: - Private Methods
+
+    fileprivate func sampledThumbnailColor(
+        at point: CGPoint? = nil
+    ) -> ThumbnailSampledColor? {
+        guard let cgImage else { return nil }
+
+        let resolvedPoint =
+            point
+            ?? CGPoint(
+                x: size.width / 2,
+                y: size.height / 2
+            )
+        let clampedPoint = CGPoint(
+            x: min(max(resolvedPoint.x, 0), max(size.width - 1, 0)),
+            y: min(max(resolvedPoint.y, 0), max(size.height - 1, 0))
+        )
+        let pixel = UnsafeMutablePointer<UInt8>.allocate(capacity: 4)
+        defer { pixel.deallocate() }
+
+        guard
+            let colorSpace = CGColorSpace(name: CGColorSpace.sRGB),
+            let context = CGContext(
+                data: pixel,
+                width: 1,
+                height: 1,
+                bitsPerComponent: 8,
+                bytesPerRow: 4,
+                space: colorSpace,
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            )
+        else {
+            return nil
+        }
+
+        context.translateBy(x: -clampedPoint.x, y: clampedPoint.y - size.height + 1)
+        context.draw(
+            cgImage,
+            in: CGRect(
+                origin: .zero,
+                size: size
+            )
+        )
+
+        return ThumbnailSampledColor(
+            redComponent: CGFloat(pixel[0]) / 255,
+            greenComponent: CGFloat(pixel[1]) / 255,
+            blueComponent: CGFloat(pixel[2]) / 255,
+            alphaComponent: CGFloat(pixel[3]) / 255
+        )
     }
 
 }

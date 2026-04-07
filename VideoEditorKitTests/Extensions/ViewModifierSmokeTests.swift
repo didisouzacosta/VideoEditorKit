@@ -149,7 +149,9 @@ struct ViewModifierSmokeTests {
                 document: nil,
                 onTranscribe: {},
                 onRetry: {},
+                onCopyTranscript: { _ in },
                 onUpdateSegmentText: { _, _ in },
+                onRevertSegmentText: { _ in },
                 onUpdatePosition: { _ in },
                 onUpdateSize: { _ in }
             )
@@ -181,7 +183,9 @@ struct ViewModifierSmokeTests {
                 ),
                 onTranscribe: {},
                 onRetry: {},
+                onCopyTranscript: { _ in },
                 onUpdateSegmentText: { _, _ in },
+                onRevertSegmentText: { _ in },
                 onUpdatePosition: { _ in },
                 onUpdateSize: { _ in }
             )

@@ -59,6 +59,26 @@ struct TranscriptDocument: Codable, Hashable, Sendable {
 
 }
 
+extension TranscriptDocument {
+
+    // MARK: - Public Properties
+
+    var plainText: String {
+        plainTextParagraphs.joined(separator: "\n\n")
+    }
+
+    var hasCopyableText: Bool {
+        plainTextParagraphs.isEmpty == false
+    }
+
+    // MARK: - Private Properties
+
+    private var plainTextParagraphs: [String] {
+        segments.compactMap(\.plainTextParagraph)
+    }
+
+}
+
 struct EditableTranscriptSegment: Identifiable, Codable, Hashable, Sendable {
 
     enum CodingKeys: String, CodingKey {
@@ -113,6 +133,34 @@ struct EditableTranscriptSegment: Identifiable, Codable, Hashable, Sendable {
         try container.encode(originalText, forKey: .originalText)
         try container.encode(editedText, forKey: .editedText)
         try container.encode(words, forKey: .words)
+    }
+
+}
+
+extension EditableTranscriptSegment {
+
+    // MARK: - Public Properties
+
+    var isEdited: Bool {
+        originalText != editedText
+    }
+
+    // MARK: - Private Properties
+
+    fileprivate var plainTextParagraph: String? {
+        let trimmedText = editedText.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmedText.isEmpty ? nil : trimmedText
+    }
+
+    // MARK: - Public Methods
+
+    mutating func revertEdits() {
+        editedText = originalText
+        words = words.map {
+            var word = $0
+            word.editedText = word.originalText
+            return word
+        }
     }
 
 }

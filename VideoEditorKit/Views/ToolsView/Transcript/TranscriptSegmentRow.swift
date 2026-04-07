@@ -27,7 +27,7 @@ struct TranscriptSegmentRow: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            if segment.originalText != segment.editedText {
+            if segment.isEdited {
                 Text("Edited")
                     .font(.caption2)
                     .foregroundStyle(Theme.accent)

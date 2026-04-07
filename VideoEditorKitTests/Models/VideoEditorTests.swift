@@ -369,6 +369,71 @@ struct VideoEditorTests {
     }
 
     @Test
+    func resolvedTranscriptRenderSegmentsForExportNormalizesTrimmedTimelineToZero() throws {
+        let firstWordID = UUID()
+        let secondWordID = UUID()
+        let transcriptDocument = TranscriptDocument(
+            segments: [
+                EditableTranscriptSegment(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 10,
+                        sourceEndTime: 12,
+                        timelineStartTime: 5,
+                        timelineEndTime: 6
+                    ),
+                    originalText: "hello world",
+                    editedText: "hello world",
+                    words: [
+                        EditableTranscriptWord(
+                            id: firstWordID,
+                            timeMapping: .init(
+                                sourceStartTime: 10,
+                                sourceEndTime: 11,
+                                timelineStartTime: 5,
+                                timelineEndTime: 5.5
+                            ),
+                            originalText: "hello",
+                            editedText: "hello"
+                        ),
+                        EditableTranscriptWord(
+                            id: secondWordID,
+                            timeMapping: .init(
+                                sourceStartTime: 11,
+                                sourceEndTime: 12,
+                                timelineStartTime: 5.5,
+                                timelineEndTime: 6
+                            ),
+                            originalText: "world",
+                            editedText: "world"
+                        ),
+                    ]
+                )
+            ]
+        )
+        let editingConfiguration = VideoEditingConfiguration(
+            trim: .init(
+                lowerBound: 10,
+                upperBound: 12
+            ),
+            playback: .init(
+                rate: 2
+            )
+        )
+
+        let renderSegment = try #require(
+            VideoEditor.resolvedTranscriptRenderSegmentsForExport(
+                from: transcriptDocument,
+                editingConfiguration: editingConfiguration
+            ).first
+        )
+
+        #expect(renderSegment.timeRange == 0...1)
+        #expect(renderSegment.words.map(\.id) == [firstWordID, secondWordID])
+        #expect(renderSegment.words.map(\.timeRange) == [0...0.5, 0.5...1])
+    }
+
+    @Test
     func resolvedTranscriptVisibilityAnimationTurnsOnImmediatelyAtSegmentStart() {
         let animation = VideoEditor.resolvedTranscriptVisibilityAnimation(
             for: 2.0...3.0
@@ -995,6 +1060,71 @@ struct VideoEditorTests {
         #expect(
             highlightedSampleCount(
                 in: croppedFrame,
+                region: CGRect(x: 0.2, y: 0.25, width: 0.6, height: 0.5)
+            ) > 8
+        )
+    }
+
+    @Test
+    func startRenderKeepsTranscriptVisibleWhenTrimChangesTheVideoStartTime() async throws {
+        let videoURL = try await TestFixtures.createTemporaryVideo(
+            size: CGSize(width: 160, height: 90),
+            frameCount: 120,
+            framesPerSecond: 30,
+            color: .red
+        )
+        var video = await Video.load(from: videoURL)
+        video.rangeDuration = 2...3
+
+        let transcriptDocument = TranscriptDocument(
+            segments: [
+                EditableTranscriptSegment(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 2,
+                        sourceEndTime: 3,
+                        timelineStartTime: 2,
+                        timelineEndTime: 3
+                    ),
+                    originalText: "MMMMMMMMMMMMMMMMMMMMMMMM",
+                    editedText: "MMMMMMMMMMMMMMMMMMMMMMMM"
+                )
+            ],
+            overlayPosition: .center,
+            overlaySize: .large
+        )
+        let configuration = VideoEditingConfiguration(
+            trim: .init(
+                lowerBound: 2,
+                upperBound: 3
+            ),
+            transcript: .init(
+                featureState: .loaded,
+                document: transcriptDocument
+            )
+        )
+        let outputURL = try await VideoEditor.startRender(
+            video: video,
+            editingConfiguration: configuration,
+            videoQuality: .low
+        )
+
+        defer {
+            FileManager.default.removeIfExists(for: videoURL)
+            FileManager.default.removeIfExists(for: outputURL)
+        }
+
+        let frame = try #require(
+            await AVURLAsset(url: outputURL).generateImage(
+                at: 0.5,
+                maximumSize: CGSize(width: 320, height: 320),
+                requiresExactFrame: true
+            )
+        )
+
+        #expect(
+            highlightedSampleCount(
+                in: frame,
                 region: CGRect(x: 0.2, y: 0.25, width: 0.6, height: 0.5)
             ) > 8
         )

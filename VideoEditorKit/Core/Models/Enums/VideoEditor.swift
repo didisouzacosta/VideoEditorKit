@@ -247,8 +247,9 @@ enum VideoEditor {
             return fromUrl
         }
 
-        let renderSegments = resolvedTranscriptRenderSegments(
-            from: transcriptDocument
+        let renderSegments = resolvedTranscriptRenderSegmentsForExport(
+            from: transcriptDocument,
+            editingConfiguration: editingConfiguration
         )
         guard !renderSegments.isEmpty else {
             await reportProgress(progressRange.upperBound, via: onProgress)
@@ -692,6 +693,18 @@ extension VideoEditor {
         }
 
         return batches
+    }
+
+    static func resolvedTranscriptRenderSegmentsForExport(
+        from transcriptDocument: TranscriptDocument,
+        editingConfiguration: VideoEditingConfiguration
+    ) -> [TranscriptRenderSegment] {
+        resolvedTranscriptRenderSegments(
+            from: transcriptDocument,
+            timelineOffset: resolvedTranscriptExportTimelineOffset(
+                editingConfiguration
+            )
+        )
     }
 
     private static func requiresCanvasStage(
@@ -1630,17 +1643,36 @@ extension VideoEditor {
     static func resolvedTranscriptRenderSegments(
         from transcriptDocument: TranscriptDocument
     ) -> [TranscriptRenderSegment] {
+        resolvedTranscriptRenderSegments(
+            from: transcriptDocument,
+            timelineOffset: .zero
+        )
+    }
+
+    private static func resolvedTranscriptRenderSegments(
+        from transcriptDocument: TranscriptDocument,
+        timelineOffset: Double
+    ) -> [TranscriptRenderSegment] {
         transcriptDocument.segments.compactMap { segment in
             let trimmedText = segment.editedText.trimmingCharacters(in: .whitespacesAndNewlines)
             guard trimmedText.isEmpty == false else { return nil }
-            guard let timeRange = segment.timeMapping.timelineRange else { return nil }
+            guard let timelineRange = segment.timeMapping.timelineRange else { return nil }
+
+            let timeRange = resolvedTranscriptRenderTimeRange(
+                timelineRange,
+                timelineOffset: timelineOffset
+            )
+
             guard timeRange.upperBound > timeRange.lowerBound else { return nil }
 
             return TranscriptRenderSegment(
                 text: trimmedText,
                 timeRange: timeRange,
                 style: resolvedTranscriptStyle(for: segment),
-                words: resolvedTranscriptRenderWords(from: segment) ?? []
+                words: resolvedTranscriptRenderWords(
+                    from: segment,
+                    timelineOffset: timelineOffset
+                ) ?? []
             )
         }
     }
@@ -1652,7 +1684,8 @@ extension VideoEditor {
     }
 
     private static func resolvedTranscriptRenderWords(
-        from segment: EditableTranscriptSegment
+        from segment: EditableTranscriptSegment,
+        timelineOffset: Double
     ) -> [TranscriptRenderWord]? {
         let reconciledWords = TranscriptWordEditingCoordinator.reconcileWords(
             segment.words,
@@ -1663,7 +1696,13 @@ extension VideoEditor {
             let trimmedText = word.editedText.trimmingCharacters(in: .whitespacesAndNewlines)
 
             guard trimmedText.isEmpty == false else { return nil }
-            guard let timeRange = word.timeMapping.timelineRange else { return nil }
+            guard let timelineRange = word.timeMapping.timelineRange else { return nil }
+
+            let timeRange = resolvedTranscriptRenderTimeRange(
+                timelineRange,
+                timelineOffset: timelineOffset
+            )
+
             guard timeRange.upperBound > timeRange.lowerBound else { return nil }
 
             return TranscriptRenderWord(
@@ -1686,6 +1725,35 @@ extension VideoEditor {
         }
 
         return words
+    }
+
+    private static func resolvedTranscriptExportTimelineOffset(
+        _ editingConfiguration: VideoEditingConfiguration
+    ) -> Double {
+        TranscriptTimeMapper.timelineTime(
+            fromSourceTime: editingConfiguration.trim.lowerBound,
+            rate: editingConfiguration.playback.rate
+        )
+    }
+
+    private static func resolvedTranscriptRenderTimeRange(
+        _ timeRange: ClosedRange<Double>,
+        timelineOffset: Double
+    ) -> ClosedRange<Double> {
+        guard timelineOffset > timelineNormalizationTolerance else {
+            return timeRange
+        }
+
+        let lowerBound = max(timeRange.lowerBound - timelineOffset, .zero)
+        let upperBound = max(timeRange.upperBound - timelineOffset, lowerBound)
+        let resolvedLowerBound =
+            abs(lowerBound) < timelineNormalizationTolerance ? .zero : lowerBound
+        let resolvedUpperBound =
+            abs(upperBound - resolvedLowerBound) < timelineNormalizationTolerance
+            ? resolvedLowerBound
+            : upperBound
+
+        return resolvedLowerBound...resolvedUpperBound
     }
 
     private static func normalizedTranscriptText(

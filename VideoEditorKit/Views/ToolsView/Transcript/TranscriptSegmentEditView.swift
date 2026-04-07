@@ -18,6 +18,7 @@ struct TranscriptSegmentEditView: View {
 
     let segment: EditableTranscriptSegment
     let onUpdateText: (String) -> Void
+    let onRevertText: () -> Void
 
     // MARK: - Body
 
@@ -30,16 +31,13 @@ struct TranscriptSegmentEditView: View {
 
                 TextField(
                     "Transcript segment",
-                    text: $editedText,
+                    text: editedTextBinding,
                     axis: .vertical
                 )
                 .textFieldStyle(.roundedBorder)
                 .lineLimit(3...10)
-                .onChange(of: editedText) { _, newValue in
-                    onUpdateText(newValue)
-                }
 
-                if segment.originalText != editedText {
+                if isShowingRevertButton {
                     Text("Original: \(segment.originalText)")
                         .font(.caption)
                         .foregroundStyle(Theme.secondary)
@@ -50,27 +48,59 @@ struct TranscriptSegmentEditView: View {
         }
         .navigationTitle("Edit Segment")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if isShowingRevertButton {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Revert") {
+                        revertToOriginalText()
+                    }
+                }
+            }
+        }
     }
 
     // MARK: - Initializer
 
     init(
         _ segment: EditableTranscriptSegment,
-        onUpdateText: @escaping (String) -> Void
+        onUpdateText: @escaping (String) -> Void,
+        onRevertText: @escaping () -> Void
     ) {
         self.segment = segment
         self.onUpdateText = onUpdateText
+        self.onRevertText = onRevertText
 
         _editedText = State(initialValue: segment.editedText)
     }
 
     // MARK: - Private Properties
 
+    private var editedTextBinding: Binding<String> {
+        Binding(
+            get: { editedText },
+            set: { newValue in
+                editedText = newValue
+                onUpdateText(newValue)
+            }
+        )
+    }
+
+    private var isShowingRevertButton: Bool {
+        segment.originalText != editedText
+    }
+
     private var segmentTimeLabel: String {
         "\(formattedTime(segment.timeMapping.sourceStartTime)) - \(formattedTime(segment.timeMapping.sourceEndTime))"
     }
 
     // MARK: - Private Methods
+
+    private func revertToOriginalText() {
+        guard isShowingRevertButton else { return }
+
+        editedText = segment.originalText
+        onRevertText()
+    }
 
     private func formattedTime(_ value: Double) -> String {
         value.formatterTimeString()

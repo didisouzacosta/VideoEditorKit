@@ -264,11 +264,17 @@ extension ToolsSectionView {
                 onRetry: {
                     editorViewModel.transcribeCurrentVideo()
                 },
+                onCopyTranscript: { text in
+                    PlainTextClipboard.copy(text)
+                },
                 onUpdateSegmentText: { segmentID, text in
                     editorViewModel.updateTranscriptSegmentText(
                         text,
                         segmentID: segmentID
                     )
+                },
+                onRevertSegmentText: { segmentID in
+                    editorViewModel.revertTranscriptSegmentText(segmentID: segmentID)
                 },
                 onUpdatePosition: { position in
                     editorViewModel.updateTranscriptOverlayPosition(position)
