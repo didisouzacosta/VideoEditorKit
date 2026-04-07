@@ -329,38 +329,6 @@ struct VideoEditorTests {
     }
 
     @Test
-    func resolvedTranscriptWordHighlightVisibilityAnimationTurnsOnImmediatelyAtWordStart() {
-        let animation = VideoEditor.resolvedTranscriptWordHighlightVisibilityAnimation(
-            for: 2.0...2.4
-        )
-
-        #expect(
-            animation.values as? [Float]
-                == TranscriptWordHighlightStyle.resolvedOpacityAnimationValues()
-        )
-        #expect(
-            animation.keyTimes?.map(\.doubleValue)
-                == TranscriptWordHighlightStyle.resolvedOpacityAnimationKeyTimes().map(\.doubleValue)
-        )
-    }
-
-    @Test
-    func resolvedTranscriptScaleAnimationUsesTheSharedHighlightCurve() {
-        let animation = VideoEditor.resolvedTranscriptScaleAnimation(
-            for: 2.0...2.4
-        )
-
-        #expect(
-            animation.values as? [CGFloat]
-                == TranscriptWordHighlightStyle.resolvedScaleAnimationValues()
-        )
-        #expect(
-            animation.keyTimes?.map(\.doubleValue)
-                == TranscriptWordHighlightStyle.resolvedScaleAnimationKeyTimes().map(\.doubleValue)
-        )
-    }
-
-    @Test
     func resolvedTranscriptRenderSegmentsFallBackToBlockRenderingWhenEditedTextNoLongerMatchesWords() {
         let transcriptDocument = TranscriptDocument(
             segments: [

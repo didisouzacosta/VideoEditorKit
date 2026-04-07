@@ -649,7 +649,7 @@ enum TranscriptOverlayLayoutResolver {
             videoWidth: videoWidth,
             videoHeight: videoHeight,
             selectedSize: selectedSize,
-            additionalTextMeasurementInset: TranscriptWordHighlightStyle.horizontalInset * 2
+            additionalTextMeasurementInset: 0
         )
         let maximumOverlayHeight = max(
             videoHeight - (Constants.uniformInset * 2),
@@ -666,26 +666,13 @@ enum TranscriptOverlayLayoutResolver {
             maximumTextHeight: maximumTextHeight,
             style: style
         )
-        let measuredTextWidth = min(
-            TranscriptTextStyleResolver.measuredWordWidth(
-                text: text,
-                style: style,
-                fontSize: fontSize
-            ),
-            metrics.textWidth
-        )
         let measuredTextHeight = measuredTextHeight(
             for: text,
             textWidth: metrics.textWidth,
             fontSize: fontSize,
             style: style
         )
-        let activeWordWidth = min(
-            measuredTextWidth
-                + textWidthPadding
-                + (TranscriptWordHighlightStyle.horizontalInset * 2),
-            metrics.targetWidth
-        )
+        let activeWordWidth = metrics.targetWidth
         let requestedOverlayHeight = measuredTextHeight + textHeightPadding
         let overlayHeight = min(requestedOverlayHeight, maximumOverlayHeight)
         let overlayY = resolvedOverlayY(
@@ -707,7 +694,7 @@ enum TranscriptOverlayLayoutResolver {
             height: overlayHeight
         )
         let textFrame = overlayFrame.insetBy(
-            dx: Constants.textHorizontalInset + TranscriptWordHighlightStyle.horizontalInset,
+            dx: Constants.textHorizontalInset,
             dy: Constants.textVerticalInset
         )
         let controlsY = max(overlayFrame.minY - 34, 14)

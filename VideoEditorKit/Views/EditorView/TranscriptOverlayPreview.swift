@@ -116,6 +116,7 @@ struct TranscriptOverlayPreview: View {
 
                 overlayText(
                     text,
+                    textColor: Color(rgba: resolvedStyle.textColor),
                     fontSize: layout.fontSize,
                     targetWidth: relativeTextFrame.width
                 )
@@ -146,49 +147,11 @@ struct TranscriptOverlayPreview: View {
         renderPlans: [TranscriptOverlayLayoutResolver.ActiveWordRenderPlan]
     ) -> some View {
         if let activeWord = activeWord(in: renderPlans) {
-            let scaleKeyframes = TranscriptWordHighlightStyle.resolvedPreviewScaleKeyframes()
-            let opacityKeyframes = TranscriptWordHighlightStyle.resolvedPreviewOpacityKeyframes()
-
             textOverlay(
                 activeWord.text,
                 layout: activeWord.layout
             )
-            .keyframeAnimator(
-                initialValue: HighlightAnimationState(),
-                trigger: activeWord.wordID
-            ) { content, state in
-                content
-                    .scaleEffect(state.scale)
-                    .opacity(state.opacity)
-            } keyframes: { _ in
-                KeyframeTrack(\.scale) {
-                    CubicKeyframe(scaleKeyframes[0].value, duration: scaleKeyframes[0].duration)
-                    CubicKeyframe(scaleKeyframes[1].value, duration: scaleKeyframes[1].duration)
-                    CubicKeyframe(scaleKeyframes[2].value, duration: scaleKeyframes[2].duration)
-                    CubicKeyframe(scaleKeyframes[3].value, duration: scaleKeyframes[3].duration)
-                    CubicKeyframe(scaleKeyframes[4].value, duration: scaleKeyframes[4].duration)
-                }
-
-                KeyframeTrack(\.opacity) {
-                    LinearKeyframe(opacityKeyframes[0].value, duration: opacityKeyframes[0].duration)
-                    LinearKeyframe(opacityKeyframes[1].value, duration: opacityKeyframes[1].duration)
-                    LinearKeyframe(opacityKeyframes[2].value, duration: opacityKeyframes[2].duration)
-                }
-            }
-            .transition(.identity)
-            .transaction { transaction in
-                transaction.animation = nil
-            }
         }
-    }
-
-    private struct HighlightAnimationState {
-
-        // MARK: - Public Properties
-
-        var opacity = TranscriptWordHighlightStyle.previewInitialOpacity
-        var scale = TranscriptWordHighlightStyle.previewInitialScale
-
     }
 
     private func activeWord(
@@ -200,6 +163,7 @@ struct TranscriptOverlayPreview: View {
 
     private func overlayText(
         _ text: String,
+        textColor: Color,
         fontSize: CGFloat,
         targetWidth: CGFloat
     ) -> some View {
@@ -210,7 +174,7 @@ struct TranscriptOverlayPreview: View {
                     fontSize: fontSize
                 )
             )
-            .foregroundStyle(Color(rgba: resolvedStyle.textColor))
+            .foregroundStyle(textColor)
             .multilineTextAlignment(multilineAlignment)
             .lineLimit(nil)
             .fixedSize(horizontal: false, vertical: true)
@@ -233,10 +197,10 @@ struct TranscriptOverlayPreview: View {
             ) { _, offset in
                 overlayText(
                     text,
+                    textColor: color,
                     fontSize: fontSize,
                     targetWidth: targetWidth
                 )
-                .foregroundStyle(color)
                 .offset(x: offset.width, y: offset.height)
             }
         }

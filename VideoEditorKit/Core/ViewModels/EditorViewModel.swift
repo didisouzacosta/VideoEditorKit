@@ -783,21 +783,10 @@ final class EditorViewModel {
             return nil
         }
 
-        if let exactMatch = activeSegment.words.first(where: {
+        return activeSegment.words.first(where: {
             guard let timelineRange = $0.timeMapping.timelineRange else { return false }
-            return timelineRange.contains(timelineTime)
-        }) {
-            return exactMatch
-        }
-
-        let activationTolerance = 0.12
-
-        return activeSegment.words.first {
-            guard let timelineRange = $0.timeMapping.timelineRange else { return false }
-
-            return (timelineRange.lowerBound - activationTolerance)...(timelineRange.upperBound + activationTolerance)
-                ~= timelineTime
-        }
+            return timelineTime >= timelineRange.lowerBound && timelineTime < timelineRange.upperBound
+        })
     }
 
     func updateTranscriptOverlayPosition(

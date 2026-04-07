@@ -131,19 +131,6 @@ struct TranscriptTextStyleResolverTests {
         #expect(offsets.contains(CGSize(width: 2, height: 2)))
     }
 
-    @Test
-    func previewHighlightKeyframesStayVisibleForTheEntirePreviewAnimation() {
-        let scaleKeyframes = TranscriptWordHighlightStyle.resolvedPreviewScaleKeyframes()
-        let opacityKeyframes = TranscriptWordHighlightStyle.resolvedPreviewOpacityKeyframes()
-
-        #expect(scaleKeyframes.count == 5)
-        #expect(opacityKeyframes.count == 3)
-        #expect(scaleKeyframes.allSatisfy { $0.duration > 0 })
-        #expect(opacityKeyframes.allSatisfy { $0.duration > 0 })
-        #expect(scaleKeyframes.last?.value == TranscriptWordHighlightStyle.activeScale)
-        #expect(opacityKeyframes.last?.value == Double(TranscriptWordHighlightStyle.activeOpacity))
-    }
-
 }
 
 extension UIColor {

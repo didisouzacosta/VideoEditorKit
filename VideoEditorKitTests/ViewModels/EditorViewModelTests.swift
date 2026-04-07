@@ -898,7 +898,7 @@ struct EditorViewModelTests {
     }
 
     @Test
-    func activeTranscriptWordBridgesSmallPlaybackGapsAroundTheWordTiming() {
+    func activeTranscriptWordDoesNotKeepThePreviousWordActiveAfterItsUpperBound() {
         let viewModel = EditorViewModel()
         let visibleWordID = UUID()
 
@@ -933,7 +933,9 @@ struct EditorViewModelTests {
             )
         )
 
-        #expect(viewModel.activeTranscriptWord(at: 12.08)?.id == visibleWordID)
+        #expect(viewModel.activeTranscriptWord(at: 11.99)?.id == visibleWordID)
+        #expect(viewModel.activeTranscriptWord(at: 12.0) == nil)
+        #expect(viewModel.activeTranscriptWord(at: 12.08) == nil)
     }
 
     @Test

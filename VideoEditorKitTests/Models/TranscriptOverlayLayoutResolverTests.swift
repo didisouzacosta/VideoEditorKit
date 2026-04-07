@@ -604,7 +604,7 @@ struct TranscriptOverlayLayoutResolverTests {
     }
 
     @Test
-    func resolveActiveWordRenderPlansAddThirtyTwoPointHorizontalPaddingAroundTheVisibleWord() throws {
+    func resolveActiveWordRenderPlansUseTheFullCaptionWidthForTheVisibleWord() throws {
         let segment = EditableTranscriptSegment(
             id: UUID(),
             timeMapping: .init(
@@ -652,11 +652,13 @@ struct TranscriptOverlayLayoutResolverTests {
         )
 
         #expect(
-            abs(renderPlan.layout.textFrame.minX - renderPlan.layout.overlayFrame.minX - 44) < 0.0001
+            abs(renderPlan.layout.textFrame.minX - renderPlan.layout.overlayFrame.minX - 12) < 0.0001
         )
         #expect(
-            abs(renderPlan.layout.overlayFrame.maxX - renderPlan.layout.textFrame.maxX - 44) < 0.0001
+            abs(renderPlan.layout.overlayFrame.maxX - renderPlan.layout.textFrame.maxX - 12) < 0.0001
         )
+        #expect(abs(renderPlan.layout.overlayFrame.minX - 16) < 0.0001)
+        #expect(abs(renderPlan.layout.overlayFrame.width - (360 - 32)) < 0.0001)
     }
 
     @Test

@@ -1360,16 +1360,10 @@ extension VideoEditor {
         wordContainerLayer.frame = layout.overlayFrame
         wordContainerLayer.opacity = 0
         wordContainerLayer.add(
-            resolvedTranscriptWordHighlightVisibilityAnimation(
+            resolvedTranscriptVisibilityAnimation(
                 for: timeRange
             ),
             forKey: "transcript-word-opacity-\(text.hashValue)"
-        )
-        wordContainerLayer.add(
-            resolvedTranscriptScaleAnimation(
-                for: timeRange
-            ),
-            forKey: "transcript-word-scale-\(text.hashValue)"
         )
 
         let textLayer = makeTranscriptTextContentLayer(
@@ -1468,31 +1462,6 @@ extension VideoEditor {
         TranscriptTextStyleResolver.resolvedStrokeOffsets()
     }
 
-    static func resolvedTranscriptScaleAnimation(
-        for timeRange: ClosedRange<Double>
-    ) -> CAKeyframeAnimation {
-        let animation = CAKeyframeAnimation(keyPath: "transform.scale")
-        animation.beginTime = AVCoreAnimationBeginTimeAtZero + timeRange.lowerBound
-        animation.duration = max(timeRange.upperBound - timeRange.lowerBound, 1 / 30)
-        animation.values = TranscriptWordHighlightStyle.resolvedScaleAnimationValues()
-        animation.keyTimes = TranscriptWordHighlightStyle.resolvedScaleAnimationKeyTimes()
-        animation.isRemovedOnCompletion = false
-        animation.fillMode = .both
-        return animation
-    }
-
-    static func resolvedTranscriptWordHighlightVisibilityAnimation(
-        for timeRange: ClosedRange<Double>
-    ) -> CAKeyframeAnimation {
-        let animation = CAKeyframeAnimation(keyPath: "opacity")
-        animation.beginTime = AVCoreAnimationBeginTimeAtZero + timeRange.lowerBound
-        animation.duration = max(timeRange.upperBound - timeRange.lowerBound, 1 / 30)
-        animation.values = TranscriptWordHighlightStyle.resolvedOpacityAnimationValues()
-        animation.keyTimes = TranscriptWordHighlightStyle.resolvedOpacityAnimationKeyTimes()
-        animation.isRemovedOnCompletion = false
-        animation.fillMode = .both
-        return animation
-    }
 }
 
 private struct UncheckedExportSessionBox: @unchecked Sendable {
