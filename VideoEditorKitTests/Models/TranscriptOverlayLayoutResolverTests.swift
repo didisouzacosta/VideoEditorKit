@@ -665,7 +665,7 @@ struct TranscriptOverlayLayoutResolverTests {
         )
         #expect(abs(renderPlan.layout.overlayFrame.minX - 16) < 0.0001)
         #expect(abs(renderPlan.layout.overlayFrame.width - (360 - 32)) < 0.0001)
-        #expect(abs((640 - renderPlan.layout.overlayFrame.maxY) - 32) < 0.0001)
+        #expect(abs((640 - renderPlan.layout.overlayFrame.maxY) - 45) < 0.0001)
     }
 
     @Test
@@ -716,8 +716,8 @@ struct TranscriptOverlayLayoutResolverTests {
 
         #expect(abs(previewPlan.layout.overlayFrame.width - (exportPlan.layout.overlayFrame.width / 4)) < 0.0001)
         #expect(abs(previewPlan.layout.textFrame.minX - (exportPlan.layout.textFrame.minX / 4)) < 0.0001)
-        #expect(abs((1920 - exportPlan.layout.overlayFrame.maxY) - 96) < 0.0001)
-        #expect(abs((480 - previewPlan.layout.overlayFrame.maxY) - 24) < 0.0001)
+        #expect(abs((1920 - exportPlan.layout.overlayFrame.maxY) - 135) < 0.0001)
+        #expect(abs((480 - previewPlan.layout.overlayFrame.maxY) - 33.75) < 0.0001)
     }
 
     @Test

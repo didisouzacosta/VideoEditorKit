@@ -1397,6 +1397,7 @@ extension VideoEditor {
     ) -> CALayer {
         let containerLayer = CALayer()
         containerLayer.frame = containerFrame
+        containerLayer.allowsEdgeAntialiasing = true
 
         if style.hasStroke, let strokeColor = style.strokeColor {
             for offset in resolvedTranscriptStrokeOffsets(for: fontSize) {
@@ -1457,6 +1458,7 @@ extension VideoEditor {
         textLayer.contentsScale = TranscriptTextStyleResolver.resolvedTextLayerContentsScale(
             for: fontSize
         )
+        textLayer.allowsEdgeAntialiasing = true
         return textLayer
     }
 

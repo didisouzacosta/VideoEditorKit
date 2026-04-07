@@ -14,6 +14,7 @@ enum TranscriptTextStyleResolver {
 
     static let strokeWidth: CGFloat = 4
     static let strokeOffset: CGFloat = strokeWidth / 2
+    static let strokeSampleCount = 16
 
     // MARK: - Private Properties
 
@@ -203,24 +204,19 @@ enum TranscriptTextStyleResolver {
     static func resolvedStrokeOffsets(
         for fontSize: CGFloat
     ) -> [CGSize] {
-        let scale = sqrt(
-            max(
-                fontSize / referenceStrokeFontSize,
-                1
-            )
+        let scale = max(
+            fontSize / referenceStrokeFontSize,
+            1
         )
-        let strokeOffset = strokeOffset
+        let radius = strokeOffset * scale
 
-        return [
-            CGSize(width: -(strokeOffset * scale), height: 0),
-            CGSize(width: strokeOffset * scale, height: 0),
-            CGSize(width: 0, height: -(strokeOffset * scale)),
-            CGSize(width: 0, height: strokeOffset * scale),
-            CGSize(width: -(strokeOffset * scale), height: -(strokeOffset * scale)),
-            CGSize(width: -(strokeOffset * scale), height: strokeOffset * scale),
-            CGSize(width: strokeOffset * scale, height: -(strokeOffset * scale)),
-            CGSize(width: strokeOffset * scale, height: strokeOffset * scale),
-        ]
+        return (0..<strokeSampleCount).map { index in
+            let angle = (CGFloat(index) / CGFloat(strokeSampleCount)) * 2 * .pi
+            return CGSize(
+                width: cos(angle) * radius,
+                height: sin(angle) * radius
+            )
+        }
     }
 
     static func resolvedTextLayerContentsScale(
@@ -228,10 +224,10 @@ enum TranscriptTextStyleResolver {
     ) -> CGFloat {
         min(
             max(
-                ceil(fontSize / referenceStrokeFontSize * 2),
+                ceil(fontSize / referenceStrokeFontSize * 4),
                 2
             ),
-            8
+            16
         )
     }
 

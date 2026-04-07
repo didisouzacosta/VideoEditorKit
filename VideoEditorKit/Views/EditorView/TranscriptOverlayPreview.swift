@@ -208,6 +208,7 @@ struct TranscriptOverlayPreview: View {
                 .offset(x: offset.width, y: offset.height)
             }
         }
+        .drawingGroup(opaque: false, colorMode: .linear)
     }
 
 }

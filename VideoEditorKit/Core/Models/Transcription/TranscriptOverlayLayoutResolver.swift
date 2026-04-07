@@ -1097,7 +1097,7 @@ enum TranscriptOverlayLayoutResolver {
     ) -> CGFloat {
         max(
             Constants.activeWordOuterVerticalInset,
-            ceil(videoHeight * 0.05)
+            ceil(videoHeight * 0.07)
         )
     }
 

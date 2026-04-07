@@ -121,32 +121,44 @@ struct TranscriptTextStyleResolverTests {
     }
 
     @Test
-    func resolvedStrokeOffsetsUseAnEightPointOutlineAtFourPixels() {
+    func resolvedStrokeOffsetsUseADenserCircularOutlineAtFourPixels() {
         let offsets = TranscriptTextStyleResolver.resolvedStrokeOffsets()
+        let containsIntermediateCircularSample = offsets.contains { offset in
+            abs(offset.width) > 0.1
+                && abs(offset.height) > 0.1
+                && abs(abs(offset.width) - 2) > 0.1
+                && abs(abs(offset.height) - 2) > 0.1
+        }
 
         #expect(TranscriptTextStyleResolver.strokeWidth == 4)
         #expect(TranscriptTextStyleResolver.strokeOffset == 2)
-        #expect(offsets.count == 8)
-        #expect(offsets.contains(CGSize(width: -2, height: 0)))
-        #expect(offsets.contains(CGSize(width: 2, height: 2)))
+        #expect(TranscriptTextStyleResolver.strokeSampleCount == 16)
+        #expect(offsets.count == 16)
+        #expect(
+            offsets.contains(where: { abs($0.width + 2) < 0.0001 && abs($0.height) < 0.0001 })
+        )
+        #expect(containsIntermediateCircularSample)
     }
 
     @Test
-    func resolvedStrokeOffsetsScaleUpForLargerExportFontSizes() {
+    func resolvedStrokeOffsetsScaleLinearlyForLargerExportFontSizes() {
         let offsets = TranscriptTextStyleResolver.resolvedStrokeOffsets(
             for: 80
         )
         let containsNegativeHorizontalOffset = offsets.contains { offset in
-            abs(offset.width + 4) < 0.0001 && offset.height == 0
+            abs(offset.width + 8) < 0.0001 && abs(offset.height) < 0.0001
         }
-        let containsPositiveDiagonalOffset = offsets.contains { offset in
-            abs(offset.width - 4) < 0.0001 && abs(offset.height - 4) < 0.0001
+        let containsIntermediateCircularSample = offsets.contains { offset in
+            abs(offset.width) > 0.1
+                && abs(offset.height) > 0.1
+                && abs(abs(offset.width) - 8) > 0.1
+                && abs(abs(offset.height) - 8) > 0.1
         }
 
-        #expect(offsets.count == 8)
+        #expect(offsets.count == 16)
         #expect(containsNegativeHorizontalOffset)
-        #expect(containsPositiveDiagonalOffset)
-        #expect(TranscriptTextStyleResolver.resolvedTextLayerContentsScale(for: 80) == 8)
+        #expect(containsIntermediateCircularSample)
+        #expect(TranscriptTextStyleResolver.resolvedTextLayerContentsScale(for: 80) == 16)
     }
 
 }
