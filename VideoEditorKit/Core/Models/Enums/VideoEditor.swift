@@ -1036,7 +1036,8 @@ extension VideoEditor {
                 : nil
             let shouldInsertGapState =
                 nextStartTime == nil
-                || nextStartTime! - renderUnit.timeRange.upperBound > timelineNormalizationTolerance
+                || (nextStartTime ?? renderUnit.timeRange.upperBound) - renderUnit.timeRange.upperBound
+                    > timelineNormalizationTolerance
 
             if shouldInsertGapState {
                 timelineStates.append(
