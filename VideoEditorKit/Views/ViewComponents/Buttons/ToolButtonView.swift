@@ -71,7 +71,7 @@ struct ToolButtonView: View {
 
             if let subtitle, isChange {
                 Text(subtitle)
-                    .font(.caption2.weight(.medium))
+                    .font(.caption2)
                     .foregroundStyle(Theme.secondary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
@@ -79,7 +79,7 @@ struct ToolButtonView: View {
         }
         .multilineTextAlignment(.center)
         .padding(.horizontal, horizontalPadding)
-        .padding(.vertical, 6)
+        .padding(.vertical, 8)
     }
 
     private var blockedBadge: some View {

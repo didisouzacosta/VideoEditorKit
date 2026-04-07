@@ -28,6 +28,7 @@ struct PagedToolsRow: View {
                 let metrics = EditorToolbarLayoutResolver.resolvedMetrics(
                     for: proxy.size.width
                 )
+
                 let shouldCenterRow = metrics.shouldCenterRowContent(
                     for: toolAvailability.count,
                     availableWidth: proxy.size.width

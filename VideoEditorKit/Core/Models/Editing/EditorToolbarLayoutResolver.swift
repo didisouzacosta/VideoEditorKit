@@ -58,7 +58,7 @@ struct EditorToolbarLayoutResolver {
         static let pageSpacing: CGFloat = 10
         static let previewWidth: CGFloat = 28
         static let horizontalInset: CGFloat = 0
-        static let itemHeight: CGFloat = 104
+        static let itemHeight: CGFloat = 80
         static let itemHorizontalPadding: CGFloat = 12
     }
 
