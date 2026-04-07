@@ -14,8 +14,6 @@ struct VideoEditingConfigurationTests {
     func configurationCodableRoundTripPreservesSerializableEditingState() throws {
         let segmentID = try #require(UUID(uuidString: "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE"))
         let wordID = try #require(UUID(uuidString: "11111111-2222-3333-4444-555555555555"))
-        let segmentStyleID = try #require(UUID(uuidString: "99999999-8888-7777-6666-555555555555"))
-        let availableStyleID = try #require(UUID(uuidString: "ABCDEFAB-CDEF-ABCD-EFAB-CDEFABCDEFAB"))
 
         let configuration = VideoEditingConfiguration(
             trim: .init(lowerBound: 4, upperBound: 22),
@@ -77,20 +75,7 @@ struct VideoEditingConfigurationTests {
                                     originalText: "Original",
                                     editedText: "Edited"
                                 )
-                            ],
-                            styleID: segmentStyleID
-                        )
-                    ],
-                    availableStyles: [
-                        TranscriptStyle(
-                            id: availableStyleID,
-                            name: "Classic",
-                            fontFamily: "Avenir Next",
-                            isItalic: true,
-                            hasStroke: true,
-                            textAlignment: .center,
-                            textColor: .white,
-                            strokeColor: .black
+                            ]
                         )
                     ],
                     overlayPosition: .center,
@@ -177,7 +162,6 @@ struct VideoEditingConfigurationTests {
                             )
                         ]
                     } ?? [],
-                    availableStyles: [],
                     overlayPosition: .bottom,
                     overlaySize: .medium
                 )
@@ -472,6 +456,8 @@ struct VideoEditingConfigurationTests {
     @Test
     func applyRestoresSerializableEditingStateIntoRuntimeVideo() throws {
         let audioURL = try TestFixtures.createTemporaryAudio()
+        let transcriptSegmentID = UUID()
+
         defer { FileManager.default.removeIfExists(for: audioURL) }
 
         let configuration = VideoEditingConfiguration(
@@ -502,6 +488,24 @@ struct VideoEditingConfigurationTests {
                     volume: 0.7
                 ),
                 selectedTrack: .recorded
+            ),
+            transcript: .init(
+                featureState: .loaded,
+                document: .init(
+                    segments: [
+                        EditableTranscriptSegment(
+                            id: transcriptSegmentID,
+                            timeMapping: .init(
+                                sourceStartTime: 8,
+                                sourceEndTime: 10,
+                                timelineStartTime: 1,
+                                timelineEndTime: 2
+                            ),
+                            originalText: "Hello world",
+                            editedText: "Hello world"
+                        )
+                    ]
+                )
             ),
             presentation: .init(
                 .adjusts,

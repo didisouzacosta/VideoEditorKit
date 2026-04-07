@@ -107,7 +107,6 @@ final class EditorViewModel {
     private let dependencies: Dependencies
     private let taskCoordinator: EditorTaskCoordinator
 
-    private var availableTranscriptStyles = [TranscriptStyle]()
     private var enabledTools = Set(ToolEnum.all)
     private var hasLoadedSourceVideo = false
     private var lastPlayerContainerSize = CGSize(width: 1, height: 220)
@@ -663,34 +662,11 @@ final class EditorViewModel {
 
     func configureTranscription(
         provider: (any VideoTranscriptionProvider)?,
-        availableStyles: [TranscriptStyle] = [],
         preferredLocale: String? = nil
     ) {
         transcriptionProvider = provider
         transcriptionComponent = provider as? any VideoTranscriptionComponentProtocol
-        self.availableTranscriptStyles = availableStyles
         preferredTranscriptLocale = preferredLocale
-
-        var didChangeCommittedDocument = false
-
-        if var transcriptDocument,
-            transcriptDocument.availableStyles != availableStyles
-        {
-            transcriptDocument.availableStyles = availableStyles
-            self.transcriptDocument = transcriptDocument
-            didChangeCommittedDocument = true
-        }
-
-        if var transcriptDraftDocument,
-            transcriptDraftDocument.availableStyles != availableStyles
-        {
-            transcriptDraftDocument.availableStyles = availableStyles
-            self.transcriptDraftDocument = transcriptDraftDocument
-        }
-
-        if didChangeCommittedDocument {
-            markEditingConfigurationChanged()
-        }
 
         syncTranscriptRuntimeState()
     }
@@ -736,7 +712,6 @@ final class EditorViewModel {
 
                 let document = EditorTranscriptMappingCoordinator.makeDocument(
                     from: result,
-                    availableStyles: availableTranscriptStyles,
                     trimRange: currentVideo.rangeDuration,
                     playbackRate: currentVideo.rate
                 )
@@ -801,12 +776,28 @@ final class EditorViewModel {
         }
     }
 
-    func transcriptStyle(
-        for segment: EditableTranscriptSegment
-    ) -> TranscriptStyle? {
-        let effectiveStyleID = effectiveTranscriptDocument?.selectedStyleID ?? segment.styleID
-        guard let effectiveStyleID else { return nil }
-        return effectiveTranscriptDocument?.availableStyles.first(where: { $0.id == effectiveStyleID })
+    func activeTranscriptWord(
+        at timelineTime: Double
+    ) -> EditableTranscriptWord? {
+        guard let activeSegment = activeTranscriptSegment(at: timelineTime) else {
+            return nil
+        }
+
+        if let exactMatch = activeSegment.words.first(where: {
+            guard let timelineRange = $0.timeMapping.timelineRange else { return false }
+            return timelineRange.contains(timelineTime)
+        }) {
+            return exactMatch
+        }
+
+        let activationTolerance = 0.12
+
+        return activeSegment.words.first {
+            guard let timelineRange = $0.timeMapping.timelineRange else { return false }
+
+            return (timelineRange.lowerBound - activationTolerance)...(timelineRange.upperBound + activationTolerance)
+                ~= timelineTime
+        }
     }
 
     func updateTranscriptOverlayPosition(
@@ -825,16 +816,6 @@ final class EditorViewModel {
         updateTranscriptDraftDocument { transcriptDocument in
             guard transcriptDocument.overlaySize != size else { return false }
             transcriptDocument.overlaySize = size
-            return true
-        }
-    }
-
-    func updateTranscriptStyle(
-        _ styleID: TranscriptStyle.StyleIdentifier?
-    ) {
-        updateTranscriptDraftDocument { transcriptDocument in
-            guard transcriptDocument.selectedStyleID != styleID else { return false }
-            transcriptDocument.selectedStyleID = styleID
             return true
         }
     }
@@ -892,6 +873,12 @@ final class EditorViewModel {
             guard transcriptDocument.segments[segmentIndex].editedText != text else { return false }
 
             transcriptDocument.segments[segmentIndex].editedText = text
+            if let reconciledWords = TranscriptWordEditingCoordinator.reconcileWords(
+                transcriptDocument.segments[segmentIndex].words,
+                with: text
+            ) {
+                transcriptDocument.segments[segmentIndex].words = reconciledWords
+            }
             return true
         }
     }

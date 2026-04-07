@@ -164,7 +164,6 @@ struct VideoEditorConfigurationTests {
         let provider = ConfigurationProbeTranscriptionProvider()
         let configuration = VideoEditorView.Configuration.TranscriptionConfiguration(
             provider: provider,
-            availableStyles: [],
             preferredLocale: nil
         )
 
@@ -187,8 +186,6 @@ struct VideoEditorConfigurationTests {
     func rootViewDefaultTranscriptionConfigurationUsesAudioLanguageAutodetectionWithoutALocalProvider() {
         let configuration = RootView.defaultTranscriptionConfiguration
 
-        #expect(configuration.availableStyles == RootView.defaultTranscriptStyles)
-        #expect(configuration.availableStyles.count == 3)
         #expect(configuration.preferredLocale == nil)
         #expect(configuration.provider == nil)
         #expect(configuration.isConfigured == false)

@@ -363,13 +363,24 @@ extension VideoEditor {
         case crop
     }
 
-    private struct TranscriptRenderSegment: Equatable {
+    struct TranscriptRenderSegment: Equatable {
 
         // MARK: - Public Properties
 
         let text: String
         let timeRange: ClosedRange<Double>
         let style: TranscriptStyle
+        let words: [TranscriptRenderWord]
+
+    }
+
+    struct TranscriptRenderWord: Equatable {
+
+        // MARK: - Public Properties
+
+        let id: EditableTranscriptWord.ID
+        let text: String
+        let timeRange: ClosedRange<Double>
 
     }
 
@@ -828,7 +839,7 @@ extension VideoEditor {
         outputLayer.isGeometryFlipped = true
 
         for segment in renderSegments {
-            let overlayLayer = makeTranscriptTextLayer(
+            let overlayLayer = makeTranscriptOverlayLayer(
                 for: segment,
                 overlayPosition: transcriptDocument.overlayPosition,
                 overlaySize: transcriptDocument.overlaySize,
@@ -1118,7 +1129,7 @@ extension VideoEditor {
         )
     }
 
-    private static func resolvedTranscriptRenderSegments(
+    static func resolvedTranscriptRenderSegments(
         from transcriptDocument: TranscriptDocument
     ) -> [TranscriptRenderSegment] {
         transcriptDocument.segments.compactMap { segment in
@@ -1130,76 +1141,354 @@ extension VideoEditor {
             return TranscriptRenderSegment(
                 text: trimmedText,
                 timeRange: timeRange,
-                style: resolvedTranscriptStyle(
-                    for: segment,
-                    availableStyles: transcriptDocument.availableStyles
-                )
+                style: resolvedTranscriptStyle(for: segment),
+                words: resolvedTranscriptRenderWords(from: segment) ?? []
             )
         }
     }
 
     private static func resolvedTranscriptStyle(
-        for segment: EditableTranscriptSegment,
-        availableStyles: [TranscriptStyle]
+        for _: EditableTranscriptSegment
     ) -> TranscriptStyle {
-        if let styleID = segment.styleID,
-            let style = availableStyles.first(where: { $0.id == styleID })
-        {
-            return style
-        }
-
-        return TranscriptStyle(
-            id: UUID(),
-            name: "Default",
-            fontFamily: "SF Pro Rounded"
-        )
+        TranscriptStyle.defaultCaptionStyle
     }
 
-    private static func makeTranscriptTextLayer(
+    private static func resolvedTranscriptRenderWords(
+        from segment: EditableTranscriptSegment
+    ) -> [TranscriptRenderWord]? {
+        let reconciledWords = TranscriptWordEditingCoordinator.reconcileWords(
+            segment.words,
+            with: segment.editedText
+        )
+        let renderableWords = reconciledWords ?? segment.words
+        let words: [TranscriptRenderWord] = renderableWords.compactMap { word in
+            let trimmedText = word.editedText.trimmingCharacters(in: .whitespacesAndNewlines)
+
+            guard trimmedText.isEmpty == false else { return nil }
+            guard let timeRange = word.timeMapping.timelineRange else { return nil }
+            guard timeRange.upperBound > timeRange.lowerBound else { return nil }
+
+            return TranscriptRenderWord(
+                id: word.id,
+                text: trimmedText,
+                timeRange: timeRange
+            )
+        }
+
+        guard words.isEmpty == false else { return nil }
+
+        if reconciledWords == nil {
+            let joinedWordText = words.map { $0.text }.joined(separator: " ")
+            guard
+                normalizedTranscriptText(segment.editedText)
+                    == normalizedTranscriptText(joinedWordText)
+            else {
+                return nil
+            }
+        }
+
+        return words
+    }
+
+    private static func normalizedTranscriptText(
+        _ text: String
+    ) -> String {
+        text
+            .components(separatedBy: .whitespacesAndNewlines)
+            .filter { $0.isEmpty == false }
+            .joined(separator: " ")
+    }
+
+    private static func makeTranscriptOverlayLayer(
         for segment: TranscriptRenderSegment,
         overlayPosition: TranscriptOverlayPosition,
         overlaySize: TranscriptOverlaySize,
         renderSize: CGSize
     ) -> CALayer {
-        let layout = TranscriptOverlayLayoutResolver.resolve(
+        guard segment.words.isEmpty == false else {
+            let layout = TranscriptOverlayLayoutResolver.resolve(
+                videoWidth: renderSize.width,
+                videoHeight: renderSize.height,
+                selectedPosition: overlayPosition,
+                selectedSize: overlaySize,
+                text: segment.text,
+                style: segment.style
+            )
+            let textLayer = makeTranscriptTextContentLayer(
+                text: segment.text,
+                style: segment.style,
+                fontSize: layout.fontSize,
+                containerFrame: layout.overlayFrame,
+                textFrame: CGRect(
+                    x: layout.textFrame.minX - layout.overlayFrame.minX,
+                    y: layout.textFrame.minY - layout.overlayFrame.minY,
+                    width: layout.textFrame.width,
+                    height: layout.textFrame.height
+                ),
+                alignmentMode: TranscriptTextStyleResolver.resolvedCATextAlignment(
+                    for: segment.style.textAlignment
+                ),
+                isWrapped: true
+            )
+            textLayer.opacity = 0
+            textLayer.add(
+                resolvedTranscriptVisibilityAnimation(
+                    for: segment.timeRange
+                ),
+                forKey: "transcript-opacity-\(segment.text.hashValue)"
+            )
+
+            return textLayer
+        }
+
+        let editableSegment = EditableTranscriptSegment(
+            id: UUID(),
+            timeMapping: .init(
+                sourceStartTime: segment.timeRange.lowerBound,
+                sourceEndTime: segment.timeRange.upperBound,
+                timelineStartTime: segment.timeRange.lowerBound,
+                timelineEndTime: segment.timeRange.upperBound
+            ),
+            originalText: segment.text,
+            editedText: segment.text,
+            words: segment.words.map {
+                EditableTranscriptWord(
+                    id: $0.id,
+                    timeMapping: .init(
+                        sourceStartTime: $0.timeRange.lowerBound,
+                        sourceEndTime: $0.timeRange.upperBound,
+                        timelineStartTime: $0.timeRange.lowerBound,
+                        timelineEndTime: $0.timeRange.upperBound
+                    ),
+                    originalText: $0.text,
+                    editedText: $0.text
+                )
+            }
+        )
+        let renderPlan = TranscriptOverlayLayoutResolver.resolveRenderPlan(
             videoWidth: renderSize.width,
             videoHeight: renderSize.height,
             selectedPosition: overlayPosition,
             selectedSize: overlaySize,
-            text: segment.text,
+            segment: editableSegment,
             style: segment.style
         )
-        let textLayer = CATextLayer()
-        textLayer.string = TranscriptTextStyleResolver.attributedString(
-            text: segment.text,
-            style: segment.style,
-            fontSize: layout.fontSize
-        )
-        textLayer.frame = layout.textFrame
-        textLayer.alignmentMode = TranscriptTextStyleResolver.resolvedCATextAlignment(
-            for: segment.style.textAlignment
-        )
-        textLayer.isWrapped = true
-        textLayer.contentsScale = 2
-        textLayer.opacity = 0
-        textLayer.add(
-            resolvedTranscriptOpacityAnimation(
+        guard renderPlan.usesWordBlocks else {
+            let textLayer = makeTranscriptTextContentLayer(
+                text: segment.text,
+                style: segment.style,
+                fontSize: renderPlan.layout.fontSize,
+                containerFrame: renderPlan.layout.overlayFrame,
+                textFrame: CGRect(
+                    x: renderPlan.layout.textFrame.minX - renderPlan.layout.overlayFrame.minX,
+                    y: renderPlan.layout.textFrame.minY - renderPlan.layout.overlayFrame.minY,
+                    width: renderPlan.layout.textFrame.width,
+                    height: renderPlan.layout.textFrame.height
+                ),
+                alignmentMode: TranscriptTextStyleResolver.resolvedCATextAlignment(
+                    for: segment.style.textAlignment
+                ),
+                isWrapped: true
+            )
+            textLayer.opacity = 0
+            textLayer.add(
+                resolvedTranscriptVisibilityAnimation(
+                    for: segment.timeRange
+                ),
+                forKey: "transcript-opacity-\(segment.text.hashValue)"
+            )
+
+            return textLayer
+        }
+        let segmentLayer = CALayer()
+        segmentLayer.frame = CGRect(origin: .zero, size: renderSize)
+        segmentLayer.opacity = 0
+        segmentLayer.add(
+            resolvedTranscriptVisibilityAnimation(
                 for: segment.timeRange
             ),
             forKey: "transcript-opacity-\(segment.text.hashValue)"
         )
 
-        return textLayer
+        let activeWordRenderPlans = TranscriptOverlayLayoutResolver.resolveActiveWordRenderPlans(
+            videoWidth: renderSize.width,
+            videoHeight: renderSize.height,
+            selectedPosition: overlayPosition,
+            selectedSize: overlaySize,
+            segment: editableSegment,
+            style: segment.style
+        )
+
+        for activeWordRenderPlan in activeWordRenderPlans {
+            segmentLayer.addSublayer(
+                makeTranscriptWordLayer(
+                    text: activeWordRenderPlan.text,
+                    layout: activeWordRenderPlan.layout,
+                    timeRange: activeWordRenderPlan.timeRange,
+                    style: segment.style,
+                    alignmentMode: TranscriptTextStyleResolver.resolvedCATextAlignment(
+                        for: segment.style.textAlignment
+                    )
+                )
+            )
+        }
+
+        return segmentLayer
     }
 
-    private static func resolvedTranscriptOpacityAnimation(
+    static func resolvedTranscriptVisibilityAnimation(
         for timeRange: ClosedRange<Double>
     ) -> CAKeyframeAnimation {
         let animation = CAKeyframeAnimation(keyPath: "opacity")
         animation.beginTime = AVCoreAnimationBeginTimeAtZero + timeRange.lowerBound
         animation.duration = max(timeRange.upperBound - timeRange.lowerBound, 1 / 30)
         animation.values = [0, 1, 1, 0]
-        animation.keyTimes = [0, 0.001, 0.999, 1]
+        animation.keyTimes = [0, 0.0001, 0.999, 1]
+        animation.isRemovedOnCompletion = false
+        animation.fillMode = .both
+        return animation
+    }
+
+    private static func makeTranscriptWordLayer(
+        text: String,
+        layout: TranscriptOverlayLayoutResolver.Layout,
+        timeRange: ClosedRange<Double>,
+        style: TranscriptStyle,
+        alignmentMode: CATextLayerAlignmentMode
+    ) -> CALayer {
+        let wordContainerLayer = CALayer()
+        wordContainerLayer.frame = layout.overlayFrame
+        wordContainerLayer.opacity = 0
+        wordContainerLayer.add(
+            resolvedTranscriptWordHighlightVisibilityAnimation(
+                for: timeRange
+            ),
+            forKey: "transcript-word-opacity-\(text.hashValue)"
+        )
+        wordContainerLayer.add(
+            resolvedTranscriptScaleAnimation(
+                for: timeRange
+            ),
+            forKey: "transcript-word-scale-\(text.hashValue)"
+        )
+
+        let textLayer = makeTranscriptTextContentLayer(
+            text: text,
+            style: style,
+            fontSize: layout.fontSize,
+            containerFrame: wordContainerLayer.bounds,
+            textFrame: CGRect(
+                x: layout.textFrame.minX - layout.overlayFrame.minX,
+                y: layout.textFrame.minY - layout.overlayFrame.minY,
+                width: layout.textFrame.width,
+                height: layout.textFrame.height
+            ),
+            alignmentMode: alignmentMode,
+            isWrapped: false
+        )
+
+        wordContainerLayer.addSublayer(textLayer)
+
+        return wordContainerLayer
+    }
+
+    private static func makeTranscriptTextContentLayer(
+        text: String,
+        style: TranscriptStyle,
+        fontSize: CGFloat,
+        containerFrame: CGRect,
+        textFrame: CGRect,
+        alignmentMode: CATextLayerAlignmentMode,
+        isWrapped: Bool
+    ) -> CALayer {
+        let containerLayer = CALayer()
+        containerLayer.frame = containerFrame
+
+        if style.hasStroke, let strokeColor = style.strokeColor {
+            for offset in resolvedTranscriptStrokeOffsets() {
+                containerLayer.addSublayer(
+                    makeTranscriptTextLayer(
+                        text: text,
+                        style: style,
+                        fontSize: fontSize,
+                        frame: textFrame.offsetBy(
+                            dx: offset.width,
+                            dy: offset.height
+                        ),
+                        alignmentMode: alignmentMode,
+                        isWrapped: isWrapped,
+                        textColorOverride: strokeColor,
+                        includesStroke: false
+                    )
+                )
+            }
+        }
+
+        containerLayer.addSublayer(
+            makeTranscriptTextLayer(
+                text: text,
+                style: style,
+                fontSize: fontSize,
+                frame: textFrame,
+                alignmentMode: alignmentMode,
+                isWrapped: isWrapped,
+                includesStroke: false
+            )
+        )
+
+        return containerLayer
+    }
+
+    private static func makeTranscriptTextLayer(
+        text: String,
+        style: TranscriptStyle,
+        fontSize: CGFloat,
+        frame: CGRect,
+        alignmentMode: CATextLayerAlignmentMode,
+        isWrapped: Bool,
+        textColorOverride: RGBAColor? = nil,
+        includesStroke: Bool = true
+    ) -> CATextLayer {
+        let textLayer = CATextLayer()
+        textLayer.string = TranscriptTextStyleResolver.attributedString(
+            text: text,
+            style: style,
+            fontSize: fontSize,
+            textColorOverride: textColorOverride,
+            includesStroke: includesStroke
+        )
+        textLayer.frame = frame
+        textLayer.alignmentMode = alignmentMode
+        textLayer.isWrapped = isWrapped
+        textLayer.contentsScale = 2
+        return textLayer
+    }
+
+    private static func resolvedTranscriptStrokeOffsets() -> [CGSize] {
+        TranscriptTextStyleResolver.resolvedStrokeOffsets()
+    }
+
+    static func resolvedTranscriptScaleAnimation(
+        for timeRange: ClosedRange<Double>
+    ) -> CAKeyframeAnimation {
+        let animation = CAKeyframeAnimation(keyPath: "transform.scale")
+        animation.beginTime = AVCoreAnimationBeginTimeAtZero + timeRange.lowerBound
+        animation.duration = max(timeRange.upperBound - timeRange.lowerBound, 1 / 30)
+        animation.values = TranscriptWordHighlightStyle.resolvedScaleAnimationValues()
+        animation.keyTimes = TranscriptWordHighlightStyle.resolvedScaleAnimationKeyTimes()
+        animation.isRemovedOnCompletion = false
+        animation.fillMode = .both
+        return animation
+    }
+
+    static func resolvedTranscriptWordHighlightVisibilityAnimation(
+        for timeRange: ClosedRange<Double>
+    ) -> CAKeyframeAnimation {
+        let animation = CAKeyframeAnimation(keyPath: "opacity")
+        animation.beginTime = AVCoreAnimationBeginTimeAtZero + timeRange.lowerBound
+        animation.duration = max(timeRange.upperBound - timeRange.lowerBound, 1 / 30)
+        animation.values = TranscriptWordHighlightStyle.resolvedOpacityAnimationValues()
+        animation.keyTimes = TranscriptWordHighlightStyle.resolvedOpacityAnimationKeyTimes()
         animation.isRemovedOnCompletion = false
         animation.fillMode = .both
         return animation

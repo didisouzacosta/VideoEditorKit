@@ -330,7 +330,6 @@ struct VideoEditorView: View {
         editorViewModel.setToolAvailability(configuration.tools)
         editorViewModel.configureTranscription(
             provider: configuration.transcription.provider,
-            availableStyles: configuration.transcription.availableStyles,
             preferredLocale: configuration.transcription.preferredLocale
         )
         editorViewModel.setSourceVideoIfNeeded(
@@ -564,7 +563,6 @@ extension VideoEditorView {
 
             // MARK: - Public Properties
 
-            let availableStyles: [TranscriptStyle]
             let preferredLocale: String?
             private let explicitProvider: (any VideoTranscriptionProvider)?
 
@@ -580,11 +578,9 @@ extension VideoEditorView {
 
             init(
                 provider: (any VideoTranscriptionProvider)? = nil,
-                availableStyles: [TranscriptStyle] = [],
                 preferredLocale: String? = nil
             ) {
                 explicitProvider = provider
-                self.availableStyles = availableStyles
                 self.preferredLocale = preferredLocale
             }
 

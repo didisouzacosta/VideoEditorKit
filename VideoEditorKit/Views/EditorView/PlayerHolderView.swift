@@ -174,9 +174,14 @@ extension PlayerHolderView {
                 at: videoPlayer.currentTime
             )
         {
+            let activeWordID = editorViewModel.activeTranscriptWord(
+                at: videoPlayer.currentTime
+            )?.id
+
             TranscriptOverlayPreview(
                 segment: activeSegment,
-                style: editorViewModel.transcriptStyle(for: activeSegment),
+                activeWordID: activeWordID,
+                style: nil,
                 overlayPosition: transcriptDocument.overlayPosition,
                 overlaySize: transcriptDocument.overlaySize,
                 previewCanvasSize: canvasLayout.previewCanvasSize,

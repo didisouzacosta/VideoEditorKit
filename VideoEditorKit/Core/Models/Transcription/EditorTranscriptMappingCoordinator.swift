@@ -13,7 +13,6 @@ enum EditorTranscriptMappingCoordinator {
 
     static func makeDocument(
         from result: VideoTranscriptionResult,
-        availableStyles: [TranscriptStyle] = [],
         overlayPosition: TranscriptOverlayPosition = .bottom,
         overlaySize: TranscriptOverlaySize = .medium,
         trimRange: ClosedRange<Double>,
@@ -27,7 +26,6 @@ enum EditorTranscriptMappingCoordinator {
                     playbackRate: playbackRate
                 )
             },
-            availableStyles: availableStyles,
             overlayPosition: overlayPosition,
             overlaySize: overlaySize
         )
@@ -56,8 +54,7 @@ enum EditorTranscriptMappingCoordinator {
                     trimRange: trimRange,
                     playbackRate: playbackRate
                 )
-            },
-            styleID: nil
+            }
         )
     }
 

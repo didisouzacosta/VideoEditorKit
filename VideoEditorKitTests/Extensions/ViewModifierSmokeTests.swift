@@ -64,6 +64,8 @@ struct ViewModifierSmokeTests {
 
     @Test
     func transcriptOverlayPreviewRendersInsideAHostingController() {
+        let activeWordID = UUID()
+
         assertRenders(
             TranscriptOverlayPreview(
                 segment: .init(
@@ -75,12 +77,37 @@ struct ViewModifierSmokeTests {
                         timelineEndTime: 7
                     ),
                     originalText: "Original segment",
-                    editedText: "Edited segment"
+                    editedText: "Edited segment",
+                    words: [
+                        .init(
+                            id: activeWordID,
+                            timeMapping: .init(
+                                sourceStartTime: 10,
+                                sourceEndTime: 12,
+                                timelineStartTime: 5,
+                                timelineEndTime: 6
+                            ),
+                            originalText: "Edited",
+                            editedText: "Edited"
+                        ),
+                        .init(
+                            id: UUID(),
+                            timeMapping: .init(
+                                sourceStartTime: 12,
+                                sourceEndTime: 14,
+                                timelineStartTime: 6,
+                                timelineEndTime: 7
+                            ),
+                            originalText: "segment",
+                            editedText: "segment"
+                        ),
+                    ]
                 ),
+                activeWordID: activeWordID,
                 style: .init(
                     id: UUID(),
                     name: "Classic",
-                    fontFamily: "SF Pro Rounded",
+                    fontWeight: .bold,
                     hasStroke: true,
                     textColor: .white,
                     strokeColor: .black
@@ -104,7 +131,38 @@ struct ViewModifierSmokeTests {
                 onTranscribe: {},
                 onRetry: {},
                 onUpdateSegmentText: { _, _ in },
-                onUpdateStyle: { _ in },
+                onUpdatePosition: { _ in },
+                onUpdateSize: { _ in }
+            )
+        )
+    }
+
+    @Test
+    func transcriptToolViewRendersLoadedStateWithoutStyleControls() {
+        assertRenders(
+            TranscriptToolView(
+                isTranscriptionAvailable: true,
+                transcriptState: .loaded,
+                document: TranscriptDocument(
+                    segments: [
+                        .init(
+                            id: UUID(),
+                            timeMapping: .init(
+                                sourceStartTime: 0,
+                                sourceEndTime: 1,
+                                timelineStartTime: 0,
+                                timelineEndTime: 1
+                            ),
+                            originalText: "hello world",
+                            editedText: "hello world"
+                        )
+                    ],
+                    overlayPosition: .bottom,
+                    overlaySize: .medium
+                ),
+                onTranscribe: {},
+                onRetry: {},
+                onUpdateSegmentText: { _, _ in },
                 onUpdatePosition: { _ in },
                 onUpdateSize: { _ in }
             )

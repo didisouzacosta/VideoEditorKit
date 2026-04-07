@@ -10,8 +10,14 @@ import SwiftUI
 
 enum TranscriptTextStyleResolver {
 
+    // MARK: - Public Properties
+
+    static let strokeWidth: CGFloat = 4
+    static let strokeOffset: CGFloat = strokeWidth / 2
+
     // MARK: - Private Properties
 
+    private static let defaultStrokeWidth: CGFloat = -4
     private static let measurementOptions: NSStringDrawingOptions = [
         .usesLineFragmentOrigin
     ]
@@ -21,7 +27,9 @@ enum TranscriptTextStyleResolver {
     static func attributedString(
         text: String,
         style: TranscriptStyle,
-        fontSize: CGFloat
+        fontSize: CGFloat,
+        textColorOverride: RGBAColor? = nil,
+        includesStroke: Bool = true
     ) -> NSAttributedString {
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.alignment = resolvedTextAlignment(
@@ -34,13 +42,13 @@ enum TranscriptTextStyleResolver {
                 style: style,
                 fontSize: fontSize
             ),
-            .foregroundColor: resolvedUIColor(style.textColor),
+            .foregroundColor: resolvedUIColor(textColorOverride ?? style.textColor),
             .paragraphStyle: paragraphStyle,
         ]
 
-        if style.hasStroke, let strokeColor = style.strokeColor {
+        if includesStroke, style.hasStroke, let strokeColor = style.strokeColor {
             attributes[.strokeColor] = resolvedUIColor(strokeColor)
-            attributes[.strokeWidth] = -3
+            attributes[.strokeWidth] = defaultStrokeWidth
         }
 
         return NSAttributedString(
@@ -68,7 +76,8 @@ enum TranscriptTextStyleResolver {
         let attributedText = attributedString(
             text: trimmedText,
             style: style,
-            fontSize: fontSize
+            fontSize: fontSize,
+            includesStroke: false
         )
         let measurementRect = attributedText.boundingRect(
             with: CGSize(
@@ -85,23 +94,55 @@ enum TranscriptTextStyleResolver {
         )
     }
 
+    static func measuredWordWidth(
+        text: String,
+        style: TranscriptStyle,
+        fontSize: CGFloat
+    ) -> CGFloat {
+        let attributedText = attributedString(
+            text: text,
+            style: style,
+            fontSize: fontSize,
+            includesStroke: false
+        )
+        let measurementRect = attributedText.boundingRect(
+            with: CGSize(
+                width: CGFloat.greatestFiniteMagnitude,
+                height: CGFloat.greatestFiniteMagnitude
+            ),
+            options: measurementOptions,
+            context: nil
+        )
+
+        return ceil(measurementRect.width)
+    }
+
+    static func resolvedLineHeight(
+        style: TranscriptStyle,
+        fontSize: CGFloat
+    ) -> CGFloat {
+        ceil(
+            resolvedFont(
+                style: style,
+                fontSize: fontSize
+            ).lineHeight
+        )
+    }
+
     static func resolvedFont(
         style: TranscriptStyle,
         fontSize: CGFloat
     ) -> UIFont {
-        let resolvedFont =
-            UIFont(name: style.fontFamily, size: fontSize)
-            ?? UIFont.systemFont(ofSize: fontSize)
+        let resolvedFont = UIFont.systemFont(
+            ofSize: fontSize,
+            weight: resolvedUIFontWeight(for: style.fontWeight)
+        )
 
-        guard style.isItalic else { return resolvedFont }
-
-        guard
-            let italicDescriptor = resolvedFont.fontDescriptor.withSymbolicTraits(.traitItalic)
-        else {
-            return UIFont.italicSystemFont(ofSize: fontSize)
+        guard let roundedDescriptor = resolvedFont.fontDescriptor.withDesign(.rounded) else {
+            return resolvedFont
         }
 
-        return UIFont(descriptor: italicDescriptor, size: fontSize)
+        return UIFont(descriptor: roundedDescriptor, size: fontSize)
     }
 
     static func resolvedTextAlignment(
@@ -139,6 +180,64 @@ enum TranscriptTextStyleResolver {
             blue: color.blue,
             alpha: color.alpha
         )
+    }
+
+    static func resolvedSwiftUIFont(
+        for style: TranscriptStyle,
+        fontSize: CGFloat
+    ) -> Font {
+        .system(
+            size: fontSize,
+            weight: resolvedSwiftUIFontWeight(for: style.fontWeight),
+            design: .rounded
+        )
+    }
+
+    static func resolvedStrokeOffsets() -> [CGSize] {
+        let strokeOffset = strokeOffset
+
+        return [
+            CGSize(width: -strokeOffset, height: 0),
+            CGSize(width: strokeOffset, height: 0),
+            CGSize(width: 0, height: -strokeOffset),
+            CGSize(width: 0, height: strokeOffset),
+            CGSize(width: -strokeOffset, height: -strokeOffset),
+            CGSize(width: -strokeOffset, height: strokeOffset),
+            CGSize(width: strokeOffset, height: -strokeOffset),
+            CGSize(width: strokeOffset, height: strokeOffset),
+        ]
+    }
+
+    // MARK: - Private Methods
+
+    private static func resolvedUIFontWeight(
+        for fontWeight: TranscriptFontWeight
+    ) -> UIFont.Weight {
+        switch fontWeight {
+        case .regular:
+            .regular
+        case .semibold:
+            .semibold
+        case .bold:
+            .bold
+        case .heavy:
+            .heavy
+        }
+    }
+
+    private static func resolvedSwiftUIFontWeight(
+        for fontWeight: TranscriptFontWeight
+    ) -> Font.Weight {
+        switch fontWeight {
+        case .regular:
+            .regular
+        case .semibold:
+            .semibold
+        case .bold:
+            .bold
+        case .heavy:
+            .heavy
+        }
     }
 
 }

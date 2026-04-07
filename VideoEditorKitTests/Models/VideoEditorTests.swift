@@ -255,4 +255,428 @@ struct VideoEditorTests {
         #expect(VideoEditor.requiresTranscriptStage(missingTimelineConfiguration) == false)
     }
 
+    @Test
+    func resolvedTranscriptRenderSegmentsUseTheDefaultStyleAndKeepRenderableWords() {
+        let transcriptDocument = TranscriptDocument(
+            segments: [
+                EditableTranscriptSegment(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 4,
+                        sourceEndTime: 8,
+                        timelineStartTime: 2,
+                        timelineEndTime: 6
+                    ),
+                    originalText: "hello world",
+                    editedText: "hello world",
+                    words: [
+                        EditableTranscriptWord(
+                            id: UUID(),
+                            timeMapping: .init(
+                                sourceStartTime: 4,
+                                sourceEndTime: 5,
+                                timelineStartTime: 2,
+                                timelineEndTime: 3
+                            ),
+                            originalText: "hello",
+                            editedText: "hello"
+                        ),
+                        EditableTranscriptWord(
+                            id: UUID(),
+                            timeMapping: .init(
+                                sourceStartTime: 5,
+                                sourceEndTime: 6,
+                                timelineStartTime: 3,
+                                timelineEndTime: 4
+                            ),
+                            originalText: "world",
+                            editedText: "world"
+                        ),
+                    ]
+                )
+            ]
+        )
+
+        let renderSegments = VideoEditor.resolvedTranscriptRenderSegments(
+            from: transcriptDocument
+        )
+
+        #expect(renderSegments.count == 1)
+        #expect(renderSegments.first?.style.name == "Default")
+        #expect(renderSegments.first?.style.fontWeight == .semibold)
+        #expect(renderSegments.first?.style.hasStroke == true)
+        #expect(
+            renderSegments.first?.style.strokeColor
+                == .init(
+                    red: 0,
+                    green: 0,
+                    blue: 0,
+                    alpha: 1
+                )
+        )
+        #expect(renderSegments.first?.words.map(\.text) == ["hello", "world"])
+        #expect(renderSegments.first?.words.count == transcriptDocument.segments.first?.words.count)
+    }
+
+    @Test
+    func resolvedTranscriptVisibilityAnimationTurnsOnImmediatelyAtSegmentStart() {
+        let animation = VideoEditor.resolvedTranscriptVisibilityAnimation(
+            for: 2.0...3.0
+        )
+
+        #expect((animation.values as? [NSNumber])?.map(\.doubleValue) == [0, 1, 1, 0])
+        #expect(animation.keyTimes?.map(\.doubleValue) == [0, 0.0001, 0.999, 1])
+    }
+
+    @Test
+    func resolvedTranscriptWordHighlightVisibilityAnimationTurnsOnImmediatelyAtWordStart() {
+        let animation = VideoEditor.resolvedTranscriptWordHighlightVisibilityAnimation(
+            for: 2.0...2.4
+        )
+
+        #expect(
+            animation.values as? [Float]
+                == TranscriptWordHighlightStyle.resolvedOpacityAnimationValues()
+        )
+        #expect(
+            animation.keyTimes?.map(\.doubleValue)
+                == TranscriptWordHighlightStyle.resolvedOpacityAnimationKeyTimes().map(\.doubleValue)
+        )
+    }
+
+    @Test
+    func resolvedTranscriptScaleAnimationUsesTheSharedHighlightCurve() {
+        let animation = VideoEditor.resolvedTranscriptScaleAnimation(
+            for: 2.0...2.4
+        )
+
+        #expect(
+            animation.values as? [CGFloat]
+                == TranscriptWordHighlightStyle.resolvedScaleAnimationValues()
+        )
+        #expect(
+            animation.keyTimes?.map(\.doubleValue)
+                == TranscriptWordHighlightStyle.resolvedScaleAnimationKeyTimes().map(\.doubleValue)
+        )
+    }
+
+    @Test
+    func resolvedTranscriptRenderSegmentsFallBackToBlockRenderingWhenEditedTextNoLongerMatchesWords() {
+        let transcriptDocument = TranscriptDocument(
+            segments: [
+                EditableTranscriptSegment(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 4,
+                        sourceEndTime: 8,
+                        timelineStartTime: 2,
+                        timelineEndTime: 6
+                    ),
+                    originalText: "hello world",
+                    editedText: "greetings brave world",
+                    words: [
+                        EditableTranscriptWord(
+                            id: UUID(),
+                            timeMapping: .init(
+                                sourceStartTime: 4,
+                                sourceEndTime: 5,
+                                timelineStartTime: 2,
+                                timelineEndTime: 3
+                            ),
+                            originalText: "hello",
+                            editedText: "hello"
+                        ),
+                        EditableTranscriptWord(
+                            id: UUID(),
+                            timeMapping: .init(
+                                sourceStartTime: 5,
+                                sourceEndTime: 6,
+                                timelineStartTime: 3,
+                                timelineEndTime: 4
+                            ),
+                            originalText: "world",
+                            editedText: "world"
+                        ),
+                    ]
+                )
+            ]
+        )
+
+        let renderSegments = VideoEditor.resolvedTranscriptRenderSegments(
+            from: transcriptDocument
+        )
+
+        #expect(renderSegments.count == 1)
+        #expect(renderSegments.first?.words.isEmpty == true)
+    }
+
+    @Test
+    func resolvedTranscriptRenderSegmentsReconcileStandalonePunctuationIntoRenderableWords() {
+        let firstWordID = UUID()
+        let secondWordID = UUID()
+        let transcriptDocument = TranscriptDocument(
+            segments: [
+                EditableTranscriptSegment(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 4,
+                        sourceEndTime: 8,
+                        timelineStartTime: 2,
+                        timelineEndTime: 6
+                    ),
+                    originalText: "hello world",
+                    editedText: "\" Hello , world !",
+                    words: [
+                        EditableTranscriptWord(
+                            id: firstWordID,
+                            timeMapping: .init(
+                                sourceStartTime: 4,
+                                sourceEndTime: 5,
+                                timelineStartTime: 2,
+                                timelineEndTime: 3
+                            ),
+                            originalText: "hello",
+                            editedText: "hello"
+                        ),
+                        EditableTranscriptWord(
+                            id: secondWordID,
+                            timeMapping: .init(
+                                sourceStartTime: 5,
+                                sourceEndTime: 6,
+                                timelineStartTime: 3,
+                                timelineEndTime: 4
+                            ),
+                            originalText: "world",
+                            editedText: "world"
+                        ),
+                    ]
+                )
+            ]
+        )
+
+        let renderSegments = VideoEditor.resolvedTranscriptRenderSegments(
+            from: transcriptDocument
+        )
+
+        #expect(renderSegments.count == 1)
+        #expect(renderSegments.first?.words.map(\.id) == [firstWordID, secondWordID])
+        #expect(renderSegments.first?.words.map(\.text) == ["\"Hello,", "world!"])
+    }
+
+    @Test
+    func resolvedTranscriptRenderSegmentsKeepRenderableWordBlocksWhenTheTextGainsAnInsertedWord() {
+        let transcriptDocument = TranscriptDocument(
+            segments: [
+                EditableTranscriptSegment(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 4,
+                        sourceEndTime: 8,
+                        timelineStartTime: 2,
+                        timelineEndTime: 6
+                    ),
+                    originalText: "hello world",
+                    editedText: "hello brave world",
+                    words: [
+                        EditableTranscriptWord(
+                            id: UUID(),
+                            timeMapping: .init(
+                                sourceStartTime: 4,
+                                sourceEndTime: 5,
+                                timelineStartTime: 2,
+                                timelineEndTime: 3
+                            ),
+                            originalText: "hello",
+                            editedText: "hello"
+                        ),
+                        EditableTranscriptWord(
+                            id: UUID(),
+                            timeMapping: .init(
+                                sourceStartTime: 5,
+                                sourceEndTime: 6,
+                                timelineStartTime: 3,
+                                timelineEndTime: 4
+                            ),
+                            originalText: "world",
+                            editedText: "world"
+                        ),
+                    ]
+                )
+            ]
+        )
+
+        let renderSegments = VideoEditor.resolvedTranscriptRenderSegments(
+            from: transcriptDocument
+        )
+
+        #expect(renderSegments.count == 1)
+        #expect(renderSegments.first?.words.map(\.text) == ["hello brave", "world"])
+    }
+
+    @Test
+    func resolvedTranscriptRenderSegmentsPreserveTimelineRangesPerWordForExportHighlighting() throws {
+        let firstWordID = UUID()
+        let secondWordID = UUID()
+        let thirdWordID = UUID()
+        let segment = EditableTranscriptSegment(
+            id: UUID(),
+            timeMapping: .init(
+                sourceStartTime: 10,
+                sourceEndTime: 13,
+                timelineStartTime: 2,
+                timelineEndTime: 5
+            ),
+            originalText: "alpha beta gamma",
+            editedText: "alpha beta gamma",
+            words: [
+                EditableTranscriptWord(
+                    id: firstWordID,
+                    timeMapping: .init(
+                        sourceStartTime: 10,
+                        sourceEndTime: 11,
+                        timelineStartTime: 2.0,
+                        timelineEndTime: 2.8
+                    ),
+                    originalText: "alpha",
+                    editedText: "alpha"
+                ),
+                EditableTranscriptWord(
+                    id: secondWordID,
+                    timeMapping: .init(
+                        sourceStartTime: 11,
+                        sourceEndTime: 12,
+                        timelineStartTime: 2.8,
+                        timelineEndTime: 3.7
+                    ),
+                    originalText: "beta",
+                    editedText: "beta"
+                ),
+                EditableTranscriptWord(
+                    id: thirdWordID,
+                    timeMapping: .init(
+                        sourceStartTime: 12,
+                        sourceEndTime: 13,
+                        timelineStartTime: 3.7,
+                        timelineEndTime: 5.0
+                    ),
+                    originalText: "gamma",
+                    editedText: "gamma"
+                ),
+            ]
+        )
+        let transcriptDocument = TranscriptDocument(
+            segments: [segment]
+        )
+
+        let renderSegment = try #require(
+            VideoEditor.resolvedTranscriptRenderSegments(
+                from: transcriptDocument
+            ).first
+        )
+
+        #expect(renderSegment.words.map(\.id) == [firstWordID, secondWordID, thirdWordID])
+        #expect(renderSegment.words.map(\.timeRange) == [2.0...2.8, 2.8...3.7, 3.7...5.0])
+    }
+
+    @Test
+    func resolvedTranscriptRenderSegmentsMatchTheEditorWordLayoutOrderForWrappedCaptions() throws {
+        let segment = EditableTranscriptSegment(
+            id: UUID(),
+            timeMapping: .init(
+                sourceStartTime: 0,
+                sourceEndTime: 4,
+                timelineStartTime: 0,
+                timelineEndTime: 4
+            ),
+            originalText: "one two three four five six seven eight",
+            editedText: "one two three four five six seven eight",
+            words: [
+                EditableTranscriptWord(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 0, sourceEndTime: 0.5, timelineStartTime: 0, timelineEndTime: 0.5
+                    ),
+                    originalText: "one",
+                    editedText: "one"
+                ),
+                EditableTranscriptWord(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 0.5, sourceEndTime: 1, timelineStartTime: 0.5, timelineEndTime: 1
+                    ),
+                    originalText: "two",
+                    editedText: "two"
+                ),
+                EditableTranscriptWord(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 1, sourceEndTime: 1.5, timelineStartTime: 1, timelineEndTime: 1.5
+                    ),
+                    originalText: "three",
+                    editedText: "three"
+                ),
+                EditableTranscriptWord(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 1.5, sourceEndTime: 2, timelineStartTime: 1.5, timelineEndTime: 2
+                    ),
+                    originalText: "four",
+                    editedText: "four"
+                ),
+                EditableTranscriptWord(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 2, sourceEndTime: 2.5, timelineStartTime: 2, timelineEndTime: 2.5
+                    ),
+                    originalText: "five",
+                    editedText: "five"
+                ),
+                EditableTranscriptWord(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 2.5, sourceEndTime: 3, timelineStartTime: 2.5, timelineEndTime: 3
+                    ),
+                    originalText: "six",
+                    editedText: "six"
+                ),
+                EditableTranscriptWord(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 3, sourceEndTime: 3.5, timelineStartTime: 3, timelineEndTime: 3.5
+                    ),
+                    originalText: "seven",
+                    editedText: "seven"
+                ),
+                EditableTranscriptWord(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 3.5, sourceEndTime: 4, timelineStartTime: 3.5, timelineEndTime: 4
+                    ),
+                    originalText: "eight",
+                    editedText: "eight"
+                ),
+            ]
+        )
+        let transcriptDocument = TranscriptDocument(
+            segments: [segment]
+        )
+
+        let renderSegment = try #require(
+            VideoEditor.resolvedTranscriptRenderSegments(
+                from: transcriptDocument
+            ).first
+        )
+        let layout = TranscriptOverlayLayoutResolver.resolve(
+            videoWidth: 320,
+            videoHeight: 568,
+            selectedPosition: .bottom,
+            selectedSize: .medium,
+            segment: segment
+        )
+
+        #expect(renderSegment.words.count == layout.wordLayouts.count)
+        #expect(renderSegment.words.map(\.id) == layout.wordLayouts.map(\.wordID))
+        #expect(renderSegment.words.map(\.text) == layout.wordLayouts.map(\.text))
+    }
+
 }

@@ -13,6 +13,7 @@ struct TranscriptOverlayPreview: View {
     // MARK: - Public Properties
 
     let segment: EditableTranscriptSegment
+    let activeWordID: EditableTranscriptWord.ID?
     let style: TranscriptStyle?
     let overlayPosition: TranscriptOverlayPosition
     let overlaySize: TranscriptOverlaySize
@@ -22,27 +23,52 @@ struct TranscriptOverlayPreview: View {
     // MARK: - Body
 
     var body: some View {
-        let previewLayout = TranscriptOverlayLayoutResolver.resolvePreviewLayout(
+        let renderPlan = TranscriptOverlayLayoutResolver.resolvePreviewRenderPlan(
             exportCanvasSize: exportCanvasSize,
             previewCanvasSize: previewCanvasSize,
             selectedPosition: overlayPosition,
             selectedSize: overlaySize,
-            text: segment.editedText,
+            segment: segment,
+            style: resolvedStyle
+        )
+        let activeWordRenderPlans = TranscriptOverlayLayoutResolver.resolvePreviewActiveWordRenderPlans(
+            exportCanvasSize: exportCanvasSize,
+            previewCanvasSize: previewCanvasSize,
+            selectedPosition: overlayPosition,
+            selectedSize: overlaySize,
+            segment: segment,
             style: resolvedStyle
         )
 
-        overlayCard(layout: previewLayout)
-            .allFrame()
+        ZStack(alignment: .topLeading) {
+            if renderPlan.usesWordBlocks {
+                activeWordOverlay(renderPlans: activeWordRenderPlans)
+            } else {
+                textOverlay(
+                    segment.editedText,
+                    layout: renderPlan.layout
+                )
+            }
+        }
+        .frame(
+            width: previewCanvasSize.width,
+            height: previewCanvasSize.height,
+            alignment: .topLeading
+        )
+        .frame(
+            maxWidth: .infinity,
+            maxHeight: .infinity,
+            alignment: .topLeading
+        )
     }
 
     // MARK: - Private Properties
 
     private var resolvedStyle: TranscriptStyle {
-        style
-            ?? .defaultPreviewStyle
+        style ?? .defaultPreviewStyle
     }
 
-    private var frameAlignment: Alignment {
+    private var textFrameAlignment: Alignment {
         switch resolvedStyle.textAlignment {
         case .leading:
             .topLeading
@@ -50,100 +76,6 @@ struct TranscriptOverlayPreview: View {
             .top
         case .trailing:
             .topTrailing
-        }
-    }
-
-    private var overlayAlignment: Alignment {
-        switch overlayPosition {
-        case .top:
-            .top
-        case .center:
-            .center
-        case .bottom:
-            .bottom
-        }
-    }
-
-    // MARK: - Private Methods
-
-    private func overlayCard(
-        layout: TranscriptOverlayLayoutResolver.Layout
-    ) -> some View {
-        ZStack(alignment: frameAlignment) {
-            if resolvedStyle.hasStroke, let strokeColor = resolvedStyle.strokeColor {
-                strokedText(
-                    color: Color(rgba: strokeColor),
-                    fontSize: layout.fontSize,
-                    targetWidth: layout.textFrame.width
-                )
-            }
-
-            overlayText(
-                fontSize: layout.fontSize,
-                targetWidth: layout.textFrame.width
-            )
-        }
-        .frame(width: layout.textFrame.width, alignment: frameAlignment)
-        .fixedSize(horizontal: false, vertical: true)
-        .frame(
-            maxWidth: .infinity,
-            maxHeight: .infinity,
-            alignment: overlayAlignment
-        )
-        .padding(.top, topPadding(for: layout))
-        .padding(.bottom, bottomPadding(for: layout))
-    }
-
-    private func overlayText(
-        fontSize: CGFloat,
-        targetWidth: CGFloat
-    ) -> some View {
-        Text(segment.editedText)
-            .font(.custom(resolvedStyle.fontFamily, size: fontSize))
-            .italic(resolvedStyle.isItalic)
-            .foregroundStyle(Color(rgba: resolvedStyle.textColor))
-            .multilineTextAlignment(multilineAlignment)
-            .lineLimit(nil)
-            .fixedSize(horizontal: false, vertical: true)
-            .frame(
-                width: targetWidth,
-                alignment: frameAlignment
-            )
-    }
-
-    private func strokedText(
-        color: Color,
-        fontSize: CGFloat,
-        targetWidth: CGFloat
-    ) -> some View {
-        ZStack {
-            overlayText(
-                fontSize: fontSize,
-                targetWidth: targetWidth
-            )
-            .foregroundStyle(color)
-            .offset(x: -1, y: 0)
-
-            overlayText(
-                fontSize: fontSize,
-                targetWidth: targetWidth
-            )
-            .foregroundStyle(color)
-            .offset(x: 1, y: 0)
-
-            overlayText(
-                fontSize: fontSize,
-                targetWidth: targetWidth
-            )
-            .foregroundStyle(color)
-            .offset(x: 0, y: -1)
-
-            overlayText(
-                fontSize: fontSize,
-                targetWidth: targetWidth
-            )
-            .foregroundStyle(color)
-            .offset(x: 0, y: 1)
         }
     }
 
@@ -158,18 +90,156 @@ struct TranscriptOverlayPreview: View {
         }
     }
 
-    private func topPadding(
-        for layout: TranscriptOverlayLayoutResolver.Layout
-    ) -> CGFloat {
-        guard overlayPosition == .top else { return 0 }
-        return max(layout.textFrame.minY, 0)
+    // MARK: - Private Methods
+
+    private func textOverlay(
+        _ text: String,
+        layout: TranscriptOverlayLayoutResolver.Layout
+    ) -> some View {
+        let relativeTextFrame = CGRect(
+            x: layout.textFrame.minX - layout.overlayFrame.minX,
+            y: layout.textFrame.minY - layout.overlayFrame.minY,
+            width: layout.textFrame.width,
+            height: layout.textFrame.height
+        )
+
+        return ZStack(alignment: .topLeading) {
+            ZStack(alignment: textFrameAlignment) {
+                if resolvedStyle.hasStroke, let strokeColor = resolvedStyle.strokeColor {
+                    strokedText(
+                        text,
+                        color: Color(rgba: strokeColor),
+                        fontSize: layout.fontSize,
+                        targetWidth: relativeTextFrame.width
+                    )
+                }
+
+                overlayText(
+                    text,
+                    fontSize: layout.fontSize,
+                    targetWidth: relativeTextFrame.width
+                )
+            }
+            .frame(
+                width: relativeTextFrame.width,
+                height: relativeTextFrame.height,
+                alignment: textFrameAlignment
+            )
+            .offset(
+                x: relativeTextFrame.minX,
+                y: relativeTextFrame.minY
+            )
+        }
+        .frame(
+            width: layout.overlayFrame.width,
+            height: layout.overlayFrame.height,
+            alignment: .topLeading
+        )
+        .offset(
+            x: layout.overlayFrame.minX,
+            y: layout.overlayFrame.minY
+        )
     }
 
-    private func bottomPadding(
-        for layout: TranscriptOverlayLayoutResolver.Layout
-    ) -> CGFloat {
-        guard overlayPosition == .bottom else { return 0 }
-        return max(previewCanvasSize.height - layout.textFrame.maxY, 0)
+    @ViewBuilder
+    private func activeWordOverlay(
+        renderPlans: [TranscriptOverlayLayoutResolver.ActiveWordRenderPlan]
+    ) -> some View {
+        if let activeWord = activeWord(in: renderPlans) {
+            let scaleKeyframes = TranscriptWordHighlightStyle.resolvedPreviewScaleKeyframes()
+            let opacityKeyframes = TranscriptWordHighlightStyle.resolvedPreviewOpacityKeyframes()
+
+            textOverlay(
+                activeWord.text,
+                layout: activeWord.layout
+            )
+            .keyframeAnimator(
+                initialValue: HighlightAnimationState(),
+                trigger: activeWord.wordID
+            ) { content, state in
+                content
+                    .scaleEffect(state.scale)
+                    .opacity(state.opacity)
+            } keyframes: { _ in
+                KeyframeTrack(\.scale) {
+                    CubicKeyframe(scaleKeyframes[0].value, duration: scaleKeyframes[0].duration)
+                    CubicKeyframe(scaleKeyframes[1].value, duration: scaleKeyframes[1].duration)
+                    CubicKeyframe(scaleKeyframes[2].value, duration: scaleKeyframes[2].duration)
+                    CubicKeyframe(scaleKeyframes[3].value, duration: scaleKeyframes[3].duration)
+                    CubicKeyframe(scaleKeyframes[4].value, duration: scaleKeyframes[4].duration)
+                }
+
+                KeyframeTrack(\.opacity) {
+                    LinearKeyframe(opacityKeyframes[0].value, duration: opacityKeyframes[0].duration)
+                    LinearKeyframe(opacityKeyframes[1].value, duration: opacityKeyframes[1].duration)
+                    LinearKeyframe(opacityKeyframes[2].value, duration: opacityKeyframes[2].duration)
+                }
+            }
+            .transition(.identity)
+            .transaction { transaction in
+                transaction.animation = nil
+            }
+        }
+    }
+
+    private struct HighlightAnimationState {
+
+        // MARK: - Public Properties
+
+        var opacity = TranscriptWordHighlightStyle.previewInitialOpacity
+        var scale = TranscriptWordHighlightStyle.previewInitialScale
+
+    }
+
+    private func activeWord(
+        in renderPlans: [TranscriptOverlayLayoutResolver.ActiveWordRenderPlan]
+    ) -> TranscriptOverlayLayoutResolver.ActiveWordRenderPlan? {
+        guard let activeWordID else { return nil }
+        return renderPlans.first { $0.wordID == activeWordID }
+    }
+
+    private func overlayText(
+        _ text: String,
+        fontSize: CGFloat,
+        targetWidth: CGFloat
+    ) -> some View {
+        Text(text)
+            .font(
+                TranscriptTextStyleResolver.resolvedSwiftUIFont(
+                    for: resolvedStyle,
+                    fontSize: fontSize
+                )
+            )
+            .foregroundStyle(Color(rgba: resolvedStyle.textColor))
+            .multilineTextAlignment(multilineAlignment)
+            .lineLimit(nil)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(
+                width: targetWidth,
+                alignment: textFrameAlignment
+            )
+    }
+
+    private func strokedText(
+        _ text: String,
+        color: Color,
+        fontSize: CGFloat,
+        targetWidth: CGFloat
+    ) -> some View {
+        ZStack {
+            ForEach(
+                Array(TranscriptTextStyleResolver.resolvedStrokeOffsets().enumerated()),
+                id: \.offset
+            ) { _, offset in
+                overlayText(
+                    text,
+                    fontSize: fontSize,
+                    targetWidth: targetWidth
+                )
+                .foregroundStyle(color)
+                .offset(x: offset.width, y: offset.height)
+            }
+        }
     }
 
 }
@@ -193,10 +263,6 @@ extension TranscriptStyle {
 
     // MARK: - Private Properties
 
-    fileprivate static let defaultPreviewStyle = Self(
-        id: UUID(uuidString: "E5A04D11-329A-4C8E-B266-1E6A60A6F9F9") ?? UUID(),
-        name: "Default",
-        fontFamily: "SF Pro Rounded"
-    )
+    fileprivate static let defaultPreviewStyle = Self.defaultCaptionStyle
 
 }

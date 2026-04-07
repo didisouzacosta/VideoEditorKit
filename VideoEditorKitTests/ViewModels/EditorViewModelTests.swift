@@ -214,18 +214,12 @@ struct EditorViewModelTests {
                 )
             )
         )
-        let style = TranscriptStyle(
-            id: UUID(),
-            name: "Classic",
-            fontFamily: "Avenir"
-        )
         let viewModel = EditorViewModel()
         var video = Video(url: URL(fileURLWithPath: "/tmp/transcription-source.mov"), rangeDuration: 0...20)
         video.updateRate(2)
         viewModel.currentVideo = video
         viewModel.configureTranscription(
             provider: provider,
-            availableStyles: [style],
             preferredLocale: "pt-BR"
         )
 
@@ -238,7 +232,6 @@ struct EditorViewModelTests {
         #expect(viewModel.transcriptState == .loaded)
         #expect(viewModel.transcriptFeatureState == .idle)
         #expect(viewModel.transcriptDocument == nil)
-        #expect(viewModel.transcriptDraftDocument?.availableStyles == [style])
         #expect(viewModel.transcriptDraftDocument?.segments.first?.originalText == "Ola mundo")
         #expect(viewModel.transcriptDraftDocument?.segments.first?.editedText == "Ola mundo")
         #expect(viewModel.transcriptDraftDocument?.segments.first?.timeMapping.timelineRange == 4...6)
@@ -318,11 +311,6 @@ struct EditorViewModelTests {
         let cleanupRecorder = TranscriptionCleanupRecorder()
         let requestProbe = OpenAIWhisperEditorRequestProbe()
         let extractedAudioURL = URL(fileURLWithPath: "/tmp/editor-openai-whisper-success.m4a")
-        let style = TranscriptStyle(
-            id: UUID(),
-            name: "Classic",
-            fontFamily: "Avenir"
-        )
         let component = OpenAIWhisperTranscriptionComponent(
             dependencies: .init(
                 extractAudio: { _ in extractedAudioURL },
@@ -356,7 +344,6 @@ struct EditorViewModelTests {
         viewModel.currentVideo = video
         viewModel.configureTranscription(
             provider: component,
-            availableStyles: [style],
             preferredLocale: "pt-BR"
         )
 
@@ -377,7 +364,6 @@ struct EditorViewModelTests {
         #expect(viewModel.transcriptState == .loaded)
         #expect(viewModel.transcriptFeatureState == .idle)
         #expect(viewModel.transcriptDocument == nil)
-        #expect(viewModel.transcriptDraftDocument?.availableStyles == [style])
         #expect(viewModel.transcriptDraftDocument?.segments.first?.originalText == "ola mundo")
         #expect(viewModel.transcriptDraftDocument?.segments.first?.editedText == "ola mundo")
         #expect(viewModel.transcriptDraftDocument?.segments.first?.timeMapping.timelineRange == 4...6)
@@ -583,43 +569,6 @@ struct EditorViewModelTests {
     }
 
     @Test
-    func updateTranscriptStyleAssignsDocumentLevelStyleWithoutChangingSegmentText() {
-        let viewModel = EditorViewModel()
-        let styleID = UUID()
-        let segmentID = UUID()
-        viewModel.setTranscriptDocument(
-            TranscriptDocument(
-                segments: [
-                    EditableTranscriptSegment(
-                        id: segmentID,
-                        timeMapping: .init(
-                            sourceStartTime: 10,
-                            sourceEndTime: 14,
-                            timelineStartTime: 5,
-                            timelineEndTime: 7
-                        ),
-                        originalText: "Original segment",
-                        editedText: "Edited segment"
-                    )
-                ],
-                availableStyles: [
-                    TranscriptStyle(
-                        id: styleID,
-                        name: "Classic",
-                        fontFamily: "Avenir"
-                    )
-                ]
-            )
-        )
-
-        viewModel.updateTranscriptStyle(styleID)
-
-        #expect(viewModel.transcriptDocument?.selectedStyleID == nil)
-        #expect(viewModel.transcriptDraftDocument?.selectedStyleID == styleID)
-        #expect(viewModel.transcriptDraftDocument?.segments.first?.editedText == "Edited segment")
-    }
-
-    @Test
     func closeSelectedToolPreservesUnappliedTranscriptDraftChanges() {
         let viewModel = EditorViewModel()
         let segmentID = UUID()
@@ -730,6 +679,10 @@ struct EditorViewModelTests {
     @Test
     func resetTranscriptClearsTheDocumentAndReturnsToIdleState() {
         let viewModel = EditorViewModel()
+        viewModel.currentVideo = Video(
+            url: URL(fileURLWithPath: "/tmp/transcript-reset.mov"),
+            rangeDuration: 0...20
+        )
         viewModel.setTranscriptDocument(
             TranscriptDocument(
                 segments: [
@@ -846,6 +799,144 @@ struct EditorViewModelTests {
     }
 
     @Test
+    func activeTranscriptWordUsesTimelineTimingInsideTheActiveSegment() {
+        let visibleWordID = UUID()
+        let viewModel = EditorViewModel()
+        viewModel.setTranscriptDocument(
+            TranscriptDocument(
+                segments: [
+                    EditableTranscriptSegment(
+                        id: UUID(),
+                        timeMapping: .init(
+                            sourceStartTime: 20,
+                            sourceEndTime: 40,
+                            timelineStartTime: 10,
+                            timelineEndTime: 20
+                        ),
+                        originalText: "Visible segment",
+                        editedText: "Visible segment",
+                        words: [
+                            EditableTranscriptWord(
+                                id: UUID(),
+                                timeMapping: .init(
+                                    sourceStartTime: 20,
+                                    sourceEndTime: 24,
+                                    timelineStartTime: 10,
+                                    timelineEndTime: 12
+                                ),
+                                originalText: "Visible",
+                                editedText: "Visible"
+                            ),
+                            EditableTranscriptWord(
+                                id: visibleWordID,
+                                timeMapping: .init(
+                                    sourceStartTime: 30,
+                                    sourceEndTime: 34,
+                                    timelineStartTime: 14,
+                                    timelineEndTime: 16
+                                ),
+                                originalText: "segment",
+                                editedText: "segment"
+                            ),
+                        ]
+                    )
+                ]
+            )
+        )
+
+        #expect(viewModel.activeTranscriptWord(at: 15)?.id == visibleWordID)
+        #expect(viewModel.activeTranscriptWord(at: 25) == nil)
+    }
+
+    @Test
+    func activeTranscriptWordReturnsNilWhenTheSegmentIsActiveButNoWordMatchesTheTimelineTime() {
+        let viewModel = EditorViewModel()
+        viewModel.setTranscriptDocument(
+            TranscriptDocument(
+                segments: [
+                    EditableTranscriptSegment(
+                        id: UUID(),
+                        timeMapping: .init(
+                            sourceStartTime: 20,
+                            sourceEndTime: 40,
+                            timelineStartTime: 10,
+                            timelineEndTime: 20
+                        ),
+                        originalText: "Visible segment",
+                        editedText: "Visible segment",
+                        words: [
+                            EditableTranscriptWord(
+                                id: UUID(),
+                                timeMapping: .init(
+                                    sourceStartTime: 20,
+                                    sourceEndTime: 24,
+                                    timelineStartTime: 10,
+                                    timelineEndTime: 12
+                                ),
+                                originalText: "Visible",
+                                editedText: "Visible"
+                            ),
+                            EditableTranscriptWord(
+                                id: UUID(),
+                                timeMapping: .init(
+                                    sourceStartTime: 30,
+                                    sourceEndTime: 34,
+                                    timelineStartTime: 16,
+                                    timelineEndTime: 18
+                                ),
+                                originalText: "segment",
+                                editedText: "segment"
+                            ),
+                        ]
+                    )
+                ]
+            )
+        )
+
+        #expect(viewModel.activeTranscriptSegment(at: 14)?.editedText == "Visible segment")
+        #expect(viewModel.activeTranscriptWord(at: 14) == nil)
+    }
+
+    @Test
+    func activeTranscriptWordBridgesSmallPlaybackGapsAroundTheWordTiming() {
+        let viewModel = EditorViewModel()
+        let visibleWordID = UUID()
+
+        viewModel.setTranscriptDocument(
+            TranscriptDocument(
+                segments: [
+                    EditableTranscriptSegment(
+                        id: UUID(),
+                        timeMapping: .init(
+                            sourceStartTime: 20,
+                            sourceEndTime: 40,
+                            timelineStartTime: 10,
+                            timelineEndTime: 20
+                        ),
+                        originalText: "Visible segment",
+                        editedText: "Visible segment",
+                        words: [
+                            EditableTranscriptWord(
+                                id: visibleWordID,
+                                timeMapping: .init(
+                                    sourceStartTime: 20,
+                                    sourceEndTime: 24,
+                                    timelineStartTime: 10,
+                                    timelineEndTime: 12
+                                ),
+                                originalText: "Visible",
+                                editedText: "Visible"
+                            )
+                        ]
+                    )
+                ]
+            )
+        )
+
+        #expect(viewModel.activeTranscriptWord(at: 12.08)?.id == visibleWordID)
+    }
+
+    @Test
     func updateRateRemapsTranscriptDocumentUsingTheCurrentTrim() {
         let viewModel = EditorViewModel()
         var video = Video.mock
@@ -874,6 +965,116 @@ struct EditorViewModelTests {
 
         #expect(abs(Double(viewModel.currentVideo?.rate ?? 0) - 2) < 0.0001)
         #expect(viewModel.transcriptDocument?.segments.first?.timeMapping.timelineRange == 10...20)
+    }
+
+    @Test
+    func updateTranscriptSegmentTextReconcilesWordTextsWhenTheEditedSegmentKeepsTheSameWordCount() {
+        let segmentID = UUID()
+        let firstWordID = UUID()
+        let viewModel = EditorViewModel()
+        viewModel.setTranscriptDocument(
+            TranscriptDocument(
+                segments: [
+                    EditableTranscriptSegment(
+                        id: segmentID,
+                        timeMapping: .init(
+                            sourceStartTime: 10,
+                            sourceEndTime: 14,
+                            timelineStartTime: 5,
+                            timelineEndTime: 7
+                        ),
+                        originalText: "hello world",
+                        editedText: "hello world",
+                        words: [
+                            EditableTranscriptWord(
+                                id: firstWordID,
+                                timeMapping: .init(
+                                    sourceStartTime: 10,
+                                    sourceEndTime: 12,
+                                    timelineStartTime: 5,
+                                    timelineEndTime: 6
+                                ),
+                                originalText: "hello",
+                                editedText: "hello"
+                            ),
+                            EditableTranscriptWord(
+                                id: UUID(),
+                                timeMapping: .init(
+                                    sourceStartTime: 12,
+                                    sourceEndTime: 14,
+                                    timelineStartTime: 6,
+                                    timelineEndTime: 7
+                                ),
+                                originalText: "world",
+                                editedText: "world"
+                            ),
+                        ]
+                    )
+                ]
+            )
+        )
+
+        viewModel.updateTranscriptSegmentText(
+            "Hello, world!",
+            segmentID: segmentID
+        )
+
+        #expect(viewModel.transcriptDraftDocument?.segments.first?.words.map(\.editedText) == ["Hello,", "world!"])
+        #expect(viewModel.transcriptDraftDocument?.segments.first?.words.first?.id == firstWordID)
+    }
+
+    @Test
+    func updateTranscriptSegmentTextKeepsRenderableWordBlocksWhenExtraWordsAreInserted() {
+        let segmentID = UUID()
+        let viewModel = EditorViewModel()
+        viewModel.setTranscriptDocument(
+            TranscriptDocument(
+                segments: [
+                    EditableTranscriptSegment(
+                        id: segmentID,
+                        timeMapping: .init(
+                            sourceStartTime: 10,
+                            sourceEndTime: 14,
+                            timelineStartTime: 5,
+                            timelineEndTime: 7
+                        ),
+                        originalText: "hello world",
+                        editedText: "hello world",
+                        words: [
+                            EditableTranscriptWord(
+                                id: UUID(),
+                                timeMapping: .init(
+                                    sourceStartTime: 10,
+                                    sourceEndTime: 12,
+                                    timelineStartTime: 5,
+                                    timelineEndTime: 6
+                                ),
+                                originalText: "hello",
+                                editedText: "hello"
+                            ),
+                            EditableTranscriptWord(
+                                id: UUID(),
+                                timeMapping: .init(
+                                    sourceStartTime: 12,
+                                    sourceEndTime: 14,
+                                    timelineStartTime: 6,
+                                    timelineEndTime: 7
+                                ),
+                                originalText: "world",
+                                editedText: "world"
+                            ),
+                        ]
+                    )
+                ]
+            )
+        )
+
+        viewModel.updateTranscriptSegmentText(
+            "hello brave world",
+            segmentID: segmentID
+        )
+
+        #expect(viewModel.transcriptDraftDocument?.segments.first?.words.map(\.editedText) == ["hello brave", "world"])
     }
 
     @Test

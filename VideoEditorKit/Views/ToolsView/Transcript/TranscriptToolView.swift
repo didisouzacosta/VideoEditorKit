@@ -21,7 +21,6 @@ struct TranscriptToolView: View {
     let onTranscribe: () -> Void
     let onRetry: () -> Void
     let onUpdateSegmentText: (UUID, String) -> Void
-    let onUpdateStyle: (TranscriptStyle.StyleIdentifier?) -> Void
     let onUpdatePosition: (TranscriptOverlayPosition) -> Void
     let onUpdateSize: (TranscriptOverlaySize) -> Void
 
@@ -85,14 +84,14 @@ struct TranscriptToolView: View {
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(.vertical, 40)
+        .padding(.vertical, 32)
     }
 
     @ViewBuilder
     private var loadedView: some View {
         if let document, !document.segments.isEmpty {
             List {
-                Section("Style") {
+                Section("Layout") {
                     styleSection(document)
                 }
 
@@ -106,8 +105,8 @@ struct TranscriptToolView: View {
                         .buttonStyle(.plain)
                     }
                 }
-                .listRowSpacing(8)
             }
+            .listRowSpacing(8)
         } else {
             statusView(
                 title: "No transcript yet",
@@ -122,30 +121,8 @@ struct TranscriptToolView: View {
 
     private func styleSection(_ document: TranscriptDocument) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            stylePicker(document)
             positionPicker(document)
             sizePicker(document)
-        }
-    }
-
-    private func stylePicker(_ document: TranscriptDocument) -> some View {
-        HStack {
-            Text("Font")
-                .font(.subheadline)
-                .foregroundStyle(Theme.secondary)
-
-            Spacer()
-
-            Picker("Style", selection: styleSelection) {
-                Text("Default").tag(nil as TranscriptStyle.StyleIdentifier?)
-
-                ForEach(document.availableStyles) { style in
-                    Text(style.name)
-                        .tag(style.id as TranscriptStyle.StyleIdentifier?)
-                }
-            }
-            .labelsHidden()
-            .pickerStyle(.menu)
         }
     }
 
@@ -185,13 +162,6 @@ struct TranscriptToolView: View {
             .pickerStyle(.segmented)
             .frame(width: 200)
         }
-    }
-
-    private var styleSelection: Binding<TranscriptStyle.StyleIdentifier?> {
-        Binding(
-            get: { document?.selectedStyleID },
-            set: { onUpdateStyle($0) }
-        )
     }
 
     private var positionSelection: Binding<TranscriptOverlayPosition> {

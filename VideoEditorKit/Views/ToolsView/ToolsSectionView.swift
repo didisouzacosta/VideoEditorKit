@@ -255,9 +255,6 @@ extension ToolsSectionView {
                         segmentID: segmentID
                     )
                 },
-                onUpdateStyle: { styleID in
-                    editorViewModel.updateTranscriptStyle(styleID)
-                },
                 onUpdatePosition: { position in
                     editorViewModel.updateTranscriptOverlayPosition(position)
                 },

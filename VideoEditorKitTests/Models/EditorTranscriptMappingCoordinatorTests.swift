@@ -17,16 +17,8 @@ struct EditorTranscriptMappingCoordinatorTests {
 
     @Test
     func makeDocumentMapsProviderSegmentsIntoEditableTranscriptContent() {
-        let styleID = UUID()
         let segmentID = UUID()
         let wordID = UUID()
-        let styles = [
-            TranscriptStyle(
-                id: styleID,
-                name: "Classic",
-                fontFamily: "Avenir"
-            )
-        ]
         let result = VideoTranscriptionResult(
             segments: [
                 TranscriptionSegment(
@@ -48,21 +40,18 @@ struct EditorTranscriptMappingCoordinatorTests {
 
         let document = EditorTranscriptMappingCoordinator.makeDocument(
             from: result,
-            availableStyles: styles,
             overlayPosition: .top,
             overlaySize: .large,
             trimRange: 0...20,
             playbackRate: 2
         )
 
-        #expect(document.availableStyles == styles)
         #expect(document.overlayPosition == .top)
         #expect(document.overlaySize == .large)
         #expect(document.segments.count == 1)
         #expect(document.segments.first?.id == segmentID)
         #expect(document.segments.first?.originalText == "hello world")
         #expect(document.segments.first?.editedText == "hello world")
-        #expect(document.segments.first?.styleID == nil)
         #expect(document.segments.first?.timeMapping.sourceRange == 8...12)
         #expect(document.segments.first?.timeMapping.timelineRange == 4...6)
         #expect(document.segments.first?.words.count == 1)

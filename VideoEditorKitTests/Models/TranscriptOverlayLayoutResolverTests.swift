@@ -207,7 +207,7 @@ struct TranscriptOverlayLayoutResolverTests {
             style: TranscriptStyle(
                 id: UUID(uuidString: "E5A04D11-329A-4C8E-B266-1E6A60A6F9F9") ?? UUID(),
                 name: "Default",
-                fontFamily: "SF Pro Rounded"
+                fontWeight: .bold
             ),
             fontSize: layout.fontSize,
             targetWidth: layout.textFrame.width
@@ -255,6 +255,576 @@ struct TranscriptOverlayLayoutResolverTests {
         #expect(abs((1920 - longLayout.overlayFrame.maxY) - 16) < 0.0001)
         #expect(abs(shortLayout.overlayFrame.minX - 16) < 0.0001)
         #expect(abs(longLayout.overlayFrame.minX - 16) < 0.0001)
+    }
+
+    @Test
+    func resolveSegmentBuildsIndependentWordFramesAcrossMultipleLines() {
+        let segment = EditableTranscriptSegment(
+            id: UUID(),
+            timeMapping: .init(
+                sourceStartTime: 0,
+                sourceEndTime: 4,
+                timelineStartTime: 0,
+                timelineEndTime: 4
+            ),
+            originalText: "one two three four five six seven eight",
+            editedText: "one two three four five six seven eight",
+            words: [
+                .init(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 0, sourceEndTime: 0.5, timelineStartTime: 0, timelineEndTime: 0.5),
+                    originalText: "one", editedText: "one"),
+                .init(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 0.5, sourceEndTime: 1, timelineStartTime: 0.5, timelineEndTime: 1),
+                    originalText: "two", editedText: "two"),
+                .init(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 1, sourceEndTime: 1.5, timelineStartTime: 1, timelineEndTime: 1.5),
+                    originalText: "three", editedText: "three"),
+                .init(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 1.5, sourceEndTime: 2, timelineStartTime: 1.5, timelineEndTime: 2),
+                    originalText: "four", editedText: "four"),
+                .init(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 2, sourceEndTime: 2.5, timelineStartTime: 2, timelineEndTime: 2.5),
+                    originalText: "five", editedText: "five"),
+                .init(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 2.5, sourceEndTime: 3, timelineStartTime: 2.5, timelineEndTime: 3),
+                    originalText: "six", editedText: "six"),
+                .init(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 3, sourceEndTime: 3.5, timelineStartTime: 3, timelineEndTime: 3.5),
+                    originalText: "seven", editedText: "seven"),
+                .init(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 3.5, sourceEndTime: 4, timelineStartTime: 3.5, timelineEndTime: 4),
+                    originalText: "eight", editedText: "eight"),
+            ]
+        )
+
+        let layout = TranscriptOverlayLayoutResolver.resolve(
+            videoWidth: 320,
+            videoHeight: 568,
+            selectedPosition: .bottom,
+            selectedSize: .medium,
+            segment: segment
+        )
+
+        #expect(layout.wordLayouts.count == 8)
+        #expect(Set(layout.wordLayouts.map(\.lineIndex)).count > 1)
+        #expect(layout.wordLayouts.map(\.text) == ["one", "two", "three", "four", "five", "six", "seven", "eight"])
+        #expect(layout.wordLayouts.allSatisfy { layout.textFrame.contains($0.frame) })
+    }
+
+    @Test
+    func resolveSegmentCentersEachWrappedLineWhenTheStyleIsCentered() throws {
+        let style = TranscriptStyle(
+            id: UUID(),
+            name: "Centered",
+            fontWeight: .bold,
+            hasStroke: false,
+            textAlignment: .center
+        )
+        let segment = EditableTranscriptSegment(
+            id: UUID(),
+            timeMapping: .init(
+                sourceStartTime: 0,
+                sourceEndTime: 2,
+                timelineStartTime: 0,
+                timelineEndTime: 2
+            ),
+            originalText: "alpha beta gamma delta epsilon zeta",
+            editedText: "alpha beta gamma delta epsilon zeta",
+            words: [
+                .init(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 0, sourceEndTime: 0.2, timelineStartTime: 0, timelineEndTime: 0.2),
+                    originalText: "alpha", editedText: "alpha"),
+                .init(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 0.2, sourceEndTime: 0.4, timelineStartTime: 0.2, timelineEndTime: 0.4),
+                    originalText: "beta", editedText: "beta"),
+                .init(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 0.4, sourceEndTime: 0.6, timelineStartTime: 0.4, timelineEndTime: 0.6),
+                    originalText: "gamma", editedText: "gamma"),
+                .init(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 0.6, sourceEndTime: 0.8, timelineStartTime: 0.6, timelineEndTime: 0.8),
+                    originalText: "delta", editedText: "delta"),
+                .init(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 0.8, sourceEndTime: 1, timelineStartTime: 0.8, timelineEndTime: 1),
+                    originalText: "epsilon", editedText: "epsilon"),
+                .init(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 1, sourceEndTime: 1.2, timelineStartTime: 1, timelineEndTime: 1.2),
+                    originalText: "zeta", editedText: "zeta"),
+            ]
+        )
+
+        let layout = TranscriptOverlayLayoutResolver.resolve(
+            videoWidth: 360,
+            videoHeight: 640,
+            selectedPosition: .center,
+            selectedSize: .medium,
+            segment: segment,
+            style: style
+        )
+        let lineLayouts = Dictionary(grouping: layout.wordLayouts, by: \.lineIndex)
+        let firstLine = try #require(lineLayouts[0])
+        let leftInset = (firstLine.map(\.frame.minX).min() ?? 0) - layout.textFrame.minX
+        let rightInset = layout.textFrame.maxX - (firstLine.map(\.frame.maxX).max() ?? 0)
+
+        #expect(abs(leftInset - rightInset) < 1.5)
+    }
+
+    @Test
+    func resolveSegmentReconcilesStandalonePunctuationBeforeBuildingWordLayouts() {
+        let segment = EditableTranscriptSegment(
+            id: UUID(),
+            timeMapping: .init(
+                sourceStartTime: 0,
+                sourceEndTime: 2,
+                timelineStartTime: 0,
+                timelineEndTime: 2
+            ),
+            originalText: "hello world",
+            editedText: "\" Hello , world !",
+            words: [
+                .init(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 0,
+                        sourceEndTime: 0.8,
+                        timelineStartTime: 0,
+                        timelineEndTime: 0.8
+                    ),
+                    originalText: "hello",
+                    editedText: "hello"
+                ),
+                .init(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 0.8,
+                        sourceEndTime: 1.6,
+                        timelineStartTime: 0.8,
+                        timelineEndTime: 1.6
+                    ),
+                    originalText: "world",
+                    editedText: "world"
+                ),
+            ]
+        )
+
+        let layout = TranscriptOverlayLayoutResolver.resolve(
+            videoWidth: 360,
+            videoHeight: 640,
+            selectedPosition: .bottom,
+            selectedSize: .medium,
+            segment: segment
+        )
+
+        #expect(layout.wordLayouts.map(\.text) == ["\"Hello,", "world!"])
+    }
+
+    @Test
+    func resolveSegmentAddsHorizontalInsetToEachHighlightedWordBlock() throws {
+        let segment = EditableTranscriptSegment(
+            id: UUID(),
+            timeMapping: .init(
+                sourceStartTime: 0,
+                sourceEndTime: 2,
+                timelineStartTime: 0,
+                timelineEndTime: 2
+            ),
+            originalText: "hello world",
+            editedText: "hello world",
+            words: [
+                .init(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 0,
+                        sourceEndTime: 0.8,
+                        timelineStartTime: 0,
+                        timelineEndTime: 0.8
+                    ),
+                    originalText: "hello",
+                    editedText: "hello"
+                ),
+                .init(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 0.8,
+                        sourceEndTime: 1.6,
+                        timelineStartTime: 0.8,
+                        timelineEndTime: 1.6
+                    ),
+                    originalText: "world",
+                    editedText: "world"
+                ),
+            ]
+        )
+
+        let layout = TranscriptOverlayLayoutResolver.resolve(
+            videoWidth: 360,
+            videoHeight: 640,
+            selectedPosition: .bottom,
+            selectedSize: .medium,
+            segment: segment
+        )
+        let firstWordLayout = try #require(layout.wordLayouts.first)
+        let measuredTextWidth = TranscriptTextStyleResolver.measuredWordWidth(
+            text: "hello",
+            style: .defaultCaptionStyle,
+            fontSize: layout.fontSize
+        )
+
+        #expect(firstWordLayout.frame.width >= measuredTextWidth + (TranscriptWordHighlightStyle.horizontalInset * 2))
+    }
+
+    @Test
+    func resolveSegmentUsesTheSharedCompactSpacingBetweenWordBlocks() throws {
+        let segment = EditableTranscriptSegment(
+            id: UUID(),
+            timeMapping: .init(
+                sourceStartTime: 0,
+                sourceEndTime: 2,
+                timelineStartTime: 0,
+                timelineEndTime: 2
+            ),
+            originalText: "alpha beta",
+            editedText: "alpha beta",
+            words: [
+                .init(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 0,
+                        sourceEndTime: 1,
+                        timelineStartTime: 0,
+                        timelineEndTime: 1
+                    ),
+                    originalText: "alpha",
+                    editedText: "alpha"
+                ),
+                .init(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 1,
+                        sourceEndTime: 2,
+                        timelineStartTime: 1,
+                        timelineEndTime: 2
+                    ),
+                    originalText: "beta",
+                    editedText: "beta"
+                ),
+            ]
+        )
+
+        let layout = TranscriptOverlayLayoutResolver.resolve(
+            videoWidth: 480,
+            videoHeight: 854,
+            selectedPosition: .bottom,
+            selectedSize: .medium,
+            segment: segment
+        )
+        let firstWord = try #require(layout.wordLayouts.first)
+        let secondWord = try #require(layout.wordLayouts.dropFirst().first)
+        let gap = secondWord.frame.minX - firstWord.frame.maxX
+
+        #expect(abs(gap - TranscriptWordHighlightStyle.interWordSpacing) < 0.0001)
+    }
+
+    @Test
+    func resolveRenderPlanUsesWordBlocksWhenTheEditableSegmentRemainsRenderable() {
+        let segment = EditableTranscriptSegment(
+            id: UUID(),
+            timeMapping: .init(
+                sourceStartTime: 0,
+                sourceEndTime: 2,
+                timelineStartTime: 0,
+                timelineEndTime: 2
+            ),
+            originalText: "alpha beta",
+            editedText: "alpha beta",
+            words: [
+                .init(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 0,
+                        sourceEndTime: 1,
+                        timelineStartTime: 0,
+                        timelineEndTime: 1
+                    ),
+                    originalText: "alpha",
+                    editedText: "alpha"
+                ),
+                .init(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 1,
+                        sourceEndTime: 2,
+                        timelineStartTime: 1,
+                        timelineEndTime: 2
+                    ),
+                    originalText: "beta",
+                    editedText: "beta"
+                ),
+            ]
+        )
+
+        let renderPlan = TranscriptOverlayLayoutResolver.resolveRenderPlan(
+            videoWidth: 480,
+            videoHeight: 854,
+            selectedPosition: .bottom,
+            selectedSize: .medium,
+            segment: segment
+        )
+
+        #expect(renderPlan.usesWordBlocks)
+        #expect(renderPlan.wordBlocks.map(\.text) == ["alpha", "beta"])
+        #expect(renderPlan.wordBlocks.map(\.wordID) == renderPlan.layout.wordLayouts.map(\.wordID))
+    }
+
+    @Test
+    func resolveActiveWordRenderPlansAddThirtyTwoPointHorizontalPaddingAroundTheVisibleWord() throws {
+        let segment = EditableTranscriptSegment(
+            id: UUID(),
+            timeMapping: .init(
+                sourceStartTime: 0,
+                sourceEndTime: 2,
+                timelineStartTime: 0,
+                timelineEndTime: 2
+            ),
+            originalText: "hello world",
+            editedText: "hello world",
+            words: [
+                .init(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 0,
+                        sourceEndTime: 0.8,
+                        timelineStartTime: 0,
+                        timelineEndTime: 0.8
+                    ),
+                    originalText: "hello",
+                    editedText: "hello"
+                ),
+                .init(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 0.8,
+                        sourceEndTime: 1.6,
+                        timelineStartTime: 0.8,
+                        timelineEndTime: 1.6
+                    ),
+                    originalText: "world",
+                    editedText: "world"
+                ),
+            ]
+        )
+
+        let renderPlan = try #require(
+            TranscriptOverlayLayoutResolver.resolveActiveWordRenderPlans(
+                videoWidth: 360,
+                videoHeight: 640,
+                selectedPosition: .bottom,
+                selectedSize: .medium,
+                segment: segment
+            ).first
+        )
+
+        #expect(
+            abs(renderPlan.layout.textFrame.minX - renderPlan.layout.overlayFrame.minX - 44) < 0.0001
+        )
+        #expect(
+            abs(renderPlan.layout.overlayFrame.maxX - renderPlan.layout.textFrame.maxX - 44) < 0.0001
+        )
+    }
+
+    @Test
+    func resolvePreviewActiveWordRenderPlansScaleTheSharedStandaloneWordLayout() throws {
+        let segment = EditableTranscriptSegment(
+            id: UUID(),
+            timeMapping: .init(
+                sourceStartTime: 0,
+                sourceEndTime: 1,
+                timelineStartTime: 0,
+                timelineEndTime: 1
+            ),
+            originalText: "hello",
+            editedText: "hello",
+            words: [
+                .init(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 0,
+                        sourceEndTime: 1,
+                        timelineStartTime: 0,
+                        timelineEndTime: 1
+                    ),
+                    originalText: "hello",
+                    editedText: "hello"
+                )
+            ]
+        )
+
+        let exportPlan = try #require(
+            TranscriptOverlayLayoutResolver.resolveActiveWordRenderPlans(
+                videoWidth: 1080,
+                videoHeight: 1920,
+                selectedPosition: .bottom,
+                selectedSize: .medium,
+                segment: segment
+            ).first
+        )
+        let previewPlan = try #require(
+            TranscriptOverlayLayoutResolver.resolvePreviewActiveWordRenderPlans(
+                exportCanvasSize: CGSize(width: 1080, height: 1920),
+                previewCanvasSize: CGSize(width: 270, height: 480),
+                selectedPosition: .bottom,
+                selectedSize: .medium,
+                segment: segment
+            ).first
+        )
+
+        #expect(abs(previewPlan.layout.overlayFrame.width - (exportPlan.layout.overlayFrame.width / 4)) < 0.0001)
+        #expect(abs(previewPlan.layout.textFrame.minX - (exportPlan.layout.textFrame.minX / 4)) < 0.0001)
+    }
+
+    @Test
+    func resolvePreviewRenderPlanScalesWordBlockFramesWithTheSharedLayout() throws {
+        let segment = EditableTranscriptSegment(
+            id: UUID(),
+            timeMapping: .init(
+                sourceStartTime: 0,
+                sourceEndTime: 2,
+                timelineStartTime: 0,
+                timelineEndTime: 2
+            ),
+            originalText: "alpha beta",
+            editedText: "alpha beta",
+            words: [
+                .init(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 0,
+                        sourceEndTime: 1,
+                        timelineStartTime: 0,
+                        timelineEndTime: 1
+                    ),
+                    originalText: "alpha",
+                    editedText: "alpha"
+                ),
+                .init(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 1,
+                        sourceEndTime: 2,
+                        timelineStartTime: 1,
+                        timelineEndTime: 2
+                    ),
+                    originalText: "beta",
+                    editedText: "beta"
+                ),
+            ]
+        )
+
+        let exportPlan = TranscriptOverlayLayoutResolver.resolveRenderPlan(
+            videoWidth: 1080,
+            videoHeight: 1920,
+            selectedPosition: .bottom,
+            selectedSize: .medium,
+            segment: segment
+        )
+        let previewPlan = TranscriptOverlayLayoutResolver.resolvePreviewRenderPlan(
+            exportCanvasSize: CGSize(width: 1080, height: 1920),
+            previewCanvasSize: CGSize(width: 270, height: 480),
+            selectedPosition: .bottom,
+            selectedSize: .medium,
+            segment: segment
+        )
+        let exportFirstBlock = try #require(exportPlan.wordBlocks.first)
+        let previewFirstBlock = try #require(previewPlan.wordBlocks.first)
+
+        #expect(abs(previewFirstBlock.frame.minX - (exportFirstBlock.frame.minX / 4)) < 0.0001)
+        #expect(abs(previewFirstBlock.frame.width - (exportFirstBlock.frame.width / 4)) < 0.0001)
+        #expect(abs(previewFirstBlock.textFrame.minX - (exportFirstBlock.textFrame.minX / 4)) < 0.0001)
+        #expect(abs(previewFirstBlock.textFrame.width - (exportFirstBlock.textFrame.width / 4)) < 0.0001)
+        #expect(previewPlan.usesWordBlocks == exportPlan.usesWordBlocks)
+    }
+
+    @Test
+    func resolveRenderPlanBuildsWordBlockTextFramesInsideTheirSharedHighlightFrames() throws {
+        let segment = EditableTranscriptSegment(
+            id: UUID(),
+            timeMapping: .init(
+                sourceStartTime: 0,
+                sourceEndTime: 2,
+                timelineStartTime: 0,
+                timelineEndTime: 2
+            ),
+            originalText: "alpha beta",
+            editedText: "alpha beta",
+            words: [
+                .init(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 0,
+                        sourceEndTime: 1,
+                        timelineStartTime: 0,
+                        timelineEndTime: 1
+                    ),
+                    originalText: "alpha",
+                    editedText: "alpha"
+                ),
+                .init(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 1,
+                        sourceEndTime: 2,
+                        timelineStartTime: 1,
+                        timelineEndTime: 2
+                    ),
+                    originalText: "beta",
+                    editedText: "beta"
+                ),
+            ]
+        )
+
+        let renderPlan = TranscriptOverlayLayoutResolver.resolveRenderPlan(
+            videoWidth: 480,
+            videoHeight: 854,
+            selectedPosition: .bottom,
+            selectedSize: .medium,
+            segment: segment
+        )
+        let firstBlock = try #require(renderPlan.wordBlocks.first)
+
+        #expect(firstBlock.frame.contains(firstBlock.textFrame))
+        #expect(
+            abs(firstBlock.textFrame.minX - firstBlock.frame.minX - TranscriptWordHighlightStyle.horizontalInset)
+                < 0.0001)
+        #expect(
+            abs(firstBlock.frame.maxX - firstBlock.textFrame.maxX - TranscriptWordHighlightStyle.horizontalInset)
+                < 0.0001)
     }
 
 }
