@@ -132,6 +132,73 @@ struct ExporterViewModelTests {
     }
 
     @Test
+    func retryExportClearsAlertAndReentersLoadingImmediately() async {
+        let tracker = ExportRetryTracker()
+        let viewModel = ExporterViewModel(
+            Video.mock,
+            renderVideo: { _, _, _, _ in
+                _ = await tracker.recordRenderCall()
+
+                do {
+                    try await Task.sleep(for: .milliseconds(100))
+                    return URL(fileURLWithPath: "/tmp/retry-loading.mp4")
+                } catch {
+                    throw error
+                }
+            },
+            loadExportedVideo: { url in
+                ExportedVideo(
+                    url,
+                    width: 1280,
+                    height: 720,
+                    duration: 8,
+                    fileSize: 256
+                )
+            }
+        )
+
+        viewModel.renderState = .failed(ExporterError.failed)
+        #expect(viewModel.showAlert)
+
+        viewModel.retryExport { _ in }
+
+        #expect(viewModel.showAlert == false)
+        #expect(viewModel.renderState == .loading)
+        #expect(viewModel.shouldShowLoadingView)
+
+        viewModel.cancelExport()
+    }
+
+    @Test
+    func repeatedFailuresStillTriggerFailureFeedbackAfterARetry() async {
+        let tracker = ExportRetryTracker()
+        let viewModel = ExporterViewModel(
+            Video.mock,
+            renderVideo: { _, _, _, _ in
+                _ = await tracker.recordRenderCall()
+                throw ExporterError.failed
+            }
+        )
+
+        let firstResult = await viewModel.export()
+
+        #expect(firstResult == nil)
+        #expect(viewModel.showAlert)
+        #expect(viewModel.shouldShowFailureMessage)
+
+        viewModel.retryExport { _ in }
+
+        for _ in 0..<20 where viewModel.renderState == .loading {
+            await Task.yield()
+        }
+
+        #expect(await tracker.renderCallCount == 2)
+        #expect(viewModel.showAlert)
+        #expect(viewModel.shouldShowFailureMessage)
+        #expect(viewModel.renderState.id == ExporterViewModel.ExportState.failed(ExporterError.failed).id)
+    }
+
+    @Test
     func cancelExportResetsTheSheetStateWithoutShowingFailureFeedback() async {
         let tracker = ExportRetryTracker()
         let viewModel = ExporterViewModel(

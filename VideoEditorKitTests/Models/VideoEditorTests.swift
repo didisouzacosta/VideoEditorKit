@@ -187,14 +187,14 @@ struct VideoEditorTests {
     }
 
     @Test
-    func resolvedRenderStagesPlacesTranscriptAfterCanvasWhenCanvasRenderingIsActive() {
+    func resolvedRenderStagesAbsorbCanvasIntoTheBaseStageWhenCanvasRenderingIsActive() {
         let stages = VideoEditor.resolvedRenderStages(
             usesAdjustsStage: true,
             usesTranscriptStage: true,
             usesCropStage: true
         )
 
-        #expect(stages == [.base, .adjusts, .crop, .transcript])
+        #expect(stages == [.base, .adjusts, .transcript])
     }
 
     @Test
@@ -206,6 +206,55 @@ struct VideoEditorTests {
         )
 
         #expect(stages == [.base, .adjusts, .transcript])
+    }
+
+    @Test
+    func resolvedTranscriptRenderBatchesSplitLargeWordRunsWithoutChangingOrder() {
+        let firstSegment = VideoEditor.TranscriptRenderSegment(
+            text: "one",
+            timeRange: 0...1,
+            style: .defaultCaptionStyle,
+            words: (0..<20).map { index in
+                VideoEditor.TranscriptRenderWord(
+                    id: UUID(),
+                    text: "w\(index)",
+                    timeRange: Double(index)...Double(index + 1)
+                )
+            }
+        )
+        let secondSegment = VideoEditor.TranscriptRenderSegment(
+            text: "two",
+            timeRange: 1...2,
+            style: .defaultCaptionStyle,
+            words: (20..<40).map { index in
+                VideoEditor.TranscriptRenderWord(
+                    id: UUID(),
+                    text: "w\(index)",
+                    timeRange: Double(index)...Double(index + 1)
+                )
+            }
+        )
+        let thirdSegment = VideoEditor.TranscriptRenderSegment(
+            text: "fallback",
+            timeRange: 2...3,
+            style: .defaultCaptionStyle,
+            words: []
+        )
+        let renderUnits = VideoEditor.resolvedTranscriptRenderUnits(
+            from: [firstSegment, secondSegment, thirdSegment]
+        )
+
+        let batches = VideoEditor.resolvedTranscriptRenderBatches(
+            from: renderUnits
+        )
+
+        #expect(batches.count == 2)
+        #expect(batches[0].count == 32)
+        #expect(batches[1].count == 9)
+        #expect(
+            batches.flatMap { $0.map(\.text) }
+                == renderUnits.map(\.text)
+        )
     }
 
     @Test
@@ -326,6 +375,69 @@ struct VideoEditorTests {
 
         #expect((animation.values as? [NSNumber])?.map(\.doubleValue) == [0, 1, 1, 0])
         #expect(animation.keyTimes?.map(\.doubleValue) == [0, 0.0001, 0.999, 1])
+    }
+
+    @Test
+    func resolvedActiveWordTimelineStatesInsertHiddenStatesOnlyAcrossRealGaps() {
+        let renderUnits: [VideoEditor.TranscriptRenderUnit] = [
+            .init(
+                text: "alpha",
+                timeRange: 0...0.8,
+                style: .defaultCaptionStyle,
+                mode: .activeWord
+            ),
+            .init(
+                text: "beta",
+                timeRange: 0.8...1.4,
+                style: .defaultCaptionStyle,
+                mode: .activeWord
+            ),
+            .init(
+                text: "gamma",
+                timeRange: 2.0...2.6,
+                style: .defaultCaptionStyle,
+                mode: .activeWord
+            ),
+        ]
+
+        let timelineStates = VideoEditor.resolvedActiveWordTimelineStates(
+            from: renderUnits,
+            overlayPosition: .bottom,
+            overlaySize: .medium,
+            renderSize: CGSize(width: 1080, height: 1920)
+        )
+
+        #expect(timelineStates.map(\.time) == [0, 0.8, 1.4, 2.0, 2.6])
+        #expect(timelineStates.map(\.text) == ["alpha", "beta", nil, "gamma", nil])
+    }
+
+    @Test
+    func resolvedActiveWordTimelineStatesUseTheFullAvailableCaptionWidthForSingleWords() throws {
+        let renderUnits: [VideoEditor.TranscriptRenderUnit] = [
+            .init(
+                text: "Edmure,",
+                timeRange: 0...1,
+                style: .defaultCaptionStyle,
+                mode: .activeWord
+            )
+        ]
+
+        let timelineState = try #require(
+            VideoEditor.resolvedActiveWordTimelineStates(
+                from: renderUnits,
+                overlayPosition: .bottom,
+                overlaySize: .medium,
+                renderSize: CGSize(width: 1080, height: 1920)
+            ).first
+        )
+
+        #expect(timelineState.text == "Edmure,")
+        #expect(abs(timelineState.frame.minX - 16) < 0.0001)
+        #expect(abs((1080 - timelineState.frame.maxX) - 16) < 0.0001)
+        #expect(abs(timelineState.frame.width - 1048) < 0.0001)
+        #expect(abs(timelineState.textFrame.width - 984) < 0.0001)
+        #expect(abs(timelineState.frame.midX - 540) < 0.0001)
+        #expect(abs((1920 - timelineState.frame.maxY) - 135) < 0.0001)
     }
 
     @Test

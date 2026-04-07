@@ -24,7 +24,7 @@ final class ExporterViewModel {
 
     var renderState: ExportState = .unknown {
         didSet {
-            guard renderState != oldValue else { return }
+            guard shouldHandleRenderStateTransition(from: oldValue, to: renderState) else { return }
             handleRenderStateChange(renderState)
         }
     }
@@ -171,6 +171,7 @@ final class ExporterViewModel {
 
     func exportVideo(_ onExported: @escaping (ExportedVideo) -> Void) {
         exportTask?.cancel()
+        renderState = .loading
 
         exportTask = Task { [weak self] in
             guard let self else { return }
@@ -187,6 +188,7 @@ final class ExporterViewModel {
     }
 
     func retryExport(_ onExported: @escaping (ExportedVideo) -> Void) {
+        showAlert = false
         exportVideo(onExported)
     }
 
@@ -232,6 +234,18 @@ final class ExporterViewModel {
         case .failed:
             resetProgress()
             showAlert = true
+        }
+    }
+
+    private func shouldHandleRenderStateTransition(
+        from oldState: ExportState,
+        to newState: ExportState
+    ) -> Bool {
+        switch (oldState, newState) {
+        case (.failed, .failed):
+            true
+        default:
+            oldState != newState
         }
     }
 

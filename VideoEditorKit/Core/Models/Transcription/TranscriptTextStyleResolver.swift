@@ -31,13 +31,14 @@ enum TranscriptTextStyleResolver {
         style: TranscriptStyle,
         fontSize: CGFloat,
         textColorOverride: RGBAColor? = nil,
-        includesStroke: Bool = true
+        includesStroke: Bool = true,
+        isWrapped: Bool = true
     ) -> NSAttributedString {
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.alignment = resolvedTextAlignment(
             for: style.textAlignment
         )
-        paragraphStyle.lineBreakMode = .byWordWrapping
+        paragraphStyle.lineBreakMode = isWrapped ? .byWordWrapping : .byClipping
 
         var attributes: [NSAttributedString.Key: Any] = [
             .font: resolvedFont(
@@ -224,10 +225,10 @@ enum TranscriptTextStyleResolver {
     ) -> CGFloat {
         min(
             max(
-                ceil(fontSize / referenceStrokeFontSize * 4),
+                ceil(fontSize / referenceStrokeFontSize * 2),
                 2
             ),
-            16
+            8
         )
     }
 

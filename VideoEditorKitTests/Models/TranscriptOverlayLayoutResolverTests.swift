@@ -604,7 +604,7 @@ struct TranscriptOverlayLayoutResolverTests {
     }
 
     @Test
-    func resolveActiveWordRenderPlansUseTheFullCaptionWidthForTheVisibleWord() throws {
+    func resolveActiveWordRenderPlansUseTheFullAvailableCaptionWidthForTheVisibleWord() throws {
         let segment = EditableTranscriptSegment(
             id: UUID(),
             timeMapping: .init(
@@ -663,9 +663,63 @@ struct TranscriptOverlayLayoutResolverTests {
         #expect(
             abs(renderPlan.layout.overlayFrame.maxY - renderPlan.layout.textFrame.maxY - 32) < 0.0001
         )
+        #expect(abs(renderPlan.layout.overlayFrame.midX - 180) < 0.0001)
         #expect(abs(renderPlan.layout.overlayFrame.minX - 16) < 0.0001)
-        #expect(abs(renderPlan.layout.overlayFrame.width - (360 - 32)) < 0.0001)
+        #expect(abs((360 - renderPlan.layout.overlayFrame.maxX) - 16) < 0.0001)
+        #expect(abs(renderPlan.layout.overlayFrame.width - 328) < 0.0001)
+        #expect(abs(renderPlan.layout.textFrame.width - 264) < 0.0001)
         #expect(abs((640 - renderPlan.layout.overlayFrame.maxY) - 45) < 0.0001)
+    }
+
+    @Test
+    func resolveActiveWordRenderPlansKeepWordsOnASingleLineWhenThereIsEnoughHorizontalRoom() throws {
+        let segment = EditableTranscriptSegment(
+            id: UUID(),
+            timeMapping: .init(
+                sourceStartTime: 0,
+                sourceEndTime: 1,
+                timelineStartTime: 0,
+                timelineEndTime: 1
+            ),
+            originalText: "Edmure,",
+            editedText: "Edmure,",
+            words: [
+                .init(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 0,
+                        sourceEndTime: 1,
+                        timelineStartTime: 0,
+                        timelineEndTime: 1
+                    ),
+                    originalText: "Edmure,",
+                    editedText: "Edmure,"
+                )
+            ]
+        )
+
+        let renderPlan = try #require(
+            TranscriptOverlayLayoutResolver.resolveActiveWordRenderPlans(
+                videoWidth: 360,
+                videoHeight: 640,
+                selectedPosition: .bottom,
+                selectedSize: .medium,
+                segment: segment
+            ).first
+        )
+        let measuredHeight = TranscriptTextStyleResolver.measuredTextHeight(
+            text: renderPlan.text,
+            style: .defaultCaptionStyle,
+            fontSize: renderPlan.layout.fontSize,
+            targetWidth: renderPlan.layout.textFrame.width
+        )
+        let expectedSingleLineHeight = TranscriptTextStyleResolver.resolvedLineHeight(
+            style: .defaultCaptionStyle,
+            fontSize: renderPlan.layout.fontSize
+        )
+
+        #expect(abs(measuredHeight - expectedSingleLineHeight) < 0.0001)
+        #expect(renderPlan.layout.textFrame.width >= 264)
     }
 
     @Test

@@ -630,7 +630,7 @@ enum TranscriptOverlayLayoutResolver {
         return fontSize
     }
 
-    private static func resolveActiveWordLayout(
+    static func resolveActiveWordLayout(
         videoWidth: CGFloat,
         videoHeight: CGFloat,
         selectedPosition: TranscriptOverlayPosition,
@@ -670,20 +670,17 @@ enum TranscriptOverlayLayoutResolver {
             maximumOverlayHeight - activeWordTextHeightPadding,
             metrics.baseFontSize
         )
-        let fontSize = fittedFontSize(
+        let fontSize = fittedSingleLineFontSize(
             startingFrom: metrics.baseFontSize,
             for: text,
             textWidth: activeWordTextWidth,
             maximumTextHeight: maximumTextHeight,
             style: style
         )
-        let measuredTextHeight = measuredTextHeight(
-            for: text,
-            textWidth: activeWordTextWidth,
-            fontSize: fontSize,
-            style: style
+        let measuredTextHeight = TranscriptTextStyleResolver.resolvedLineHeight(
+            style: style,
+            fontSize: fontSize
         )
-        let activeWordWidth = metrics.targetWidth
         let requestedOverlayHeight = measuredTextHeight + activeWordTextHeightPadding
         let overlayHeight = min(requestedOverlayHeight, maximumOverlayHeight)
         let overlayY = resolvedOverlayY(
@@ -692,17 +689,10 @@ enum TranscriptOverlayLayoutResolver {
             selectedPosition: selectedPosition,
             verticalInset: activeWordOuterVerticalInset
         )
-        let overlayX =
-            Constants.uniformInset
-            + horizontalOffset(
-                for: style.textAlignment,
-                availableWidth: metrics.targetWidth,
-                occupiedWidth: activeWordWidth
-            )
         let overlayFrame = CGRect(
-            x: overlayX,
+            x: Constants.uniformInset,
             y: overlayY,
-            width: activeWordWidth,
+            width: metrics.targetWidth,
             height: overlayHeight
         )
         let textFrame = overlayFrame.insetBy(
@@ -721,7 +711,7 @@ enum TranscriptOverlayLayoutResolver {
                 x: overlayFrame.midX,
                 y: preferredControlsY
             ),
-            targetWidth: activeWordWidth,
+            targetWidth: metrics.targetWidth,
             fontSize: fontSize
         )
     }
@@ -761,6 +751,37 @@ enum TranscriptOverlayLayoutResolver {
                 fontSize: fontSize,
                 style: style
             )
+        }
+
+        return fontSize
+    }
+
+    private static func fittedSingleLineFontSize(
+        startingFrom baseFontSize: CGFloat,
+        for text: String,
+        textWidth: CGFloat,
+        maximumTextHeight: CGFloat,
+        style: TranscriptStyle
+    ) -> CGFloat {
+        var fontSize = baseFontSize
+        let minimumFontSize = Constants.minimumFontSize
+
+        while fontSize > minimumFontSize {
+            let measuredWidth = TranscriptTextStyleResolver.measuredWordWidth(
+                text: text,
+                style: style,
+                fontSize: fontSize
+            )
+            let measuredHeight = TranscriptTextStyleResolver.resolvedLineHeight(
+                style: style,
+                fontSize: fontSize
+            )
+
+            if measuredWidth <= textWidth, measuredHeight <= maximumTextHeight {
+                return fontSize
+            }
+
+            fontSize = max(fontSize - 1, minimumFontSize)
         }
 
         return fontSize

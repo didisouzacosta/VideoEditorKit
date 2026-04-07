@@ -158,7 +158,7 @@ struct TranscriptTextStyleResolverTests {
         #expect(offsets.count == 16)
         #expect(containsNegativeHorizontalOffset)
         #expect(containsIntermediateCircularSample)
-        #expect(TranscriptTextStyleResolver.resolvedTextLayerContentsScale(for: 80) == 16)
+        #expect(TranscriptTextStyleResolver.resolvedTextLayerContentsScale(for: 80) == 8)
     }
 
 }

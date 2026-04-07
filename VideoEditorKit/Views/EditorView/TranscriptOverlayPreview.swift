@@ -94,7 +94,8 @@ struct TranscriptOverlayPreview: View {
 
     private func textOverlay(
         _ text: String,
-        layout: TranscriptOverlayLayoutResolver.Layout
+        layout: TranscriptOverlayLayoutResolver.Layout,
+        allowsWrapping: Bool = true
     ) -> some View {
         let relativeTextFrame = CGRect(
             x: layout.textFrame.minX - layout.overlayFrame.minX,
@@ -110,7 +111,8 @@ struct TranscriptOverlayPreview: View {
                         text,
                         color: Color(rgba: strokeColor),
                         fontSize: layout.fontSize,
-                        targetWidth: relativeTextFrame.width
+                        targetWidth: relativeTextFrame.width,
+                        allowsWrapping: allowsWrapping
                     )
                 }
 
@@ -118,7 +120,8 @@ struct TranscriptOverlayPreview: View {
                     text,
                     textColor: Color(rgba: resolvedStyle.textColor),
                     fontSize: layout.fontSize,
-                    targetWidth: relativeTextFrame.width
+                    targetWidth: relativeTextFrame.width,
+                    allowsWrapping: allowsWrapping
                 )
             }
             .frame(
@@ -149,7 +152,8 @@ struct TranscriptOverlayPreview: View {
         if let activeWord = activeWord(in: renderPlans) {
             textOverlay(
                 activeWord.text,
-                layout: activeWord.layout
+                layout: activeWord.layout,
+                allowsWrapping: false
             )
         }
     }
@@ -161,34 +165,55 @@ struct TranscriptOverlayPreview: View {
         return renderPlans.first { $0.wordID == activeWordID }
     }
 
+    @ViewBuilder
     private func overlayText(
         _ text: String,
         textColor: Color,
         fontSize: CGFloat,
-        targetWidth: CGFloat
+        targetWidth: CGFloat,
+        allowsWrapping: Bool
     ) -> some View {
-        Text(text)
-            .font(
-                TranscriptTextStyleResolver.resolvedSwiftUIFont(
-                    for: resolvedStyle,
-                    fontSize: fontSize
+        if allowsWrapping {
+            Text(text)
+                .font(
+                    TranscriptTextStyleResolver.resolvedSwiftUIFont(
+                        for: resolvedStyle,
+                        fontSize: fontSize
+                    )
                 )
-            )
-            .foregroundStyle(textColor)
-            .multilineTextAlignment(multilineAlignment)
-            .lineLimit(nil)
-            .fixedSize(horizontal: false, vertical: true)
-            .frame(
-                width: targetWidth,
-                alignment: textFrameAlignment
-            )
+                .foregroundStyle(textColor)
+                .multilineTextAlignment(multilineAlignment)
+                .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(
+                    width: targetWidth,
+                    alignment: textFrameAlignment
+                )
+        } else {
+            Text(text)
+                .font(
+                    TranscriptTextStyleResolver.resolvedSwiftUIFont(
+                        for: resolvedStyle,
+                        fontSize: fontSize
+                    )
+                )
+                .foregroundStyle(textColor)
+                .multilineTextAlignment(multilineAlignment)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+                .frame(
+                    width: targetWidth,
+                    alignment: textFrameAlignment
+                )
+        }
     }
 
     private func strokedText(
         _ text: String,
         color: Color,
         fontSize: CGFloat,
-        targetWidth: CGFloat
+        targetWidth: CGFloat,
+        allowsWrapping: Bool
     ) -> some View {
         ZStack {
             ForEach(
@@ -203,7 +228,8 @@ struct TranscriptOverlayPreview: View {
                     text,
                     textColor: color,
                     fontSize: fontSize,
-                    targetWidth: targetWidth
+                    targetWidth: targetWidth,
+                    allowsWrapping: allowsWrapping
                 )
                 .offset(x: offset.width, y: offset.height)
             }
