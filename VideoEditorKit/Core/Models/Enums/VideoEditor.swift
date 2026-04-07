@@ -1399,7 +1399,7 @@ extension VideoEditor {
         containerLayer.frame = containerFrame
 
         if style.hasStroke, let strokeColor = style.strokeColor {
-            for offset in resolvedTranscriptStrokeOffsets() {
+            for offset in resolvedTranscriptStrokeOffsets(for: fontSize) {
                 containerLayer.addSublayer(
                     makeTranscriptTextLayer(
                         text: text,
@@ -1454,12 +1454,18 @@ extension VideoEditor {
         textLayer.frame = frame
         textLayer.alignmentMode = alignmentMode
         textLayer.isWrapped = isWrapped
-        textLayer.contentsScale = 2
+        textLayer.contentsScale = TranscriptTextStyleResolver.resolvedTextLayerContentsScale(
+            for: fontSize
+        )
         return textLayer
     }
 
-    private static func resolvedTranscriptStrokeOffsets() -> [CGSize] {
-        TranscriptTextStyleResolver.resolvedStrokeOffsets()
+    private static func resolvedTranscriptStrokeOffsets(
+        for fontSize: CGFloat
+    ) -> [CGSize] {
+        TranscriptTextStyleResolver.resolvedStrokeOffsets(
+            for: fontSize
+        )
     }
 
 }

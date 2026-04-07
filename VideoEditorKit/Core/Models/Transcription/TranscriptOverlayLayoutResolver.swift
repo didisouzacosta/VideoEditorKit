@@ -15,6 +15,9 @@ enum TranscriptOverlayLayoutResolver {
         static let minimumFontSize: CGFloat = 14
         static let textHorizontalInset: CGFloat = 12
         static let textVerticalInset: CGFloat = 16
+        static let activeWordHorizontalInset: CGFloat = 32
+        static let activeWordVerticalInset: CGFloat = activeWordHorizontalInset
+        static let activeWordOuterVerticalInset: CGFloat = activeWordVerticalInset
     }
 
     struct Layout: Equatable {
@@ -108,6 +111,7 @@ enum TranscriptOverlayLayoutResolver {
 
     private static let textHeightPadding = Constants.textVerticalInset * 2
     private static let textWidthPadding = Constants.textHorizontalInset * 2
+    private static let activeWordTextHeightPadding = Constants.activeWordVerticalInset * 2
 
     // MARK: - Public Methods
 
@@ -232,11 +236,11 @@ enum TranscriptOverlayLayoutResolver {
             selectedSize: selectedSize
         )
         let maximumOverlayHeight = max(
-            videoHeight - (Constants.uniformInset * 2),
+            videoHeight - (Constants.activeWordOuterVerticalInset * 2),
             metrics.baseFontSize
         )
         let maximumTextHeight = max(
-            maximumOverlayHeight - textHeightPadding,
+            maximumOverlayHeight - activeWordTextHeightPadding,
             metrics.baseFontSize
         )
         let fontSize = fittedFontSize(
@@ -651,34 +655,42 @@ enum TranscriptOverlayLayoutResolver {
             selectedSize: selectedSize,
             additionalTextMeasurementInset: 0
         )
+        let activeWordOuterVerticalInset = resolvedActiveWordOuterVerticalInset(
+            for: videoHeight
+        )
+        let activeWordTextWidth = max(
+            metrics.targetWidth - (Constants.activeWordHorizontalInset * 2),
+            1
+        )
         let maximumOverlayHeight = max(
-            videoHeight - (Constants.uniformInset * 2),
+            videoHeight - (activeWordOuterVerticalInset * 2),
             metrics.baseFontSize
         )
         let maximumTextHeight = max(
-            maximumOverlayHeight - textHeightPadding,
+            maximumOverlayHeight - activeWordTextHeightPadding,
             metrics.baseFontSize
         )
         let fontSize = fittedFontSize(
             startingFrom: metrics.baseFontSize,
             for: text,
-            textWidth: metrics.textWidth,
+            textWidth: activeWordTextWidth,
             maximumTextHeight: maximumTextHeight,
             style: style
         )
         let measuredTextHeight = measuredTextHeight(
             for: text,
-            textWidth: metrics.textWidth,
+            textWidth: activeWordTextWidth,
             fontSize: fontSize,
             style: style
         )
         let activeWordWidth = metrics.targetWidth
-        let requestedOverlayHeight = measuredTextHeight + textHeightPadding
+        let requestedOverlayHeight = measuredTextHeight + activeWordTextHeightPadding
         let overlayHeight = min(requestedOverlayHeight, maximumOverlayHeight)
         let overlayY = resolvedOverlayY(
             videoHeight: videoHeight,
             overlayHeight: overlayHeight,
-            selectedPosition: selectedPosition
+            selectedPosition: selectedPosition,
+            verticalInset: activeWordOuterVerticalInset
         )
         let overlayX =
             Constants.uniformInset
@@ -694,8 +706,8 @@ enum TranscriptOverlayLayoutResolver {
             height: overlayHeight
         )
         let textFrame = overlayFrame.insetBy(
-            dx: Constants.textHorizontalInset,
-            dy: Constants.textVerticalInset
+            dx: Constants.activeWordHorizontalInset,
+            dy: Constants.activeWordVerticalInset
         )
         let controlsY = max(overlayFrame.minY - 34, 14)
         let fallbackControlsY = min(overlayFrame.maxY + 34, videoHeight - 14)
@@ -1058,25 +1070,35 @@ enum TranscriptOverlayLayoutResolver {
     private static func resolvedOverlayY(
         videoHeight: CGFloat,
         overlayHeight: CGFloat,
-        selectedPosition: TranscriptOverlayPosition
+        selectedPosition: TranscriptOverlayPosition,
+        verticalInset: CGFloat = Constants.uniformInset
     ) -> CGFloat {
         let overlayY: CGFloat
 
         switch selectedPosition {
         case .top:
-            overlayY = Constants.uniformInset
+            overlayY = verticalInset
         case .center:
             overlayY = (videoHeight - overlayHeight) / 2
         case .bottom:
-            overlayY = videoHeight - overlayHeight - Constants.uniformInset
+            overlayY = videoHeight - overlayHeight - verticalInset
         }
 
         let maximumOverlayY = max(
-            videoHeight - overlayHeight - Constants.uniformInset,
-            Constants.uniformInset
+            videoHeight - overlayHeight - verticalInset,
+            verticalInset
         )
 
-        return min(max(overlayY, Constants.uniformInset), maximumOverlayY)
+        return min(max(overlayY, verticalInset), maximumOverlayY)
+    }
+
+    private static func resolvedActiveWordOuterVerticalInset(
+        for videoHeight: CGFloat
+    ) -> CGFloat {
+        max(
+            Constants.activeWordOuterVerticalInset,
+            ceil(videoHeight * 0.05)
+        )
     }
 
     private static func horizontalOffset(

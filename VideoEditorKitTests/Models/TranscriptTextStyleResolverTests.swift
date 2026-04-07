@@ -131,6 +131,24 @@ struct TranscriptTextStyleResolverTests {
         #expect(offsets.contains(CGSize(width: 2, height: 2)))
     }
 
+    @Test
+    func resolvedStrokeOffsetsScaleUpForLargerExportFontSizes() {
+        let offsets = TranscriptTextStyleResolver.resolvedStrokeOffsets(
+            for: 80
+        )
+        let containsNegativeHorizontalOffset = offsets.contains { offset in
+            abs(offset.width + 4) < 0.0001 && offset.height == 0
+        }
+        let containsPositiveDiagonalOffset = offsets.contains { offset in
+            abs(offset.width - 4) < 0.0001 && abs(offset.height - 4) < 0.0001
+        }
+
+        #expect(offsets.count == 8)
+        #expect(containsNegativeHorizontalOffset)
+        #expect(containsPositiveDiagonalOffset)
+        #expect(TranscriptTextStyleResolver.resolvedTextLayerContentsScale(for: 80) == 8)
+    }
+
 }
 
 extension UIColor {

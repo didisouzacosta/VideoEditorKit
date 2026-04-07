@@ -192,7 +192,11 @@ struct TranscriptOverlayPreview: View {
     ) -> some View {
         ZStack {
             ForEach(
-                Array(TranscriptTextStyleResolver.resolvedStrokeOffsets().enumerated()),
+                Array(
+                    TranscriptTextStyleResolver.resolvedStrokeOffsets(
+                        for: fontSize
+                    ).enumerated()
+                ),
                 id: \.offset
             ) { _, offset in
                 overlayText(

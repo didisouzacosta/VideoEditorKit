@@ -17,6 +17,7 @@ enum TranscriptTextStyleResolver {
 
     // MARK: - Private Properties
 
+    private static let referenceStrokeFontSize: CGFloat = 20
     private static let defaultStrokeWidth: CGFloat = -4
     private static let measurementOptions: NSStringDrawingOptions = [
         .usesLineFragmentOrigin
@@ -194,18 +195,44 @@ enum TranscriptTextStyleResolver {
     }
 
     static func resolvedStrokeOffsets() -> [CGSize] {
+        resolvedStrokeOffsets(
+            for: referenceStrokeFontSize
+        )
+    }
+
+    static func resolvedStrokeOffsets(
+        for fontSize: CGFloat
+    ) -> [CGSize] {
+        let scale = sqrt(
+            max(
+                fontSize / referenceStrokeFontSize,
+                1
+            )
+        )
         let strokeOffset = strokeOffset
 
         return [
-            CGSize(width: -strokeOffset, height: 0),
-            CGSize(width: strokeOffset, height: 0),
-            CGSize(width: 0, height: -strokeOffset),
-            CGSize(width: 0, height: strokeOffset),
-            CGSize(width: -strokeOffset, height: -strokeOffset),
-            CGSize(width: -strokeOffset, height: strokeOffset),
-            CGSize(width: strokeOffset, height: -strokeOffset),
-            CGSize(width: strokeOffset, height: strokeOffset),
+            CGSize(width: -(strokeOffset * scale), height: 0),
+            CGSize(width: strokeOffset * scale, height: 0),
+            CGSize(width: 0, height: -(strokeOffset * scale)),
+            CGSize(width: 0, height: strokeOffset * scale),
+            CGSize(width: -(strokeOffset * scale), height: -(strokeOffset * scale)),
+            CGSize(width: -(strokeOffset * scale), height: strokeOffset * scale),
+            CGSize(width: strokeOffset * scale, height: -(strokeOffset * scale)),
+            CGSize(width: strokeOffset * scale, height: strokeOffset * scale),
         ]
+    }
+
+    static func resolvedTextLayerContentsScale(
+        for fontSize: CGFloat
+    ) -> CGFloat {
+        min(
+            max(
+                ceil(fontSize / referenceStrokeFontSize * 2),
+                2
+            ),
+            8
+        )
     }
 
     // MARK: - Private Methods
