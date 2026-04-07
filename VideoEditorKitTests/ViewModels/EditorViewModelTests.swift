@@ -210,7 +210,7 @@ struct EditorViewModelTests {
                                 )
                             ]
                         )
-                    ]
+                    ],
                 )
             )
         )
@@ -2419,6 +2419,29 @@ private func waitForTranscriptState(
 ) async {
     for _ in 0..<20 {
         if viewModel.transcriptState == expectedState {
+            return
+        }
+
+        try? await Task.sleep(for: .milliseconds(10))
+    }
+}
+
+private func waitForRecordedInputs(
+    on component: StatefulTranscriptionComponentProbe,
+    count expectedCount: Int
+) async {
+    for _ in 0..<20 {
+        if await component.inputs().count == expectedCount {
+            return
+        }
+
+        try? await Task.sleep(for: .milliseconds(10))
+    }
+}
+
+private func waitForRecordedRequest(on probe: OpenAIWhisperEditorRequestProbe) async {
+    for _ in 0..<20 {
+        if await probe.lastRequest() != nil {
             return
         }
 

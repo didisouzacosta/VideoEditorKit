@@ -17,7 +17,7 @@ struct PagedToolsRow: View {
     // MARK: - Private Properties
 
     private let toolAvailability: [ToolAvailability]
-    private let isApplied: (ToolEnum) -> Bool
+    private let presentation: (ToolEnum) -> EditorToolbarItemPresentation
     private let action: (ToolAvailability) -> Void
 
     // MARK: - Body
@@ -39,22 +39,27 @@ struct PagedToolsRow: View {
                             ForEach(Array(toolPages.enumerated()), id: \.offset) { index, page in
                                 HStack(spacing: metrics.itemSpacing) {
                                     ForEach(page) { item in
+                                        let itemPresentation = presentation(item.tool)
+
                                         ToolButtonView(
-                                            item.tool.title,
-                                            image: item.tool.image,
-                                            isChange: isApplied(item.tool),
-                                            isBlocked: item.isBlocked
+                                            itemPresentation.title,
+                                            image: itemPresentation.image,
+                                            subtitle: itemPresentation.subtitle,
+                                            isChange: itemPresentation.isApplied,
+                                            isBlocked: item.isBlocked,
+                                            horizontalPadding: metrics.itemHorizontalPadding
                                         ) {
                                             action(item)
                                         }
                                         .frame(
-                                            width: metrics.itemSize,
-                                            height: metrics.itemSize
+                                            minWidth: metrics.minimumItemWidth,
+                                            minHeight: metrics.itemHeight,
+                                            maxHeight: metrics.itemHeight
                                         )
                                     }
                                 }
                                 .frame(
-                                    width: metrics.pageWidth,
+                                    minWidth: metrics.pageContentWidth(for: page.count),
                                     alignment: .leading
                                 )
                                 .id(index)
@@ -90,11 +95,11 @@ struct PagedToolsRow: View {
 
     init(
         _ tools: [ToolAvailability],
-        isApplied: @escaping (ToolEnum) -> Bool,
+        presentation: @escaping (ToolEnum) -> EditorToolbarItemPresentation,
         action: @escaping (ToolAvailability) -> Void
     ) {
         self.toolAvailability = tools
-        self.isApplied = isApplied
+        self.presentation = presentation
         self.action = action
     }
 
@@ -148,7 +153,7 @@ extension PagedToolsRow {
 
         // MARK: - Public Properties
 
-        static let defaultRowHeight: CGFloat = 97
+        static let defaultRowHeight: CGFloat = 104
         static let indicatorSize: CGFloat = 6
         static let activeIndicatorWidth: CGFloat = 18
 
@@ -170,7 +175,12 @@ extension Array {
     PagedToolsRow(
         ToolEnum.all.map { ToolAvailability($0) }
     ) { tool in
-        [.speed].contains(tool)
+        .init(
+            title: tool.title,
+            image: tool.image,
+            subtitle: tool == .presets ? "Social 9:16" : nil,
+            isApplied: tool == .presets
+        )
     } action: { _ in
     }
 }

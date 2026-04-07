@@ -51,12 +51,31 @@ struct ViewModifierSmokeTests {
     }
 
     @Test
+    func toolButtonsWithAppliedValuesStillRenderInsideAHostingController() {
+        assertRenders(
+            ToolButtonView(
+                "Presets",
+                image: "aspectratio",
+                subtitle: "Social 9:16",
+                isChange: true
+            ) {}
+            .frame(minWidth: 120)
+            .frame(height: 104)
+        )
+    }
+
+    @Test
     func pagedToolsRowRendersInsideAHostingController() {
         assertRenders(
             PagedToolsRow(
                 ToolEnum.all.map { ToolAvailability($0) }
             ) { _ in
-                false
+                .init(
+                    title: "Presets",
+                    image: "aspectratio",
+                    subtitle: "Social 9:16",
+                    isApplied: true
+                )
             } action: { _ in
             }
         )

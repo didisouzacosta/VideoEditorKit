@@ -13,8 +13,10 @@ struct ToolButtonView: View {
 
     private let label: String
     private let image: String
+    private let subtitle: String?
     private let isChange: Bool
     private let isBlocked: Bool
+    private let horizontalPadding: CGFloat
     private let action: () -> Void
 
     // MARK: - Body
@@ -58,12 +60,26 @@ struct ToolButtonView: View {
     }
 
     private var toolLabel: some View {
-        VStack(spacing: 4) {
+        VStack(spacing: subtitle == nil ? 4 : 2) {
             Image(systemName: image)
                 .font(.headline.weight(.semibold))
+
             Text(label)
                 .font(.caption.weight(.medium))
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+
+            if let subtitle, isChange {
+                Text(subtitle)
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(Theme.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
         }
+        .multilineTextAlignment(.center)
+        .padding(.horizontal, horizontalPadding)
+        .padding(.vertical, 6)
     }
 
     private var blockedBadge: some View {
@@ -98,7 +114,11 @@ struct ToolButtonView: View {
         if isBlocked {
             "Unavailable"
         } else if isChange {
-            "Applied"
+            if let subtitle, subtitle.isEmpty == false {
+                "Applied, \(subtitle)"
+            } else {
+                "Applied"
+            }
         } else {
             "Available"
         }
@@ -119,14 +139,18 @@ struct ToolButtonView: View {
     init(
         _ label: String,
         image: String,
+        subtitle: String? = nil,
         isChange: Bool,
         isBlocked: Bool = false,
+        horizontalPadding: CGFloat = 12,
         action: @escaping () -> Void
     ) {
         self.label = label
         self.image = image
+        self.subtitle = subtitle
         self.isChange = isChange
         self.isBlocked = isBlocked
+        self.horizontalPadding = horizontalPadding
         self.action = action
     }
 
@@ -135,10 +159,13 @@ struct ToolButtonView: View {
 #Preview {
     VStack {
         ToolButtonView("Cut", image: "scissors", isChange: false) {}
-            .frame(width: 100, height: 100)
-        ToolButtonView("Cut", image: "scissors", isChange: true) {}
-            .frame(width: 100, height: 100)
+            .frame(minWidth: 100)
+            .frame(height: 104)
+        ToolButtonView("Presets", image: "aspectratio", subtitle: "Social 9:16", isChange: true) {}
+            .frame(minWidth: 100)
+            .frame(height: 104)
         ToolButtonView("Cut", image: "scissors", isChange: false, isBlocked: true) {}
-            .frame(width: 100, height: 100)
+            .frame(minWidth: 100)
+            .frame(height: 104)
     }
 }

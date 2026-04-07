@@ -13,8 +13,10 @@ struct EditorToolbarLayoutMetrics: Equatable, Sendable {
     // MARK: - Public Properties
 
     let itemsPerPage: Int
-    let pageWidth: CGFloat
-    let itemSize: CGFloat
+    let pageMinimumWidth: CGFloat
+    let minimumItemWidth: CGFloat
+    let itemHeight: CGFloat
+    let itemHorizontalPadding: CGFloat
     let itemSpacing: CGFloat
     let pageSpacing: CGFloat
     let rowHeight: CGFloat
@@ -26,7 +28,7 @@ struct EditorToolbarLayoutMetrics: Equatable, Sendable {
     ) -> CGFloat {
         guard itemCount > 0 else { return 0 }
 
-        return (itemSize * CGFloat(itemCount))
+        return (minimumItemWidth * CGFloat(itemCount))
             + (itemSpacing * CGFloat(max(itemCount - 1, 0)))
     }
 
@@ -56,6 +58,8 @@ struct EditorToolbarLayoutResolver {
         static let pageSpacing: CGFloat = 10
         static let previewWidth: CGFloat = 28
         static let horizontalInset: CGFloat = 0
+        static let itemHeight: CGFloat = 104
+        static let itemHorizontalPadding: CGFloat = 12
     }
 
     // MARK: - Public Methods
@@ -64,12 +68,12 @@ struct EditorToolbarLayoutResolver {
         for availableWidth: CGFloat
     ) -> EditorToolbarLayoutMetrics {
         let visibleWidth = max(availableWidth - (Constants.horizontalInset * 2), 0)
-        let pageWidth = max(
+        let pageMinimumWidth = max(
             visibleWidth - Constants.previewWidth - Constants.pageSpacing,
             0
         )
-        let itemSize = max(
-            (pageWidth
+        let minimumItemWidth = max(
+            (pageMinimumWidth
                 - (Constants.itemSpacing
                     * CGFloat(Constants.itemsPerPage - 1)))
                 / CGFloat(Constants.itemsPerPage),
@@ -78,11 +82,13 @@ struct EditorToolbarLayoutResolver {
 
         return .init(
             itemsPerPage: Constants.itemsPerPage,
-            pageWidth: pageWidth,
-            itemSize: itemSize,
+            pageMinimumWidth: pageMinimumWidth,
+            minimumItemWidth: minimumItemWidth,
+            itemHeight: Constants.itemHeight,
+            itemHorizontalPadding: Constants.itemHorizontalPadding,
             itemSpacing: Constants.itemSpacing,
             pageSpacing: Constants.pageSpacing,
-            rowHeight: itemSize
+            rowHeight: Constants.itemHeight
         )
     }
 

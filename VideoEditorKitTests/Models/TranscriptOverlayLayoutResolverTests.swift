@@ -672,6 +672,31 @@ struct TranscriptOverlayLayoutResolverTests {
     }
 
     @Test
+    func resolveActiveWordLayoutReducesInsetsWhenTheCanvasIsNarrow() {
+        let layout = TranscriptOverlayLayoutResolver.resolveActiveWordLayout(
+            videoWidth: 120,
+            videoHeight: 214,
+            selectedPosition: .center,
+            selectedSize: .large,
+            text: "MMMMMMMMMMMMMMMM",
+            style: .defaultCaptionStyle
+        )
+        let leadingInset = layout.textFrame.minX - layout.overlayFrame.minX
+        let trailingInset = layout.overlayFrame.maxX - layout.textFrame.maxX
+        let topInset = layout.textFrame.minY - layout.overlayFrame.minY
+        let bottomInset = layout.overlayFrame.maxY - layout.textFrame.maxY
+
+        #expect(layout.textFrame.width > 0)
+        #expect(layout.textFrame.height > 0)
+        #expect(leadingInset < 32)
+        #expect(trailingInset < 32)
+        #expect(topInset <= 32)
+        #expect(bottomInset <= 32)
+        #expect(layout.textFrame.maxX <= layout.overlayFrame.maxX)
+        #expect(layout.textFrame.maxY <= layout.overlayFrame.maxY)
+    }
+
+    @Test
     func resolveActiveWordRenderPlansKeepWordsOnASingleLineWhenThereIsEnoughHorizontalRoom() throws {
         let segment = EditableTranscriptSegment(
             id: UUID(),

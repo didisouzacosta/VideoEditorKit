@@ -35,10 +35,13 @@ struct ToolsSectionView: View {
     // MARK: - Body
 
     var body: some View {
-        let appliedToolIDs = Set(editorViewModel.currentVideo?.toolsApplied ?? [])
+        let cropPresentationSummary = editorViewModel.cropPresentationSummary
 
         PagedToolsRow(configuration.tools) { tool in
-            appliedToolIDs.contains(tool.rawValue)
+            toolbarItemPresentation(
+                for: tool,
+                cropPresentationSummary: cropPresentationSummary
+            )
         } action: { toolAvailability in
             handleToolTap(toolAvailability)
         }
@@ -211,6 +214,18 @@ extension ToolsSectionView {
     }
 
     // MARK: - Private Methods
+
+    private func toolbarItemPresentation(
+        for tool: ToolEnum,
+        cropPresentationSummary: EditorCropPresentationSummary
+    ) -> EditorToolbarItemPresentation {
+        EditorToolbarItemPresentationResolver.resolve(
+            for: tool,
+            video: editorViewModel.currentVideo,
+            cropPresentationSummary: cropPresentationSummary,
+            transcriptDocument: editorViewModel.transcriptDocument
+        )
+    }
 
     private func handleToolTap(_ toolAvailability: ToolAvailability) {
         guard !toolAvailability.isBlocked else {

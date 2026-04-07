@@ -9,7 +9,7 @@ struct EditorToolbarLayoutResolverTests {
     // MARK: - Public Methods
 
     @Test
-    func resolvedMetricsKeepFourSquareItemsAcrossCommonViewportWidths() {
+    func resolvedMetricsKeepFourItemsAcrossCommonViewportWidths() {
         let viewportWidths: [CGFloat] = [320, 375, 393, 430, 768, 1024]
 
         for viewportWidth in viewportWidths {
@@ -17,14 +17,16 @@ struct EditorToolbarLayoutResolverTests {
                 for: viewportWidth
             )
             let occupiedPageWidth =
-                (metrics.itemSize * CGFloat(metrics.itemsPerPage))
+                (metrics.minimumItemWidth * CGFloat(metrics.itemsPerPage))
                 + (metrics.itemSpacing
                     * CGFloat(metrics.itemsPerPage - 1))
 
             #expect(metrics.itemsPerPage == 4)
-            #expect(metrics.itemSize > 0)
-            #expect(abs(metrics.rowHeight - metrics.itemSize) < 0.0001)
-            #expect(abs(occupiedPageWidth - metrics.pageWidth) < 0.0001)
+            #expect(metrics.minimumItemWidth > 0)
+            #expect(metrics.itemHeight == 104)
+            #expect(metrics.itemHorizontalPadding == 12)
+            #expect(abs(metrics.rowHeight - metrics.itemHeight) < 0.0001)
+            #expect(abs(occupiedPageWidth - metrics.pageMinimumWidth) < 0.0001)
         }
     }
 
@@ -33,9 +35,9 @@ struct EditorToolbarLayoutResolverTests {
         let metrics = EditorToolbarLayoutResolver.resolvedMetrics(for: 0)
 
         #expect(metrics.itemsPerPage == 4)
-        #expect(metrics.pageWidth == 0)
-        #expect(metrics.itemSize == 0)
-        #expect(metrics.rowHeight == 0)
+        #expect(metrics.pageMinimumWidth == 0)
+        #expect(metrics.minimumItemWidth == 0)
+        #expect(metrics.rowHeight == 104)
     }
 
     @Test
@@ -82,7 +84,7 @@ struct EditorToolbarLayoutResolverTests {
 
         #expect(threeItemsWidth > 0)
         #expect(fourItemsWidth > threeItemsWidth)
-        #expect(abs(fourItemsWidth - metrics.pageWidth) < 0.0001)
+        #expect(abs(fourItemsWidth - metrics.pageMinimumWidth) < 0.0001)
     }
 
 }

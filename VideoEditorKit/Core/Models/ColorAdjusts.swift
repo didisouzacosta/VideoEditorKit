@@ -40,6 +40,16 @@ struct ColorAdjusts: Equatable, Sendable {
             && abs(saturation) <= 0.001
     }
 
+    var appliedAdjustmentsCount: Int {
+        [
+            brightness,
+            contrast,
+            saturation,
+        ]
+        .filter { abs($0) > 0.001 }
+        .count
+    }
+
     // MARK: - Public Methods
 
     func updating(

@@ -289,12 +289,24 @@ enum TranscriptOverlayPosition: String, Codable, Hashable, Sendable, CaseIterabl
     case top
     case center
     case bottom
+
+    // MARK: - Public Properties
+
+    var title: String {
+        rawValue.capitalized
+    }
 }
 
 enum TranscriptOverlaySize: String, Codable, Hashable, Sendable, CaseIterable {
     case small
     case medium
     case large
+
+    // MARK: - Public Properties
+
+    var title: String {
+        rawValue.capitalized
+    }
 }
 
 enum TranscriptFeaturePersistenceState: String, Codable, Equatable, Sendable {

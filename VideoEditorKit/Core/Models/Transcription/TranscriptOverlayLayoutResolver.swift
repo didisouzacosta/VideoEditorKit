@@ -658,16 +658,22 @@ enum TranscriptOverlayLayoutResolver {
         let activeWordOuterVerticalInset = resolvedActiveWordOuterVerticalInset(
             for: videoHeight
         )
+        let activeWordHorizontalInset = resolvedActiveWordHorizontalInset(
+            for: metrics.targetWidth
+        )
         let activeWordTextWidth = max(
-            metrics.targetWidth - (Constants.activeWordHorizontalInset * 2),
+            metrics.targetWidth - (activeWordHorizontalInset * 2),
             1
         )
         let maximumOverlayHeight = max(
             videoHeight - (activeWordOuterVerticalInset * 2),
             metrics.baseFontSize
         )
+        let activeWordVerticalInset = resolvedActiveWordVerticalInset(
+            for: maximumOverlayHeight
+        )
         let maximumTextHeight = max(
-            maximumOverlayHeight - activeWordTextHeightPadding,
+            maximumOverlayHeight - (activeWordVerticalInset * 2),
             metrics.baseFontSize
         )
         let fontSize = fittedSingleLineFontSize(
@@ -681,7 +687,7 @@ enum TranscriptOverlayLayoutResolver {
             style: style,
             fontSize: fontSize
         )
-        let requestedOverlayHeight = measuredTextHeight + activeWordTextHeightPadding
+        let requestedOverlayHeight = measuredTextHeight + (activeWordVerticalInset * 2)
         let overlayHeight = min(requestedOverlayHeight, maximumOverlayHeight)
         let overlayY = resolvedOverlayY(
             videoHeight: videoHeight,
@@ -696,8 +702,8 @@ enum TranscriptOverlayLayoutResolver {
             height: overlayHeight
         )
         let textFrame = overlayFrame.insetBy(
-            dx: Constants.activeWordHorizontalInset,
-            dy: Constants.activeWordVerticalInset
+            dx: activeWordHorizontalInset,
+            dy: activeWordVerticalInset
         )
         let controlsY = max(overlayFrame.minY - 34, 14)
         let fallbackControlsY = min(overlayFrame.maxY + 34, videoHeight - 14)
@@ -1119,6 +1125,24 @@ enum TranscriptOverlayLayoutResolver {
         max(
             Constants.activeWordOuterVerticalInset,
             ceil(videoHeight * 0.07)
+        )
+    }
+
+    private static func resolvedActiveWordHorizontalInset(
+        for targetWidth: CGFloat
+    ) -> CGFloat {
+        min(
+            Constants.activeWordHorizontalInset,
+            max(targetWidth / 4, 0)
+        )
+    }
+
+    private static func resolvedActiveWordVerticalInset(
+        for maximumOverlayHeight: CGFloat
+    ) -> CGFloat {
+        min(
+            Constants.activeWordVerticalInset,
+            max(maximumOverlayHeight / 4, 0)
         )
     }
 
