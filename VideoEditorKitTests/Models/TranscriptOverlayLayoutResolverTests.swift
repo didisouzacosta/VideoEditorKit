@@ -9,7 +9,7 @@ struct TranscriptOverlayLayoutResolverTests {
     // MARK: - Public Methods
 
     @Test
-    func resolveUsesTheSafeHorizontalInsetAndSizeMultiplier() {
+    func resolveUsesTheFullCanvasWidthForEveryOverlaySize() {
         let smallLayout = TranscriptOverlayLayoutResolver.resolve(
             videoWidth: 1080,
             videoHeight: 1920,
@@ -32,9 +32,9 @@ struct TranscriptOverlayLayoutResolverTests {
             text: "Short line"
         )
 
-        #expect(abs(smallLayout.targetWidth - 508) < 0.0001)
-        #expect(abs(mediumLayout.targetWidth - 762) < 0.0001)
-        #expect(abs(largeLayout.targetWidth - 1016) < 0.0001)
+        #expect(abs(smallLayout.targetWidth - 1048) < 0.0001)
+        #expect(abs(mediumLayout.targetWidth - 1048) < 0.0001)
+        #expect(abs(largeLayout.targetWidth - 1048) < 0.0001)
     }
 
     @Test
@@ -66,7 +66,7 @@ struct TranscriptOverlayLayoutResolverTests {
     }
 
     @Test
-    func resolveReducesFontSizeWhenTheTextGetsMuchLonger() {
+    func resolveDoesNotIncreaseFontSizeWhenTheTextGetsMuchLonger() {
         let shortTextLayout = TranscriptOverlayLayoutResolver.resolve(
             videoWidth: 1080,
             videoHeight: 1920,
@@ -82,7 +82,63 @@ struct TranscriptOverlayLayoutResolverTests {
             text: "This is a much longer subtitle line that should force the resolver to shrink the font size"
         )
 
-        #expect(longTextLayout.fontSize < shortTextLayout.fontSize)
+        #expect(longTextLayout.fontSize <= shortTextLayout.fontSize)
+    }
+
+    @Test
+    func resolveKeepsBottomAlignedOverlaysAnchoredToTheBottomInsetAcrossPresetChanges() {
+        let portraitLayout = TranscriptOverlayLayoutResolver.resolve(
+            videoWidth: 1080,
+            videoHeight: 1920,
+            selectedPosition: .bottom,
+            selectedSize: .medium,
+            text: "Bottom aligned caption"
+        )
+        let squareLayout = TranscriptOverlayLayoutResolver.resolve(
+            videoWidth: 1080,
+            videoHeight: 1080,
+            selectedPosition: .bottom,
+            selectedSize: .medium,
+            text: "Bottom aligned caption"
+        )
+
+        #expect(abs((1920 - portraitLayout.overlayFrame.maxY) - 19.2) < 0.0001)
+        #expect(abs((1080 - squareLayout.overlayFrame.maxY) - 10.8) < 0.0001)
+    }
+
+    @Test
+    func resolveExpandsTheOverlayHeightToFitAdditionalWrappedLines() {
+        let shortTextLayout = TranscriptOverlayLayoutResolver.resolve(
+            videoWidth: 720,
+            videoHeight: 1280,
+            selectedPosition: .bottom,
+            selectedSize: .medium,
+            text: "Short line"
+        )
+        let multilineLayout = TranscriptOverlayLayoutResolver.resolve(
+            videoWidth: 720,
+            videoHeight: 1280,
+            selectedPosition: .bottom,
+            selectedSize: .medium,
+            text:
+                "This transcript segment is intentionally long enough to wrap into multiple lines and needs extra vertical space to stay fully visible inside the preview."
+        )
+
+        #expect(multilineLayout.overlayFrame.height > shortTextLayout.overlayFrame.height)
+    }
+
+    @Test
+    func resolvePreviewLayoutScalesExportAnchoringIntoTheVisiblePreviewCanvas() {
+        let previewLayout = TranscriptOverlayLayoutResolver.resolvePreviewLayout(
+            exportCanvasSize: CGSize(width: 1080, height: 1920),
+            previewCanvasSize: CGSize(width: 270, height: 480),
+            selectedPosition: .bottom,
+            selectedSize: .medium,
+            text: "Bottom aligned caption"
+        )
+
+        #expect(abs((480 - previewLayout.overlayFrame.maxY) - 4.8) < 0.0001)
+        #expect(previewLayout.fontSize > 0)
     }
 
 }

@@ -312,7 +312,7 @@ extension ToolsSectionView {
         case .adjusts:
             adjustsDraft = video.colorAdjusts
         case .transcript:
-            editorViewModel.prepareTranscriptDraft()
+            editorViewModel.prepareTranscriptDraftIfNeeded()
         case .cut:
             break
         }

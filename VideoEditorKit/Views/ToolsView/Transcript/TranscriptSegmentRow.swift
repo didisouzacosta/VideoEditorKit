@@ -23,7 +23,9 @@ struct TranscriptSegmentRow: View {
 
             Text(segment.editedText)
                 .font(.subheadline)
-                .lineLimit(2)
+                .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
             if segment.originalText != segment.editedText {
                 Text("Edited")
@@ -31,6 +33,7 @@ struct TranscriptSegmentRow: View {
                     .foregroundStyle(Theme.accent)
             }
         }
+        .contentShape(Rectangle())
     }
 
     // MARK: - Private Properties

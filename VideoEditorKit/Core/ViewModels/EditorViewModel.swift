@@ -497,19 +497,11 @@ final class EditorViewModel {
             )
         else { return }
 
-        if presentationState.selectedTool == .transcript, selectedTool != .transcript {
-            discardUnappliedTranscriptChanges()
-        }
-
         presentationState.selectedTool = selectedTool
         markEditingConfigurationChanged()
     }
 
     func closeSelectedTool() {
-        if presentationState.selectedTool == .transcript {
-            discardUnappliedTranscriptChanges()
-        }
-
         presentationState.selectedTool = EditorToolSelectionCoordinator.closeSelectedTool()
         markEditingConfigurationChanged()
     }
@@ -803,11 +795,7 @@ final class EditorViewModel {
     func activeTranscriptSegment(
         at timelineTime: Double
     ) -> EditableTranscriptSegment? {
-        let doc =
-            presentationState.selectedTool == .transcript
-            ? (transcriptDraftDocument ?? transcriptDocument)
-            : transcriptDocument
-        return doc?.segments.first {
+        effectiveTranscriptDocument?.segments.first {
             guard let timelineRange = $0.timeMapping.timelineRange else { return false }
             return timelineRange.contains(timelineTime)
         }
@@ -816,13 +804,9 @@ final class EditorViewModel {
     func transcriptStyle(
         for segment: EditableTranscriptSegment
     ) -> TranscriptStyle? {
-        let doc =
-            presentationState.selectedTool == .transcript
-            ? (transcriptDraftDocument ?? transcriptDocument)
-            : transcriptDocument
-        let effectiveStyleID = doc?.selectedStyleID ?? segment.styleID
+        let effectiveStyleID = effectiveTranscriptDocument?.selectedStyleID ?? segment.styleID
         guard let effectiveStyleID else { return nil }
-        return doc?.availableStyles.first(where: { $0.id == effectiveStyleID })
+        return effectiveTranscriptDocument?.availableStyles.first(where: { $0.id == effectiveStyleID })
     }
 
     func updateTranscriptOverlayPosition(
@@ -917,6 +901,13 @@ final class EditorViewModel {
         syncTranscriptRuntimeState()
     }
 
+    func prepareTranscriptDraftIfNeeded() {
+        guard transcriptDraftDocument == nil else { return }
+
+        transcriptDraftDocument = transcriptDocument
+        syncTranscriptRuntimeState()
+    }
+
     func applyTranscriptChanges() {
         transcriptDocument = transcriptDraftDocument
         transcriptFeatureState = transcriptDocument == nil ? .idle : .loaded
@@ -970,6 +961,12 @@ final class EditorViewModel {
         syncTranscriptRuntimeState()
 
         pendingEditingConfiguration = nil
+    }
+
+    // MARK: - Private Properties
+
+    private var effectiveTranscriptDocument: TranscriptDocument? {
+        transcriptDraftDocument ?? transcriptDocument
     }
 
     // MARK: - Private Methods
@@ -1201,11 +1198,6 @@ final class EditorViewModel {
         guard transform(&transcriptDraftDocument) else { return }
 
         self.transcriptDraftDocument = transcriptDraftDocument
-    }
-
-    private func discardUnappliedTranscriptChanges() {
-        transcriptDraftDocument = transcriptDocument
-        syncTranscriptRuntimeState()
     }
 
     private func syncTranscriptAppliedToolState() {

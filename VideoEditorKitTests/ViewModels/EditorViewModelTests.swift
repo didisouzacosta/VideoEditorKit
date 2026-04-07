@@ -620,7 +620,7 @@ struct EditorViewModelTests {
     }
 
     @Test
-    func closeSelectedToolDiscardsUnappliedTranscriptDraftChanges() {
+    func closeSelectedToolPreservesUnappliedTranscriptDraftChanges() {
         let viewModel = EditorViewModel()
         let segmentID = UUID()
         viewModel.setTranscriptDocument(
@@ -649,8 +649,47 @@ struct EditorViewModelTests {
         viewModel.closeSelectedTool()
 
         #expect(viewModel.transcriptDocument?.segments.first?.editedText == "Original segment")
-        #expect(viewModel.transcriptDraftDocument?.segments.first?.editedText == "Original segment")
+        #expect(viewModel.transcriptDraftDocument?.segments.first?.editedText == "Edited segment")
         #expect(viewModel.presentationState.selectedTool == nil)
+    }
+
+    @Test
+    func switchingAwayFromTranscriptToolKeepsDraftOverlayChangesAvailableForPreview() {
+        let viewModel = EditorViewModel()
+        let segmentID = UUID()
+        viewModel.setTranscriptDocument(
+            TranscriptDocument(
+                segments: [
+                    EditableTranscriptSegment(
+                        id: segmentID,
+                        timeMapping: .init(
+                            sourceStartTime: 10,
+                            sourceEndTime: 14,
+                            timelineStartTime: 5,
+                            timelineEndTime: 7
+                        ),
+                        originalText: "Original segment",
+                        editedText: "Original segment"
+                    )
+                ]
+            )
+        )
+        viewModel.selectTool(.transcript)
+        viewModel.updateTranscriptSegmentText(
+            "Edited segment",
+            segmentID: segmentID
+        )
+        viewModel.updateTranscriptOverlayPosition(.top)
+        viewModel.updateTranscriptOverlaySize(.large)
+
+        viewModel.selectTool(.presets)
+
+        #expect(viewModel.presentationState.selectedTool == .presets)
+        #expect(viewModel.transcriptDocument?.overlayPosition == .bottom)
+        #expect(viewModel.transcriptDocument?.overlaySize == .medium)
+        #expect(viewModel.transcriptDraftDocument?.overlayPosition == .top)
+        #expect(viewModel.transcriptDraftDocument?.overlaySize == .large)
+        #expect(viewModel.activeTranscriptSegment(at: 6)?.editedText == "Edited segment")
     }
 
     @Test
@@ -746,6 +785,39 @@ struct EditorViewModelTests {
         #expect(viewModel.transcriptDocument?.overlaySize == .medium)
         #expect(viewModel.transcriptDraftDocument?.overlayPosition == .top)
         #expect(viewModel.transcriptDraftDocument?.overlaySize == .large)
+    }
+
+    @Test
+    func prepareTranscriptDraftIfNeededPreservesExistingUnappliedChanges() {
+        let viewModel = EditorViewModel()
+        let segmentID = UUID()
+        viewModel.setTranscriptDocument(
+            TranscriptDocument(
+                segments: [
+                    EditableTranscriptSegment(
+                        id: segmentID,
+                        timeMapping: .init(
+                            sourceStartTime: 10,
+                            sourceEndTime: 14,
+                            timelineStartTime: 5,
+                            timelineEndTime: 7
+                        ),
+                        originalText: "Original segment",
+                        editedText: "Original segment"
+                    )
+                ]
+            )
+        )
+        viewModel.prepareTranscriptDraft()
+        viewModel.updateTranscriptSegmentText(
+            "Edited segment",
+            segmentID: segmentID
+        )
+
+        viewModel.prepareTranscriptDraftIfNeeded()
+
+        #expect(viewModel.transcriptDocument?.segments.first?.editedText == "Original segment")
+        #expect(viewModel.transcriptDraftDocument?.segments.first?.editedText == "Edited segment")
     }
 
     @Test

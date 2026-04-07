@@ -71,9 +71,17 @@ extension PlayerHolderView {
                 )
 
                 GeometryReader { proxy in
+                    let source = editorViewModel.videoCanvasSource(for: video)
+                    let transcriptCanvasLayout = editorViewModel.cropPresentationState
+                        .canvasEditorState
+                        .previewLayout(
+                            source: source,
+                            availableSize: proxy.size
+                        )
+
                     VideoCanvasPreviewView(
                         editorViewModel.cropPresentationState.canvasEditorState,
-                        source: editorViewModel.videoCanvasSource(for: video),
+                        source: source,
                         isInteractive: cropSummary.isCropOverlayInteractive,
                         cornerRadius: 16,
                         onInteractionStarted: {
@@ -109,7 +117,7 @@ extension PlayerHolderView {
                             }
                             .overlay {
                                 transcriptOverlay(
-                                    in: proxy.size
+                                    canvasLayout: transcriptCanvasLayout
                                 )
                             }
                             .overlay(alignment: .bottomTrailing) {
@@ -179,31 +187,26 @@ extension PlayerHolderView {
 
     @ViewBuilder
     private func transcriptOverlay(
-        in availableSize: CGSize
+        canvasLayout: VideoCanvasLayout
     ) -> some View {
-        let effectiveDocument =
-            editorViewModel.presentationState.selectedTool == .transcript
-            ? (editorViewModel.transcriptDraftDocument ?? editorViewModel.transcriptDocument)
-            : editorViewModel.transcriptDocument
-
-        if let transcriptDocument = effectiveDocument,
+        if let transcriptDocument = editorViewModel.transcriptDraftDocument ?? editorViewModel.transcriptDocument,
             editorViewModel.transcriptState == .loaded,
             let activeSegment = editorViewModel.activeTranscriptSegment(
                 at: videoPlayer.currentTime
             )
         {
-            let containerSize =
-                editorViewModel.currentVideo?.frameSize.width ?? 0 > 0
-                    && editorViewModel.currentVideo?.frameSize.height ?? 0 > 0
-                ? (editorViewModel.currentVideo?.frameSize ?? availableSize)
-                : availableSize
-
             TranscriptOverlayPreview(
                 segment: activeSegment,
                 style: editorViewModel.transcriptStyle(for: activeSegment),
                 overlayPosition: transcriptDocument.overlayPosition,
                 overlaySize: transcriptDocument.overlaySize,
-                containerSize: containerSize
+                previewCanvasSize: canvasLayout.previewCanvasSize,
+                exportCanvasSize: canvasLayout.exportCanvasSize
+            )
+            .id(
+                transcriptOverlayLayoutID(
+                    transcriptDocument: transcriptDocument
+                )
             )
         } else {
             EmptyView()
@@ -244,6 +247,20 @@ extension PlayerHolderView {
         editorViewModel.updateCurrentVideoLayout(
             to: size
         )
+    }
+
+    private func transcriptOverlayLayoutID(
+        transcriptDocument: TranscriptDocument
+    ) -> String {
+        let canvasState = editorViewModel.cropPresentationState.canvasEditorState
+
+        return [
+            String(describing: canvasState.preset),
+            String(Int(canvasState.freeCanvasSize.width.rounded())),
+            String(Int(canvasState.freeCanvasSize.height.rounded())),
+            String(describing: transcriptDocument.overlayPosition),
+            String(describing: transcriptDocument.overlaySize),
+        ].joined(separator: "-")
     }
 
 }

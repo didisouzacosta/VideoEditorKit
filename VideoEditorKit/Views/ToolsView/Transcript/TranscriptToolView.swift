@@ -9,6 +9,10 @@ import SwiftUI
 
 struct TranscriptToolView: View {
 
+    // MARK: - States
+
+    @State private var selectedSegmentID: UUID?
+
     // MARK: - Public Properties
 
     let isTranscriptionAvailable: Bool
@@ -25,14 +29,14 @@ struct TranscriptToolView: View {
 
     var body: some View {
         content
-            .navigationDestination(for: UUID.self) { segmentID in
-                if let document,
-                    let segment = document.segments.first(where: { $0.id == segmentID })
-                {
-                    TranscriptSegmentEditView(segment) { newText in
-                        onUpdateSegmentText(segmentID, newText)
-                    }
-                }
+            .navigationDestination(isPresented: isShowingSegmentEditor) {
+                segmentEditorDestination
+            }
+            .onChange(of: document?.segments.map(\.id)) { _, segmentIDs in
+                guard let selectedSegmentID else { return }
+                guard segmentIDs?.contains(selectedSegmentID) != true else { return }
+
+                self.selectedSegmentID = nil
             }
     }
 
@@ -94,7 +98,12 @@ struct TranscriptToolView: View {
 
                 Section("Transcription") {
                     ForEach(document.segments) { segment in
-                        TranscriptSegmentRow(segment: segment)
+                        Button {
+                            selectedSegmentID = segment.id
+                        } label: {
+                            TranscriptSegmentRow(segment: segment)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
                 .listRowSpacing(8)
@@ -113,12 +122,8 @@ struct TranscriptToolView: View {
 
     private func styleSection(_ document: TranscriptDocument) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            if !document.availableStyles.isEmpty {
-                stylePicker(document)
-            }
-
+            stylePicker(document)
             positionPicker(document)
-
             sizePicker(document)
         }
     }
@@ -215,6 +220,34 @@ struct TranscriptToolView: View {
                 message: errorMessage(for: error),
                 actionTitle: "Try again",
                 action: onRetry
+            )
+        }
+    }
+
+    private var isShowingSegmentEditor: Binding<Bool> {
+        Binding(
+            get: { selectedSegmentID != nil },
+            set: { isPresented in
+                if !isPresented {
+                    selectedSegmentID = nil
+                }
+            }
+        )
+    }
+
+    @ViewBuilder
+    private var segmentEditorDestination: some View {
+        if let selectedSegmentID,
+            let document,
+            let segment = document.segments.first(where: { $0.id == selectedSegmentID })
+        {
+            TranscriptSegmentEditView(segment) { newText in
+                onUpdateSegmentText(selectedSegmentID, newText)
+            }
+        } else {
+            statusView(
+                title: "Segment unavailable",
+                message: "This transcript segment is no longer available."
             )
         }
     }

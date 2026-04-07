@@ -187,14 +187,25 @@ struct VideoEditorTests {
     }
 
     @Test
-    func resolvedRenderStagesPlacesTranscriptBetweenAdjustsAndCrop() {
+    func resolvedRenderStagesPlacesTranscriptAfterCanvasWhenCanvasRenderingIsActive() {
         let stages = VideoEditor.resolvedRenderStages(
             usesAdjustsStage: true,
             usesTranscriptStage: true,
             usesCropStage: true
         )
 
-        #expect(stages == [.base, .adjusts, .transcript, .crop])
+        #expect(stages == [.base, .adjusts, .crop, .transcript])
+    }
+
+    @Test
+    func resolvedRenderStagesKeepsTranscriptImmediatelyAfterAdjustsWhenCanvasRenderingIsDisabled() {
+        let stages = VideoEditor.resolvedRenderStages(
+            usesAdjustsStage: true,
+            usesTranscriptStage: true,
+            usesCropStage: false
+        )
+
+        #expect(stages == [.base, .adjusts, .transcript])
     }
 
     @Test

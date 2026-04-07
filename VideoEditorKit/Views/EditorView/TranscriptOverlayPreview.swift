@@ -16,20 +16,21 @@ struct TranscriptOverlayPreview: View {
     let style: TranscriptStyle?
     let overlayPosition: TranscriptOverlayPosition
     let overlaySize: TranscriptOverlaySize
-    let containerSize: CGSize
+    let previewCanvasSize: CGSize
+    let exportCanvasSize: CGSize
 
     // MARK: - Body
 
     var body: some View {
-        let layout = TranscriptOverlayLayoutResolver.resolve(
-            videoWidth: containerSize.width,
-            videoHeight: containerSize.height,
+        let previewLayout = TranscriptOverlayLayoutResolver.resolvePreviewLayout(
+            exportCanvasSize: exportCanvasSize,
+            previewCanvasSize: previewCanvasSize,
             selectedPosition: overlayPosition,
             selectedSize: overlaySize,
             text: segment.editedText
         )
 
-        overlayCard(layout: layout)
+        overlayCard(layout: previewLayout)
             .allFrame()
     }
 
@@ -37,14 +38,21 @@ struct TranscriptOverlayPreview: View {
 
     private var resolvedStyle: TranscriptStyle {
         style
-            ?? TranscriptStyle(
-                id: UUID(),
-                name: "Default",
-                fontFamily: "SF Pro Rounded"
-            )
+            ?? .defaultPreviewStyle
     }
 
-    private var textAlignment: Alignment {
+    private var frameAlignment: Alignment {
+        switch resolvedStyle.textAlignment {
+        case .leading:
+            .topLeading
+        case .center:
+            .top
+        case .trailing:
+            .topTrailing
+        }
+    }
+
+    private var multilineAlignment: TextAlignment {
         switch resolvedStyle.textAlignment {
         case .leading:
             .leading
@@ -60,7 +68,7 @@ struct TranscriptOverlayPreview: View {
     private func overlayCard(
         layout: TranscriptOverlayLayoutResolver.Layout
     ) -> some View {
-        ZStack {
+        ZStack(alignment: frameAlignment) {
             if resolvedStyle.hasStroke, let strokeColor = resolvedStyle.strokeColor {
                 strokedText(
                     color: Color(rgba: strokeColor),
@@ -73,9 +81,8 @@ struct TranscriptOverlayPreview: View {
         .frame(
             width: layout.overlayFrame.width,
             height: layout.overlayFrame.height,
-            alignment: textAlignment
+            alignment: frameAlignment
         )
-        .padding(.horizontal, 12)
         .position(
             x: layout.overlayFrame.midX,
             y: layout.overlayFrame.midY
@@ -88,9 +95,12 @@ struct TranscriptOverlayPreview: View {
             .foregroundStyle(Color(rgba: resolvedStyle.textColor))
             .italic(resolvedStyle.isItalic)
             .multilineTextAlignment(multilineAlignment)
-            .lineLimit(3)
-            .minimumScaleFactor(0.7)
-            .frame(maxWidth: .infinity, alignment: textAlignment)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(
+                maxWidth: .infinity,
+                maxHeight: .infinity,
+                alignment: frameAlignment
+            )
     }
 
     private func strokedText(
@@ -113,20 +123,11 @@ struct TranscriptOverlayPreview: View {
         }
     }
 
-    private var multilineAlignment: TextAlignment {
-        switch resolvedStyle.textAlignment {
-        case .leading:
-            .leading
-        case .center:
-            .center
-        case .trailing:
-            .trailing
-        }
-    }
-
 }
 
 extension Color {
+
+    // MARK: - Initializer
 
     fileprivate init(rgba: RGBAColor) {
         self.init(
@@ -136,5 +137,17 @@ extension Color {
             opacity: rgba.alpha
         )
     }
+
+}
+
+extension TranscriptStyle {
+
+    // MARK: - Private Properties
+
+    fileprivate static let defaultPreviewStyle = Self(
+        id: UUID(uuidString: "E5A04D11-329A-4C8E-B266-1E6A60A6F9F9") ?? UUID(),
+        name: "Default",
+        fontFamily: "SF Pro Rounded"
+    )
 
 }

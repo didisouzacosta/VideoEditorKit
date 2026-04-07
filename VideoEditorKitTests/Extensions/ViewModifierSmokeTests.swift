@@ -88,7 +88,8 @@ struct ViewModifierSmokeTests {
                 ),
                 overlayPosition: .bottom,
                 overlaySize: .medium,
-                containerSize: CGSize(width: 320, height: 180)
+                previewCanvasSize: CGSize(width: 320, height: 180),
+                exportCanvasSize: CGSize(width: 1080, height: 608)
             )
             .frame(width: 320, height: 180)
         )

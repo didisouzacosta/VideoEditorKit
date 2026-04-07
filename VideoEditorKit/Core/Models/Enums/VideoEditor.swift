@@ -55,25 +55,25 @@ enum VideoEditor {
                 ),
                 onProgress: onProgress
             )
-            let transcribedURL = try await applyTranscriptOperation(
-                editingConfiguration: editingConfiguration,
-                fromUrl: adjustedURL,
-                progressRange: progressRange(
-                    for: .transcript,
-                    activeStages: renderStages
-                ),
-                onProgress: onProgress
-            )
             let croppedURL = try await applyCanvasOperation(
                 editingConfiguration: editingConfiguration,
-                fromUrl: transcribedURL,
+                fromUrl: adjustedURL,
                 progressRange: progressRange(
                     for: .crop,
                     activeStages: renderStages
                 ),
                 onProgress: onProgress
             )
-            return croppedURL
+            let transcribedURL = try await applyTranscriptOperation(
+                editingConfiguration: editingConfiguration,
+                fromUrl: croppedURL,
+                progressRange: progressRange(
+                    for: .transcript,
+                    activeStages: renderStages
+                ),
+                onProgress: onProgress
+            )
+            return transcribedURL
         } catch {
             throw error
         }
@@ -299,23 +299,27 @@ enum VideoEditor {
             track: videoTrack,
             isMirror: false
         )
-        let animationTool = createTranscriptAnimationTool(
-            transcriptDocument,
-            renderSegments: renderSegments,
-            renderSize: presentationSize
+        let animationContext = await MainActor.run {
+            createTranscriptAnimationContext(
+                transcriptDocument,
+                renderSegments: renderSegments,
+                renderSize: presentationSize
+            )
+        }
+        let videoInstruction = AVVideoCompositionInstruction(
+            configuration: .init(
+                layerInstructions: [
+                    animationContext.overlayInstruction,
+                    instruction,
+                ],
+                timeRange: trackTimeRange
+            )
         )
         let videoComposition = AVVideoComposition(
             configuration: .init(
-                animationTool: animationTool,
+                animationTool: animationContext.animationTool,
                 frameDuration: CMTime(value: 1, timescale: 30),
-                instructions: [
-                    AVVideoCompositionInstruction(
-                        configuration: .init(
-                            layerInstructions: [instruction],
-                            timeRange: trackTimeRange
-                        )
-                    )
-                ],
+                instructions: [videoInstruction],
                 renderSize: presentationSize
             )
         )
@@ -369,6 +373,15 @@ extension VideoEditor {
 
     }
 
+    private struct TranscriptAnimationContext {
+
+        // MARK: - Public Properties
+
+        let animationTool: AVVideoCompositionCoreAnimationTool
+        let overlayInstruction: AVVideoCompositionLayerInstruction
+
+    }
+
     private static var isSimulator: Bool {
         #if targetEnvironment(simulator)
             true
@@ -376,6 +389,8 @@ extension VideoEditor {
             false
         #endif
     }
+
+    private static let transcriptOverlayTrackID: CMPersistentTrackID = 9_001
 
     // MARK: - Public Methods
 
@@ -567,12 +582,12 @@ extension VideoEditor {
             stages.append(.adjusts)
         }
 
-        if usesTranscriptStage {
-            stages.append(.transcript)
-        }
-
         if usesCropStage {
             stages.append(.crop)
+        }
+
+        if usesTranscriptStage {
+            stages.append(.transcript)
         }
 
         return stages
@@ -802,17 +817,15 @@ extension VideoEditor {
         )
     }
 
-    private static func createTranscriptAnimationTool(
+    private static func createTranscriptAnimationContext(
         _ transcriptDocument: TranscriptDocument,
         renderSegments: [TranscriptRenderSegment],
         renderSize: CGSize
-    ) -> AVVideoCompositionCoreAnimationTool {
-        let videoLayer = CALayer()
-        videoLayer.frame = CGRect(origin: .zero, size: renderSize)
-
+    ) -> TranscriptAnimationContext {
         let outputLayer = CALayer()
         outputLayer.frame = CGRect(origin: .zero, size: renderSize)
-        outputLayer.addSublayer(videoLayer)
+        outputLayer.masksToBounds = true
+        outputLayer.isGeometryFlipped = true
 
         for segment in renderSegments {
             let overlayLayer = makeTranscriptTextLayer(
@@ -824,10 +837,18 @@ extension VideoEditor {
             outputLayer.addSublayer(overlayLayer)
         }
 
-        return AVVideoCompositionCoreAnimationTool(
-            configuration: .init(
-                postProcessingAsVideoLayer: videoLayer,
-                containingLayer: outputLayer
+        var overlayInstructionConfiguration = AVVideoCompositionLayerInstruction.Configuration(
+            trackID: transcriptOverlayTrackID
+        )
+        overlayInstructionConfiguration.trackID = transcriptOverlayTrackID
+
+        return TranscriptAnimationContext(
+            animationTool: AVVideoCompositionCoreAnimationTool(
+                additionalLayer: outputLayer,
+                asTrackID: transcriptOverlayTrackID
+            ),
+            overlayInstruction: AVVideoCompositionLayerInstruction(
+                configuration: overlayInstructionConfiguration
             )
         )
     }
@@ -906,17 +927,28 @@ extension VideoEditor {
     ) async throws {
         await reportProgress(progressRange.lowerBound, via: onProgress)
         let sessionBox = UncheckedExportSessionBox(session)
+        let exportStates = session.states(updateInterval: 0.12)
 
         let progressTask = Task {
-            while !Task.isCancelled {
-                let sessionProgress = Double(sessionBox.session.progress).clamped(to: 0...1)
+            for await state in exportStates {
+                guard !Task.isCancelled else { break }
+
+                let sessionProgress: Double
+
+                switch state {
+                case .pending, .waiting:
+                    sessionProgress = .zero
+                case .exporting(let progress):
+                    sessionProgress = progress.fractionCompleted.clamped(to: 0...1)
+                @unknown default:
+                    continue
+                }
+
                 let mappedProgress =
                     progressRange.lowerBound
                     + (progressRange.upperBound - progressRange.lowerBound) * sessionProgress
 
                 await reportProgress(mappedProgress, via: onProgress)
-
-                try? await Task.sleep(for: .milliseconds(120))
             }
         }
 
@@ -1137,31 +1169,13 @@ extension VideoEditor {
             text: segment.text
         )
         let textLayer = CATextLayer()
-        let paragraphStyle = NSMutableParagraphStyle()
-        paragraphStyle.alignment = resolvedTextAlignment(
-            for: segment.style.textAlignment
-        )
-        let font = resolvedTranscriptFont(
+        textLayer.string = TranscriptTextStyleResolver.attributedString(
+            text: segment.text,
             style: segment.style,
             fontSize: layout.fontSize
         )
-        var attributes: [NSAttributedString.Key: Any] = [
-            .font: font,
-            .foregroundColor: resolvedUIColor(segment.style.textColor),
-            .paragraphStyle: paragraphStyle,
-        ]
-
-        if segment.style.hasStroke, let strokeColor = segment.style.strokeColor {
-            attributes[.strokeColor] = resolvedUIColor(strokeColor)
-            attributes[.strokeWidth] = -3
-        }
-
-        textLayer.string = NSAttributedString(
-            string: segment.text,
-            attributes: attributes
-        )
-        textLayer.frame = layout.overlayFrame.insetBy(dx: -12, dy: 0)
-        textLayer.alignmentMode = resolvedCATextAlignment(
+        textLayer.frame = layout.overlayFrame
+        textLayer.alignmentMode = TranscriptTextStyleResolver.resolvedCATextAlignment(
             for: segment.style.textAlignment
         )
         textLayer.isWrapped = true
@@ -1189,61 +1203,6 @@ extension VideoEditor {
         animation.fillMode = .both
         return animation
     }
-
-    private static func resolvedTranscriptFont(
-        style: TranscriptStyle,
-        fontSize: CGFloat
-    ) -> UIFont {
-        let resolvedFont =
-            UIFont(name: style.fontFamily, size: fontSize)
-            ?? UIFont.systemFont(ofSize: fontSize)
-
-        guard style.isItalic else { return resolvedFont }
-
-        guard
-            let italicDescriptor = resolvedFont.fontDescriptor.withSymbolicTraits(.traitItalic)
-        else {
-            return UIFont.italicSystemFont(ofSize: fontSize)
-        }
-
-        return UIFont(descriptor: italicDescriptor, size: fontSize)
-    }
-
-    private static func resolvedTextAlignment(
-        for alignment: TranscriptTextAlignment
-    ) -> NSTextAlignment {
-        switch alignment {
-        case .leading:
-            .left
-        case .center:
-            .center
-        case .trailing:
-            .right
-        }
-    }
-
-    private static func resolvedCATextAlignment(
-        for alignment: TranscriptTextAlignment
-    ) -> CATextLayerAlignmentMode {
-        switch alignment {
-        case .leading:
-            .left
-        case .center:
-            .center
-        case .trailing:
-            .right
-        }
-    }
-
-    private static func resolvedUIColor(_ color: RGBAColor) -> UIColor {
-        UIColor(
-            red: color.red,
-            green: color.green,
-            blue: color.blue,
-            alpha: color.alpha
-        )
-    }
-
 }
 
 private struct UncheckedExportSessionBox: @unchecked Sendable {
