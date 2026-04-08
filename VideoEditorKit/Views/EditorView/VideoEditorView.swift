@@ -103,7 +103,9 @@ struct VideoEditorView: View {
 
                 VideoExporterView(
                     video: video,
-                    editingConfiguration: editingConfiguration
+                    editingConfiguration: editingConfiguration,
+                    exportQualities: configuration.exportQualities,
+                    onBlockedQualityTap: configuration.notifyBlockedExportQualityTap(for:)
                 ) { exportedVideo in
                     videoPlayer.pause()
                     callbacks.onExportedVideoURL(exportedVideo.url)
@@ -593,11 +595,13 @@ extension VideoEditorView {
         }
 
         let tools: [ToolAvailability]
+        let exportQualities: [ExportQualityAvailability]
         let transcription: TranscriptionConfiguration
 
         // MARK: - Private Properties
 
         private let onBlockedToolTap: ((ToolEnum) -> Void)?
+        private let onBlockedExportQualityTap: ((VideoQuality) -> Void)?
 
         var visibleTools: [ToolEnum] {
             tools.map(\.tool)
@@ -607,8 +611,10 @@ extension VideoEditorView {
 
         init(
             tools: [ToolAvailability] = ToolAvailability.enabled(ToolEnum.all),
+            exportQualities: [ExportQualityAvailability] = ExportQualityAvailability.allEnabled,
             transcription: TranscriptionConfiguration = .init(),
-            onBlockedToolTap: ((ToolEnum) -> Void)? = nil
+            onBlockedToolTap: ((ToolEnum) -> Void)? = nil,
+            onBlockedExportQualityTap: ((VideoQuality) -> Void)? = nil
         ) {
             self.tools = Self.resolvedTools(
                 from: tools,
@@ -620,14 +626,26 @@ extension VideoEditorView {
 
                 return $0.order < $1.order
             }
+            self.exportQualities = exportQualities.sorted {
+                if $0.order == $1.order {
+                    return $0.quality.rawValue < $1.quality.rawValue
+                }
+
+                return $0.order < $1.order
+            }
             self.transcription = transcription
             self.onBlockedToolTap = onBlockedToolTap
+            self.onBlockedExportQualityTap = onBlockedExportQualityTap
         }
 
         // MARK: - Public Methods
 
         func availability(for tool: ToolEnum) -> ToolAvailability? {
             tools.first(where: { $0.tool == tool })
+        }
+
+        func availability(for quality: VideoQuality) -> ExportQualityAvailability? {
+            exportQualities.first(where: { $0.quality == quality })
         }
 
         func isVisible(_ tool: ToolEnum) -> Bool {
@@ -644,6 +662,18 @@ extension VideoEditorView {
 
         func notifyBlockedToolTap(for tool: ToolEnum) {
             onBlockedToolTap?(tool)
+        }
+
+        func isBlocked(_ quality: VideoQuality) -> Bool {
+            availability(for: quality)?.isBlocked == true
+        }
+
+        func isEnabled(_ quality: VideoQuality) -> Bool {
+            availability(for: quality)?.isEnabled == true
+        }
+
+        func notifyBlockedExportQualityTap(for quality: VideoQuality) {
+            onBlockedExportQualityTap?(quality)
         }
 
         // MARK: - Private Methods

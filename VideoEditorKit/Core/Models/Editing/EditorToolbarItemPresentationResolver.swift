@@ -94,10 +94,10 @@ struct EditorToolbarItemPresentationResolver {
         guard let video else { return nil }
 
         if let recordedAudio = video.audio {
-            return "Recorded \(percentageString(for: recordedAudio.volume))"
+            return percentageString(for: recordedAudio.volume)
         }
 
-        return "Video \(percentageString(for: video.volume))"
+        return percentageString(for: video.volume)
     }
 
     private static func adjustsSubtitle(
@@ -118,7 +118,8 @@ struct EditorToolbarItemPresentationResolver {
     ) -> String? {
         guard let transcriptDocument else { return nil }
 
-        return "\(transcriptDocument.overlayPosition.title) \(transcriptDocument.overlaySize.title)"
+        return
+            "\(transcriptDocument.overlayPosition.abbreviation)/\(transcriptDocument.overlaySize.abbreviation)"
     }
 
     private static func percentageString(

@@ -1,5 +1,6 @@
 import SwiftUI
 import Testing
+import UIKit
 
 @testable import VideoEditorKit
 
@@ -48,6 +49,20 @@ struct ViewModifierSmokeTests {
             ) {}
             .frame(width: 96, height: 96)
         )
+    }
+
+    @Test
+    func blockedExportQualitiesRenderInsideAHostingController() {
+        let controller = makeHostingController(
+            VideoExporterView(
+                video: Video.mock,
+                editingConfiguration: .initial,
+                exportQualities: ExportQualityAvailability.premiumLocked,
+            ) { _ in
+            }
+        )
+
+        #expect(controller.view.bounds.size == CGSize(width: 240, height: 240))
     }
 
     @Test
@@ -363,12 +378,18 @@ struct ViewModifierSmokeTests {
     // MARK: - Private Methods
 
     private func assertRenders<Content: View>(_ content: Content) {
+        let controller = makeHostingController(content)
+
+        #expect(controller.view.bounds.size == CGSize(width: 240, height: 240))
+    }
+
+    private func makeHostingController<Content: View>(_ content: Content) -> UIHostingController<Content> {
         let controller = UIHostingController(rootView: content)
         controller.loadViewIfNeeded()
         controller.view.frame = CGRect(x: 0, y: 0, width: 240, height: 240)
         controller.view.layoutIfNeeded()
 
-        #expect(controller.view.bounds.size == CGSize(width: 240, height: 240))
+        return controller
     }
 
 }

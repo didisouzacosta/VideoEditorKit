@@ -73,7 +73,23 @@ struct EditorToolbarItemPresentationResolverTests {
         )
 
         #expect(presentation.isApplied)
-        #expect(presentation.subtitle == "Recorded 35%")
+        #expect(presentation.subtitle == "35%")
+    }
+
+    @Test
+    func audioToolShowsOnlyTheVideoTrackPercentageWhenNoRecordingExists() {
+        var video = video(appliedTool: .audio)
+        video.volume = 0.33
+
+        let presentation = EditorToolbarItemPresentationResolver.resolve(
+            for: .audio,
+            video: video,
+            cropPresentationSummary: nil,
+            transcriptDocument: nil
+        )
+
+        #expect(presentation.isApplied)
+        #expect(presentation.subtitle == "33%")
     }
 
     @Test
@@ -113,7 +129,7 @@ struct EditorToolbarItemPresentationResolverTests {
         )
 
         #expect(presentation.isApplied)
-        #expect(presentation.subtitle == "Bottom Medium")
+        #expect(presentation.subtitle == "B/M")
     }
 
     @Test

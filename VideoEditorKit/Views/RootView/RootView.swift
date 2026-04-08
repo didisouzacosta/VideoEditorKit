@@ -22,7 +22,7 @@ struct RootView: View {
     @State private var viewModel = RootViewModel()
     @State private var selectedItem: PhotosPickerItem?
     @State private var saveStateTask: Task<Void, Never>?
-    @State private var blockedTool: ToolEnum?
+    @State private var premiumPresentation: PremiumPresentation?
     @State private var persistenceErrorMessage: String?
 
     // MARK: - Private Properties
@@ -90,13 +90,13 @@ struct RootView: View {
                     VideoShareSheet(activityItems: [shareDestination.videoURL])
                 }
                 .alert(
-                    "Premium Tool",
-                    isPresented: blockedToolAlertBinding,
-                    presenting: blockedTool
+                    premiumAlertTitle,
+                    isPresented: premiumAlertBinding,
+                    presenting: premiumPresentation
                 ) { _ in
                     Button("OK", role: .cancel) {}
-                } message: { tool in
-                    Text(blockedToolAlertMessage(for: tool))
+                } message: { presentation in
+                    Text(premiumAlertMessage(for: presentation))
                 }
             }
         }
@@ -134,23 +134,58 @@ extension RootView {
             .first(where: { !$0.isEmpty })
     }
 
-    private var blockedToolAlertBinding: Binding<Bool> {
+    private enum PremiumPresentation: Identifiable {
+
+        // MARK: - Public Properties
+
+        case tool(ToolEnum)
+        case exportQuality(VideoQuality)
+
+        var id: String {
+            switch self {
+            case .tool(let tool):
+                "tool-\(tool.rawValue)"
+            case .exportQuality(let quality):
+                "quality-\(quality.rawValue)"
+            }
+        }
+
+        var alertTitle: String {
+            switch self {
+            case .tool:
+                "Premium Tool"
+            case .exportQuality:
+                "Premium Export"
+            }
+        }
+
+    }
+
+    private var premiumAlertBinding: Binding<Bool> {
         Binding(
-            get: { blockedTool != nil },
+            get: { premiumPresentation != nil },
             set: { isPresented in
                 if !isPresented {
-                    blockedTool = nil
+                    premiumPresentation = nil
                 }
             }
         )
     }
 
+    private var premiumAlertTitle: String {
+        premiumPresentation?.alertTitle ?? "Premium Feature"
+    }
+
     private var editorConfiguration: VideoEditorView.Configuration {
         .init(
             tools: ToolAvailability.enabled(ToolEnum.all),
+            exportQualities: ExportQualityAvailability.allEnabled,
             transcription: Self.defaultTranscriptionConfiguration,
             onBlockedToolTap: { tool in
-                blockedTool = tool
+                premiumPresentation = .tool(tool)
+            },
+            onBlockedExportQualityTap: { quality in
+                premiumPresentation = .exportQuality(quality)
             }
         )
     }
@@ -229,8 +264,13 @@ extension RootView {
         .card()
     }
 
-    private func blockedToolAlertMessage(for tool: ToolEnum) -> String {
-        "\(tool.title) is locked in this demo. Connect `onBlockedToolTap` to your paywall or upgrade flow in the host app."
+    private func premiumAlertMessage(for presentation: PremiumPresentation) -> String {
+        switch presentation {
+        case .tool(let tool):
+            "\(tool.title) is locked in this demo. Connect `onBlockedToolTap` to your paywall or upgrade flow in the host app."
+        case .exportQuality(let quality):
+            "\(quality.title) export is locked in this demo. Connect `onBlockedExportQualityTap` to your paywall or upgrade flow in the host app."
+        }
     }
 
     private func selectVideoCard(

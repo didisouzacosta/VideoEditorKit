@@ -1,6 +1,7 @@
 import AVFoundation
 import CoreGraphics
 import CoreImage
+import Foundation
 import SwiftUI
 import Testing
 
@@ -45,7 +46,7 @@ struct ToolEnumTests {
 
 }
 
-@Suite("VideoEditorConfigurationTests")
+@Suite("VideoEditorConfigurationTests", .serialized)
 struct VideoEditorConfigurationTests {
 
     // MARK: - Public Methods
@@ -64,12 +65,31 @@ struct VideoEditorConfigurationTests {
     }
 
     @Test
+    func exportQualityAvailabilityHelpersProduceTheExpectedAccessStates() {
+        let visibleQualities = ExportQualityAvailability.enabled([.low, .medium])
+        let blockedQuality = ExportQualityAvailability.blocked(.high)
+        let premiumLocked = ExportQualityAvailability.premiumLocked
+
+        #expect(visibleQualities.map(\.quality) == [.low, .medium])
+        #expect(visibleQualities.allSatisfy { $0.isEnabled })
+        #expect(visibleQualities.map(\.order) == [2, 1])
+        #expect(blockedQuality.quality == .high)
+        #expect(blockedQuality.isBlocked)
+        #expect(blockedQuality.order == 0)
+        #expect(ExportQualityAvailability.allEnabled.map(\.quality) == [.low, .medium, .high])
+        #expect(premiumLocked.filter(\.isEnabled).map(\.quality) == [.low])
+        #expect(premiumLocked.filter(\.isBlocked).map(\.quality) == [.medium, .high])
+    }
+
+    @Test
     func defaultConfigurationExposesAllVisibleToolsAsEnabled() {
         let configuration = VideoEditorView.Configuration()
 
         #expect(configuration.tools.map(\.tool) == [.presets, .audio, .adjusts, .speed])
         #expect(configuration.tools.allSatisfy { $0.access == .enabled })
         #expect(configuration.visibleTools == [.presets, .audio, .adjusts, .speed])
+        #expect(configuration.exportQualities.map(\.quality) == [.high, .medium, .low])
+        #expect(configuration.exportQualities.allSatisfy { $0.access == .enabled })
     }
 
     @Test
@@ -106,6 +126,22 @@ struct VideoEditorConfigurationTests {
         #expect(configuration.tools.map(\.tool) == [.speed, .audio, .presets])
         #expect(configuration.tools.map(\.order) == [0, 1, 2])
         #expect(configuration.isBlocked(.audio))
+    }
+
+    @Test
+    func exportQualitiesSortByDisplayOrderWhileKeepingBlockedState() {
+        let configuration = VideoEditorView.Configuration(
+            exportQualities: [
+                .enabled(.low),
+                .blocked(.high),
+                .enabled(.medium),
+            ]
+        )
+
+        #expect(configuration.exportQualities.map(\.quality) == [.high, .medium, .low])
+        #expect(configuration.isBlocked(.high))
+        #expect(configuration.isEnabled(.medium))
+        #expect(configuration.availability(for: .low)?.isBlocked == false)
     }
 
     @Test
@@ -153,10 +189,24 @@ struct VideoEditorConfigurationTests {
     }
 
     @Test
+    func blockedExportQualityHandlerReceivesTheTappedQuality() {
+        var receivedQuality: VideoQuality?
+        let configuration = VideoEditorView.Configuration(
+            exportQualities: [.blocked(.high)],
+            onBlockedExportQualityTap: { receivedQuality = $0 }
+        )
+
+        configuration.notifyBlockedExportQualityTap(for: .high)
+
+        #expect(receivedQuality == .high)
+    }
+
+    @Test
     func allToolsEnabledStaticPresetMatchesTheDefaultConfiguration() {
         let preset = VideoEditorView.Configuration.allToolsEnabled
 
         #expect(preset.tools == VideoEditorView.Configuration().tools)
+        #expect(preset.exportQualities == VideoEditorView.Configuration().exportQualities)
     }
 
     @Test
@@ -183,30 +233,29 @@ struct VideoEditorConfigurationTests {
 
     @MainActor
     @Test
-    func rootViewDefaultTranscriptionConfigurationUsesAudioLanguageAutodetectionWithoutALocalProvider() {
-        let configuration = RootView.defaultTranscriptionConfiguration
+    func rootViewDefaultTranscriptionConfigurationFallsBackToTheBundledAPIKeyWhenLocalOverridesAreAbsent() {
+        let configuration = RootViewTranscriptionConfigurationTestContext.withAPIKeyState(
+            environmentValue: nil,
+            userDefaultsValue: nil
+        ) {
+            RootView.defaultTranscriptionConfiguration
+        }
+        let expectsBundledProvider = RootViewTranscriptionConfigurationTestContext.hasBundledAPIKey
 
         #expect(configuration.preferredLocale == nil)
-        #expect(configuration.provider == nil)
-        #expect(configuration.isConfigured == false)
+        #expect((configuration.provider != nil) == expectsBundledProvider)
+        #expect(configuration.isConfigured == expectsBundledProvider)
     }
 
     @MainActor
     @Test
     func rootViewDefaultTranscriptionConfigurationBuildsTheProviderWhenTheAPIKeyIsInTheEnvironment() {
-        let environmentKey = "OPENAI_API_KEY"
-        let previousValue = ProcessInfo.processInfo.environment[environmentKey]
-
-        setenv(environmentKey, "test-openai-api-key", 1)
-        defer {
-            if let previousValue {
-                setenv(environmentKey, previousValue, 1)
-            } else {
-                unsetenv(environmentKey)
-            }
+        let configuration = RootViewTranscriptionConfigurationTestContext.withAPIKeyState(
+            environmentValue: "test-openai-api-key",
+            userDefaultsValue: nil
+        ) {
+            RootView.defaultTranscriptionConfiguration
         }
-
-        let configuration = RootView.defaultTranscriptionConfiguration
 
         #expect(configuration.provider != nil)
         #expect(configuration.isConfigured)
@@ -215,20 +264,12 @@ struct VideoEditorConfigurationTests {
     @MainActor
     @Test
     func rootViewDefaultTranscriptionConfigurationBuildsTheProviderWhenTheAPIKeyIsInUserDefaults() {
-        let defaultsKey = "OPENAI_API_KEY"
-        let previousValue = UserDefaults.standard.string(forKey: defaultsKey)
-
-        unsetenv(defaultsKey)
-        UserDefaults.standard.set("test-openai-api-key", forKey: defaultsKey)
-        defer {
-            if let previousValue {
-                UserDefaults.standard.set(previousValue, forKey: defaultsKey)
-            } else {
-                UserDefaults.standard.removeObject(forKey: defaultsKey)
-            }
+        let configuration = RootViewTranscriptionConfigurationTestContext.withAPIKeyState(
+            environmentValue: nil,
+            userDefaultsValue: "test-openai-api-key"
+        ) {
+            RootView.defaultTranscriptionConfiguration
         }
-
-        let configuration = RootView.defaultTranscriptionConfiguration
 
         #expect(configuration.provider != nil)
         #expect(configuration.isConfigured)
@@ -261,6 +302,67 @@ private actor ConfigurationProbeTranscriptionProvider: VideoTranscriptionProvide
 
     func recordedInputs() -> [VideoTranscriptionInput] {
         inputs
+    }
+
+}
+
+private enum RootViewTranscriptionConfigurationTestContext {
+
+    // MARK: - Private Properties
+
+    private static let apiKey = "OPENAI_API_KEY"
+    private static let lock = NSLock()
+
+    // MARK: - Public Methods
+
+    static var hasBundledAPIKey: Bool {
+        guard
+            let apiKey = Bundle.main.object(forInfoDictionaryKey: self.apiKey) as? String
+        else {
+            return false
+        }
+
+        return !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    static func withAPIKeyState<Value>(
+        environmentValue: String?,
+        userDefaultsValue: String?,
+        _ body: () throws -> Value
+    ) rethrows -> Value {
+        lock.lock()
+        defer { lock.unlock() }
+
+        let previousEnvironmentValue = ProcessInfo.processInfo.environment[apiKey]
+        let previousUserDefaultsValue = UserDefaults.standard.string(forKey: apiKey)
+
+        if let environmentValue {
+            setenv(apiKey, environmentValue, 1)
+        } else {
+            unsetenv(apiKey)
+        }
+
+        if let userDefaultsValue {
+            UserDefaults.standard.set(userDefaultsValue, forKey: apiKey)
+        } else {
+            UserDefaults.standard.removeObject(forKey: apiKey)
+        }
+
+        defer {
+            if let previousEnvironmentValue {
+                setenv(apiKey, previousEnvironmentValue, 1)
+            } else {
+                unsetenv(apiKey)
+            }
+
+            if let previousUserDefaultsValue {
+                UserDefaults.standard.set(previousUserDefaultsValue, forKey: apiKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: apiKey)
+            }
+        }
+
+        return try body()
     }
 
 }
@@ -330,6 +432,10 @@ struct VideoQualityTests {
         #expect(VideoQuality.low.exportPresetName == AVAssetExportPresetMediumQuality)
         #expect(VideoQuality.medium.exportPresetName == AVAssetExportPresetHighestQuality)
         #expect(VideoQuality.high.exportPresetName == AVAssetExportPresetHighestQuality)
+
+        #expect(VideoQuality.high.order == 0)
+        #expect(VideoQuality.medium.order == 1)
+        #expect(VideoQuality.low.order == 2)
 
         #expect(VideoQuality.low.size == CGSize(width: 854, height: 480))
         #expect(VideoQuality.medium.size == CGSize(width: 1280, height: 720))

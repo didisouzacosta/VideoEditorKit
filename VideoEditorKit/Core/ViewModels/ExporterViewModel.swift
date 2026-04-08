@@ -20,7 +20,7 @@ final class ExporterViewModel {
 
     var showAlert = false
     var exportProgress: Double = .zero
-    var selectedQuality: VideoQuality = .medium
+    var selectedQuality: VideoQuality
 
     var renderState: ExportState = .unknown {
         didSet {
@@ -34,7 +34,7 @@ final class ExporterViewModel {
     }
 
     var canExportVideo: Bool {
-        !isInteractionDisabled
+        !isInteractionDisabled && selectedQualityAvailability?.isEnabled == true
     }
 
     var canCancelExport: Bool {
@@ -116,6 +116,7 @@ final class ExporterViewModel {
 
     private let renderVideo: RenderVideo
     private let loadExportedVideo: @Sendable (URL) async -> ExportedVideo
+    private let exportQualities: [ExportQualityAvailability]
 
     @ObservationIgnored private var exportTask: Task<Void, Never>?
 
@@ -124,6 +125,7 @@ final class ExporterViewModel {
     init(
         _ video: Video,
         editingConfiguration: VideoEditingConfiguration = .initial,
+        exportQualities: [ExportQualityAvailability] = ExportQualityAvailability.allEnabled,
         renderVideo: @escaping RenderVideo = { video, editingConfiguration, quality, onProgress in
             try await VideoEditor.startRender(
                 video: video,
@@ -138,6 +140,8 @@ final class ExporterViewModel {
     ) {
         self.video = video
         self.editingConfiguration = editingConfiguration
+        self.exportQualities = Self.sortedExportQualities(exportQualities)
+        self.selectedQuality = Self.defaultSelectedQuality(for: exportQualities)
         self.renderVideo = renderVideo
         self.loadExportedVideo = loadExportedVideo
     }
@@ -199,6 +203,7 @@ final class ExporterViewModel {
     }
 
     func selectQuality(_ quality: VideoQuality) {
+        guard availability(for: quality)?.isEnabled == true else { return }
         selectedQuality = quality
     }
 
@@ -251,6 +256,38 @@ final class ExporterViewModel {
 
     private func resetProgress() {
         exportProgress = .zero
+    }
+
+    private var selectedQualityAvailability: ExportQualityAvailability? {
+        availability(for: selectedQuality)
+    }
+
+    private func availability(for quality: VideoQuality) -> ExportQualityAvailability? {
+        exportQualities.first(where: { $0.quality == quality })
+    }
+
+    private static func defaultSelectedQuality(
+        for exportQualities: [ExportQualityAvailability]
+    ) -> VideoQuality {
+        let sortedQualities = sortedExportQualities(exportQualities)
+
+        if let enabledQuality = sortedQualities.first(where: \.isEnabled)?.quality {
+            return enabledQuality
+        }
+
+        return sortedQualities.first?.quality ?? .low
+    }
+
+    private static func sortedExportQualities(
+        _ exportQualities: [ExportQualityAvailability]
+    ) -> [ExportQualityAvailability] {
+        exportQualities.sorted {
+            if $0.order == $1.order {
+                return $0.quality.rawValue < $1.quality.rawValue
+            }
+
+            return $0.order < $1.order
+        }
     }
 
 }

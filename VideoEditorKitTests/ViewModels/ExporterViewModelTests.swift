@@ -22,7 +22,7 @@ struct ExporterViewModelTests {
         #expect(viewModel.exportProgress == 0)
         #expect(viewModel.progressText == "0%")
         #expect(viewModel.exportActionTitle == "Export")
-        #expect(viewModel.selectedQuality == .medium)
+        #expect(viewModel.selectedQuality == .high)
     }
 
     @Test
@@ -65,11 +65,45 @@ struct ExporterViewModelTests {
     func qualitySelectionAndEstimatedSizeUseTheCurrentVideoDuration() {
         let viewModel = ExporterViewModel(Video.mock)
 
+        viewModel.selectQuality(.medium)
+
+        #expect(viewModel.isSelectedQuality(.medium))
+        #expect(viewModel.selectedQuality == .medium)
+        #expect(viewModel.estimatedVideoSizeText(for: .medium)?.hasSuffix("Mb") == true)
+    }
+
+    @Test
+    func blockedPremiumExportDefaultsToLowQuality() {
+        let viewModel = ExporterViewModel(
+            Video.mock,
+            exportQualities: [
+                .enabled(.low),
+                .blocked(.medium),
+                .blocked(.high),
+            ]
+        )
+
+        #expect(viewModel.selectedQuality == .low)
+        #expect(viewModel.canExportVideo)
+    }
+
+    @Test
+    func blockedQualitySelectionDoesNotOverrideTheCurrentAvailableQuality() {
+        let viewModel = ExporterViewModel(
+            Video.mock,
+            exportQualities: [
+                .blocked(.high),
+                .enabled(.medium),
+                .enabled(.low),
+            ]
+        )
+
+        #expect(viewModel.selectedQuality == .medium)
+
         viewModel.selectQuality(.high)
 
-        #expect(viewModel.isSelectedQuality(.high))
-        #expect(viewModel.selectedQuality == .high)
-        #expect(viewModel.estimatedVideoSizeText(for: .medium)?.hasSuffix("Mb") == true)
+        #expect(viewModel.selectedQuality == .medium)
+        #expect(viewModel.isSelectedQuality(.medium))
     }
 
     @Test

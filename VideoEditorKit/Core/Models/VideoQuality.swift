@@ -9,6 +9,7 @@ import AVKit
 import Foundation
 
 enum VideoQuality: Int, CaseIterable {
+
     // MARK: - Public Properties
 
     case low, medium, high
@@ -24,6 +25,17 @@ enum VideoQuality: Int, CaseIterable {
             return AVAssetExportPresetMediumQuality
         case .high, .medium:
             return AVAssetExportPresetHighestQuality
+        }
+    }
+
+    var order: Int {
+        switch self {
+        case .high:
+            0
+        case .medium:
+            1
+        case .low:
+            2
         }
     }
 
@@ -110,4 +122,69 @@ enum VideoQuality: Int, CaseIterable {
     ) -> Double? {
         duration * megaBytesPerSecond(for: renderSize)
     }
+
+}
+
+struct ExportQualityAvailability: Hashable, Identifiable {
+
+    // MARK: - Public Properties
+
+    static var allEnabled: [Self] {
+        enabled(VideoQuality.allCases)
+    }
+
+    static var premiumLocked: [Self] {
+        [
+            .enabled(.low),
+            .blocked(.medium),
+            .blocked(.high),
+        ]
+    }
+
+    let quality: VideoQuality
+    let access: ToolAvailability.Access
+    let order: Int
+
+    var id: VideoQuality {
+        quality
+    }
+
+    var isBlocked: Bool {
+        access == .blocked
+    }
+
+    var isEnabled: Bool {
+        access == .enabled
+    }
+
+    // MARK: - Initializer
+
+    init(
+        _ quality: VideoQuality,
+        access: ToolAvailability.Access = .enabled,
+        order: Int? = nil
+    ) {
+        self.quality = quality
+        self.access = access
+        self.order = order ?? quality.order
+    }
+
+    static func enabled(
+        _ quality: VideoQuality,
+        order: Int? = nil
+    ) -> Self {
+        .init(quality, order: order)
+    }
+
+    static func blocked(
+        _ quality: VideoQuality,
+        order: Int? = nil
+    ) -> Self {
+        .init(quality, access: .blocked, order: order)
+    }
+
+    static func enabled(_ qualities: [VideoQuality]) -> [Self] {
+        qualities.map { Self.enabled($0) }
+    }
+
 }

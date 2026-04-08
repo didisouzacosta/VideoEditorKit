@@ -343,6 +343,17 @@ enum TranscriptOverlayPosition: String, Codable, Hashable, Sendable, CaseIterabl
     var title: String {
         rawValue.capitalized
     }
+
+    var abbreviation: String {
+        switch self {
+        case .top:
+            "T"
+        case .center:
+            "C"
+        case .bottom:
+            "B"
+        }
+    }
 }
 
 enum TranscriptOverlaySize: String, Codable, Hashable, Sendable, CaseIterable {
@@ -354,6 +365,17 @@ enum TranscriptOverlaySize: String, Codable, Hashable, Sendable, CaseIterable {
 
     var title: String {
         rawValue.capitalized
+    }
+
+    var abbreviation: String {
+        switch self {
+        case .small:
+            "S"
+        case .medium:
+            "M"
+        case .large:
+            "L"
+        }
     }
 }
 

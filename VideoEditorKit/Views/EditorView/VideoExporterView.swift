@@ -21,6 +21,8 @@ struct VideoExporterView: View {
 
     // MARK: - Private Properties
 
+    private let exportQualities: [ExportQualityAvailability]
+    private let onBlockedQualityTap: (VideoQuality) -> Void
     private let onExported: (ExportedVideo) -> Void
 
     // MARK: - Body
@@ -46,15 +48,26 @@ struct VideoExporterView: View {
     init(
         video: Video,
         editingConfiguration: VideoEditingConfiguration,
+        exportQualities: [ExportQualityAvailability] = ExportQualityAvailability.allEnabled,
+        onBlockedQualityTap: @escaping (VideoQuality) -> Void = { _ in },
         onExported: @escaping (ExportedVideo) -> Void
     ) {
         _viewModel = State(
             initialValue: ExporterViewModel(
                 video,
-                editingConfiguration: editingConfiguration
+                editingConfiguration: editingConfiguration,
+                exportQualities: exportQualities
             )
         )
 
+        self.exportQualities = exportQualities.sorted {
+            if $0.order == $1.order {
+                return $0.quality.rawValue < $1.quality.rawValue
+            }
+
+            return $0.order < $1.order
+        }
+        self.onBlockedQualityTap = onBlockedQualityTap
         self.onExported = onExported
     }
 
@@ -84,6 +97,7 @@ struct VideoExporterView: View {
                 )
             } else {
                 ExportQualitySelectionSection(
+                    qualities: exportQualities,
                     selectedQuality: viewModel.selectedQuality,
                     estimatedVideoSizeText: viewModel.estimatedVideoSizeText(for:),
                     showsFailureMessage: viewModel.shouldShowFailureMessage,
@@ -91,6 +105,7 @@ struct VideoExporterView: View {
                     actionTitle: viewModel.exportActionTitle,
                     canExportVideo: viewModel.canExportVideo,
                     onSelectQuality: viewModel.selectQuality(_:),
+                    onBlockedQualityTap: onBlockedQualityTap,
                     onExport: exportVideo
                 )
             }
@@ -125,6 +140,7 @@ private struct ExportQualitySelectionSection: View {
 
     // MARK: - Public Properties
 
+    let qualities: [ExportQualityAvailability]
     let selectedQuality: VideoQuality
     let estimatedVideoSizeText: (VideoQuality) -> String?
     let showsFailureMessage: Bool
@@ -132,6 +148,7 @@ private struct ExportQualitySelectionSection: View {
     let actionTitle: String
     let canExportVideo: Bool
     let onSelectQuality: (VideoQuality) -> Void
+    let onBlockedQualityTap: (VideoQuality) -> Void
     let onExport: () -> Void
 
     // MARK: - Body
@@ -145,12 +162,19 @@ private struct ExportQualitySelectionSection: View {
                     .padding(.horizontal)
 
                 VStack(spacing: 8) {
-                    ForEach(VideoQuality.allCases.reversed(), id: \.self) { quality in
+                    ForEach(qualities) { availability in
                         ExportQualityOptionRow(
-                            quality: quality,
-                            estimatedSizeText: estimatedVideoSizeText(quality),
-                            isSelected: quality == selectedQuality,
-                            onTap: { onSelectQuality(quality) }
+                            quality: availability.quality,
+                            estimatedSizeText: estimatedVideoSizeText(availability.quality),
+                            isSelected: availability.quality == selectedQuality,
+                            isBlocked: availability.isBlocked,
+                            onTap: {
+                                if availability.isBlocked {
+                                    onBlockedQualityTap(availability.quality)
+                                } else {
+                                    onSelectQuality(availability.quality)
+                                }
+                            }
                         )
                     }
                 }
@@ -180,6 +204,7 @@ private struct ExportQualityOptionRow: View {
     let quality: VideoQuality
     let estimatedSizeText: String?
     let isSelected: Bool
+    let isBlocked: Bool
     let onTap: () -> Void
 
     // MARK: - Body
@@ -188,8 +213,15 @@ private struct ExportQualityOptionRow: View {
         Button(action: onTap) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(quality.title)
-                        .font(.headline)
+                    HStack(spacing: 8) {
+                        Text(quality.title)
+                            .font(.headline)
+
+                        if isBlocked {
+                            PremiumQualityBadge()
+                        }
+                    }
+
                     Text(quality.subtitle)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
@@ -203,21 +235,95 @@ private struct ExportQualityOptionRow: View {
                             .font(.subheadline.weight(.semibold))
                     }
 
-                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    Image(systemName: trailingSymbolName)
                         .font(.headline)
-                        .foregroundStyle(isSelected ? Theme.primary : Theme.secondary)
+                        .foregroundStyle(trailingSymbolTint)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(16)
+            .opacity(isBlocked ? 0.55 : 1)
             .contentShape(.rect(cornerRadius: 16))
             .card(
                 cornerRadius: 16,
-                prominent: isSelected,
-                tint: isSelected ? Theme.accent : Theme.secondary
+                prominent: isSelected && !isBlocked,
+                tint: rowTint
             )
         }
         .buttonStyle(.plain)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityLabel)
+        .accessibilityValue(accessibilityValue)
+        .accessibilityHint(accessibilityHint)
+        .accessibilityIdentifier(accessibilityIdentifier)
+    }
+
+    // MARK: - Private Properties
+
+    private var trailingSymbolName: String {
+        if isBlocked {
+            "lock.fill"
+        } else if isSelected {
+            "checkmark.circle.fill"
+        } else {
+            "circle"
+        }
+    }
+
+    private var trailingSymbolTint: Color {
+        if isBlocked {
+            Theme.secondary
+        } else if isSelected {
+            Theme.primary
+        } else {
+            Theme.secondary
+        }
+    }
+
+    private var rowTint: Color {
+        isBlocked ? Theme.secondary : (isSelected ? Theme.accent : Theme.secondary)
+    }
+
+    private var accessibilityLabel: String {
+        isBlocked ? "\(quality.title), premium" : quality.title
+    }
+
+    private var accessibilityValue: String {
+        if isBlocked {
+            "Locked"
+        } else if isSelected {
+            "Selected"
+        } else {
+            "Available"
+        }
+    }
+
+    private var accessibilityHint: String {
+        isBlocked
+            ? "Double-tap to learn how to unlock this export quality."
+            : "Double-tap to select this export quality."
+    }
+
+    private var accessibilityIdentifier: String {
+        "export-quality-\(quality.rawValue)"
+    }
+
+}
+
+private struct PremiumQualityBadge: View {
+
+    // MARK: - Body
+
+    var body: some View {
+        Text("Premium")
+            .font(.caption2.weight(.bold))
+            .foregroundStyle(Theme.secondary)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(
+                Capsule(style: .continuous)
+                    .fill(Theme.rootBackground.opacity(0.95))
+            )
     }
 
 }
