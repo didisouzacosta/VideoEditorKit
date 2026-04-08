@@ -86,4 +86,30 @@ struct EditorTranscriptMappingCoordinatorTests {
         #expect(document.segments.first?.editedText == "outside trim")
     }
 
+    @Test
+    func makeDocumentPreservesSegmentContentWhenTheProviderDoesNotExposeWordGranularity() {
+        let result = VideoTranscriptionResult(
+            segments: [
+                TranscriptionSegment(
+                    id: UUID(),
+                    startTime: 8,
+                    endTime: 12,
+                    text: "segment only"
+                )
+            ]
+        )
+
+        let document = EditorTranscriptMappingCoordinator.makeDocument(
+            from: result,
+            trimRange: 0...20,
+            playbackRate: 2
+        )
+
+        #expect(document.segments.count == 1)
+        #expect(document.segments.first?.originalText == "segment only")
+        #expect(document.segments.first?.editedText == "segment only")
+        #expect(document.segments.first?.timeMapping.timelineRange == 4...6)
+        #expect(document.segments.first?.words.isEmpty == true)
+    }
+
 }

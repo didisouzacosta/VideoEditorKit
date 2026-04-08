@@ -85,9 +85,9 @@ struct VideoEditorConfigurationTests {
     func defaultConfigurationExposesAllVisibleToolsAsEnabled() {
         let configuration = VideoEditorView.Configuration()
 
-        #expect(configuration.tools.map(\.tool) == [.presets, .audio, .adjusts, .speed])
+        #expect(configuration.tools.map(\.tool) == [.transcript, .presets, .audio, .adjusts, .speed])
         #expect(configuration.tools.allSatisfy { $0.access == .enabled })
-        #expect(configuration.visibleTools == [.presets, .audio, .adjusts, .speed])
+        #expect(configuration.visibleTools == [.transcript, .presets, .audio, .adjusts, .speed])
         #expect(configuration.exportQualities.map(\.quality) == [.high, .medium, .low])
         #expect(configuration.exportQualities.allSatisfy { $0.access == .enabled })
     }
@@ -145,7 +145,7 @@ struct VideoEditorConfigurationTests {
     }
 
     @Test
-    func transcriptToolIsHiddenWhenTranscriptionIsNotConfigured() {
+    func transcriptToolRemainsVisibleWhenTranscriptionIsNotConfigured() {
         let configuration = VideoEditorView.Configuration(
             tools: ToolAvailability.enabled(ToolEnum.all),
             transcription: .init(
@@ -153,14 +153,14 @@ struct VideoEditorConfigurationTests {
             )
         )
 
-        #expect(configuration.tools.map(\.tool) == [.presets, .audio, .adjusts, .speed])
-        #expect(configuration.visibleTools == [.presets, .audio, .adjusts, .speed])
-        #expect(configuration.isVisible(.transcript) == false)
-        #expect(configuration.isEnabled(.transcript) == false)
+        #expect(configuration.tools.map(\.tool) == [.transcript, .presets, .audio, .adjusts, .speed])
+        #expect(configuration.visibleTools == [.transcript, .presets, .audio, .adjusts, .speed])
+        #expect(configuration.isVisible(.transcript))
+        #expect(configuration.isEnabled(.transcript))
     }
 
     @Test
-    func transcriptToolIsFilteredEvenWhenExplicitlyProvidedWithoutTranscriptionConfiguration() {
+    func transcriptToolIsPreservedEvenWhenExplicitlyProvidedWithoutTranscriptionConfiguration() {
         let configuration = VideoEditorView.Configuration(
             tools: [
                 .enabled(.transcript, order: 0),
@@ -171,8 +171,8 @@ struct VideoEditorConfigurationTests {
             )
         )
 
-        #expect(configuration.tools.map(\.tool) == [.speed])
-        #expect(configuration.visibleTools == [.speed])
+        #expect(configuration.tools.map(\.tool) == [.transcript, .speed])
+        #expect(configuration.visibleTools == [.transcript, .speed])
     }
 
     @Test
@@ -233,29 +233,12 @@ struct VideoEditorConfigurationTests {
 
     @MainActor
     @Test
-    func rootViewDefaultTranscriptionConfigurationFallsBackToTheBundledAPIKeyWhenLocalOverridesAreAbsent() {
-        let configuration = RootViewTranscriptionConfigurationTestContext.withAPIKeyState(
-            environmentValue: nil,
-            userDefaultsValue: nil
-        ) {
-            RootView.defaultTranscriptionConfiguration
-        }
-        let expectsBundledProvider = RootViewTranscriptionConfigurationTestContext.hasBundledAPIKey
-
-        #expect(configuration.preferredLocale == nil)
-        #expect((configuration.provider != nil) == expectsBundledProvider)
-        #expect(configuration.isConfigured == expectsBundledProvider)
-    }
-
-    @MainActor
-    @Test
-    func rootViewDefaultTranscriptionConfigurationBuildsTheProviderWhenTheAPIKeyIsInTheEnvironment() {
-        let configuration = RootViewTranscriptionConfigurationTestContext.withAPIKeyState(
-            environmentValue: "test-openai-api-key",
-            userDefaultsValue: nil
-        ) {
-            RootView.defaultTranscriptionConfiguration
-        }
+    func appleSpeechTranscriptionConfigurationBuildsTheResolvedBackendMetadata() {
+        let configuration = VideoEditorView.Configuration.TranscriptionConfiguration.appleSpeech(
+            dependencies: .init(
+                makeProvider: { ConfigurationProbeTranscriptionProvider() }
+            )
+        )
 
         #expect(configuration.provider != nil)
         #expect(configuration.isConfigured)
@@ -263,14 +246,100 @@ struct VideoEditorConfigurationTests {
 
     @MainActor
     @Test
-    func rootViewDefaultTranscriptionConfigurationBuildsTheProviderWhenTheAPIKeyIsInUserDefaults() {
-        let configuration = RootViewTranscriptionConfigurationTestContext.withAPIKeyState(
-            environmentValue: nil,
-            userDefaultsValue: "test-openai-api-key"
-        ) {
-            RootView.defaultTranscriptionConfiguration
-        }
+    func appleSpeechTranscriptionConfigurationAlwaysCreatesAProvider() {
+        let configuration = VideoEditorView.Configuration.TranscriptionConfiguration.appleSpeech(
+            dependencies: .init(
+                makeProvider: {
+                    return ConfigurationProbeTranscriptionProvider()
+                }
+            )
+        )
 
+        #expect(configuration.provider != nil)
+        #expect(configuration.isConfigured)
+    }
+
+    @MainActor
+    @Test
+    func appleSpeechTranscriptionConfigurationDefaultsToTheCurrentDeviceLocale() {
+        let configuration = VideoEditorView.Configuration.TranscriptionConfiguration.appleSpeech(
+            dependencies: .init(
+                makeProvider: { ConfigurationProbeTranscriptionProvider() }
+            )
+        )
+
+        #expect(
+            configuration.preferredLocale
+                == Locale.autoupdatingCurrent.identifier.replacingOccurrences(
+                    of: "_",
+                    with: "-"
+                )
+        )
+        #expect(configuration.provider != nil)
+        #expect(configuration.isConfigured)
+    }
+
+    @MainActor
+    @Test
+    func appleSpeechTranscriptionConfigurationKeepsThePreferredLocale() {
+        let configuration = VideoEditorView.Configuration.TranscriptionConfiguration.appleSpeech(
+            preferredLocale: "pt-BR",
+            dependencies: .init(
+                makeProvider: { ConfigurationProbeTranscriptionProvider() }
+            )
+        )
+
+        #expect(configuration.preferredLocale == "pt-BR")
+        #expect(configuration.provider != nil)
+        #expect(configuration.isConfigured)
+    }
+
+    @MainActor
+    @Test
+    func openAIWhisperTranscriptionConfigurationBuildsTheResolvedBackendMetadata() {
+        let configuration = VideoEditorView.Configuration.TranscriptionConfiguration.openAIWhisper(
+            apiKey: " test-api-key ",
+            dependencies: .init(
+                resolveAPIKey: { nil },
+                makeProvider: { _ in ConfigurationProbeTranscriptionProvider() }
+            )
+        )
+
+        #expect(configuration.provider != nil)
+        #expect(configuration.isConfigured)
+    }
+
+    @MainActor
+    @Test
+    func openAIWhisperTranscriptionConfigurationReturnsAnUnconfiguredStateWhenTheAPIKeyIsBlank() {
+        let configuration = VideoEditorView.Configuration.TranscriptionConfiguration.openAIWhisper(
+            apiKey: "   ",
+            dependencies: .init(
+                resolveAPIKey: { nil },
+                makeProvider: { _ in
+                    Issue.record("A blank API key should not create a Whisper provider.")
+                    return ConfigurationProbeTranscriptionProvider()
+                }
+            )
+        )
+
+        #expect(configuration.provider == nil)
+        #expect(configuration.isConfigured == false)
+    }
+
+    @MainActor
+    @Test
+    func openAIWhisperTranscriptionConfigurationKeepsThePreferredLocale() {
+        let configuration = VideoEditorView.Configuration.TranscriptionConfiguration.openAIWhisper(
+            apiKey: "test-api-key",
+            preferredLocale: "en-US",
+            dependencies: .init(
+                resolveAPIKey: { nil },
+                makeProvider: { _ in ConfigurationProbeTranscriptionProvider() }
+            )
+        )
+
+        #expect(configuration.preferredLocale == "en-US")
         #expect(configuration.provider != nil)
         #expect(configuration.isConfigured)
     }
@@ -302,67 +371,6 @@ private actor ConfigurationProbeTranscriptionProvider: VideoTranscriptionProvide
 
     func recordedInputs() -> [VideoTranscriptionInput] {
         inputs
-    }
-
-}
-
-private enum RootViewTranscriptionConfigurationTestContext {
-
-    // MARK: - Private Properties
-
-    private static let apiKey = "OPENAI_API_KEY"
-    private static let lock = NSLock()
-
-    // MARK: - Public Methods
-
-    static var hasBundledAPIKey: Bool {
-        guard
-            let apiKey = Bundle.main.object(forInfoDictionaryKey: self.apiKey) as? String
-        else {
-            return false
-        }
-
-        return !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    }
-
-    static func withAPIKeyState<Value>(
-        environmentValue: String?,
-        userDefaultsValue: String?,
-        _ body: () throws -> Value
-    ) rethrows -> Value {
-        lock.lock()
-        defer { lock.unlock() }
-
-        let previousEnvironmentValue = ProcessInfo.processInfo.environment[apiKey]
-        let previousUserDefaultsValue = UserDefaults.standard.string(forKey: apiKey)
-
-        if let environmentValue {
-            setenv(apiKey, environmentValue, 1)
-        } else {
-            unsetenv(apiKey)
-        }
-
-        if let userDefaultsValue {
-            UserDefaults.standard.set(userDefaultsValue, forKey: apiKey)
-        } else {
-            UserDefaults.standard.removeObject(forKey: apiKey)
-        }
-
-        defer {
-            if let previousEnvironmentValue {
-                setenv(apiKey, previousEnvironmentValue, 1)
-            } else {
-                unsetenv(apiKey)
-            }
-
-            if let previousUserDefaultsValue {
-                UserDefaults.standard.set(previousUserDefaultsValue, forKey: apiKey)
-            } else {
-                UserDefaults.standard.removeObject(forKey: apiKey)
-            }
-        }
-
-        return try body()
     }
 
 }

@@ -14,6 +14,18 @@ protocol VideoTranscriptionProvider: Sendable {
 protocol VideoTranscriptionComponentProtocol: VideoTranscriptionProvider {
     var state: TranscriptFeatureState { get async }
     func cancelCurrentTranscription() async
+    func availabilityError(
+        preferredLocale: String?
+    ) async -> TranscriptError?
+}
+
+extension VideoTranscriptionComponentProtocol {
+
+    func availabilityError(
+        preferredLocale: String?
+    ) async -> TranscriptError? {
+        nil
+    }
 }
 
 struct VideoTranscriptionInput: Hashable, Sendable {

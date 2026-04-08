@@ -202,7 +202,7 @@ struct TranscriptToolView: View {
     }
 
     private func failureView(for error: TranscriptError) -> some View {
-        if error == .providerNotConfigured {
+        if isNonRetryable(error) {
             statusView(
                 title: "Transcription unavailable",
                 message: errorMessage(for: error)
@@ -279,6 +279,8 @@ struct TranscriptToolView: View {
         switch error {
         case .providerNotConfigured:
             "No transcription provider is configured for this editor session."
+        case .unavailable(let message):
+            message
         case .invalidVideoSource:
             "The current video source could not be used for transcription."
         case .emptyResult:
@@ -287,6 +289,15 @@ struct TranscriptToolView: View {
             "The transcription request was cancelled before it finished."
         case .providerFailure(let message):
             message
+        }
+    }
+
+    private func isNonRetryable(_ error: TranscriptError) -> Bool {
+        switch error {
+        case .providerNotConfigured, .unavailable:
+            true
+        case .invalidVideoSource, .emptyResult, .cancelled, .providerFailure:
+            false
         }
     }
 

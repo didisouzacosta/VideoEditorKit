@@ -113,6 +113,8 @@ final class EditorViewModel {
     private var lastThumbnailDisplayScale: CGFloat = 1
     private var pendingEditingConfiguration: VideoEditingConfiguration?
     private var preferredTranscriptLocale: String?
+    private var transcriptAvailabilityError: TranscriptError?
+    private var transcriptionAvailabilityTask: Task<Void, Never>?
     private var transcriptionComponent: (any VideoTranscriptionComponentProtocol)?
     private var transcriptionProvider: (any VideoTranscriptionProvider)?
 
@@ -664,11 +666,14 @@ final class EditorViewModel {
         provider: (any VideoTranscriptionProvider)?,
         preferredLocale: String? = nil
     ) {
+        transcriptionAvailabilityTask?.cancel()
         transcriptionProvider = provider
         transcriptionComponent = provider as? any VideoTranscriptionComponentProtocol
         preferredTranscriptLocale = preferredLocale
+        transcriptAvailabilityError = nil
 
         syncTranscriptRuntimeState()
+        probeTranscriptAvailabilityIfNeeded()
     }
 
     func transcribeCurrentVideo() {
@@ -1192,13 +1197,38 @@ final class EditorViewModel {
     private func syncTranscriptRuntimeState() {
         switch transcriptFeatureState {
         case .idle:
-            transcriptState = transcriptDraftDocument == nil ? .idle : .loaded
+            if let transcriptAvailabilityError,
+                transcriptDraftDocument == nil
+            {
+                transcriptState = .failed(transcriptAvailabilityError)
+            } else {
+                transcriptState = transcriptDraftDocument == nil ? .idle : .loaded
+            }
         case .loaded:
             transcriptState = transcriptDocument == nil ? .idle : .loaded
         case .failed:
             transcriptState = .failed(
                 .providerFailure(message: "The previous transcription request failed.")
             )
+        }
+    }
+
+    private func probeTranscriptAvailabilityIfNeeded() {
+        guard let transcriptionComponent else { return }
+
+        let preferredLocale = preferredTranscriptLocale
+        transcriptionAvailabilityTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+
+            let availabilityError = await transcriptionComponent.availabilityError(
+                preferredLocale: preferredLocale
+            )
+            guard !Task.isCancelled else { return }
+
+            transcriptAvailabilityError = availabilityError
+
+            guard transcriptState != .loading else { return }
+            syncTranscriptRuntimeState()
         }
     }
 

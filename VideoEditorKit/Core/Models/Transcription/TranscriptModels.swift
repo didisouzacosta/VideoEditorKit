@@ -394,6 +394,7 @@ enum TranscriptFeatureState: Sendable, Equatable {
 
 enum TranscriptError: Error, Sendable, Equatable {
     case providerNotConfigured
+    case unavailable(message: String)
     case invalidVideoSource
     case emptyResult
     case cancelled

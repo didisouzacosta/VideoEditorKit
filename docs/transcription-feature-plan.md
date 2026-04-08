@@ -1,5 +1,9 @@
 # Plano Unico de Integracao de Transcricao com OpenAI Whisper
 
+> Nota
+> Este documento continua como historico da entrega do backend remoto com OpenAI Whisper.
+> A estrategia oficial atual para evoluir a feature, incluindo multiplos adapters de transcricao, esta em `docs/multi-provider-transcription-plan.md`.
+
 ## Objetivo
 
 Adicionar ao app um componente de transcricao remoto que:
@@ -31,7 +35,7 @@ O projeto ja possui a base funcional de transcricao no editor:
 - tipos `VideoTranscriptionInput`, `VideoTranscriptionResult`, `TranscriptionSegment` e `TranscriptionWord`
 - disparo de transcricao em [`EditorViewModel.transcribeCurrentVideo()`](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorKit/Core/ViewModels/EditorViewModel.swift#L697)
 - injecao do provider via [`VideoEditorView.Configuration.TranscriptionConfiguration`](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorKit/Views/EditorView/VideoEditorView.swift#L563)
-- configuracao padrao em [`RootView.defaultTranscriptionConfiguration`](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorKit/Views/RootView/RootView.swift#L108)
+- configuracao padrao em [`RootView`](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorKit/Views/RootView/RootView.swift), hoje simplificada para `transcription: .appleSpeech()`
 
 O gap atual nao e de UI nem de persistencia. O gap e a ausencia de um provider remoto concreto que faca:
 
@@ -200,7 +204,7 @@ Ela nao deve:
 
 ### `RootView`
 
-`RootView.defaultTranscriptionConfiguration` deve passar a construir o componente remoto real quando a configuracao da API estiver disponivel.
+A configuracao de transcricao da `RootView` nao deve carregar mais infraestrutura de resolver e factories quando o app assumir `AppleSpeech` como caminho padrao.
 
 ## Configuracao e segredo
 

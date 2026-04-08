@@ -566,7 +566,6 @@ extension VideoEditorView {
             // MARK: - Public Properties
 
             let preferredLocale: String?
-            private let explicitProvider: (any VideoTranscriptionProvider)?
 
             var isConfigured: Bool {
                 explicitProvider != nil
@@ -576,6 +575,10 @@ extension VideoEditorView {
                 explicitProvider
             }
 
+            // MARK: - Private Properties
+
+            private let explicitProvider: (any VideoTranscriptionProvider)?
+
             // MARK: - Initializer
 
             init(
@@ -584,6 +587,48 @@ extension VideoEditorView {
             ) {
                 explicitProvider = provider
                 self.preferredLocale = preferredLocale
+            }
+
+            // MARK: - Public Methods
+
+            static func appleSpeech(
+                preferredLocale: String? = nil,
+                dependencies: AppleSpeechTranscriptionProviderFactory.Dependencies = .init()
+            ) -> Self {
+                let provider = AppleSpeechTranscriptionProviderFactory(
+                    dependencies: dependencies
+                )
+                .makeProvider()
+                let resolvedPreferredLocale =
+                    preferredLocale
+                    ?? Locale.autoupdatingCurrent.identifier.replacingOccurrences(
+                        of: "_",
+                        with: "-"
+                    )
+
+                return .init(
+                    provider: provider,
+                    preferredLocale: resolvedPreferredLocale
+                )
+            }
+
+            static func openAIWhisper(
+                apiKey: String,
+                preferredLocale: String? = nil,
+                dependencies: OpenAIWhisperTranscriptionProviderFactory.Dependencies = .init()
+            ) -> Self {
+                let provider = OpenAIWhisperTranscriptionProviderFactory(
+                    dependencies: .init(
+                        resolveAPIKey: { apiKey },
+                        makeProvider: dependencies.makeProvider
+                    )
+                )
+                .makeProvider()
+
+                return .init(
+                    provider: provider,
+                    preferredLocale: preferredLocale
+                )
             }
 
         }
@@ -612,14 +657,11 @@ extension VideoEditorView {
         init(
             tools: [ToolAvailability] = ToolAvailability.enabled(ToolEnum.all),
             exportQualities: [ExportQualityAvailability] = ExportQualityAvailability.allEnabled,
-            transcription: TranscriptionConfiguration = .init(),
+            transcription: TranscriptionConfiguration = .appleSpeech(),
             onBlockedToolTap: ((ToolEnum) -> Void)? = nil,
             onBlockedExportQualityTap: ((VideoQuality) -> Void)? = nil
         ) {
-            self.tools = Self.resolvedTools(
-                from: tools,
-                transcription: transcription
-            ).sorted {
+            self.tools = tools.sorted {
                 if $0.order == $1.order {
                     return $0.tool.rawValue < $1.tool.rawValue
                 }
@@ -674,19 +716,6 @@ extension VideoEditorView {
 
         func notifyBlockedExportQualityTap(for quality: VideoQuality) {
             onBlockedExportQualityTap?(quality)
-        }
-
-        // MARK: - Private Methods
-
-        private static func resolvedTools(
-            from tools: [ToolAvailability],
-            transcription: TranscriptionConfiguration
-        ) -> [ToolAvailability] {
-            guard !transcription.isConfigured else {
-                return tools
-            }
-
-            return tools.filter { $0.tool != .transcript }
         }
 
     }

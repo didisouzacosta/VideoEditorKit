@@ -32,9 +32,6 @@ struct RootView: View {
 
     private enum Constants {
         static let editingStateSaveDebounceInNanoseconds: UInt64 = 250_000_000
-        static let openAIAPIKeyEnvironmentName = "OPENAI_API_KEY"
-        static let openAIAPIKeyInfoDictionaryName = "OPENAI_API_KEY"
-        static let openAIAPIKeyUserDefaultsName = "OPENAI_API_KEY"
     }
 
     // MARK: - Body
@@ -104,35 +101,39 @@ struct RootView: View {
 
 }
 
-extension RootView {
+enum AppShellTranscriptionConfiguration {
 
-    // MARK: - Private Properties
+    private enum Keys {
+        static let openAIAPIKey = "OPENAI_API_KEY"
+    }
 
-    static var defaultTranscriptionConfiguration: VideoEditorView.Configuration.TranscriptionConfiguration {
-        .init(
-            provider: defaultTranscriptionProvider,
-            preferredLocale: nil
+    static func makeDefaultTranscriptionConfiguration(
+        infoDictionary: [String: Any]? = Bundle.main.infoDictionary
+    ) -> VideoEditorView.Configuration.TranscriptionConfiguration {
+        .openAIWhisper(
+            apiKey: resolvedOpenAIAPIKey(infoDictionary: infoDictionary)
         )
     }
 
-    private static var defaultTranscriptionProvider: (any VideoTranscriptionProvider)? {
-        guard let apiKey = resolvedOpenAIAPIKey() else { return nil }
+    static func resolvedOpenAIAPIKey(
+        infoDictionary: [String: Any]? = Bundle.main.infoDictionary
+    ) -> String {
+        let apiKey = (infoDictionary?[Keys.openAIAPIKey] as? String)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
 
-        return OpenAIWhisperTranscriptionComponent(apiKey)
+        guard let apiKey, apiKey.isEmpty == false else {
+            assertionFailure(
+                "RootView requires an OPENAI_API_KEY entry in Info.plist to use OpenAI Whisper as the default transcription provider."
+            )
+            return ""
+        }
+
+        return apiKey
     }
 
-    private static func resolvedOpenAIAPIKey() -> String? {
-        let candidates = [
-            ProcessInfo.processInfo.environment[Constants.openAIAPIKeyEnvironmentName],
-            Bundle.main.object(forInfoDictionaryKey: Constants.openAIAPIKeyInfoDictionaryName) as? String,
-            UserDefaults.standard.string(forKey: Constants.openAIAPIKeyUserDefaultsName),
-        ]
+}
 
-        return
-            candidates
-            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .first(where: { !$0.isEmpty })
-    }
+extension RootView {
 
     private enum PremiumPresentation: Identifiable {
 
@@ -180,7 +181,7 @@ extension RootView {
         .init(
             tools: ToolAvailability.enabled(ToolEnum.all),
             exportQualities: ExportQualityAvailability.allEnabled,
-            transcription: Self.defaultTranscriptionConfiguration,
+            transcription: AppShellTranscriptionConfiguration.makeDefaultTranscriptionConfiguration(),
             onBlockedToolTap: { tool in
                 premiumPresentation = .tool(tool)
             },
