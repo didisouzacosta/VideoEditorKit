@@ -65,10 +65,10 @@ The safe-area layer can come later without invalidating the crop model.
 
 ## Current Code Reality
 
-- The editor now exposes preset-first crop controls in [CropToolView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorKit/Views/ToolsView/Crop/CropToolView.swift).
-- The preview already uses `CropView` driven by `cropFreeformRect` in [PlayerHolderView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorKit/Views/EditorView/PlayerHolderView.swift).
-- Crop state is already serializable via `VideoEditingConfiguration.Crop.freeformRect` in [VideoEditingConfiguration.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorKit/Core/Models/Editing/VideoEditingConfiguration.swift).
-- Export already consumes `freeformRect` in the crop stage in [VideoEditor.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorKit/Core/Models/Enums/VideoEditor.swift).
+- The editor now exposes preset-first crop controls in [CropView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Views/ToolsView/Presets/CropView.swift).
+- The preview already uses `CropView` driven by `cropFreeformRect` in [PlayerHolderView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Views/EditorView/PlayerHolderView.swift).
+- Crop state is already serializable via `VideoEditingConfiguration.Crop.freeformRect` in [VideoEditingConfiguration.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Core/Models/Editing/VideoEditingConfiguration.swift).
+- Export already consumes `freeformRect` in the crop stage in [VideoEditor.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Core/Models/Enums/VideoEditor.swift).
 
 Because of that, the first implementation can be built on top of the current model instead of introducing new persistence immediately.
 

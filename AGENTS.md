@@ -37,15 +37,15 @@ Build settings atuais:
 ## Estrutura real do repositório
 
 ```text
-VideoEditorKit/
+VideoEditor/
   Models/        — modelos de domínio leves (`Video`, `Audio`, `VideoQuality`)
   ViewModels/    — estado observável da UI (`RootViewModel`, `EditorViewModel`, etc.)
   Service/       — player, câmera, gravador de áudio e persistência
   Views/         — telas e componentes SwiftUI do editor
   Utils/         — helpers de exportação, extensões e utilitários
-  VideoEditorKitApp.swift
+  VideoEditorApp.swift
 
-VideoEditorKitTests/
+VideoEditorTests/
   — testes unitários pontuais para formatação, timeline, crop, persistência e modelo `Video`
 ```
 
@@ -57,7 +57,7 @@ Não há separação atual entre camada de domínio pura, engines testáveis e U
 
 ### 1. Entrada
 
-- `VideoEditorKitApp` inicializa `RootView` com `RootViewModel`.
+- `VideoEditorApp` inicializa `RootView` com `RootViewModel`.
 - `RootView` lista projetos salvos em Core Data.
 - O usuário pode criar projeto importando um vídeo com `PhotosPicker`.
 
@@ -325,13 +325,13 @@ Não há hoje testes unitários para:
 
 ## Arquivos centrais para entender o projeto
 
-- `VideoEditorKit/VideoEditorKitApp.swift`
-- `VideoEditorKit/Views/RootView/RootView.swift`
-- `VideoEditorKit/Views/EditorView/MainEditorView.swift`
-- `VideoEditorKit/ViewModels/EditorViewModel.swift`
-- `VideoEditorKit/Service/Player/VideoPlayerManager.swift`
-- `VideoEditorKit/Service/CoreData/ProjectEntity+Ext.swift`
-- `VideoEditorKit/Utils/Helpers/VideoEditor.swift`
+- `VideoEditor/VideoEditorApp.swift`
+- `VideoEditor/Views/RootView/RootView.swift`
+- `VideoEditor/Views/EditorView/MainEditorView.swift`
+- `VideoEditor/Core/ViewModels/EditorViewModel.swift`
+- `VideoEditor/Core/Managers/Player/VideoPlayerManager.swift`
+- `VideoEditor/AppShell/Persistence/EditedVideoProject.swift`
+- `VideoEditor/Core/Models/Enums/VideoEditor.swift`
 
 ---
 

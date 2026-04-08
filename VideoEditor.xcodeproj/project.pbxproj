@@ -1,0 +1,554 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 70;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A1B2C301D1E2F3A400000001 /* AppIntents.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A1B2C301D1E2F3A400000003 /* AppIntents.framework */; };
+		A1B2C301D1E2F3A400000002 /* AppIntents.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A1B2C301D1E2F3A400000003 /* AppIntents.framework */; };
+		B1F001000000000000000001 /* VideoEditorKit in Frameworks */ = {isa = PBXBuildFile; productRef = B1F001000000000000000003 /* VideoEditorKit */; };
+		BC7988E2ACBAE67C54358E26 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0FCC6D5CF0D1D6027E8A3297 /* Foundation.framework */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		02322C3C59280E7BC14780AF /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5ACFF96329E944FA00827A37 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 5ACFF96A29E944FA00827A37;
+			remoteInfo = VideoEditor;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		0FCC6D5CF0D1D6027E8A3297 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
+		5ACFF96B29E944FA00827A37 /* VideoEditor.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VideoEditor.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1B2C301D1E2F3A400000003 /* AppIntents.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppIntents.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/AppIntents.framework; sourceTree = DEVELOPER_DIR; };
+		FC233DAD5E07B50EE39B6940 /* VideoEditorTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = VideoEditorTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		A98C85AE2F8366C300FC0873 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Core/Actors/VideoCanvasMappingActor.swift,
+				Core/Models/Canvas/VideoCanvasLayout.swift,
+				Core/Models/Canvas/VideoCanvasPreset.swift,
+				Core/Models/Canvas/VideoCanvasRenderRequest.swift,
+				Core/Models/Canvas/VideoCanvasState.swift,
+				Core/Models/Editing/EditorToolbarLayoutResolver.swift,
+				Core/Models/Editing/EditorToolSelectionCoordinator.swift,
+				Core/Models/Editing/EditorCropEditingCoordinator.swift,
+				Core/Models/Editing/VideoCropFormatPreset.swift,
+				Core/Models/Editing/VideoCropPreviewLayout.swift,
+				Core/Models/Editing/VideoEditingConfiguration.swift,
+				Core/Models/Editing/VideoEditingPresentationStateResolver.swift,
+				Core/Models/SafeArea/SocialPlatformSafeArea.swift,
+				Core/Models/ToolModel.swift,
+				Core/Models/Transcription/EditorTranscriptMappingCoordinator.swift,
+				Core/Models/Transcription/EditorTranscriptRemappingCoordinator.swift,
+				Core/Models/Transcription/TranscriptModels.swift,
+				Core/Models/Transcription/TranscriptTimeMapper.swift,
+				Core/Models/Transcription/TranscriptWordHighlightStyle.swift,
+				Core/Models/Transcription/TranscriptWordEditingCoordinator.swift,
+				Core/Models/Transcription/VideoTranscriptionProvider.swift,
+				Core/Models/VideoQuality.swift,
+				Core/Utils/PlaybackTimeMapping.swift,
+				Info.plist,
+			);
+			target = 5ACFF96A29E944FA00827A37 /* VideoEditor */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		A98D11C12F71D8890025159E /* VideoEditorTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = VideoEditorTests; sourceTree = "<group>"; };
+		A98D13292F71DE7C0025159E /* VideoEditor */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (A98C85AE2F8366C300FC0873 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = VideoEditor; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		5ACFF96829E944FA00827A37 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1B2C301D1E2F3A400000001 /* AppIntents.framework in Frameworks */,
+				B1F001000000000000000001 /* VideoEditorKit in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FC0B5722C26CD39A828A17A2 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1B2C301D1E2F3A400000002 /* AppIntents.framework in Frameworks */,
+				BC7988E2ACBAE67C54358E26 /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		07AD9B4E4756DF867BA4A2FC /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				A1B2C301D1E2F3A400000003 /* AppIntents.framework */,
+				0FCC6D5CF0D1D6027E8A3297 /* Foundation.framework */,
+			);
+			name = iOS;
+			sourceTree = "<group>";
+		};
+		5ACFF96229E944FA00827A37 = {
+			isa = PBXGroup;
+			children = (
+				A98D13292F71DE7C0025159E /* VideoEditorKit */,
+				A98D11C12F71D8890025159E /* VideoEditorKitTests */,
+				5ACFF96C29E944FA00827A37 /* Products */,
+				623202D2D70D15A896584F95 /* Frameworks */,
+			);
+			sourceTree = "<group>";
+		};
+		5ACFF96C29E944FA00827A37 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				5ACFF96B29E944FA00827A37 /* VideoEditor.app */,
+				FC233DAD5E07B50EE39B6940 /* VideoEditorTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		623202D2D70D15A896584F95 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				07AD9B4E4756DF867BA4A2FC /* iOS */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		5ACFF96A29E944FA00827A37 /* VideoEditor */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5ACFF97929E944FC00827A37 /* Build configuration list for PBXNativeTarget "VideoEditor" */;
+			buildPhases = (
+				5ACFF96729E944FA00827A37 /* Sources */,
+				5ACFF96829E944FA00827A37 /* Frameworks */,
+				5ACFF96929E944FA00827A37 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				A98D13292F71DE7C0025159E /* VideoEditorKit */,
+			);
+			name = VideoEditor;
+			packageProductDependencies = (
+				B1F001000000000000000003 /* VideoEditorKit */,
+			);
+			productName = VideoEditor;
+			productReference = 5ACFF96B29E944FA00827A37 /* VideoEditor.app */;
+			productType = "com.apple.product-type.application";
+		};
+		D8526E65F43C08F798EE4595 /* VideoEditorTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9596142894888395242864D2 /* Build configuration list for PBXNativeTarget "VideoEditorTests" */;
+			buildPhases = (
+				D200510EBAAD7EDF5F59E6C5 /* Sources */,
+				FC0B5722C26CD39A828A17A2 /* Frameworks */,
+				1D23B5686CD568D585B9B585 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				3C7254F2E6060C807CD65555 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				A98D11C12F71D8890025159E /* VideoEditorKitTests */,
+			);
+			name = VideoEditorTests;
+			productName = VideoEditorTests;
+			productReference = FC233DAD5E07B50EE39B6940 /* VideoEditorTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		5ACFF96329E944FA00827A37 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1420;
+				LastUpgradeCheck = 2630;
+				TargetAttributes = {
+					5ACFF96A29E944FA00827A37 = {
+						CreatedOnToolsVersion = 14.2;
+					};
+					D8526E65F43C08F798EE4595 = {
+						CreatedOnToolsVersion = 26.3;
+						TestTargetID = 5ACFF96A29E944FA00827A37;
+					};
+				};
+			};
+			buildConfigurationList = 5ACFF96629E944FA00827A37 /* Build configuration list for PBXProject "VideoEditorKit" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 5ACFF96229E944FA00827A37;
+			packageReferences = (
+				B1F001000000000000000002 /* XCLocalSwiftPackageReference "Packages/VideoEditorKit" */,
+			);
+			productRefGroup = 5ACFF96C29E944FA00827A37 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				5ACFF96A29E944FA00827A37 /* VideoEditor */,
+				D8526E65F43C08F798EE4595 /* VideoEditorTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		1D23B5686CD568D585B9B585 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5ACFF96929E944FA00827A37 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		5ACFF96729E944FA00827A37 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D200510EBAAD7EDF5F59E6C5 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		3C7254F2E6060C807CD65555 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = VideoEditor;
+			target = 5ACFF96A29E944FA00827A37 /* VideoEditor */;
+			targetProxy = 02322C3C59280E7BC14780AF /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		5ACFF97729E944FC00827A37 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = MM4N959BB5;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		5ACFF97829E944FC00827A37 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = MM4N959BB5;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		5ACFF97A29E944FC00827A37 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = VideoEditor/Info.plist;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Allow camera access to record videos inside the editor.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Allow microphone access to record narration and capture audio in the editor.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Allow photo library access to import videos and save rendered exports.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Allow speech recognition to generate local transcripts from your videos.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIStatusBarHidden = NO;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.didisouzacosta.VideoEditor;
+				PRODUCT_MODULE_NAME = VideoEditor;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		5ACFF97B29E944FC00827A37 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = VideoEditor/Info.plist;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Allow camera access to record videos inside the editor.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Allow microphone access to record narration and capture audio in the editor.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Allow photo library access to import videos and save rendered exports.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Allow speech recognition to generate local transcripts from your videos.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIStatusBarHidden = NO;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.didisouzacosta.VideoEditor;
+				PRODUCT_MODULE_NAME = VideoEditor;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		6C75404EBE546B794CD0047D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = MM4N959BB5;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.didisouzacosta.VideoEditorTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/VideoEditor.app/VideoEditor";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		A6BF50D9A5FC2A2A1EFAE44E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = MM4N959BB5;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.didisouzacosta.VideoEditorTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/VideoEditor.app/VideoEditor";
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		5ACFF96629E944FA00827A37 /* Build configuration list for PBXProject "VideoEditorKit" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5ACFF97729E944FC00827A37 /* Debug */,
+				5ACFF97829E944FC00827A37 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		5ACFF97929E944FC00827A37 /* Build configuration list for PBXNativeTarget "VideoEditor" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5ACFF97A29E944FC00827A37 /* Debug */,
+				5ACFF97B29E944FC00827A37 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9596142894888395242864D2 /* Build configuration list for PBXNativeTarget "VideoEditorTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6C75404EBE546B794CD0047D /* Release */,
+				A6BF50D9A5FC2A2A1EFAE44E /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		B1F001000000000000000002 /* XCLocalSwiftPackageReference "Packages/VideoEditorKit" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/VideoEditorKit;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		B1F001000000000000000003 /* VideoEditorKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B1F001000000000000000002 /* XCLocalSwiftPackageReference "Packages/VideoEditorKit" */;
+			productName = VideoEditorKit;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 5ACFF96329E944FA00827A37 /* Project object */;
+}

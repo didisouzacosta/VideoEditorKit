@@ -1,0 +1,92 @@
+import Foundation
+import Testing
+import VideoEditorKit
+
+@testable import VideoEditor
+
+@Suite("EditorTranscriptRemappingCoordinatorTests")
+struct TranscriptRemappingCoordinatorTests {
+
+    // MARK: - Public Methods
+
+    @Test
+    func remapDocumentProjectsSegmentAndWordTimelineRanges() throws {
+        let segmentID = try #require(UUID(uuidString: "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE"))
+        let wordID = try #require(UUID(uuidString: "11111111-2222-3333-4444-555555555555"))
+
+        let document = TranscriptDocument(
+            segments: [
+                EditableTranscriptSegment(
+                    id: segmentID,
+                    timeMapping: .init(
+                        sourceStartTime: 10,
+                        sourceEndTime: 40,
+                        timelineStartTime: nil,
+                        timelineEndTime: nil
+                    ),
+                    originalText: "Original segment",
+                    editedText: "Edited segment",
+                    words: [
+                        EditableTranscriptWord(
+                            id: wordID,
+                            timeMapping: .init(
+                                sourceStartTime: 18,
+                                sourceEndTime: 24,
+                                timelineStartTime: nil,
+                                timelineEndTime: nil
+                            ),
+                            originalText: "Original",
+                            editedText: "Edited"
+                        )
+                    ]
+                )
+            ]
+        )
+
+        let remappedDocument = EditorTranscriptRemappingCoordinator.remap(
+            document,
+            trimRange: 20...60,
+            playbackRate: 2
+        )
+        let remappedSegment = try #require(remappedDocument?.segments.first)
+        let remappedWord = try #require(remappedSegment.words.first)
+
+        #expect(remappedSegment.timeMapping.sourceRange == 10...40)
+        #expect(remappedSegment.timeMapping.timelineRange == 10...20)
+        #expect(remappedSegment.originalText == "Original segment")
+        #expect(remappedSegment.editedText == "Edited segment")
+        #expect(remappedWord.timeMapping.sourceRange == 18...24)
+        #expect(remappedWord.timeMapping.timelineRange == 10...12)
+        #expect(remappedWord.originalText == "Original")
+        #expect(remappedWord.editedText == "Edited")
+    }
+
+    @Test
+    func remapDocumentKeepsSegmentsButHidesThoseOutsideTrim() {
+        let document = TranscriptDocument(
+            segments: [
+                EditableTranscriptSegment(
+                    id: UUID(),
+                    timeMapping: .init(
+                        sourceStartTime: 0,
+                        sourceEndTime: 4,
+                        timelineStartTime: 0,
+                        timelineEndTime: 4
+                    ),
+                    originalText: "Invisible",
+                    editedText: "Invisible"
+                )
+            ]
+        )
+
+        let remappedDocument = EditorTranscriptRemappingCoordinator.remap(
+            document,
+            trimRange: 20...60,
+            playbackRate: 1
+        )
+
+        #expect(remappedDocument?.segments.count == 1)
+        #expect(remappedDocument?.segments.first?.timeMapping.timelineRange == nil)
+    }
+
+}

@@ -31,11 +31,11 @@ Esse passa a ser o unico plano oficial de transcricao do projeto.
 
 O projeto ja possui a base funcional de transcricao no editor:
 
-- contrato [`VideoTranscriptionProvider`](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorKit/Core/Models/Transcription/VideoTranscriptionProvider.swift)
+- contrato [`VideoTranscriptionProvider`](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Core/Models/Transcription/VideoTranscriptionProvider.swift)
 - tipos `VideoTranscriptionInput`, `VideoTranscriptionResult`, `TranscriptionSegment` e `TranscriptionWord`
-- disparo de transcricao em [`EditorViewModel.transcribeCurrentVideo()`](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorKit/Core/ViewModels/EditorViewModel.swift#L697)
-- injecao do provider via [`VideoEditorView.Configuration.TranscriptionConfiguration`](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorKit/Views/EditorView/VideoEditorView.swift#L563)
-- configuracao padrao em [`RootView`](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorKit/Views/RootView/RootView.swift), hoje simplificada para `transcription: .appleSpeech()`
+- disparo de transcricao em [`EditorViewModel.transcribeCurrentVideo()`](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Core/ViewModels/EditorViewModel.swift#L697)
+- injecao do provider via [`VideoEditorView.Configuration.TranscriptionConfiguration`](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Views/EditorView/VideoEditorView.swift)
+- configuracao padrao no shell do app em [`AppShellTranscriptionConfiguration.swift`](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/AppShell/Transcription/AppShellTranscriptionConfiguration.swift) e em [`RootView`](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Views/RootView/RootView.swift)
 
 O gap atual nao e de UI nem de persistencia. O gap e a ausencia de um provider remoto concreto que faca:
 
@@ -47,7 +47,7 @@ O gap atual nao e de UI nem de persistencia. O gap e a ausencia de um provider r
 
 ## Decisao de arquitetura
 
-Criar um componente unico em `VideoEditorKit/TranscriptionKit/` chamado `OpenAIWhisperTranscriptionComponent`.
+Criar um componente unico em `VideoEditor/TranscriptionKit/` chamado `OpenAIWhisperTranscriptionComponent`.
 
 Esse componente sera o ponto de entrada da feature e devera:
 
@@ -135,7 +135,7 @@ Compatibilidade:
 
 ## Estrutura proposta
 
-Arquivos esperados em `VideoEditorKit/TranscriptionKit/`:
+Arquivos esperados em `VideoEditor/TranscriptionKit/`:
 
 - `OpenAIWhisperTranscriptionComponent.swift`
 - `VideoAudioExtractionService.swift`

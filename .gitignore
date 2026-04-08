@@ -3,3 +3,7 @@
 
 VideoEditorKit.xcodeproj/project.xcworkspace/xcshareddata/
 VideoEditorKit.xcodeproj/project.xcworkspace/xcuserdata/
+VideoEditor.xcodeproj/project.xcworkspace/xcuserdata/
+VideoEditor.xcodeproj/xcuserdata/
+Packages/VideoEditorKit/.build/
+Packages/VideoEditorKit/.swiftpm/

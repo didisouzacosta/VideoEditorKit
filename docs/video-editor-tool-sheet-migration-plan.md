@@ -108,12 +108,12 @@ Scope:
 
 ## Files Expected To Change
 
-- `VideoEditorKit/Views/EditorView/VideoEditorView.swift`
-- `VideoEditorKit/Views/ToolsView/ToolsSectionView.swift`
-- `VideoEditorKit/Core/ViewModels/EditorViewModel.swift`
-- `VideoEditorKit/Core/Models/ToolModel.swift`
-- `VideoEditorKit/Views/RootView/RootView.swift`
-- `VideoEditorKit/Views/EditorView/PlayerHolderView.swift`
+- `VideoEditor/Views/EditorView/VideoEditorView.swift`
+- `VideoEditor/Views/ToolsView/ToolsSectionView.swift`
+- `VideoEditor/Core/ViewModels/EditorViewModel.swift`
+- `VideoEditor/Core/Models/ToolModel.swift`
+- `VideoEditor/Views/RootView/RootView.swift`
+- `VideoEditor/Views/EditorView/PlayerHolderView.swift`
 
 ## Risks
 

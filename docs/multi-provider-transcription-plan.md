@@ -96,7 +96,7 @@ Nota historica:
 
 Verificacao:
 
-- `xcodebuild test -project VideoEditorKit.xcodeproj -scheme VideoEditorKit -destination 'platform=iOS Simulator,id=48607FD1-353D-447C-968A-109A56036C2F' -only-testing:VideoEditorKitTests/VideoEditorConfigurationTests`
+- `xcodebuild test -project VideoEditor.xcodeproj -scheme VideoEditor -destination 'platform=iOS Simulator,id=48607FD1-353D-447C-968A-109A56036C2F' -only-testing:VideoEditorTests/VideoEditorConfigurationTests`
 
 ### Fase 2
 
@@ -152,7 +152,7 @@ Fora de escopo nesta fase:
 
 Verificacao:
 
-- `xcodebuild test -project VideoEditorKit.xcodeproj -scheme VideoEditorKit -destination 'platform=iOS Simulator,id=48607FD1-353D-447C-968A-109A56036C2F' -only-testing:VideoEditorKitTests/AppleSpeechTranscriptionResultMapperTests -only-testing:VideoEditorKitTests/AppleSpeechTranscriptionComponentTests`
+- `xcodebuild test -project VideoEditor.xcodeproj -scheme VideoEditor -destination 'platform=iOS Simulator,id=48607FD1-353D-447C-968A-109A56036C2F' -only-testing:VideoEditorTests/AppleSpeechTranscriptionResultMapperTests -only-testing:VideoEditorTests/AppleSpeechTranscriptionComponentTests`
 
 ### Fase 3
 
@@ -219,7 +219,7 @@ Resultado pratico:
 
 Verificacao:
 
-- `xcodebuild test -project VideoEditorKit.xcodeproj -scheme VideoEditorKit -destination 'platform=iOS Simulator,id=48607FD1-353D-447C-968A-109A56036C2F' -only-testing:VideoEditorKitTests/EditorViewModelTests -only-testing:VideoEditorKitTests/EditorTranscriptMappingCoordinatorTests -only-testing:VideoEditorKitTests/AppleSpeechTranscriptionComponentTests -only-testing:VideoEditorKitTests/AppleSpeechTranscriptionResultMapperTests`
+- `xcodebuild test -project VideoEditor.xcodeproj -scheme VideoEditor -destination 'platform=iOS Simulator,id=48607FD1-353D-447C-968A-109A56036C2F' -only-testing:VideoEditorTests/EditorViewModelTests -only-testing:VideoEditorTests/EditorTranscriptMappingCoordinatorTests -only-testing:VideoEditorTests/AppleSpeechTranscriptionComponentTests -only-testing:VideoEditorTests/AppleSpeechTranscriptionResultMapperTests`
 
 ### Fase 5
 

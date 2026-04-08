@@ -356,14 +356,14 @@ Scope:
 
 ## Files Expected To Change
 
-- `VideoEditorKit/Views/EditorView/VideoEditorView.swift`
-- `VideoEditorKit/Core/ViewModels/EditorViewModel.swift`
-- `VideoEditorKit/Core/Models/Video.swift`
-- `VideoEditorKit/Core/Models/AudioModel.swift`
-- `VideoEditorKit/Views/ToolsView/Crop/CropView.swift`
-- `VideoEditorKit/Views/RootView/RootView.swift`
-- new files under `VideoEditorKit/Core/Models/Session/`
-- new tests under `VideoEditorKitTests/Models/` and `VideoEditorKitTests/ViewModels/`
+- `VideoEditor/Views/EditorView/VideoEditorView.swift`
+- `VideoEditor/Core/ViewModels/EditorViewModel.swift`
+- `VideoEditor/Core/Models/Video.swift`
+- `VideoEditor/Core/Models/AudioModel.swift`
+- `VideoEditor/Views/ToolsView/Presets/CropView.swift`
+- `VideoEditor/Views/RootView/RootView.swift`
+- new files under `VideoEditor/Core/Models/Session/`
+- new tests under `VideoEditorTests/Models/` and `VideoEditorTests/ViewModels/`
 
 ## Test Plan
 

@@ -88,7 +88,7 @@ Status:
 - Defer source resolution callbacks until the editor itself owns bootstrap and starts resolving the source after presentation.
 
 Suggested file:
-- `VideoEditorKit/Views/EditorView/VideoEditorSessionSourceResolver.swift`
+- `VideoEditor/AppShell/Photos/VideoEditorSessionSourceResolver.swift`
 
 Status:
 - Completed.
