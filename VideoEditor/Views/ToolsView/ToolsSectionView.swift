@@ -458,5 +458,5 @@ extension ToolsSectionView {
 }
 
 #Preview {
-    VideoEditorView()
+    HostedVideoEditorView()
 }

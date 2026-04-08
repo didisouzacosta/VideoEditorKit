@@ -34,7 +34,7 @@ O projeto ja possui a base funcional de transcricao no editor:
 - contrato [`VideoTranscriptionProvider`](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Core/Models/Transcription/VideoTranscriptionProvider.swift)
 - tipos `VideoTranscriptionInput`, `VideoTranscriptionResult`, `TranscriptionSegment` e `TranscriptionWord`
 - disparo de transcricao em [`EditorViewModel.transcribeCurrentVideo()`](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Core/ViewModels/EditorViewModel.swift#L697)
-- injecao do provider via [`VideoEditorView.Configuration.TranscriptionConfiguration`](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Views/EditorView/VideoEditorView.swift)
+- injecao do provider via [`VideoEditorView.Configuration.TranscriptionConfiguration`](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/API/VideoEditorPublicTypes.swift)
 - configuracao padrao no shell do app em [`AppShellTranscriptionConfiguration.swift`](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/AppShell/Transcription/AppShellTranscriptionConfiguration.swift) e em [`RootView`](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Views/RootView/RootView.swift)
 
 O gap atual nao e de UI nem de persistencia. O gap e a ausencia de um provider remoto concreto que faca:

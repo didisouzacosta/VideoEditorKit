@@ -344,5 +344,5 @@ struct PlayerControl: View {
 }
 
 #Preview {
-    VideoEditorView()
+    HostedVideoEditorView()
 }

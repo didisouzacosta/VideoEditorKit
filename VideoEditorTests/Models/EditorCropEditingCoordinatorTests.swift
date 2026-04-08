@@ -94,19 +94,19 @@ struct EditorCropEditingCoordinatorTests {
         }()
 
         #expect(
-            EditorCropEditingCoordinator.shouldApplyPresetTool(
+            HostEditorCropEditingCoordinator.shouldApplyPresetTool(
                 for: video,
                 state: .initial
             ) == false
         )
         #expect(
-            EditorCropEditingCoordinator.shouldApplyPresetTool(
+            HostEditorCropEditingCoordinator.shouldApplyPresetTool(
                 for: rotatedVideo,
                 state: .initial
             ) == true
         )
         #expect(
-            EditorCropEditingCoordinator.shouldApplyPresetTool(
+            HostEditorCropEditingCoordinator.shouldApplyPresetTool(
                 for: video,
                 state: .init(
                     canvasSnapshot: .init(

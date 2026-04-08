@@ -108,7 +108,7 @@ Scope:
 
 ## Files Expected To Change
 
-- `VideoEditor/Views/EditorView/VideoEditorView.swift`
+- `VideoEditor/Views/EditorView/HostedVideoEditorView.swift`
 - `VideoEditor/Views/ToolsView/ToolsSectionView.swift`
 - `VideoEditor/Core/ViewModels/EditorViewModel.swift`
 - `VideoEditor/Core/Models/ToolModel.swift`

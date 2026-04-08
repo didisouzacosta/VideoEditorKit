@@ -410,7 +410,7 @@ private struct VideoEditorPresentationSmokeHostView: View {
     // MARK: - Body
 
     var body: some View {
-        VideoEditorView(
+        HostedVideoEditorView(
             "Editor",
             session: .init(sourceVideoURL: sourceURL),
             configuration: .init()

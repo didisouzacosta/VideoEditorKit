@@ -1,18 +1,15 @@
 //
-//  VideoEditorView.swift
+//  HostedVideoEditorView.swift
 //  VideoEditorKit
 //
 //  Created by Adriano Souza Costa on 23.03.2026.
 //
 
-import AVKit
 import SwiftUI
 import VideoEditorKit
 
 @MainActor
-struct VideoEditorView: View {
-
-    typealias SaveState = VideoEditorKit.VideoEditorSaveState
+struct HostedVideoEditorView: View {
 
     // MARK: - Environments
 
@@ -30,9 +27,9 @@ struct VideoEditorView: View {
     // MARK: - Private Properties
 
     private let title: String?
-    private let callbacks: Callbacks
-    private let configuration: Configuration
-    private let session: Session
+    private let callbacks: VideoEditorView.Callbacks
+    private let configuration: VideoEditorView.Configuration
+    private let session: VideoEditorView.Session
 
     // MARK: - Body
 
@@ -126,9 +123,9 @@ struct VideoEditorView: View {
 
     init(
         _ title: String? = nil,
-        session: Session,
-        configuration: Configuration = .init(),
-        callbacks: Callbacks = .init()
+        session: VideoEditorView.Session,
+        configuration: VideoEditorView.Configuration = .init(),
+        callbacks: VideoEditorView.Callbacks = .init()
     ) {
         self.title = title
         self.callbacks = callbacks
@@ -138,10 +135,10 @@ struct VideoEditorView: View {
 
     init(
         _ title: String? = nil,
-        source: Session.Source? = nil,
+        source: VideoEditorView.Session.Source? = nil,
         editingConfiguration: VideoEditingConfiguration? = nil,
-        configuration: Configuration = .init(),
-        onSaveStateChanged: @escaping (SaveState) -> Void = { _ in },
+        configuration: VideoEditorView.Configuration = .init(),
+        onSaveStateChanged: @escaping (VideoEditorView.SaveState) -> Void = { _ in },
         onSourceVideoResolved: @escaping (URL) -> Void = { _ in },
         onDismissed: @escaping (VideoEditingConfiguration?) -> Void = { _ in },
         onExportedVideoURL: @escaping (URL) -> Void = { _ in }
@@ -166,8 +163,8 @@ struct VideoEditorView: View {
         _ title: String? = nil,
         sourceVideoURL: URL?,
         editingConfiguration: VideoEditingConfiguration? = nil,
-        configuration: Configuration = .init(),
-        onSaveStateChanged: @escaping (SaveState) -> Void = { _ in },
+        configuration: VideoEditorView.Configuration = .init(),
+        onSaveStateChanged: @escaping (VideoEditorView.SaveState) -> Void = { _ in },
         onSourceVideoResolved: @escaping (URL) -> Void = { _ in },
         onDismissed: @escaping (VideoEditingConfiguration?) -> Void = { _ in },
         onExportedVideoURL: @escaping (URL) -> Void = { _ in }
@@ -406,18 +403,5 @@ struct VideoEditorView: View {
         saveEmissionCoordinator.reset()
         editorViewModel.cancelDeferredTasks()
     }
-
-}
-
-extension VideoEditorView {
-
-    typealias Session = VideoEditorKit.VideoEditorSession
-
-}
-
-extension VideoEditorView {
-
-    typealias Callbacks = VideoEditorKit.VideoEditorCallbacks
-    typealias Configuration = VideoEditorKit.VideoEditorConfiguration
 
 }

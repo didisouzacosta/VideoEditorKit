@@ -77,7 +77,7 @@ struct RootView: View {
                 item: $bindableViewModel.editorDestination,
                 onDismiss: viewModel.handleEditorDismiss
             ) { destination in
-                VideoEditorView(
+                HostedVideoEditorView(
                     "Editor",
                     session: destination.session,
                     configuration: editorConfiguration,

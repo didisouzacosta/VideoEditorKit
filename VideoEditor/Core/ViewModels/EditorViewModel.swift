@@ -991,7 +991,7 @@ final class EditorViewModel {
     private func syncCropToolState() {
         guard let currentVideo else { return }
 
-        if EditorCropEditingCoordinator.shouldApplyPresetTool(
+        if HostEditorCropEditingCoordinator.shouldApplyPresetTool(
             for: currentVideo,
             state: cropEditingState
         ) {

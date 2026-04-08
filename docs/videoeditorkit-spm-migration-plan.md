@@ -61,7 +61,7 @@ Today the repository is still app-first:
 - [VideoEditorApp.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/VideoEditorApp.swift) defines the app entry point
 - [RootView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Views/RootView/RootView.swift) behaves as the app shell
 - [EditedVideoProjectsStore.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/AppShell/Persistence/EditedVideoProjectsStore.swift) owns SwiftData persistence
-- [VideoEditorView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Views/EditorView/VideoEditorView.swift) is the closest thing to the future embeddable package entry point
+- [VideoEditorView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/API/VideoEditorView.swift) now defines the package-owned editor boundary, while [HostedVideoEditorView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Views/EditorView/HostedVideoEditorView.swift) remains the host-side implementation shell
 - [VideoEditor.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Core/Models/Enums/VideoEditor.swift) owns the current export pipeline
 
 That means the correct package boundary is around the editor feature, not around the current app target.
@@ -202,7 +202,7 @@ Keep package resources in the isolated package tree. App-only resources remain i
 ### 4. `PhotosPickerItem` in the public API
 
 Problem:
-[VideoEditorView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Views/EditorView/VideoEditorView.swift) currently exposes `PhotosPickerItem` through `Session.Source`.
+[VideoEditorView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/API/VideoEditorView.swift) currently exposes the session boundary publicly, and the host implementation in [HostedVideoEditorView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Views/EditorView/HostedVideoEditorView.swift) still consumes `Session.Source`.
 
 Solution:
 Move the package toward a source abstraction that is host-neutral, such as:
@@ -607,7 +607,7 @@ Current implementation notes:
 - the package now owns:
   - [VideoEditorPublicTypes.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/API/VideoEditorPublicTypes.swift)
   - [VideoQuality.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/Export/VideoQuality.swift)
-- [VideoEditorView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Views/EditorView/VideoEditorView.swift) now aliases `SaveState`, `Session`, `Callbacks`, and `Configuration` to the package-owned API types
+- [VideoEditorView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/API/VideoEditorView.swift) now owns the package-facing namespace for `SaveState`, `Session`, `Callbacks`, and `Configuration`
 - the host alias bridge in [VideoEditorKitPackageAliases.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/AppShell/Integration/VideoEditorKitPackageAliases.swift) now also maps `VideoQuality`, `ExportQualityAvailability`, and the extracted editor API types from the package
 - [project.pbxproj](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor.xcodeproj/project.pbxproj) now excludes the host-local [VideoQuality.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Core/Models/VideoQuality.swift) from the app target
 - the package now has direct coverage for the extracted API models in [VideoEditorPublicTypesTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Tests/VideoEditorKitTests/VideoEditorPublicTypesTests.swift)
@@ -642,7 +642,7 @@ Exit criteria:
 
 Current implementation notes:
 
-- [VideoEditorView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Views/EditorView/VideoEditorView.swift) now imports `VideoEditorKit` directly and aliases its nested boundary types from the package module instead of relying on top-level host aliases
+- [HostedVideoEditorView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Views/EditorView/HostedVideoEditorView.swift) now imports `VideoEditorKit` directly and consumes the package-owned `VideoEditorView` boundary types instead of relying on top-level host aliases
 - host consumers of `VideoQuality` and `ExportQualityAvailability`, including:
   - [RootView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Views/RootView/RootView.swift)
   - [VideoExporterView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Views/EditorView/VideoExporterView.swift)

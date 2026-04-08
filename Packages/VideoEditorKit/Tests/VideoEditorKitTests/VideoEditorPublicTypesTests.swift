@@ -7,6 +7,25 @@ import Testing
 struct VideoEditorPublicTypesTests {
 
     @Test
+    func videoEditorViewNamespaceExposesBoundaryTypes() {
+        let url = URL(fileURLWithPath: "/tmp/video.mp4")
+        let session = VideoEditorView.Session(
+            sourceVideoURL: url,
+            editingConfiguration: .initial
+        )
+        let saveState = VideoEditorView.SaveState(
+            editingConfiguration: .initial
+        )
+        let configuration = VideoEditorView.Configuration.allToolsEnabled
+        let callbacks = VideoEditorView.Callbacks()
+
+        #expect(session.sourceVideoURL == url)
+        #expect(saveState.editingConfiguration == .initial)
+        #expect(configuration.tools == VideoEditorConfiguration.allToolsEnabled.tools)
+        callbacks.onDismissed(nil)
+    }
+
+    @Test
     func sessionResolvesTheExpectedConvenienceValues() {
         let url = URL(fileURLWithPath: "/tmp/video.mp4")
         let session = VideoEditorSession(
