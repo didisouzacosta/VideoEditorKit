@@ -282,3 +282,24 @@ extension TranscriptStyle {
     fileprivate static let defaultPreviewStyle = Self.defaultCaptionStyle
 
 }
+
+#Preview {
+    TranscriptOverlayPreview(
+        segment: EditableTranscriptSegment(
+            id: UUID(),
+            timeMapping: TranscriptTimeMapping(
+                sourceStartTime: 0,
+                sourceEndTime: 3.0
+            ),
+            originalText: "Hello world",
+            editedText: "Hello world"
+        ),
+        activeWordID: nil,
+        style: nil,
+        overlayPosition: .bottom,
+        overlaySize: .medium,
+        previewCanvasSize: CGSize(width: 320, height: 568),
+        exportCanvasSize: CGSize(width: 1080, height: 1920)
+    )
+    .background(.black)
+}

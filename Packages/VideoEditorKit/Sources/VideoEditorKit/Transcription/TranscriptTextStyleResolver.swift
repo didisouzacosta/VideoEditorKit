@@ -8,15 +8,8 @@
 import QuartzCore
 import SwiftUI
 
-#if canImport(UIKit)
-    import UIKit
-    private typealias PlatformColor = UIColor
-    private typealias PlatformFont = UIFont
-#elseif canImport(AppKit)
-    import AppKit
-    private typealias PlatformColor = NSColor
-    private typealias PlatformFont = NSFont
-#endif
+private typealias PlatformColor = UIColor
+private typealias PlatformFont = UIFont
 
 public enum TranscriptTextStyleResolver {
 
@@ -30,6 +23,7 @@ public enum TranscriptTextStyleResolver {
 
     private static let referenceStrokeFontSize: CGFloat = 20
     private static let defaultStrokeWidth: CGFloat = -4
+
     // MARK: - Public Methods
 
     public static func attributedString(
@@ -151,11 +145,10 @@ public enum TranscriptTextStyleResolver {
             return resolvedFont
         }
 
-        #if canImport(UIKit)
-            return PlatformFont(descriptor: roundedDescriptor, size: fontSize)
-        #elseif canImport(AppKit)
-            return PlatformFont(descriptor: roundedDescriptor, size: fontSize) ?? resolvedFont
-        #endif
+        return PlatformFont(
+            descriptor: roundedDescriptor,
+            size: fontSize
+        )
     }
 
     static func resolvedTextAlignment(
@@ -187,21 +180,12 @@ public enum TranscriptTextStyleResolver {
     fileprivate static func resolvedPlatformColor(
         _ color: RGBAColor
     ) -> PlatformColor {
-        #if canImport(UIKit)
-            PlatformColor(
-                red: color.red,
-                green: color.green,
-                blue: color.blue,
-                alpha: color.alpha
-            )
-        #elseif canImport(AppKit)
-            PlatformColor(
-                srgbRed: color.red,
-                green: color.green,
-                blue: color.blue,
-                alpha: color.alpha
-            )
-        #endif
+        PlatformColor(
+            red: color.red,
+            green: color.green,
+            blue: color.blue,
+            alpha: color.alpha
+        )
     }
 
     static func resolvedSwiftUIFont(
@@ -256,11 +240,7 @@ public enum TranscriptTextStyleResolver {
     private static func resolvedLineHeight(
         for font: PlatformFont
     ) -> CGFloat {
-        #if canImport(UIKit)
-            ceil(font.lineHeight)
-        #elseif canImport(AppKit)
-            ceil(font.ascender - font.descender + font.leading)
-        #endif
+        ceil(font.lineHeight)
     }
 
     private static func resolvedPlatformFontWeight(

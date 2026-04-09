@@ -5,7 +5,7 @@
 //  Created by Codex on 07.04.2026.
 //
 
-import UIKit
+import SwiftUI
 
 @MainActor
 enum PlainTextClipboard {

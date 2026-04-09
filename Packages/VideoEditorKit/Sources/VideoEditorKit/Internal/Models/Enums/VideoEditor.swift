@@ -8,7 +8,7 @@
 import AVFoundation
 import CoreImage
 import Foundation
-import UIKit
+import SwiftUI
 
 enum VideoEditor {
 
