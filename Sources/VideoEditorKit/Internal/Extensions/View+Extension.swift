@@ -1,94 +1,91 @@
-#if os(iOS)
-    //
-    //  View+Extension.swift
-    //  VideoEditorKit
-    //
-    //  Created by Adriano Souza Costa on 23.03.2026.
-    //
+//
+//  View+Extension.swift
+//  VideoEditorKit
+//
+//  Created by Adriano Souza Costa on 23.03.2026.
+//
 
-    import SwiftUI
+import SwiftUI
 
-    extension View {
+extension View {
 
-        // MARK: - Public Methods
+    // MARK: - Public Methods
 
-        @ViewBuilder
-        nonisolated func card(
-            cornerRadius: CGFloat = 28,
-            prominent: Bool = false,
-            tint: Color? = nil
-        ) -> some View {
-            if #available(iOS 26, *) {
-                if let tint {
-                    self.glassEffect(
-                        .regular.tint(tint.opacity(prominent ? 0.30 : 0.18)),
-                        in: .rect(cornerRadius: cornerRadius)
-                    )
-                } else {
-                    self.glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
-                }
-            } else {
-                self.background(
-                    .ultraThinMaterial,
-                    in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+    @ViewBuilder
+    nonisolated func card(
+        cornerRadius: CGFloat = 28,
+        prominent: Bool = false,
+        tint: Color? = nil
+    ) -> some View {
+        if #available(iOS 26, *) {
+            if let tint {
+                self.glassEffect(
+                    .regular.tint(tint.opacity(prominent ? 0.30 : 0.18)),
+                    in: .rect(cornerRadius: cornerRadius)
                 )
-            }
-        }
-
-        @ViewBuilder
-        nonisolated func circleControl(
-            prominent: Bool = false,
-            tint: Color? = nil
-        ) -> some View {
-            if #available(iOS 26, *) {
-                if let tint {
-                    self.glassEffect(
-                        .regular.tint(tint.opacity(prominent ? 0.30 : 0.18)).interactive(),
-                        in: .circle
-                    )
-                } else {
-                    self.glassEffect(.regular.interactive(), in: .circle)
-                }
             } else {
-                self.background(.ultraThinMaterial, in: Circle())
+                self.glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
             }
+        } else {
+            self.background(
+                .ultraThinMaterial,
+                in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            )
         }
-
-        @ViewBuilder
-        nonisolated func capsuleControl(
-            prominent: Bool = false,
-            tint: Color? = nil
-        ) -> some View {
-            if #available(iOS 26, *) {
-                if let tint {
-                    self.glassEffect(
-                        .regular.tint(tint.opacity(prominent ? 0.30 : 0.18)).interactive(),
-                        in: .capsule
-                    )
-                } else {
-                    self.glassEffect(.regular.interactive(), in: .capsule)
-                }
-            } else {
-                self.background(.ultraThinMaterial, in: Capsule(style: .continuous))
-            }
-        }
-
-        func vBottom() -> some View {
-            frame(maxHeight: .infinity, alignment: .bottom)
-        }
-
-        func hCenter() -> some View {
-            frame(maxWidth: .infinity, alignment: .center)
-        }
-
-        func hLeading() -> some View {
-            frame(maxWidth: .infinity, alignment: .leading)
-        }
-
-        func allFrame() -> some View {
-            frame(maxWidth: .infinity, maxHeight: .infinity)
-        }
-
     }
 
-#endif
+    @ViewBuilder
+    nonisolated func circleControl(
+        prominent: Bool = false,
+        tint: Color? = nil
+    ) -> some View {
+        if #available(iOS 26, *) {
+            if let tint {
+                self.glassEffect(
+                    .regular.tint(tint.opacity(prominent ? 0.30 : 0.18)).interactive(),
+                    in: .circle
+                )
+            } else {
+                self.glassEffect(.regular.interactive(), in: .circle)
+            }
+        } else {
+            self.background(.ultraThinMaterial, in: Circle())
+        }
+    }
+
+    @ViewBuilder
+    nonisolated func capsuleControl(
+        prominent: Bool = false,
+        tint: Color? = nil
+    ) -> some View {
+        if #available(iOS 26, *) {
+            if let tint {
+                self.glassEffect(
+                    .regular.tint(tint.opacity(prominent ? 0.30 : 0.18)).interactive(),
+                    in: .capsule
+                )
+            } else {
+                self.glassEffect(.regular.interactive(), in: .capsule)
+            }
+        } else {
+            self.background(.ultraThinMaterial, in: Capsule(style: .continuous))
+        }
+    }
+
+    func vBottom() -> some View {
+        frame(maxHeight: .infinity, alignment: .bottom)
+    }
+
+    func hCenter() -> some View {
+        frame(maxWidth: .infinity, alignment: .center)
+    }
+
+    func hLeading() -> some View {
+        frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    func allFrame() -> some View {
+        frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+}

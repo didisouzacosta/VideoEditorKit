@@ -1,86 +1,83 @@
-#if os(iOS)
-    //
-    //  RecordVideoView.swift
-    //  VideoEditorKit
-    //
-    //  Created by Adriano Souza Costa on 23.03.2026.
-    //
+//
+//  RecordVideoView.swift
+//  VideoEditorKit
+//
+//  Created by Adriano Souza Costa on 23.03.2026.
+//
 
-    import SwiftUI
+import SwiftUI
 
-    struct RecordVideoView: View {
+struct RecordVideoView: View {
 
-        // MARK: - Environments
+    // MARK: - Environments
 
-        @Environment(\.dismiss) private var dismiss
+    @Environment(\.dismiss) private var dismiss
 
-        // MARK: - States
+    // MARK: - States
 
-        @State private var cameraManager = CameraManager()
+    @State private var cameraManager = CameraManager()
 
-        // MARK: - Private Properties
+    // MARK: - Private Properties
 
-        private let onFinishRecord: (URL) -> Void
+    private let onFinishRecord: (URL) -> Void
 
-        // MARK: - Body
+    // MARK: - Body
 
-        var body: some View {
-            NavigationStack {
-                ZStack {
-                    CameraPreviewView(cameraManager.session)
-                        .ignoresSafeArea()
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                CameraPreviewView(cameraManager.session)
+                    .ignoresSafeArea()
+            }
+            .safeAreaInset(edge: .bottom) {
+                Button {
+                    cameraManager.toggleRecording()
+                } label: {
+                    Circle()
+                        .fill(cameraManager.isRecording ? Theme.primary : Theme.destructive)
+                        .frame(width: 55, height: 55)
                 }
-                .safeAreaInset(edge: .bottom) {
+                .padding(.bottom, 16)
+            }
+            .navigationBarBackButtonHidden(true)
+            .toolbarBackground(.hidden, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
                     Button {
-                        cameraManager.toggleRecording()
+                        dismiss()
                     } label: {
-                        Circle()
-                            .fill(cameraManager.isRecording ? Theme.primary : Theme.destructive)
-                            .frame(width: 55, height: 55)
+                        Image(systemName: "xmark")
+                            .font(.headline.weight(.semibold))
+                            .frame(width: 44, height: 44)
+                            .foregroundStyle(Theme.primary)
+                            .circleControl()
                     }
-                    .padding(.bottom, 16)
+                    .buttonStyle(.plain)
                 }
-                .navigationBarBackButtonHidden(true)
-                .toolbarBackground(.hidden, for: .navigationBar)
-                .toolbar {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button {
-                            dismiss()
-                        } label: {
-                            Image(systemName: "xmark")
-                                .font(.headline.weight(.semibold))
-                                .frame(width: 44, height: 44)
-                                .foregroundStyle(Theme.primary)
-                                .circleControl()
-                        }
-                        .buttonStyle(.plain)
-                    }
 
-                    ToolbarItem(placement: .principal) {
-                        Text(cameraManager.recordedDuration.formatterTimeString())
-                            .font(.headline.monospacedDigit())
-                    }
-                }
-            }
-            .preferredColorScheme(.dark)
-            .onChange(of: cameraManager.finalURL) { _, newValue in
-                if newValue != nil, let url = cameraManager.consumeFinalURL() {
-                    onFinishRecord(url)
-                    dismiss()
+                ToolbarItem(placement: .principal) {
+                    Text(cameraManager.recordedDuration.formatterTimeString())
+                        .font(.headline.monospacedDigit())
                 }
             }
         }
-
-        // MARK: - Initializer
-
-        init(_ onFinishRecord: @escaping (URL) -> Void) {
-            self.onFinishRecord = onFinishRecord
+        .preferredColorScheme(.dark)
+        .onChange(of: cameraManager.finalURL) { _, newValue in
+            if newValue != nil, let url = cameraManager.consumeFinalURL() {
+                onFinishRecord(url)
+                dismiss()
+            }
         }
-
     }
 
-    #Preview {
-        RecordVideoView { _ in }
+    // MARK: - Initializer
+
+    init(_ onFinishRecord: @escaping (URL) -> Void) {
+        self.onFinishRecord = onFinishRecord
     }
 
-#endif
+}
+
+#Preview {
+    RecordVideoView { _ in }
+}

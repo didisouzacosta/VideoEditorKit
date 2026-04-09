@@ -1,88 +1,85 @@
-#if os(iOS)
-    import SwiftUI
+import SwiftUI
 
-    @available(iOS 26.0, *)
-    public struct VideoEditorToolSheetView<Content: View, Footer: View>: View {
+@available(iOS 26.0, *)
+public struct VideoEditorToolSheetView<Content: View, Footer: View>: View {
 
-        // MARK: - Public Properties
+    // MARK: - Public Properties
 
-        public let title: String
-        public let contentInteraction: PresentationContentInteraction
+    public let title: String
+    public let contentInteraction: PresentationContentInteraction
 
-        // MARK: - Body
+    // MARK: - Body
 
-        public var body: some View {
-            VStack(spacing: 0) {
-                VStack(spacing: 16) {
-                    content()
-                }
-                .safeAreaBar(edge: .bottom) {
-                    footer()
-                }
+    public var body: some View {
+        VStack(spacing: 0) {
+            VStack(spacing: 16) {
+                content()
             }
-            .navigationTitle(title)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Close", action: onClose)
-                }
-
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Reset", action: onReset)
-                }
+            .safeAreaBar(edge: .bottom) {
+                footer()
             }
-            .presentationDragIndicator(.visible)
-            .presentationContentInteraction(contentInteraction)
-            .presentationCornerRadius(32)
-            .onAppear(perform: onAppear)
         }
+        .navigationTitle(title)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Close", action: onClose)
+            }
 
-        // MARK: - Private Properties
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Reset", action: onReset)
+            }
+        }
+        .presentationDragIndicator(.visible)
+        .presentationContentInteraction(contentInteraction)
+        .presentationCornerRadius(32)
+        .onAppear(perform: onAppear)
+    }
 
-        private let onClose: () -> Void
-        private let onReset: () -> Void
-        private let onAppear: () -> Void
-        private let content: () -> Content
-        private let footer: () -> Footer
+    // MARK: - Private Properties
 
-        // MARK: - Initializer
+    private let onClose: () -> Void
+    private let onReset: () -> Void
+    private let onAppear: () -> Void
+    private let content: () -> Content
+    private let footer: () -> Footer
 
-        public init(
-            title: String,
-            contentInteraction: PresentationContentInteraction,
-            onClose: @escaping () -> Void,
-            onReset: @escaping () -> Void,
-            onAppear: @escaping () -> Void = {},
-            @ViewBuilder content: @escaping () -> Content,
-            @ViewBuilder footer: @escaping () -> Footer
+    // MARK: - Initializer
+
+    public init(
+        title: String,
+        contentInteraction: PresentationContentInteraction,
+        onClose: @escaping () -> Void,
+        onReset: @escaping () -> Void,
+        onAppear: @escaping () -> Void = {},
+        @ViewBuilder content: @escaping () -> Content,
+        @ViewBuilder footer: @escaping () -> Footer
+    ) {
+        self.title = title
+        self.contentInteraction = contentInteraction
+        self.onClose = onClose
+        self.onReset = onReset
+        self.onAppear = onAppear
+        self.content = content
+        self.footer = footer
+    }
+
+}
+
+#Preview {
+    NavigationStack {
+        VideoEditorToolSheetView(
+            title: "Speed",
+            contentInteraction: .resizes,
+            onClose: {},
+            onReset: {}
         ) {
-            self.title = title
-            self.contentInteraction = contentInteraction
-            self.onClose = onClose
-            self.onReset = onReset
-            self.onAppear = onAppear
-            self.content = content
-            self.footer = footer
-        }
-
-    }
-
-    #Preview {
-        NavigationStack {
-            VideoEditorToolSheetView(
-                title: "Speed",
-                contentInteraction: .resizes,
-                onClose: {},
-                onReset: {}
-            ) {
-                Text("Tool content goes here")
-                    .padding()
-            } footer: {
-                Button("Apply") {}
-                    .buttonStyle(.borderedProminent)
-                    .padding()
-            }
+            Text("Tool content goes here")
+                .padding()
+        } footer: {
+            Button("Apply") {}
+                .buttonStyle(.borderedProminent)
+                .padding()
         }
     }
-
-#endif
+}

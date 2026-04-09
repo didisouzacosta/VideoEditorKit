@@ -1,14 +1,11 @@
-#if os(iOS)
-    import CoreGraphics
-    import Foundation
+import CoreGraphics
+import Foundation
 
-    public enum TranscriptWordHighlightStyle {
+public enum TranscriptWordHighlightStyle {
 
-        // MARK: - Public Properties
+    // MARK: - Public Properties
 
-        public static let horizontalInset: CGFloat = 32
-        public static let interWordSpacing: CGFloat = 2
+    public static let horizontalInset: CGFloat = 32
+    public static let interWordSpacing: CGFloat = 2
 
-    }
-
-#endif
+}

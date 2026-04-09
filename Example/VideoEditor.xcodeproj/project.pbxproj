@@ -369,6 +369,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = VideoEditor/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.video";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Allow camera access to record videos inside the editor.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Allow microphone access to record narration and capture audio in the editor.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Allow photo library access to import videos and save rendered exports.";
@@ -407,6 +408,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = VideoEditor/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.video";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Allow camera access to record videos inside the editor.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Allow microphone access to record narration and capture audio in the editor.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Allow photo library access to import videos and save rendered exports.";

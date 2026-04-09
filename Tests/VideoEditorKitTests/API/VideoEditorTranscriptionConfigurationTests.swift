@@ -1,37 +1,34 @@
-#if os(iOS)
-    import Testing
+import Testing
 
-    @testable import VideoEditorKit
+@testable import VideoEditorKit
 
-    @Suite("VideoEditorTranscriptionConfigurationTests")
-    struct VideoEditorTranscriptionConfigurationTests {
+@Suite("VideoEditorTranscriptionConfigurationTests")
+struct VideoEditorTranscriptionConfigurationTests {
 
-        // MARK: - Public Methods
+    // MARK: - Public Methods
 
-        @MainActor
-        @Test
-        func openAIWhisperReturnsAnUnconfiguredStateWhenTheAPIKeyIsBlank() {
-            let configuration = VideoEditorView.Configuration.TranscriptionConfiguration.openAIWhisper(
-                apiKey: "   "
-            )
+    @MainActor
+    @Test
+    func openAIWhisperReturnsAnUnconfiguredStateWhenTheAPIKeyIsBlank() {
+        let configuration = VideoEditorView.Configuration.TranscriptionConfiguration.openAIWhisper(
+            apiKey: "   "
+        )
 
-            #expect(configuration.provider == nil)
-            #expect(configuration.isConfigured == false)
-        }
-
-        @MainActor
-        @Test
-        func openAIWhisperKeepsThePreferredLocaleAndCreatesAProvider() {
-            let configuration = VideoEditorView.Configuration.TranscriptionConfiguration.openAIWhisper(
-                apiKey: "test-api-key",
-                preferredLocale: "en-US"
-            )
-
-            #expect(configuration.preferredLocale == "en-US")
-            #expect(configuration.provider != nil)
-            #expect(configuration.isConfigured)
-        }
-
+        #expect(configuration.provider == nil)
+        #expect(configuration.isConfigured == false)
     }
 
-#endif
+    @MainActor
+    @Test
+    func openAIWhisperKeepsThePreferredLocaleAndCreatesAProvider() {
+        let configuration = VideoEditorView.Configuration.TranscriptionConfiguration.openAIWhisper(
+            apiKey: "test-api-key",
+            preferredLocale: "en-US"
+        )
+
+        #expect(configuration.preferredLocale == "en-US")
+        #expect(configuration.provider != nil)
+        #expect(configuration.isConfigured)
+    }
+
+}

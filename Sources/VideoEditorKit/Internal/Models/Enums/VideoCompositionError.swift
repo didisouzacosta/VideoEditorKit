@@ -1,13 +1,10 @@
-#if os(iOS)
-    //
-    //  VideoCompositionError.swift
-    //  VideoEditorKit
-    //
-    //  Created by Didi on 27/03/26.
-    //
+//
+//  VideoCompositionError.swift
+//  VideoEditorKit
+//
+//  Created by Didi on 27/03/26.
+//
 
-    enum VideoCompositionError: Error {
-        case creationFailed
-    }
-
-#endif
+enum VideoCompositionError: Error {
+    case creationFailed
+}

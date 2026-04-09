@@ -1,25 +1,22 @@
-#if os(iOS)
-    import Testing
+import Testing
 
-    @testable import VideoEditorKit
+@testable import VideoEditorKit
 
-    @Suite("EditorPresentationStateTests")
-    struct EditorPresentationStateTests {
+@Suite("EditorPresentationStateTests")
+struct EditorPresentationStateTests {
 
-        // MARK: - Public Methods
+    // MARK: - Public Methods
 
-        @Test
-        @MainActor
-        func markEditingConfigurationChangedAdvancesTheRevision() {
-            let state = EditorPresentationState()
+    @Test
+    @MainActor
+    func markEditingConfigurationChangedAdvancesTheRevision() {
+        let state = EditorPresentationState()
 
-            #expect(state.editingConfigurationRevision == 0)
+        #expect(state.editingConfigurationRevision == 0)
 
-            state.markEditingConfigurationChanged()
+        state.markEditingConfigurationChanged()
 
-            #expect(state.editingConfigurationRevision == 1)
-        }
-
+        #expect(state.editingConfigurationRevision == 1)
     }
 
-#endif
+}

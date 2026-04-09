@@ -30,7 +30,7 @@ The package provides a video editor with tools for trimming, playback changes, c
 
 ## Development
 
-Package validation is iOS-only. Validate the package from the example workspace using the shared `VideoEditorKit-Package` scheme on iOS Simulator.
+Package validation is iOS-only. `swift test` at the repository root is not a supported validation path because the package depends on iOS-only frameworks and UI runtime behavior.
 
 Open the example app from:
 
@@ -54,6 +54,12 @@ Run the full Swift quality gate:
 
 ```bash
 scripts/lint-swift.sh
+```
+
+Run the supported test/build validation on iOS Simulator:
+
+```bash
+scripts/test-ios.sh
 ```
 
 Install `SwiftLint` locally if needed:

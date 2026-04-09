@@ -1,48 +1,45 @@
-#if os(iOS)
-    //
-    //  VideoSpeedToolView.swift
-    //  VideoEditorKit
-    //
-    //  Created by Adriano Souza Costa on 23.03.2026.
-    //
+//
+//  VideoSpeedToolView.swift
+//  VideoEditorKit
+//
+//  Created by Adriano Souza Costa on 23.03.2026.
+//
 
-    import SwiftUI
+import SwiftUI
 
-    struct VideoSpeedToolView: View {
+struct VideoSpeedToolView: View {
 
-        // MARK: - Bindings
+    // MARK: - Bindings
 
-        @Binding private var value: Double
+    @Binding private var value: Double
 
-        // MARK: - Public Properties
+    // MARK: - Public Properties
 
-        // MARK: - Body
+    // MARK: - Body
 
-        var body: some View {
-            HStack {
-                Image(systemName: "speedometer")
-                Slider(value: $value, in: rateRange, step: 0.2)
-                Text("\(value, format: .number.precision(.fractionLength(1)))x")
-                    .monospacedDigit()
-            }
-            .font(.caption)
-            .safeAreaPadding(.horizontal)
+    var body: some View {
+        HStack {
+            Image(systemName: "speedometer")
+            Slider(value: $value, in: rateRange, step: 0.2)
+            Text("\(value, format: .number.precision(.fractionLength(1)))x")
+                .monospacedDigit()
         }
-
-        // MARK: - Private Properties
-
-        private let rateRange = 0.1...8
-
-        // MARK: - Initializer
-
-        init(_ value: Binding<Double>) {
-            _value = value
-        }
-
+        .font(.caption)
+        .safeAreaPadding(.horizontal)
     }
 
-    #Preview {
-        VideoSpeedToolView(.constant(1))
+    // MARK: - Private Properties
+
+    private let rateRange = 0.1...8
+
+    // MARK: - Initializer
+
+    init(_ value: Binding<Double>) {
+        _value = value
     }
 
-#endif
+}
+
+#Preview {
+    VideoSpeedToolView(.constant(1))
+}

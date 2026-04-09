@@ -1,18 +1,15 @@
-#if os(iOS)
-    import Testing
+import Testing
 
-    @testable import VideoEditorKit
+@testable import VideoEditorKit
 
-    @Suite("VideoEditorKit Package")
-    struct VideoEditorKitPackageTests {
+@Suite("VideoEditorKit Package")
+struct VideoEditorKitPackageTests {
 
-        @Test("Package scaffold exposes the expected package name")
-        func packageName() {
-            #expect(
-                VideoEditorKitPackage.packageName == "VideoEditorKit"
-            )
-        }
-
+    @Test("Package scaffold exposes the expected package name")
+    func packageName() {
+        #expect(
+            VideoEditorKitPackage.packageName == "VideoEditorKit"
+        )
     }
 
-#endif
+}

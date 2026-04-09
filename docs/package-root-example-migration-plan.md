@@ -132,7 +132,7 @@ Exit criteria:
 
 For phases touching the package:
 
-- treat host macOS `swift test` as an optional smoke check only
+- do not use host macOS `swift test` as a supported validation path
 - `xcodebuild` or `xcodebuildmcp` build for the package scheme
 - validate the package through the shared iOS scheme `VideoEditorKit-Package`
 
@@ -169,7 +169,7 @@ For phases touching the example app:
 - [x] updated the workspace package container reference from `../Packages/VideoEditorKit` to `..`
 - [x] example app build and tests validated against the root package
 - [x] shared package workspace scheme `VideoEditorKit-Package` validated against the root package
-- [x] package and package tests are conditionally isolated to iOS so host macOS checks no longer try to compile UIKit/SwiftUI implementation files
+- [x] package validation was consolidated on the shared iOS scheme instead of host macOS `swift test`
 - [x] remove stale hidden SwiftPM artifacts still left under `Packages/VideoEditorKit`
 - [x] update root-level docs that still point to `Packages/VideoEditorKit`
 

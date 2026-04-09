@@ -6,6 +6,7 @@ Current state:
 
 - the example app now lives under `Example/`
 - the Swift package now lives at the repository root
+- the supported validation flow is iOS Simulator through `scripts/test-ios.sh`
 
 Target state:
 

@@ -1,47 +1,44 @@
-#if os(iOS)
-    import Testing
+import Testing
 
-    @testable import VideoEditorKit
+@testable import VideoEditorKit
 
-    @Suite("EditorToolSelectionCoordinatorTests")
-    struct EditorToolSelectionCoordinatorTests {
+@Suite("EditorToolSelectionCoordinatorTests")
+struct EditorToolSelectionCoordinatorTests {
 
-        // MARK: - Public Methods
+    // MARK: - Public Methods
 
-        @Test
-        func enabledToolsOnlyKeepsTheAvailableEntries() {
-            let enabledTools = EditorToolSelectionCoordinator.enabledTools(
-                from: [
-                    .init(.adjusts),
-                    .init(.speed, access: .blocked),
-                    .init(.audio),
-                ]
-            )
+    @Test
+    func enabledToolsOnlyKeepsTheAvailableEntries() {
+        let enabledTools = EditorToolSelectionCoordinator.enabledTools(
+            from: [
+                .init(.adjusts),
+                .init(.speed, access: .blocked),
+                .init(.audio),
+            ]
+        )
 
-            #expect(enabledTools == Set([.adjusts, .audio]))
-        }
-
-        @Test
-        func resolvedSelectionClearsUnavailableTools() {
-            let selection = EditorToolSelectionCoordinator.resolvedSelection(
-                currentSelection: .speed,
-                enabledTools: Set([.adjusts, .audio])
-            )
-
-            #expect(selection == nil)
-        }
-
-        @Test
-        func selectToolRejectsUnavailableEntries() {
-            let selectedTool = EditorToolSelectionCoordinator.selectTool(
-                .speed,
-                enabledTools: Set([.adjusts, .audio])
-            )
-
-            #expect(selectedTool == nil)
-            #expect(EditorToolSelectionCoordinator.closeSelectedTool() == nil)
-        }
-
+        #expect(enabledTools == Set([.adjusts, .audio]))
     }
 
-#endif
+    @Test
+    func resolvedSelectionClearsUnavailableTools() {
+        let selection = EditorToolSelectionCoordinator.resolvedSelection(
+            currentSelection: .speed,
+            enabledTools: Set([.adjusts, .audio])
+        )
+
+        #expect(selection == nil)
+    }
+
+    @Test
+    func selectToolRejectsUnavailableEntries() {
+        let selectedTool = EditorToolSelectionCoordinator.selectTool(
+            .speed,
+            enabledTools: Set([.adjusts, .audio])
+        )
+
+        #expect(selectedTool == nil)
+        #expect(EditorToolSelectionCoordinator.closeSelectedTool() == nil)
+    }
+
+}

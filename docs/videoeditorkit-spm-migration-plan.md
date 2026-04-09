@@ -38,7 +38,7 @@ That means:
 
 - use the plugin for iOS project discovery, scheme inspection, build, test, simulator run, and app validation
 - prefer the plugin workflow over ad hoc `xcodebuild` or simulator shell commands when the task involves the app target or iOS integration behavior
-- keep `swift test` for pure SPM package validation when the work is confined to the isolated package and does not require the host app
+- historical references to `swift test` in this document are no longer current for the package-first repository; the supported validation path is iOS Simulator through the shared package scheme and the example app tests
 
 This rule exists to keep the rollout consistent, reduce environment drift, and make every host-app validation step reproducible through one iOS-native toolchain path.
 
@@ -937,7 +937,7 @@ The package and the host app will temporarily need different test scopes:
 
 Execution policy:
 
-- use `swift test` inside `Packages/VideoEditorKit` for package-only validation
+- historical note: this phase originally used `swift test` inside `Packages/VideoEditorKit` for package-only validation
 - use [@build-ios-apps](plugin://build-ios-apps@openai-curated) for any validation that touches the Xcode project, app target, scheme, simulator, or integration smoke tests
 
 ## Phase 1 Checklist
@@ -968,7 +968,7 @@ Notes:
 - the plan now assumes an isolated package under `Packages/VideoEditorKit`
 - package scaffolding was created as the first implementation step
 - the current app remains unchanged until the package skeleton is in place
-- the scaffold was validated with `swift test` outside the sandbox because SwiftPM manifest validation hit cache and `sandbox-exec` restrictions in the local environment
+- historical note: the scaffold was validated with `swift test` outside the sandbox because SwiftPM manifest validation hit cache and `sandbox-exec` restrictions in the local environment
 
 ### Phase 2
 
