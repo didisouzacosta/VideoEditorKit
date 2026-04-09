@@ -3,7 +3,7 @@
 > Nota
 > Este documento continua como historico da entrega do backend remoto com OpenAI Whisper.
 > A implementacao atual mora no package em `Sources/VideoEditorKit/Transcription/`.
-> A estrategia oficial atual para evoluir a feature, incluindo multiplos adapters de transcricao, esta em `docs/multi-provider-transcription-plan.md`.
+> Qualquer evolucao futura de providers deve ser documentada em um novo plano, quando priorizada.
 
 ## Objetivo
 

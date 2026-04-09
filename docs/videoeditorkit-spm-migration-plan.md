@@ -541,7 +541,7 @@ Exit criteria:
 Current implementation notes:
 
 - the legacy `VideoEditorKit.xcodeproj` has been removed from the workspace
-- actionable verification commands in [multi-provider-transcription-plan.md](/Users/adrianocosta/Documents/Projects/VideoEditorKit/docs/multi-provider-transcription-plan.md) now reference `Example/VideoEditor.xcodeproj`, scheme `VideoEditor`, and target `VideoEditorTests`
+- actionable verification commands for future transcription work should reference `Example/VideoEditor.xcodeproj`, scheme `VideoEditor`, and target `VideoEditorTests`
 - remaining mentions of `VideoEditorKitTests` in this document refer only to the package test target under `Packages/VideoEditorKit/Tests/VideoEditorKitTests`, not to the host app test target
 - historical documents may still mention legacy names when they are describing past architecture or earlier phases rather than giving current operational instructions
 
