@@ -130,7 +130,7 @@
         VideoEditorToolsTrayView(
             selectedTool: $selectedTool,
             initialSheetHeight: { _ in 320 },
-            content: {
+            rowContent: {
                 HStack {
                     ForEach(ToolEnum.all) { tool in
                         Button(tool.title) {
