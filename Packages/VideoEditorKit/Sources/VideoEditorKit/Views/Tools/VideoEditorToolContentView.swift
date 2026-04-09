@@ -1,5 +1,5 @@
 //
-//  HostedVideoEditorToolContentView.swift
+//  VideoEditorToolContentView.swift
 //  VideoEditorKit
 //
 //  Created by Codex on 09.04.2026.
@@ -8,7 +8,7 @@
 import SwiftUI
 
 @MainActor
-struct HostedVideoEditorToolContentView: View {
+struct VideoEditorToolContentView: View {
 
     // MARK: - Bindings
 
@@ -97,7 +97,7 @@ struct HostedVideoEditorToolContentView: View {
 #Preview {
     @Previewable @State var draftState = EditorToolDraftState()
     NavigationStack {
-        HostedVideoEditorToolContentView(
+        VideoEditorToolContentView(
             tool: .speed,
             draftState: $draftState,
             editorViewModel: EditorViewModel()

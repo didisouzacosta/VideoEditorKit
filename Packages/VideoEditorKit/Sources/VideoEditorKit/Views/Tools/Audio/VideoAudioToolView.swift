@@ -59,7 +59,6 @@ struct AudioToolDraft: Equatable {
 
 }
 
-@MainActor
 struct VideoAudioToolView: View {
 
     // MARK: - Bindings

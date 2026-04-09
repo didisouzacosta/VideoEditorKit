@@ -120,21 +120,48 @@ extension PlayerHolderView {
     private func trailingPlayerControls(
         _ cropSummary: EditorCropPresentationSummary
     ) -> some View {
-        HostedVideoEditorPlayerTrailingControlsView(
-            shouldShowResetButton: cropSummary.shouldShowCanvasResetButton,
-            onReset: {
-                editorViewModel.resetCanvasTransform()
+        Group {
+            if cropSummary.shouldShowCanvasResetButton {
+                Button {
+                    withAnimation(Constants.settleAnimation) {
+                        editorViewModel.resetCanvasTransform()
+                    }
+                } label: {
+                    Image(systemName: "arrow.counterclockwise")
+                        .font(.headline.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .padding(14)
+                        .circleControl(
+                            prominent: true,
+                            tint: .black.opacity(0.82)
+                        )
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Reset transform")
+            } else {
+                EmptyView()
             }
-        )
+        }
     }
 
+    @ViewBuilder
     private func transcriptOverlay(
         canvasLayout: VideoCanvasLayout
     ) -> some View {
-        HostedVideoEditorPlayerOverlayView(
-            context: transcriptOverlayContext,
-            canvasLayout: canvasLayout
-        )
+        if let transcriptOverlayContext {
+            TranscriptOverlayPreview(
+                segment: transcriptOverlayContext.activeSegment,
+                activeWordID: transcriptOverlayContext.activeWordID,
+                style: nil,
+                overlayPosition: transcriptOverlayContext.transcriptDocument.overlayPosition,
+                overlaySize: transcriptOverlayContext.transcriptDocument.overlaySize,
+                previewCanvasSize: canvasLayout.previewCanvasSize,
+                exportCanvasSize: canvasLayout.exportCanvasSize
+            )
+            .id(transcriptOverlayContext.layoutID)
+        } else {
+            EmptyView()
+        }
     }
 
     // MARK: - Private Methods
@@ -147,6 +174,10 @@ extension PlayerHolderView {
     }
 
 }
+
 #Preview {
-    HostedVideoEditorView()
+    VideoEditorView(
+        "Preview",
+        session: VideoEditorSession(source: nil)
+    )
 }

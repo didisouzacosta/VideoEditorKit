@@ -1,6 +1,17 @@
 import SwiftUI
 
+@MainActor
 public struct VideoEditorView: View {
+
+    // MARK: - Environments
+
+    @Environment(\.dismiss) private var dismiss
+
+    // MARK: - States
+
+    @State private var editorViewModel = EditorViewModel()
+    @State private var saveEmissionCoordinator = VideoEditorSaveEmissionCoordinator()
+    @State private var videoPlayer = VideoPlayerManager()
 
     // MARK: - Public Properties
 
@@ -12,12 +23,66 @@ public struct VideoEditorView: View {
     // MARK: - Body
 
     public var body: some View {
-        HostedVideoEditorView(
+        @Bindable var bindablePresentationState = editorViewModel.presentationState
+
+        VideoEditorShellView(
             title,
             session: session,
-            configuration: configuration,
-            callbacks: callbacks
-        )
+            callbacks: callbacks,
+            onCancel: dismissEditor,
+            onBootstrapStateChanged: syncPlayerLoadState
+        ) {
+            if editorViewModel.currentVideo != nil {
+                Button(role: .confirm, action: presentExporter) {
+                    Text("Export")
+                }
+                .disabled(isEditingLocked)
+            }
+        } loadedContent: { availableSize, resolvedSourceVideoURL in
+            VideoEditorLoadedView(
+                availableSize: availableSize,
+                resolvedSourceVideoURL: resolvedSourceVideoURL,
+                isPlaybackFocused: videoPlayer.isPlaybackFocusActive,
+                onLoad: bootstrapEditorContent
+            ) {
+                PlayerHolderView(
+                    editorViewModel,
+                    videoPlayer: videoPlayer
+                )
+            } controlsContent: {
+                VideoEditorTrimSectionView(
+                    editorViewModel,
+                    videoPlayer: videoPlayer
+                )
+            } toolsContent: {
+                ToolsSectionView(
+                    videoPlayer,
+                    editorVM: editorViewModel,
+                    configuration: configuration
+                )
+            }
+        }
+        .animation(.default, value: videoPlayer.isPlaybackFocusActive)
+        .safeAreaPadding()
+        .onDisappear(perform: handleDisappear)
+        .dynamicHeightSheet(
+            isPresented: $bindablePresentationState.showVideoQualitySheet,
+            initialHeight: 420
+        ) {
+            exportSheetContent
+        }
+        .fullScreenCover(isPresented: $bindablePresentationState.showRecordView) {
+            RecordVideoView(handleRecordedVideo)
+        }
+        .onChange(of: videoPlayer.isPlaybackFocusActive) { _, isPlaybackFocusActive in
+            handlePlaybackLockChange(isPlaybackFocusActive)
+        }
+        .onChange(of: editorViewModel.presentationState.editingConfigurationRevision) { _, _ in
+            publishEditingConfigurationIfNeeded()
+        }
+        .onChange(of: configuration.tools) { _, newValue in
+            editorViewModel.setToolAvailability(newValue)
+        }
     }
 
     // MARK: - Private Properties
@@ -26,6 +91,34 @@ public struct VideoEditorView: View {
     private let session: Session
     private let configuration: Configuration
     private let callbacks: Callbacks
+
+    private var isEditingLocked: Bool {
+        videoPlayer.isPlaybackFocusActive
+    }
+
+    @ViewBuilder
+    private var exportSheetContent: some View {
+        if let video = editorViewModel.currentVideo {
+            VideoExporterContainerView(
+                video: video,
+                editingConfiguration: resolvedExportEditingConfiguration,
+                exportQualities: configuration.exportQualities,
+                onBlockedQualityTap: configuration.notifyBlockedExportQualityTap(for:)
+            ) { exportedVideo in
+                HostedVideoEditorShellCoordinator.handleExportedVideo(
+                    exportedVideo,
+                    videoPlayer: videoPlayer,
+                    callbacks: callbacks
+                )
+            }
+        }
+    }
+
+    private var resolvedExportEditingConfiguration: VideoEditingConfiguration {
+        editorViewModel.exportEditingConfiguration(
+            currentTimelineTime: videoPlayer.currentTime
+        ) ?? .initial
+    }
 
     // MARK: - Initializer
 
@@ -86,6 +179,79 @@ public struct VideoEditorView: View {
             onSourceVideoResolved: onSourceVideoResolved,
             onDismissed: onDismissed,
             onExportedVideoURL: onExportedVideoURL
+        )
+    }
+
+    // MARK: - Private Methods
+
+    private func bootstrapEditorContent(
+        _ availableSize: CGSize,
+        _ resolvedSourceVideoURL: URL
+    ) {
+        HostedVideoEditorRuntimeCoordinator.bootstrapEditorContent(
+            availableSize: availableSize,
+            resolvedSourceVideoURL: resolvedSourceVideoURL,
+            sessionEditingConfiguration: session.editingConfiguration,
+            configuration: configuration,
+            editorViewModel: editorViewModel,
+            videoPlayer: videoPlayer
+        )
+    }
+
+    private func handlePlaybackLockChange(_ isPlaybackFocusActive: Bool) {
+        HostedVideoEditorRuntimeCoordinator.handlePlaybackFocusChange(
+            isPlaybackFocusActive,
+            editorViewModel: editorViewModel
+        )
+    }
+
+    private func dismissEditor() {
+        HostedVideoEditorShellCoordinator.dismissEditor(
+            editorViewModel: editorViewModel,
+            currentTimelineTime: videoPlayer.currentTime,
+            fallbackEditingConfiguration: session.editingConfiguration,
+            callbacks: callbacks,
+            dismiss: dismiss.callAsFunction
+        )
+    }
+
+    private func presentExporter() {
+        HostedVideoEditorShellCoordinator.presentExporter(
+            editorViewModel: editorViewModel
+        )
+    }
+
+    private func handleRecordedVideo(_ url: URL) {
+        HostedVideoEditorShellCoordinator.handleRecordedVideo(
+            url,
+            editorViewModel: editorViewModel,
+            videoPlayer: videoPlayer
+        )
+    }
+
+    private func publishEditingConfigurationIfNeeded() {
+        HostedVideoEditorShellCoordinator.publishEditingConfigurationIfNeeded(
+            editorViewModel: editorViewModel,
+            currentTimelineTime: videoPlayer.currentTime,
+            fallbackSourceVideoURL: session.sourceVideoURL,
+            saveEmissionCoordinator: saveEmissionCoordinator,
+            callbacks: callbacks
+        )
+    }
+
+    private func handleDisappear() {
+        HostedVideoEditorRuntimeCoordinator.handleDisappear(
+            saveEmissionCoordinator: saveEmissionCoordinator,
+            editorViewModel: editorViewModel
+        )
+    }
+
+    private func syncPlayerLoadState(
+        for bootstrapState: VideoEditorSessionBootstrapCoordinator.BootstrapState
+    ) {
+        videoPlayer.loadState = HostedVideoEditorRuntimeCoordinator.resolvedPlayerLoadState(
+            for: bootstrapState,
+            currentVideoURL: editorViewModel.currentVideo?.url
         )
     }
 

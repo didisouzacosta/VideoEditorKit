@@ -1,7 +1,6 @@
 import SwiftUI
 
 @available(iOS 16.0, *)
-@MainActor
 public struct VideoEditorPlaybackTimelineView<
     PlayButton: View,
     Badge: View,

@@ -1,7 +1,6 @@
 import SwiftUI
 
 @available(iOS 16.0, *)
-@MainActor
 public struct VideoEditorPlaybackTimelineContainerView<PlayButton: View, Timeline: View, Footer: View>: View {
 
     // MARK: - Body

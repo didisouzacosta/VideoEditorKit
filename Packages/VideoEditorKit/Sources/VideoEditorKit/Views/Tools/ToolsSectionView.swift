@@ -84,7 +84,7 @@ extension ToolsSectionView {
             }
         ) {
             if editorViewModel.currentVideo != nil {
-                HostedVideoEditorToolContentView(
+                VideoEditorToolContentView(
                     tool: tool,
                     draftState: $draftState,
                     editorViewModel: editorViewModel
@@ -185,5 +185,8 @@ extension ToolsSectionView {
 }
 
 #Preview {
-    HostedVideoEditorView()
+    VideoEditorView(
+        "Preview",
+        session: VideoEditorSession(source: nil)
+    )
 }

@@ -1,7 +1,6 @@
 import SwiftUI
 
 @available(iOS 16.0, *)
-@MainActor
 public struct VideoEditorToolsTrayView<RowContent: View, SheetContent: View>: View {
 
     // MARK: - Bindings

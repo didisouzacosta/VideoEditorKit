@@ -7,7 +7,6 @@
 
 import SwiftUI
 
-@MainActor
 struct PresentToolView: View {
 
     // MARK: - Public Properties

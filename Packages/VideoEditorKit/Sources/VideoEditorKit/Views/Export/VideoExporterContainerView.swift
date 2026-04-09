@@ -1,5 +1,5 @@
 //
-//  VideoExporterView.swift
+//  VideoExporterContainerView.swift
 //  VideoEditorKit
 //
 //  Created by Adriano Souza Costa on 23.03.2026.
@@ -9,7 +9,7 @@ import Observation
 import SwiftUI
 
 @MainActor
-struct HostedVideoExporterView: View {
+struct VideoExporterContainerView: View {
 
     // MARK: - Environments
 
@@ -113,7 +113,7 @@ struct HostedVideoExporterView: View {
 
 #Preview {
     NavigationStack {
-        HostedVideoExporterView(
+        VideoExporterContainerView(
             video: Video.mock,
             editingConfiguration: .initial
         ) { _ in }

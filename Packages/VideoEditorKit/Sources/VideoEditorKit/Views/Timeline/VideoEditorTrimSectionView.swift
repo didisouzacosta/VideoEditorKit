@@ -1,5 +1,5 @@
 //
-//  HostedVideoEditorTrimSectionView.swift
+//  VideoEditorTrimSectionView.swift
 //  VideoEditorKit
 //
 //  Created by Codex on 09.04.2026.
@@ -8,7 +8,7 @@
 import SwiftUI
 
 @MainActor
-struct HostedVideoEditorTrimSectionView: View {
+struct VideoEditorTrimSectionView: View {
 
     // MARK: - Environments
 
@@ -100,7 +100,7 @@ struct HostedVideoEditorTrimSectionView: View {
 }
 
 #Preview {
-    HostedVideoEditorTrimSectionView(
+    VideoEditorTrimSectionView(
         EditorViewModel(),
         videoPlayer: VideoPlayerManager()
     )

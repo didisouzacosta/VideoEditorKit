@@ -7,7 +7,6 @@
 
 import SwiftUI
 
-@MainActor
 struct TranscriptSegmentEditView: View {
 
     // MARK: - States

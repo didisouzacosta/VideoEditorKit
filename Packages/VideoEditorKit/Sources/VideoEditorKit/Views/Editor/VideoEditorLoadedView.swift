@@ -1,7 +1,5 @@
 import SwiftUI
 
-@available(iOS 16.0, *)
-@MainActor
 public struct VideoEditorLoadedView<PlayerContent: View, ControlsContent: View, ToolsContent: View>: View {
 
     // MARK: - Public Properties
