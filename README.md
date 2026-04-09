@@ -1,6 +1,11 @@
 # VideoEditorKit
 
-Video editing application with great functionality of tools and the ability to export video in different formats.
+`VideoEditorKit` is now organized as a package-first repository.
+
+- the Swift package lives at the repository root
+- the example iOS app lives under `Example/`
+
+The package provides a video editor with tools for trimming, playback changes, crop presets, audio, corrections, transcript overlays, and export flows.
 
 ## Features
 
@@ -24,6 +29,14 @@ Video editing application with great functionality of tools and the ability to e
 - AVKit
 
 ## Development
+
+Package validation is iOS-only. Validate the package from the example workspace using the shared `VideoEditorKit-Package` scheme on iOS Simulator.
+
+Open the example app from:
+
+```text
+Example/VideoEditor.xcworkspace
+```
 
 Format the project Swift files with the repository configuration:
 

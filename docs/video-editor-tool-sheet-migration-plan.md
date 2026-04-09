@@ -1,5 +1,7 @@
 # VideoEditorView Tool Sheet Migration Plan
 
+> Historical path note: some file references below still reflect the intermediate migration layout. Read `Packages/VideoEditorKit/...` as `Sources/VideoEditorKit/...`, and host-app paths under `VideoEditor/...` as `Example/VideoEditor/...`.
+
 ## Summary
 
 This plan replaces the custom inline tool modal with a native SwiftUI `.sheet`, while keeping `EditorViewModel.selectedTools` as the source of truth for tool presentation. It also introduces a configuration API for `VideoEditorView` so the initial fullscreen state can be injected by the host.
@@ -108,12 +110,12 @@ Scope:
 
 ## Files Expected To Change
 
-- `VideoEditor/Views/EditorView/HostedVideoEditorView.swift`
-- `VideoEditor/Views/ToolsView/ToolsSectionView.swift`
-- `VideoEditor/Core/ViewModels/EditorViewModel.swift`
-- `VideoEditor/Core/Models/ToolModel.swift`
-- `VideoEditor/Views/RootView/RootView.swift`
-- `VideoEditor/Views/EditorView/PlayerHolderView.swift`
+- `Example/VideoEditor/Views/EditorView/HostedVideoEditorView.swift`
+- `Example/VideoEditor/Views/ToolsView/ToolsSectionView.swift`
+- `Example/VideoEditor/Core/ViewModels/EditorViewModel.swift`
+- `Example/VideoEditor/Core/Models/ToolModel.swift`
+- `Example/VideoEditor/Views/RootView/RootView.swift`
+- `Example/VideoEditor/Views/EditorView/PlayerHolderView.swift`
 
 ## Risks
 

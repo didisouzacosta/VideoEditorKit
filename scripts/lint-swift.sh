@@ -7,7 +7,10 @@ cd "$repo_root"
 swift_format_configuration=".swift-format"
 swiftlint_configuration=".swiftlint.yml"
 swiftlint_cache_directory=".cache/swiftlint"
-default_paths="VideoEditorKit VideoEditorKitTests"
+
+. "scripts/swift-paths.sh"
+
+default_paths="$(resolve_swift_paths)"
 
 if ! command -v swift >/dev/null 2>&1; then
   echo "lint-swift: 'swift' command not found." >&2
@@ -26,6 +29,11 @@ fi
 
 if ! command -v swiftlint >/dev/null 2>&1; then
   echo "lint-swift: 'swiftlint' is not installed. Install it with 'brew install swiftlint'." >&2
+  exit 1
+fi
+
+if [ -z "$default_paths" ]; then
+  echo "lint-swift: no Swift source roots were found for the current repository layout." >&2
   exit 1
 fi
 

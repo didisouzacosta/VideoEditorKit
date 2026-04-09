@@ -5,7 +5,10 @@ repo_root="$(git rev-parse --show-toplevel)"
 cd "$repo_root"
 
 configuration_file=".swift-format"
-default_paths="VideoEditorKit VideoEditorKitTests"
+
+. "scripts/swift-paths.sh"
+
+default_paths="$(resolve_swift_paths)"
 
 if [ ! -f "$configuration_file" ]; then
   echo "format-swift: missing $configuration_file in repository root." >&2
@@ -14,6 +17,11 @@ fi
 
 if ! command -v swift >/dev/null 2>&1; then
   echo "format-swift: 'swift' command not found." >&2
+  exit 1
+fi
+
+if [ -z "$default_paths" ]; then
+  echo "format-swift: no Swift source roots were found for the current repository layout." >&2
   exit 1
 fi
 

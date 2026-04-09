@@ -1,5 +1,7 @@
 # VideoEditor PhotosPicker Session Plan
 
+> Historical path note: some file references below still reflect the intermediate migration layout. Read `Packages/VideoEditorKit/...` as `Sources/VideoEditorKit/...`, and host-app paths under `VideoEditor/...` as `Example/VideoEditor/...`.
+
 ## Summary
 
 This plan moves `PhotosPickerItem` loading responsibility from the app shell into `VideoEditorView`, while keeping the editor reusable for future SDK extraction.
@@ -88,7 +90,7 @@ Status:
 - Defer source resolution callbacks until the editor itself owns bootstrap and starts resolving the source after presentation.
 
 Suggested file:
-- `VideoEditor/AppShell/Photos/VideoEditorSessionSourceResolver.swift`
+- `Example/VideoEditor/AppShell/Photos/VideoEditorSessionSourceResolver.swift`
 
 Status:
 - Completed.

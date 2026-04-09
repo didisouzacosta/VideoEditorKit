@@ -1,5 +1,9 @@
 # VideoEditorKit SPM Migration Plan
 
+> Historical note
+> This migration plan was written while the package still lived under `Packages/VideoEditorKit`.
+> The current repository layout is package-first at the root with the example app under `Example/`.
+
 ## Summary
 
 This plan migrates the repository to a split structure where:
@@ -58,10 +62,10 @@ Using `Packages/VideoEditorKit` solves those issues earlier:
 
 Today the repository is still app-first:
 
-- [VideoEditorApp.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/VideoEditorApp.swift) defines the app entry point
-- [RootView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Views/RootView/RootView.swift) behaves as the app shell
-- [EditedVideoProjectsStore.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/AppShell/Persistence/EditedVideoProjectsStore.swift) owns SwiftData persistence
-- [VideoEditorView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/API/VideoEditorView.swift) is now the public editor entry point that the app shell presents directly
+- [VideoEditorApp.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/VideoEditorApp.swift) defines the app entry point
+- [RootView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/Views/RootView/RootView.swift) behaves as the app shell
+- [EditedVideoProjectsStore.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/AppShell/Persistence/EditedVideoProjectsStore.swift) owns SwiftData persistence
+- [VideoEditorView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Sources/VideoEditorKit/API/VideoEditorView.swift) is now the public editor entry point that the app shell presents directly
 - the editor implementation, playback managers, tool views, and export pipeline now live under `Packages/VideoEditorKit/Sources/VideoEditorKit`
 
 That means the correct package boundary is around the editor feature, not around the current app target.
@@ -134,11 +138,11 @@ The host app should own:
 
 Current host-owned candidates include:
 
-- [VideoEditorApp.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/VideoEditorApp.swift)
-- [RootView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Views/RootView/RootView.swift)
-- [EditedVideoProjectsStore.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/AppShell/Persistence/EditedVideoProjectsStore.swift)
-- [EditedVideoProject.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/AppShell/Persistence/EditedVideoProject.swift)
-- [VideoShareSheet.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/AppShell/Sharing/VideoShareSheet.swift)
+- [VideoEditorApp.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/VideoEditorApp.swift)
+- [RootView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/Views/RootView/RootView.swift)
+- [EditedVideoProjectsStore.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/AppShell/Persistence/EditedVideoProjectsStore.swift)
+- [EditedVideoProject.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/AppShell/Persistence/EditedVideoProject.swift)
+- [VideoShareSheet.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/AppShell/Sharing/VideoShareSheet.swift)
 
 ## Public API Direction
 
@@ -194,7 +198,7 @@ Phase 1 only covers step 1.
 ### 3. Resources mixed with app resources
 
 Problem:
-[Assets.xcassets](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Resources/Assets.xcassets) currently contains app-only assets such as `AppIcon`.
+[Assets.xcassets](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/Resources/Assets.xcassets) currently contains app-only assets such as `AppIcon`.
 
 Solution:
 Keep package resources in the isolated package tree. App-only resources remain in the app target. `AppIcon` must never move into the package.
@@ -202,7 +206,7 @@ Keep package resources in the isolated package tree. App-only resources remain i
 ### 4. `PhotosPickerItem` in the public API
 
 Problem:
-[VideoEditorView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/API/VideoEditorView.swift) exposes the session boundary publicly, and the host still creates sessions from app-owned import flows.
+[VideoEditorView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Sources/VideoEditorKit/API/VideoEditorView.swift) exposes the session boundary publicly, and the host still creates sessions from app-owned import flows.
 
 Solution:
 Move the package toward a source abstraction that is host-neutral, such as:
@@ -215,7 +219,7 @@ If PhotosUI helpers remain useful, keep them in the host app or in a later optio
 ### 5. `Transferable` import helpers leaking into the boundary
 
 Problem:
-[VideoItem.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Core/Models/VideoItem.swift) currently couples import flow to a specific transfer mechanism.
+[VideoItem.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/Core/Models/VideoItem.swift) currently couples import flow to a specific transfer mechanism.
 
 Solution:
 Treat import helpers as adapters, not as part of the durable package API. The package should operate on resolved file URLs whenever possible.
@@ -223,7 +227,7 @@ Treat import helpers as adapters, not as part of the durable package API. The pa
 ### 6. `Bundle.main` assumptions
 
 Problem:
-[RootView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Views/RootView/RootView.swift) currently resolves transcription config from host app state.
+[RootView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/Views/RootView/RootView.swift) currently resolves transcription config from host app state.
 
 Solution:
 Move host configuration lookup to the app. The package should receive configuration values through injected `VideoEditorView.Configuration`.
@@ -231,7 +235,7 @@ Move host configuration lookup to the app. The package should receive configurat
 ### 7. Export pipeline is still iOS-heavy
 
 Problem:
-[VideoEditor.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Core/Models/Enums/VideoEditor.swift) depends on AVFoundation, CoreImage, and UIKit.
+[VideoEditor.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/Core/Models/Enums/VideoEditor.swift) depends on AVFoundation, CoreImage, and UIKit.
 
 Solution:
 Accept this in version 1 of the package. The first milestone is an embeddable iOS package, not a platform-neutral core.
@@ -269,7 +273,7 @@ Create the isolated package skeleton in `Packages/VideoEditorKit`.
 
 Deliverables:
 
-- create `Packages/VideoEditorKit/Package.swift`
+- create `Package.swift`
 - create `Sources/VideoEditorKit/`
 - create `Tests/VideoEditorKitTests/`
 - add a minimal package entry file
@@ -415,13 +419,13 @@ Exit criteria:
 
 Current implementation notes:
 
-- the host project file is now [VideoEditor.xcodeproj](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor.xcodeproj/project.pbxproj)
+- the host project file is now [VideoEditor.xcodeproj](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor.xcodeproj/project.pbxproj)
 - the shared scheme is now `VideoEditor`
 - the app target name is now `VideoEditor`
 - the unit-test target name is now `VideoEditorTests`
 - the host Swift module name is now `VideoEditor`
 - host tests now import `@testable import VideoEditor`
-- the app entry point is now [VideoEditorApp.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/VideoEditorApp.swift)
+- the app entry point is now [VideoEditorApp.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/VideoEditorApp.swift)
 - host validation now succeeds with:
   - simulator build through [@build-ios-apps](plugin://build-ios-apps@openai-curated) for scheme `VideoEditor`
   - targeted simulator test validation for `VideoEditorTests` with the renamed host identity
@@ -445,13 +449,13 @@ Deliverables:
 Current implementation notes:
 
 - the package now owns a host-neutral session boundary through:
-  - [VideoEditorSessionSource.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/Session/VideoEditorSessionSource.swift)
-  - [VideoEditorSessionBootstrapCoordinator.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/Session/VideoEditorSessionBootstrapCoordinator.swift)
+  - [VideoEditorSessionSource.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Sources/VideoEditorKit/Session/VideoEditorSessionSource.swift)
+  - [VideoEditorSessionBootstrapCoordinator.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Sources/VideoEditorKit/Session/VideoEditorSessionBootstrapCoordinator.swift)
 - `VideoEditorView.Session.Source` now aliases the package-owned `VideoEditorSessionSource`
 - `PhotosPickerItem` is no longer part of the editor-facing session API
 - the host app keeps `PhotosUI` only inside the adapter layer in:
-  - [VideoEditorSessionSourceResolver.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/AppShell/Photos/VideoEditorSessionSourceResolver.swift)
-  - [RootView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Views/RootView/RootView.swift)
+  - [VideoEditorSessionSourceResolver.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/AppShell/Photos/VideoEditorSessionSourceResolver.swift)
+  - [RootView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/Views/RootView/RootView.swift)
 - package validation now succeeds with:
   - `swift test` in `Packages/VideoEditorKit` covering the new session boundary and bootstrap behavior
 - host validation now succeeds with:
@@ -469,9 +473,9 @@ Phase 6 status:
 - `PhotosPickerItem` has been removed from the editor-facing API boundary
 - the editor-facing `TranscriptionConfiguration` is now a neutral provider container and no longer constructs backend-specific providers on its own
 - backend-specific transcription factories now live in the host app shell through:
-  - [AppShellTranscriptionConfiguration.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/AppShell/Transcription/AppShellTranscriptionConfiguration.swift)
+  - [AppShellTranscriptionConfiguration.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/AppShell/Transcription/AppShellTranscriptionConfiguration.swift)
 - `PhotosUI` source adaptation now lives in the host app shell through:
-  - [VideoEditorSessionSourceResolver.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/AppShell/Photos/VideoEditorSessionSourceResolver.swift)
+  - [VideoEditorSessionSourceResolver.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/AppShell/Photos/VideoEditorSessionSourceResolver.swift)
 - host validation now also succeeds for transcription-boundary coverage including:
   - `EnumAndHelperTests`
   - `RootViewModelTests`
@@ -485,8 +489,8 @@ Normalize the host filesystem layout to match the renamed `VideoEditor` identity
 
 Deliverables:
 
-- rename the app source directory from `VideoEditorKit/` to `VideoEditor/`
-- rename the host test directory from `VideoEditorKitTests/` to `VideoEditorTests/`
+- rename the app source directory from `VideoEditorKit/` to `Example/VideoEditor/`
+- rename the host test directory from `VideoEditorKitTests/` to `Example/VideoEditorTests/`
 - update Xcode project root-group paths and `Info.plist` references
 - update internal docs and repo instructions that still reference the transitional host paths
 - validate the normalized host layout through [@build-ios-apps](plugin://build-ios-apps@openai-curated)
@@ -494,14 +498,14 @@ Deliverables:
 Exit criteria:
 
 - the host filesystem layout matches the `VideoEditor` app identity
-- `VideoEditor.xcodeproj` resolves the new source and test roots without transitional path names
+- `Example/VideoEditor.xcodeproj` resolves the new source and test roots without transitional path names
 
 Current implementation notes:
 
-- the app source directory is now `VideoEditor/`
-- the host test directory is now `VideoEditorTests/`
-- [project.pbxproj](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor.xcodeproj/project.pbxproj) now points its synchronized root groups at `VideoEditor/` and `VideoEditorTests/`
-- the app target now resolves its `Info.plist` from [Info.plist](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Info.plist)
+- the app source directory is now `Example/VideoEditor/`
+- the host test directory is now `Example/VideoEditorTests/`
+- [project.pbxproj](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor.xcodeproj/project.pbxproj) now points its synchronized root groups at `Example/VideoEditor/` and `Example/VideoEditorTests/`
+- the app target now resolves its `Info.plist` from [Info.plist](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/Info.plist)
 - repository guidance in [AGENTS.md](/Users/adrianocosta/Documents/Projects/VideoEditorKit/AGENTS.md) and [CLAUDE.md](/Users/adrianocosta/Documents/Projects/VideoEditorKit/CLAUDE.md) now references the normalized host layout
 
 Phase 7 status:
@@ -515,7 +519,7 @@ Phase 7 status:
     - `RootViewModelTests`
     - `EnumAndHelperTests`
 - the host validation for this phase was intentionally targeted at the rename-sensitive seams instead of the full simulator suite because the full `test_sim` run exceeded the plugin's default wait window; this was treated as an execution-time limitation, not as a functional regression signal
-- the active host build and test path already runs through [VideoEditor.xcodeproj](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor.xcodeproj/project.pbxproj); the later repository cleanup in Phase 8 removes the leftover legacy project directory
+- the active host build and test path already runs through [VideoEditor.xcodeproj](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor.xcodeproj/project.pbxproj); the later repository cleanup in Phase 8 removes the leftover legacy project directory
 
 ### Phase 8
 
@@ -526,25 +530,25 @@ Deliverables:
 
 - remove the legacy `VideoEditorKit.xcodeproj`
 - update operational docs that still instruct people to run tests through the old project, scheme, or host test target name
-- revalidate that the active host path still builds and tests through `VideoEditor.xcodeproj`
+- revalidate that the active host path still builds and tests through `Example/VideoEditor.xcodeproj`
 
 Exit criteria:
 
 - the repository no longer contains the legacy `VideoEditorKit.xcodeproj`
 - active operational docs no longer point to the old project or host test target names
-- host validation still succeeds through [VideoEditor.xcodeproj](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor.xcodeproj/project.pbxproj)
+- host validation still succeeds through [VideoEditor.xcodeproj](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor.xcodeproj/project.pbxproj)
 
 Current implementation notes:
 
 - the legacy `VideoEditorKit.xcodeproj` has been removed from the workspace
-- actionable verification commands in [multi-provider-transcription-plan.md](/Users/adrianocosta/Documents/Projects/VideoEditorKit/docs/multi-provider-transcription-plan.md) now reference `VideoEditor.xcodeproj`, scheme `VideoEditor`, and target `VideoEditorTests`
+- actionable verification commands in [multi-provider-transcription-plan.md](/Users/adrianocosta/Documents/Projects/VideoEditorKit/docs/multi-provider-transcription-plan.md) now reference `Example/VideoEditor.xcodeproj`, scheme `VideoEditor`, and target `VideoEditorTests`
 - remaining mentions of `VideoEditorKitTests` in this document refer only to the package test target under `Packages/VideoEditorKit/Tests/VideoEditorKitTests`, not to the host app test target
 - historical documents may still mention legacy names when they are describing past architecture or earlier phases rather than giving current operational instructions
 
 Phase 8 status:
 
 - completed
-- the active host project path is now only [VideoEditor.xcodeproj](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor.xcodeproj/project.pbxproj)
+- the active host project path is now only [VideoEditor.xcodeproj](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor.xcodeproj/project.pbxproj)
 - repository cleanup was validated by rebuilding and rerunning targeted host tests through [@build-ios-apps](plugin://build-ios-apps@openai-curated)
 
 ### Phase 9
@@ -567,9 +571,9 @@ Exit criteria:
 
 Current implementation notes:
 
-- [Package.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Package.swift) now declares the target as `VideoEditorKit`
-- package tests under `Packages/VideoEditorKit/Tests/VideoEditorKitTests/` now import `@testable import VideoEditorKit`
-- host integration seams such as [VideoEditorKitPackageAliases.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/AppShell/Integration/VideoEditorKitPackageAliases.swift), [VideoEditorKitPackageSmoke.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/AppShell/Integration/VideoEditorKitPackageSmoke.swift), and [VideoEditorSessionBootstrapCoordinator.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Core/Models/VideoEditorSessionBootstrapCoordinator.swift) now import the final package module name
+- [Package.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Package.swift) now declares the target as `VideoEditorKit`
+- package tests under `Tests/VideoEditorKitTests/` now import `@testable import VideoEditorKit`
+- host integration seams such as [VideoEditorKitPackageAliases.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/AppShell/Integration/VideoEditorKitPackageAliases.swift), [VideoEditorKitPackageSmoke.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/AppShell/Integration/VideoEditorKitPackageSmoke.swift), and [VideoEditorSessionBootstrapCoordinator.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/Core/Models/VideoEditorSessionBootstrapCoordinator.swift) now import the final package module name
 
 Phase 9 status:
 
@@ -604,12 +608,12 @@ Exit criteria:
 Current implementation notes:
 
 - the package now owns:
-  - [VideoEditorPublicTypes.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/API/VideoEditorPublicTypes.swift)
-  - [VideoQuality.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/Export/VideoQuality.swift)
-- [VideoEditorView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/API/VideoEditorView.swift) now owns the package-facing namespace for `SaveState`, `Session`, `Callbacks`, and `Configuration`
-- the host alias bridge in [VideoEditorKitPackageAliases.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/AppShell/Integration/VideoEditorKitPackageAliases.swift) now also maps `VideoQuality`, `ExportQualityAvailability`, and the extracted editor API types from the package
-- [project.pbxproj](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor.xcodeproj/project.pbxproj) now excludes the host-local [VideoQuality.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Core/Models/VideoQuality.swift) from the app target
-- the package now has direct coverage for the extracted API models in [VideoEditorPublicTypesTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Tests/VideoEditorKitTests/VideoEditorPublicTypesTests.swift)
+  - [VideoEditorPublicTypes.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Sources/VideoEditorKit/API/VideoEditorPublicTypes.swift)
+  - [VideoQuality.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Sources/VideoEditorKit/Export/VideoQuality.swift)
+- [VideoEditorView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Sources/VideoEditorKit/API/VideoEditorView.swift) now owns the package-facing namespace for `SaveState`, `Session`, `Callbacks`, and `Configuration`
+- the host alias bridge in [VideoEditorKitPackageAliases.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/AppShell/Integration/VideoEditorKitPackageAliases.swift) now also maps `VideoQuality`, `ExportQualityAvailability`, and the extracted editor API types from the package
+- [project.pbxproj](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor.xcodeproj/project.pbxproj) now excludes the host-local [VideoQuality.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/Core/Models/VideoQuality.swift) from the app target
+- the package now has direct coverage for the extracted API models in [VideoEditorPublicTypesTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Tests/VideoEditorKitTests/VideoEditorPublicTypesTests.swift)
 
 Phase 10 status:
 
@@ -641,16 +645,16 @@ Exit criteria:
 
 Current implementation notes:
 
-- [RootView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Views/RootView/RootView.swift) now imports `VideoEditorKit` directly and presents the package-owned `VideoEditorView` instead of going through a host-side editor wrapper
+- [RootView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/Views/RootView/RootView.swift) now imports `VideoEditorKit` directly and presents the package-owned `VideoEditorView` instead of going through a host-side editor wrapper
 - host consumers of `VideoQuality` and `ExportQualityAvailability`, including:
-  - [RootView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Views/RootView/RootView.swift)
-  - [EditedVideoProjectsStore.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/AppShell/Persistence/EditedVideoProjectsStore.swift)
+  - [RootView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/Views/RootView/RootView.swift)
+  - [EditedVideoProjectsStore.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/AppShell/Persistence/EditedVideoProjectsStore.swift)
   now import `VideoEditorKit` directly
 - host tests covering those extracted types, including:
-  - [ViewModifierSmokeTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorTests/Extensions/ViewModifierSmokeTests.swift)
-  - [EnumAndHelperTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorTests/Enums/EnumAndHelperTests.swift)
+  - [ViewModifierSmokeTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditorTests/Extensions/ViewModifierSmokeTests.swift)
+  - [EnumAndHelperTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditorTests/Enums/EnumAndHelperTests.swift)
   now import `VideoEditorKit` directly
-- [VideoEditorKitPackageAliases.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/AppShell/Integration/VideoEditorKitPackageAliases.swift) no longer carries aliases for `VideoEditorCallbacks`, `VideoEditorConfiguration`, `VideoEditorSaveState`, `VideoEditorSession`, `VideoQuality`, or `ExportQualityAvailability`
+- [VideoEditorKitPackageAliases.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/AppShell/Integration/VideoEditorKitPackageAliases.swift) no longer carries aliases for `VideoEditorCallbacks`, `VideoEditorConfiguration`, `VideoEditorSaveState`, `VideoEditorSession`, `VideoQuality`, or `ExportQualityAvailability`
 
 Phase 11 status:
 
@@ -681,9 +685,9 @@ Exit criteria:
 
 Current implementation notes:
 
-- [VideoEditorSessionSourceResolver.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/AppShell/Photos/VideoEditorSessionSourceResolver.swift) now imports `VideoEditorKit` directly
-- [RootViewModelTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorTests/ViewModels/RootViewModelTests.swift) now imports `VideoEditorKit` directly for session-source coverage
-- [VideoEditorKitPackageAliases.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/AppShell/Integration/VideoEditorKitPackageAliases.swift) no longer carries aliases for `VideoEditorSessionSource` or `VideoEditorImportedFileSource`
+- [VideoEditorSessionSourceResolver.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/AppShell/Photos/VideoEditorSessionSourceResolver.swift) now imports `VideoEditorKit` directly
+- [RootViewModelTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditorTests/ViewModels/RootViewModelTests.swift) now imports `VideoEditorKit` directly for session-source coverage
+- [VideoEditorKitPackageAliases.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/AppShell/Integration/VideoEditorKitPackageAliases.swift) no longer carries aliases for `VideoEditorSessionSource` or `VideoEditorImportedFileSource`
 
 Phase 12 status:
 
@@ -714,25 +718,25 @@ Exit criteria:
 Current implementation notes:
 
 - host consumers that now import `VideoEditorKit` directly for tool modeling include:
-  - [EditorAudioEditingCoordinator.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Core/Models/Editing/EditorAudioEditingCoordinator.swift)
-  - [EditorInitialLoadCoordinator.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Core/Models/Editing/EditorInitialLoadCoordinator.swift)
-  - [EditorPlaybackEditingCoordinator.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Core/Models/Editing/EditorPlaybackEditingCoordinator.swift)
-  - [EditorSessionCoordinator.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Core/Models/Editing/EditorSessionCoordinator.swift)
-  - [EditorToolbarItemPresentationResolver.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Core/Models/Editing/EditorToolbarItemPresentationResolver.swift)
-  - [VideoEditingConfigurationMapper.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Core/Models/Editing/VideoEditingConfigurationMapper.swift)
-  - [Video.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Core/Models/Video.swift)
-  - [EditorPresentationState.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Core/ViewModels/EditorPresentationState.swift)
-  - [EditorTaskCoordinator.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Core/ViewModels/EditorTaskCoordinator.swift)
-  - [EditorViewModel.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Core/ViewModels/EditorViewModel.swift)
-  - [PagedToolsRow.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Views/ToolsView/PagedToolsRow.swift)
-  - [ToolsSectionView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Views/ToolsView/ToolsSectionView.swift)
+  - [EditorAudioEditingCoordinator.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/Core/Models/Editing/EditorAudioEditingCoordinator.swift)
+  - [EditorInitialLoadCoordinator.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/Core/Models/Editing/EditorInitialLoadCoordinator.swift)
+  - [EditorPlaybackEditingCoordinator.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/Core/Models/Editing/EditorPlaybackEditingCoordinator.swift)
+  - [EditorSessionCoordinator.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/Core/Models/Editing/EditorSessionCoordinator.swift)
+  - [EditorToolbarItemPresentationResolver.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/Core/Models/Editing/EditorToolbarItemPresentationResolver.swift)
+  - [VideoEditingConfigurationMapper.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/Core/Models/Editing/VideoEditingConfigurationMapper.swift)
+  - [Video.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/Core/Models/Video.swift)
+  - [EditorPresentationState.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/Core/ViewModels/EditorPresentationState.swift)
+  - [EditorTaskCoordinator.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/Core/ViewModels/EditorTaskCoordinator.swift)
+  - [EditorViewModel.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/Core/ViewModels/EditorViewModel.swift)
+  - [PagedToolsRow.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/Views/ToolsView/PagedToolsRow.swift)
+  - [ToolsSectionView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/Views/ToolsView/ToolsSectionView.swift)
 - host tests that now import `VideoEditorKit` directly for tool modeling include:
-  - [EditorInitialLoadCoordinatorTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorTests/Models/EditorInitialLoadCoordinatorTests.swift)
-  - [EditorToolbarItemPresentationResolverTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorTests/Models/EditorToolbarItemPresentationResolverTests.swift)
-  - [VideoModelTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorTests/Models/VideoModelTests.swift)
-  - [EditorViewModelTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorTests/ViewModels/EditorViewModelTests.swift)
-- [VideoEditorKitPackageAliases.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/AppShell/Integration/VideoEditorKitPackageAliases.swift) no longer carries aliases for `ToolEnum` or `ToolAvailability`
-- [EditorViewModelTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorTests/ViewModels/EditorViewModelTests.swift) now qualifies `VideoEditorKit.VideoTranscriptionInput` explicitly in its test doubles to avoid a direct-import ambiguity with the transitional host transcription surface
+  - [EditorInitialLoadCoordinatorTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditorTests/Models/EditorInitialLoadCoordinatorTests.swift)
+  - [EditorToolbarItemPresentationResolverTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditorTests/Models/EditorToolbarItemPresentationResolverTests.swift)
+  - [VideoModelTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditorTests/Models/VideoModelTests.swift)
+  - [EditorViewModelTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditorTests/ViewModels/EditorViewModelTests.swift)
+- [VideoEditorKitPackageAliases.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/AppShell/Integration/VideoEditorKitPackageAliases.swift) no longer carries aliases for `ToolEnum` or `ToolAvailability`
+- [EditorViewModelTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditorTests/ViewModels/EditorViewModelTests.swift) now qualifies `VideoEditorKit.VideoTranscriptionInput` explicitly in its test doubles to avoid a direct-import ambiguity with the transitional host transcription surface
 
 Phase 13 status:
 
@@ -766,41 +770,41 @@ Exit criteria:
 Current implementation notes:
 
 - direct `VideoEditorKit` imports now cover host consumers such as:
-  - [EditedVideoProject.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/AppShell/Persistence/EditedVideoProject.swift)
-  - [EditedVideoProjectsStore.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/AppShell/Persistence/EditedVideoProjectsStore.swift)
-  - [VideoPlayerManager.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Core/Managers/Player/VideoPlayerManager.swift)
-  - [EditorCropPresentationResolver.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Core/Models/Editing/EditorCropPresentationResolver.swift)
-  - [VideoEditorLayoutResolver.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Core/Models/Editing/VideoEditorLayoutResolver.swift)
-  - [VideoEditorSaveEmissionCoordinator.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Core/Models/Editing/VideoEditorSaveEmissionCoordinator.swift)
-  - [VideoEditingThumbnailRenderer.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Core/Utils/VideoEditingThumbnailRenderer.swift)
-  - [VideoEditingThumbnailTimestampResolver.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Core/Utils/VideoEditingThumbnailTimestampResolver.swift)
-  - [EditorCropPresentationState.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Core/ViewModels/EditorCropPresentationState.swift)
-  - [RootViewModel.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Core/ViewModels/RootViewModel.swift)
-  - [VideoCanvasEditorState.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Core/ViewModels/VideoCanvasEditorState.swift)
-  - [PlayerHolderView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Views/EditorView/PlayerHolderView.swift)
-  - [VideoCanvasPreviewView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Views/EditorView/VideoCanvasPreviewView.swift)
-  - [EditedVideoProjectCard.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Views/RootView/EditedVideoProjectCard.swift)
-  - [VideoAudioToolView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Views/ToolsView/Audio/VideoAudioToolView.swift)
-  - [ThumbnailsSliderView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Views/ToolsView/CutView/ThumbnailsSliderView.swift)
-  - [CropView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Views/ToolsView/Presets/CropView.swift)
-  - [PresentToolView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Views/ToolsView/Presets/PresentToolView.swift)
+  - [EditedVideoProject.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/AppShell/Persistence/EditedVideoProject.swift)
+  - [EditedVideoProjectsStore.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/AppShell/Persistence/EditedVideoProjectsStore.swift)
+  - [VideoPlayerManager.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/Core/Managers/Player/VideoPlayerManager.swift)
+  - [EditorCropPresentationResolver.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/Core/Models/Editing/EditorCropPresentationResolver.swift)
+  - [VideoEditorLayoutResolver.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/Core/Models/Editing/VideoEditorLayoutResolver.swift)
+  - [VideoEditorSaveEmissionCoordinator.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/Core/Models/Editing/VideoEditorSaveEmissionCoordinator.swift)
+  - [VideoEditingThumbnailRenderer.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/Core/Utils/VideoEditingThumbnailRenderer.swift)
+  - [VideoEditingThumbnailTimestampResolver.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/Core/Utils/VideoEditingThumbnailTimestampResolver.swift)
+  - [EditorCropPresentationState.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/Core/ViewModels/EditorCropPresentationState.swift)
+  - [RootViewModel.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/Core/ViewModels/RootViewModel.swift)
+  - [VideoCanvasEditorState.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/Core/ViewModels/VideoCanvasEditorState.swift)
+  - [PlayerHolderView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/Views/EditorView/PlayerHolderView.swift)
+  - [VideoCanvasPreviewView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/Views/EditorView/VideoCanvasPreviewView.swift)
+  - [EditedVideoProjectCard.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/Views/RootView/EditedVideoProjectCard.swift)
+  - [VideoAudioToolView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/Views/ToolsView/Audio/VideoAudioToolView.swift)
+  - [ThumbnailsSliderView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/Views/ToolsView/CutView/ThumbnailsSliderView.swift)
+  - [CropView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/Views/ToolsView/Presets/CropView.swift)
+  - [PresentToolView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/Views/ToolsView/Presets/PresentToolView.swift)
 - the host tests covering this slice now import `VideoEditorKit` directly, including:
-  - [EditedVideoProjectsStoreTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorTests/AppShell/EditedVideoProjectsStoreTests.swift)
-  - [EditorCropEditingCoordinatorTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorTests/Models/EditorCropEditingCoordinatorTests.swift)
-  - [EditorSessionCoordinatorTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorTests/Models/EditorSessionCoordinatorTests.swift)
-  - [SocialPlatformSafeAreaTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorTests/Models/SocialPlatformSafeAreaTests.swift)
-  - [VideoCanvasMappingActorTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorTests/Models/VideoCanvasMappingActorTests.swift)
-  - [VideoCropFormatPresetTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorTests/Models/VideoCropFormatPresetTests.swift)
-  - [VideoCropPreviewLayoutTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorTests/Models/VideoCropPreviewLayoutTests.swift)
-  - [VideoEditingConfigurationTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorTests/Models/VideoEditingConfigurationTests.swift)
-  - [VideoEditingPresentationStateResolverTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorTests/Models/VideoEditingPresentationStateResolverTests.swift)
-  - [VideoEditorTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorTests/Models/VideoEditorTests.swift)
-  - [CoreUtilityCharacterizationTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorTests/Utils/CoreUtilityCharacterizationTests.swift)
-  - [PlaybackTimeMappingTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorTests/Utils/PlaybackTimeMappingTests.swift)
-  - [VideoEditingThumbnailRendererTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorTests/Utils/VideoEditingThumbnailRendererTests.swift)
-  - [EditorCropPresentationStateTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorTests/ViewModels/EditorCropPresentationStateTests.swift)
-  - [ExporterViewModelTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorTests/ViewModels/ExporterViewModelTests.swift)
-  - [VideoCanvasPreviewViewTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorTests/Views/VideoCanvasPreviewViewTests.swift)
+  - [EditedVideoProjectsStoreTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditorTests/AppShell/EditedVideoProjectsStoreTests.swift)
+  - [EditorCropEditingCoordinatorTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditorTests/Models/EditorCropEditingCoordinatorTests.swift)
+  - [EditorSessionCoordinatorTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditorTests/Models/EditorSessionCoordinatorTests.swift)
+  - [SocialPlatformSafeAreaTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditorTests/Models/SocialPlatformSafeAreaTests.swift)
+  - [VideoCanvasMappingActorTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditorTests/Models/VideoCanvasMappingActorTests.swift)
+  - [VideoCropFormatPresetTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditorTests/Models/VideoCropFormatPresetTests.swift)
+  - [VideoCropPreviewLayoutTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditorTests/Models/VideoCropPreviewLayoutTests.swift)
+  - [VideoEditingConfigurationTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditorTests/Models/VideoEditingConfigurationTests.swift)
+  - [VideoEditingPresentationStateResolverTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditorTests/Models/VideoEditingPresentationStateResolverTests.swift)
+  - [VideoEditorTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditorTests/Models/VideoEditorTests.swift)
+  - [CoreUtilityCharacterizationTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditorTests/Utils/CoreUtilityCharacterizationTests.swift)
+  - [PlaybackTimeMappingTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditorTests/Utils/PlaybackTimeMappingTests.swift)
+  - [VideoEditingThumbnailRendererTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditorTests/Utils/VideoEditingThumbnailRendererTests.swift)
+  - [EditorCropPresentationStateTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditorTests/ViewModels/EditorCropPresentationStateTests.swift)
+  - [ExporterViewModelTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditorTests/ViewModels/ExporterViewModelTests.swift)
+  - [VideoCanvasPreviewViewTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditorTests/Views/VideoCanvasPreviewViewTests.swift)
 - the host seam no longer aliases:
   - `EditorCropEditingState`
   - `PlaybackTimeMapping`
@@ -822,14 +826,14 @@ Current implementation notes:
   - `VideoCropFormatPreset`
   - `VideoCropPreviewLayout`
   - `VideoEditingConfiguration`
-- [EditorCropEditingCoordinatorTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorTests/Models/EditorCropEditingCoordinatorTests.swift) now exercises package-owned crop-selection APIs directly while keeping the host-specific `shouldApplyPresetTool` coverage on the host wrapper
-- [VideoEditingPresentationStateResolverTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorTests/Models/VideoEditingPresentationStateResolverTests.swift) now targets the package-owned resolver directly because the host layer there is a pure forwarding seam
+- [EditorCropEditingCoordinatorTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditorTests/Models/EditorCropEditingCoordinatorTests.swift) now exercises package-owned crop-selection APIs directly while keeping the host-specific `shouldApplyPresetTool` coverage on the host wrapper
+- [VideoEditingPresentationStateResolverTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditorTests/Models/VideoEditingPresentationStateResolverTests.swift) now targets the package-owned resolver directly because the host layer there is a pure forwarding seam
 
 Phase 14 status:
 
 - completed
-- the duplicate host copies of `VideoEditingConfiguration`, crop presets, canvas models, transcript models, and `PlaybackTimeMapping` have been removed from `VideoEditor/Core`
-- the app shell now reaches the editor only through [VideoEditorView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/API/VideoEditorView.swift)
+- the duplicate host copies of `VideoEditingConfiguration`, crop presets, canvas models, transcript models, and `PlaybackTimeMapping` have been removed from `Example/VideoEditor/Core`
+- the app shell now reaches the editor only through [VideoEditorView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Sources/VideoEditorKit/API/VideoEditorView.swift)
 - host validation succeeds with:
   - simulator build through [@build-ios-apps](plugin://build-ios-apps@openai-curated) for scheme `VideoEditor`
   - targeted simulator test validation in two batches for:
@@ -871,30 +875,30 @@ Exit criteria:
 Current implementation notes:
 
 - direct `VideoEditorKit` imports now cover the remaining toolbar and transcription consumers, including:
-  - [TranscriptOverlayLayoutResolver.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Core/Models/Transcription/TranscriptOverlayLayoutResolver.swift)
-  - [TranscriptTextStyleResolver.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Core/Models/Transcription/TranscriptTextStyleResolver.swift)
-  - [TranscriptOverlayPreview.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Views/EditorView/TranscriptOverlayPreview.swift)
-  - [TranscriptSegmentEditView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Views/ToolsView/Transcript/TranscriptSegmentEditView.swift)
-  - [TranscriptSegmentRow.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Views/ToolsView/Transcript/TranscriptSegmentRow.swift)
-  - [TranscriptToolView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Views/ToolsView/Transcript/TranscriptToolView.swift)
-  - [OpenAIWhisperTranscriptionComponent.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/Transcription/OpenAIWhisperTranscriptionComponent.swift)
-  - [OpenAIWhisperAPIClient.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/Transcription/OpenAIWhisperAPIClient.swift)
-  - [OpenAIWhisperMultipartFormDataBuilder.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/Transcription/OpenAIWhisperMultipartFormDataBuilder.swift)
-  - [OpenAIWhisperResponseDTO.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/Transcription/OpenAIWhisperResponseDTO.swift)
-  - [OpenAIWhisperResponseMapper.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/Transcription/OpenAIWhisperResponseMapper.swift)
-  - [VideoAudioExtractionService.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/Transcription/VideoAudioExtractionService.swift)
+  - [TranscriptOverlayLayoutResolver.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/Core/Models/Transcription/TranscriptOverlayLayoutResolver.swift)
+  - [TranscriptTextStyleResolver.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/Core/Models/Transcription/TranscriptTextStyleResolver.swift)
+  - [TranscriptOverlayPreview.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/Views/EditorView/TranscriptOverlayPreview.swift)
+  - [TranscriptSegmentEditView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/Views/ToolsView/Transcript/TranscriptSegmentEditView.swift)
+  - [TranscriptSegmentRow.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/Views/ToolsView/Transcript/TranscriptSegmentRow.swift)
+  - [TranscriptToolView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/Views/ToolsView/Transcript/TranscriptToolView.swift)
+  - [OpenAIWhisperTranscriptionComponent.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Sources/VideoEditorKit/Transcription/OpenAIWhisperTranscriptionComponent.swift)
+  - [OpenAIWhisperAPIClient.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Sources/VideoEditorKit/Transcription/OpenAIWhisperAPIClient.swift)
+  - [OpenAIWhisperMultipartFormDataBuilder.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Sources/VideoEditorKit/Transcription/OpenAIWhisperMultipartFormDataBuilder.swift)
+  - [OpenAIWhisperResponseDTO.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Sources/VideoEditorKit/Transcription/OpenAIWhisperResponseDTO.swift)
+  - [OpenAIWhisperResponseMapper.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Sources/VideoEditorKit/Transcription/OpenAIWhisperResponseMapper.swift)
+  - [VideoAudioExtractionService.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Sources/VideoEditorKit/Transcription/VideoAudioExtractionService.swift)
 - direct `VideoEditorKit` imports now cover the remaining toolbar and transcription tests, including:
-  - [EditorToolSelectionCoordinatorTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorTests/Models/EditorToolSelectionCoordinatorTests.swift)
-  - [EditorToolbarLayoutResolverTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorTests/Models/EditorToolbarLayoutResolverTests.swift)
-  - [EditorTranscriptMappingCoordinatorTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorTests/Models/EditorTranscriptMappingCoordinatorTests.swift)
-  - [EditorTranscriptRemappingCoordinatorTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorTests/Models/EditorTranscriptRemappingCoordinatorTests.swift)
-  - [TranscriptDocumentTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorTests/Models/TranscriptDocumentTests.swift)
-  - [TranscriptOverlayLayoutResolverTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorTests/Models/TranscriptOverlayLayoutResolverTests.swift)
-  - [TranscriptTextStyleResolverTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorTests/Models/TranscriptTextStyleResolverTests.swift)
-  - [TranscriptTimeMapperTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorTests/Models/TranscriptTimeMapperTests.swift)
-  - [TranscriptWordEditingCoordinatorTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorTests/Models/TranscriptWordEditingCoordinatorTests.swift)
-  - [OpenAIWhisperTranscriptionComponentTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Tests/VideoEditorKitTests/Transcription/OpenAIWhisperTranscriptionComponentTests.swift)
-- the temporary alias seam file at `VideoEditor/AppShell/Integration/VideoEditorKitPackageAliases.swift` was deleted
+  - [EditorToolSelectionCoordinatorTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditorTests/Models/EditorToolSelectionCoordinatorTests.swift)
+  - [EditorToolbarLayoutResolverTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditorTests/Models/EditorToolbarLayoutResolverTests.swift)
+  - [EditorTranscriptMappingCoordinatorTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditorTests/Models/EditorTranscriptMappingCoordinatorTests.swift)
+  - [EditorTranscriptRemappingCoordinatorTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditorTests/Models/EditorTranscriptRemappingCoordinatorTests.swift)
+  - [TranscriptDocumentTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditorTests/Models/TranscriptDocumentTests.swift)
+  - [TranscriptOverlayLayoutResolverTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditorTests/Models/TranscriptOverlayLayoutResolverTests.swift)
+  - [TranscriptTextStyleResolverTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditorTests/Models/TranscriptTextStyleResolverTests.swift)
+  - [TranscriptTimeMapperTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditorTests/Models/TranscriptTimeMapperTests.swift)
+  - [TranscriptWordEditingCoordinatorTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditorTests/Models/TranscriptWordEditingCoordinatorTests.swift)
+  - [OpenAIWhisperTranscriptionComponentTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Tests/VideoEditorKitTests/Transcription/OpenAIWhisperTranscriptionComponentTests.swift)
+- the temporary alias seam file at `Example/VideoEditor/AppShell/Integration/VideoEditorKitPackageAliases.swift` was deleted
 
 Phase 15 status:
 
@@ -939,9 +943,9 @@ Execution policy:
 ## Phase 1 Checklist
 
 - [x] `Packages/VideoEditorKit/` exists
-- [x] `Packages/VideoEditorKit/Package.swift` exists
-- [x] `Packages/VideoEditorKit/Sources/VideoEditorKit/` exists
-- [x] `Packages/VideoEditorKit/Tests/VideoEditorKitTests/` exists
+- [x] `Package.swift` exists
+- [x] `Sources/VideoEditorKit/` exists
+- [x] `Tests/VideoEditorKitTests/` exists
 - [x] package contains a minimal entry point
 - [x] package contains a minimal Swift Testing test
 - [x] document phase 1 completion status in this file
@@ -955,9 +959,9 @@ started
 
 Artifacts created:
 
-- [Package.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Package.swift)
-- [VideoEditorKit.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/VideoEditorKit.swift)
-- [VideoEditorKitPackageTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Tests/VideoEditorKitTests/VideoEditorKitPackageTests.swift)
+- [Package.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Package.swift)
+- [VideoEditorKit.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Sources/VideoEditorKit/VideoEditorKit.swift)
+- [VideoEditorKitPackageTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Tests/VideoEditorKitTests/VideoEditorKitPackageTests.swift)
 
 Notes:
 
@@ -973,13 +977,13 @@ completed
 
 Artifacts created:
 
-- [VideoEditingConfiguration.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/Editing/VideoEditingConfiguration.swift)
-- [VideoCropFormatPreset.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/Editing/VideoCropFormatPreset.swift)
-- [VideoCropPreviewLayout.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/Editing/VideoCropPreviewLayout.swift)
-- [SocialPlatformSafeArea.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/SafeArea/SocialPlatformSafeArea.swift)
-- [VideoCropFormatPresetTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Tests/VideoEditorKitTests/VideoCropFormatPresetTests.swift)
-- [VideoCropPreviewLayoutTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Tests/VideoEditorKitTests/VideoCropPreviewLayoutTests.swift)
-- [SocialPlatformSafeAreaTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Tests/VideoEditorKitTests/SocialPlatformSafeAreaTests.swift)
+- [VideoEditingConfiguration.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Sources/VideoEditorKit/Editing/VideoEditingConfiguration.swift)
+- [VideoCropFormatPreset.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Sources/VideoEditorKit/Editing/VideoCropFormatPreset.swift)
+- [VideoCropPreviewLayout.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Sources/VideoEditorKit/Editing/VideoCropPreviewLayout.swift)
+- [SocialPlatformSafeArea.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Sources/VideoEditorKit/SafeArea/SocialPlatformSafeArea.swift)
+- [VideoCropFormatPresetTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Tests/VideoEditorKitTests/VideoCropFormatPresetTests.swift)
+- [VideoCropPreviewLayoutTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Tests/VideoEditorKitTests/VideoCropPreviewLayoutTests.swift)
+- [SocialPlatformSafeAreaTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Tests/VideoEditorKitTests/SocialPlatformSafeAreaTests.swift)
 
 Notes:
 
@@ -994,12 +998,12 @@ in progress
 
 Artifacts created:
 
-- [VideoCanvasPreset.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/Canvas/VideoCanvasPreset.swift)
-- [VideoCanvasState.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/Canvas/VideoCanvasState.swift)
-- [VideoCanvasLayout.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/Canvas/VideoCanvasLayout.swift)
-- [VideoCanvasRenderRequest.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/Canvas/VideoCanvasRenderRequest.swift)
-- [VideoCanvasMappingActor.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/Canvas/VideoCanvasMappingActor.swift)
-- [VideoCanvasMappingActorTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Tests/VideoEditorKitTests/VideoCanvasMappingActorTests.swift)
+- [VideoCanvasPreset.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Sources/VideoEditorKit/Canvas/VideoCanvasPreset.swift)
+- [VideoCanvasState.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Sources/VideoEditorKit/Canvas/VideoCanvasState.swift)
+- [VideoCanvasLayout.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Sources/VideoEditorKit/Canvas/VideoCanvasLayout.swift)
+- [VideoCanvasRenderRequest.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Sources/VideoEditorKit/Canvas/VideoCanvasRenderRequest.swift)
+- [VideoCanvasMappingActor.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Sources/VideoEditorKit/Canvas/VideoCanvasMappingActor.swift)
+- [VideoCanvasMappingActorTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Tests/VideoEditorKitTests/VideoCanvasMappingActorTests.swift)
 
 Notes:
 
@@ -1014,31 +1018,31 @@ in progress
 
 Artifacts created:
 
-- local package reference added to [project.pbxproj](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor.xcodeproj/project.pbxproj)
-- temporary package smoke import in [VideoEditorKitPackageSmoke.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/AppShell/Integration/VideoEditorKitPackageSmoke.swift)
-- package target rename bridge in [Package.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Package.swift)
-- real package-owned configuration model in [VideoEditingConfiguration.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/Editing/VideoEditingConfiguration.swift)
-- supporting package-owned editing model in [ToolModel.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/Editing/ToolModel.swift)
-- supporting package-owned transcript model set in [TranscriptModels.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/Transcription/TranscriptModels.swift)
-- package-owned playback utility in [PlaybackTimeMapping.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/Playback/PlaybackTimeMapping.swift)
-- package-owned transcript time mapper in [TranscriptTimeMapper.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/Transcription/TranscriptTimeMapper.swift)
-- package-owned transcript word coordinator in [TranscriptWordEditingCoordinator.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/Transcription/TranscriptWordEditingCoordinator.swift)
-- package-owned transcript remapping coordinator in [EditorTranscriptRemappingCoordinator.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/Transcription/EditorTranscriptRemappingCoordinator.swift)
-- package-owned transcript mapping coordinator in [EditorTranscriptMappingCoordinator.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/Transcription/EditorTranscriptMappingCoordinator.swift)
-- package-owned transcription contracts in [VideoTranscriptionProvider.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/Transcription/VideoTranscriptionProvider.swift)
-- package-owned tool selection coordinator in [EditorToolSelectionCoordinator.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/Editing/EditorToolSelectionCoordinator.swift)
-- package-owned toolbar layout resolver in [EditorToolbarLayoutResolver.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/Editing/EditorToolbarLayoutResolver.swift)
-- package validation coverage in [VideoEditingConfigurationTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Tests/VideoEditorKitTests/VideoEditingConfigurationTests.swift)
-- package validation coverage in [TranscriptDocumentTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Tests/VideoEditorKitTests/TranscriptDocumentTests.swift)
-- package validation coverage in [PlaybackTimeMappingTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Tests/VideoEditorKitTests/PlaybackTimeMappingTests.swift)
-- package validation coverage in [TranscriptTimeMapperTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Tests/VideoEditorKitTests/TranscriptTimeMapperTests.swift)
-- package validation coverage in [TranscriptWordEditingCoordinatorTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Tests/VideoEditorKitTests/TranscriptWordEditingCoordinatorTests.swift)
-- package validation coverage in [EditorTranscriptRemappingCoordinatorTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Tests/VideoEditorKitTests/EditorTranscriptRemappingCoordinatorTests.swift)
-- package validation coverage in [EditorTranscriptMappingCoordinatorTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Tests/VideoEditorKitTests/EditorTranscriptMappingCoordinatorTests.swift)
-- package validation coverage in [EditorToolSelectionCoordinatorTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Tests/VideoEditorKitTests/EditorToolSelectionCoordinatorTests.swift)
-- package validation coverage in [EditorToolbarLayoutResolverTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Tests/VideoEditorKitTests/EditorToolbarLayoutResolverTests.swift)
-- host-app integration smoke in [VideoEditorKitPackageSmokeTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorTests/AppShell/VideoEditorKitPackageSmokeTests.swift)
-- host-app package alias bridge in [VideoEditorKitPackageAliases.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/AppShell/Integration/VideoEditorKitPackageAliases.swift)
+- local package reference added to [project.pbxproj](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor.xcodeproj/project.pbxproj)
+- temporary package smoke import in [VideoEditorKitPackageSmoke.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/AppShell/Integration/VideoEditorKitPackageSmoke.swift)
+- package target rename bridge in [Package.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Package.swift)
+- real package-owned configuration model in [VideoEditingConfiguration.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Sources/VideoEditorKit/Editing/VideoEditingConfiguration.swift)
+- supporting package-owned editing model in [ToolModel.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Sources/VideoEditorKit/Editing/ToolModel.swift)
+- supporting package-owned transcript model set in [TranscriptModels.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Sources/VideoEditorKit/Transcription/TranscriptModels.swift)
+- package-owned playback utility in [PlaybackTimeMapping.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Sources/VideoEditorKit/Playback/PlaybackTimeMapping.swift)
+- package-owned transcript time mapper in [TranscriptTimeMapper.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Sources/VideoEditorKit/Transcription/TranscriptTimeMapper.swift)
+- package-owned transcript word coordinator in [TranscriptWordEditingCoordinator.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Sources/VideoEditorKit/Transcription/TranscriptWordEditingCoordinator.swift)
+- package-owned transcript remapping coordinator in [EditorTranscriptRemappingCoordinator.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Sources/VideoEditorKit/Transcription/EditorTranscriptRemappingCoordinator.swift)
+- package-owned transcript mapping coordinator in [EditorTranscriptMappingCoordinator.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Sources/VideoEditorKit/Transcription/EditorTranscriptMappingCoordinator.swift)
+- package-owned transcription contracts in [VideoTranscriptionProvider.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Sources/VideoEditorKit/Transcription/VideoTranscriptionProvider.swift)
+- package-owned tool selection coordinator in [EditorToolSelectionCoordinator.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Sources/VideoEditorKit/Editing/EditorToolSelectionCoordinator.swift)
+- package-owned toolbar layout resolver in [EditorToolbarLayoutResolver.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Sources/VideoEditorKit/Editing/EditorToolbarLayoutResolver.swift)
+- package validation coverage in [VideoEditingConfigurationTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Tests/VideoEditorKitTests/VideoEditingConfigurationTests.swift)
+- package validation coverage in [TranscriptDocumentTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Tests/VideoEditorKitTests/TranscriptDocumentTests.swift)
+- package validation coverage in [PlaybackTimeMappingTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Tests/VideoEditorKitTests/PlaybackTimeMappingTests.swift)
+- package validation coverage in [TranscriptTimeMapperTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Tests/VideoEditorKitTests/TranscriptTimeMapperTests.swift)
+- package validation coverage in [TranscriptWordEditingCoordinatorTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Tests/VideoEditorKitTests/TranscriptWordEditingCoordinatorTests.swift)
+- package validation coverage in [EditorTranscriptRemappingCoordinatorTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Tests/VideoEditorKitTests/EditorTranscriptRemappingCoordinatorTests.swift)
+- package validation coverage in [EditorTranscriptMappingCoordinatorTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Tests/VideoEditorKitTests/EditorTranscriptMappingCoordinatorTests.swift)
+- package validation coverage in [EditorToolSelectionCoordinatorTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Tests/VideoEditorKitTests/EditorToolSelectionCoordinatorTests.swift)
+- package validation coverage in [EditorToolbarLayoutResolverTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Tests/VideoEditorKitTests/EditorToolbarLayoutResolverTests.swift)
+- host-app integration smoke in [VideoEditorKitPackageSmokeTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditorTests/AppShell/VideoEditorKitPackageSmokeTests.swift)
+- host-app package alias bridge in [VideoEditorKitPackageAliases.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Example/VideoEditor/AppShell/Integration/VideoEditorKitPackageAliases.swift)
 
 Notes:
 

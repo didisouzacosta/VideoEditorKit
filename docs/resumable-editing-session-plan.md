@@ -1,6 +1,8 @@
 # Resumable Editing Session Plan
 
 > Superseded for V1 by [docs/video-editing-configuration-execution-plan.md](/Users/adrianocosta/Documents/Projects/VideoEditorKit/docs/video-editing-configuration-execution-plan.md). Keep this document only as historical context for the earlier session-based proposal.
+>
+> Historical path note: some file references below still reflect the intermediate migration layout. Read `Packages/VideoEditorKit/...` as `Sources/VideoEditorKit/...`, and host-app paths under `VideoEditor/...` as `Example/VideoEditor/...`.
 
 ## Summary
 
@@ -356,14 +358,14 @@ Scope:
 
 ## Files Expected To Change
 
-- `VideoEditor/Views/EditorView/HostedVideoEditorView.swift`
-- `VideoEditor/Core/ViewModels/EditorViewModel.swift`
-- `VideoEditor/Core/Models/Video.swift`
-- `VideoEditor/Core/Models/AudioModel.swift`
-- `VideoEditor/Views/ToolsView/Presets/CropView.swift`
-- `VideoEditor/Views/RootView/RootView.swift`
-- new files under `VideoEditor/Core/Models/Session/`
-- new tests under `VideoEditorTests/Models/` and `VideoEditorTests/ViewModels/`
+- `Example/VideoEditor/Views/EditorView/HostedVideoEditorView.swift`
+- `Example/VideoEditor/Core/ViewModels/EditorViewModel.swift`
+- `Example/VideoEditor/Core/Models/Video.swift`
+- `Example/VideoEditor/Core/Models/AudioModel.swift`
+- `Example/VideoEditor/Views/ToolsView/Presets/CropView.swift`
+- `Example/VideoEditor/Views/RootView/RootView.swift`
+- new files under `Example/VideoEditor/Core/Models/Session/`
+- new tests under `Example/VideoEditorTests/Models/` and `Example/VideoEditorTests/ViewModels/`
 
 ## Test Plan
 

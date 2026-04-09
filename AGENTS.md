@@ -2,16 +2,16 @@
 
 ## Estado atual do projeto
 
-`VideoEditorKit` hoje é um **app iOS SwiftUI**, não um SDK modular pronto para integração host.
+`VideoEditorKit` hoje é um **package SPM com um app iOS de exemplo**, não um SDK modular totalmente desacoplado em engines puras.
 
-O nome do target continua `VideoEditorKit`, mas a base atual implementa um editor de vídeo monolítico com:
+O produto principal continua `VideoEditorKit`, e a base atual implementa um editor de vídeo monolítico com:
 
 - importação de vídeo via `PhotosPicker`
 - persistência local com `SwiftData`
 - edição de corte, velocidade, presets sociais/crop, áudio, correções e moldura
 - exportação assíncrona para arquivo `.mp4`
 
-O código ainda não segue a arquitetura alvo descrita em `AGENTS.md` e no `CLAUDE.md` antigo. Não existem hoje `Core/`, `LayoutEngine`, `PlayerEngine`, `ExportEngine` ou snapshots codáveis separados.
+O código ainda não segue a arquitetura alvo descrita em `AGENTS.md` e no `CLAUDE.md` antigo. Não existem hoje `LayoutEngine`, `PlayerEngine`, `ExportEngine` ou snapshots codáveis totalmente separados.
 
 ---
 
@@ -37,19 +37,24 @@ Build settings atuais:
 ## Estrutura real do repositório
 
 ```text
-VideoEditor/
-  Models/        — modelos de domínio leves (`Video`, `Audio`, `VideoQuality`)
-  ViewModels/    — estado observável da UI (`RootViewModel`, `EditorViewModel`, etc.)
-  Service/       — player, câmera, gravador de áudio e persistência
-  Views/         — telas e componentes SwiftUI do editor
-  Utils/         — helpers de exportação, extensões e utilitários
-  VideoEditorApp.swift
+Package.swift
+Sources/VideoEditorKit/
+  — implementação principal do package SPM
 
-VideoEditorTests/
-  — testes unitários pontuais para formatação, timeline, crop, persistência e modelo `Video`
+Tests/VideoEditorKitTests/
+  — testes do package
+
+Example/VideoEditor/
+  — app de exemplo que importa `VideoEditorKit`
+
+Example/VideoEditorTests/
+  — testes do app de exemplo
+
+Example/VideoEditor.xcodeproj
+Example/VideoEditor.xcworkspace
 ```
 
-Não há separação atual entre camada de domínio pura, engines testáveis e UI fina. A maior parte da lógica está distribuída entre `ViewModels`, `Service` e `Utils/Helpers/VideoEditor.swift`.
+O package agora é a superfície principal do repositório. O app em `Example/` existe como cliente de integração e demonstração.
 
 ---
 
@@ -325,13 +330,12 @@ Não há hoje testes unitários para:
 
 ## Arquivos centrais para entender o projeto
 
-- `VideoEditor/VideoEditorApp.swift`
-- `VideoEditor/Views/RootView/RootView.swift`
-- `VideoEditor/Views/EditorView/MainEditorView.swift`
-- `VideoEditor/Core/ViewModels/EditorViewModel.swift`
-- `VideoEditor/Core/Managers/Player/VideoPlayerManager.swift`
-- `VideoEditor/AppShell/Persistence/EditedVideoProject.swift`
-- `VideoEditor/Core/Models/Enums/VideoEditor.swift`
+- `Example/VideoEditor/VideoEditorApp.swift`
+- `Example/VideoEditor/Views/RootView/RootView.swift`
+- `Sources/VideoEditorKit/Internal/ViewModels/EditorViewModel.swift`
+- `Sources/VideoEditorKit/Internal/Managers/Player/VideoPlayerManager.swift`
+- `Example/VideoEditor/AppShell/Persistence/EditedVideoProject.swift`
+- `Sources/VideoEditorKit/API/VideoEditorView.swift`
 
 ---
 

@@ -1,11 +1,14 @@
 cache_path: .cache/swiftlint
 
 included:
-  - VideoEditorKit
-  - VideoEditorKitTests
+  - Sources/VideoEditorKit
+  - Tests/VideoEditorKitTests
+  - Example/VideoEditor
+  - Example/VideoEditorTests
 
 excluded:
   - .build
+  - .swiftpm
   - DerivedData
 
 disabled_rules:

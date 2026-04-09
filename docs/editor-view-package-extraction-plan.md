@@ -1,10 +1,14 @@
 # EditorView Package Extraction Plan
 
+> Historical note
+> This document describes the extraction work while the package still lived under `Packages/VideoEditorKit`.
+> The current package root is `Sources/VideoEditorKit/`, and `Example/` is now the example app location.
+
 ## Summary
 
 This plan moves the remaining editor-owned SwiftUI surfaces out of the host app's `Views/EditorView` folder and into `Packages/VideoEditorKit`, while keeping the app shell responsible only for integration-specific behavior.
 
-The migration should happen in three steps instead of one large move because the files under `VideoEditor/Views/EditorView` do not all have the same level of host coupling.
+The migration should happen in three steps instead of one large move because the files under `Example/VideoEditor/Views/EditorView` do not all have the same level of host coupling.
 
 ## Goal
 
@@ -90,7 +94,7 @@ Exit criteria:
 
 - `HostedVideoEditorView` becomes a minimal host adapter or can be deleted entirely
 - the package owns the actual editor screen implementation
-- `VideoEditor/Views/EditorView` is reduced to true host-only integration code, or disappears completely
+- `Example/VideoEditor/Views/EditorView` is reduced to true host-only integration code, or disappears completely
 
 Status:
 
@@ -113,7 +117,7 @@ Status:
 - continued by extracting `HostedVideoEditorPlayerStageCoordinator`, `HostedVideoEditorPlayerOverlayView`, and `HostedVideoEditorPlayerTrailingControlsView` so `PlayerHolderView` now mostly delegates stage derivation, transcript overlay identity, and reset chrome to explicit host adapters
 - continued by extracting `HostedVideoEditorShellCoordinator`, `HostedVideoEditorLoadedContentView`, and `HostedVideoEditorExportSheetContentView` so `HostedVideoEditorView` now mostly owns host state only, while loaded-content composition, export-sheet composition, and shell callbacks are delegated
 - continued by removing the app-local `ToolModel` duplication so the host now uses the package-owned `ToolEnum` and `ToolAvailability` types directly
-- completed by moving the remaining editor implementation into `Packages/VideoEditorKit/Internal`, deleting the app-local `Views/EditorView` and `Views/ToolsView` surfaces, and removing the duplicate editor-owned models still left under `VideoEditor/Core`
+- completed by moving the remaining editor implementation into `Packages/VideoEditorKit/Internal`, deleting the app-local `Views/EditorView` and `Views/ToolsView` surfaces, and removing the duplicate editor-owned models still left under `Example/VideoEditor/Core`
 
 Result:
 
