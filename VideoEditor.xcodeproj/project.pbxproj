@@ -34,27 +34,6 @@
 		A98C85AE2F8366C300FC0873 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Core/Actors/VideoCanvasMappingActor.swift,
-				Core/Models/Canvas/VideoCanvasLayout.swift,
-				Core/Models/Canvas/VideoCanvasPreset.swift,
-				Core/Models/Canvas/VideoCanvasRenderRequest.swift,
-				Core/Models/Canvas/VideoCanvasState.swift,
-				Core/Models/Editing/EditorToolbarLayoutResolver.swift,
-				Core/Models/Editing/EditorToolSelectionCoordinator.swift,
-				Core/Models/Editing/VideoCropFormatPreset.swift,
-				Core/Models/Editing/VideoCropPreviewLayout.swift,
-				Core/Models/Editing/VideoEditingConfiguration.swift,
-				Core/Models/SafeArea/SocialPlatformSafeArea.swift,
-				Core/Models/ToolModel.swift,
-				Core/Models/Transcription/EditorTranscriptMappingCoordinator.swift,
-				Core/Models/Transcription/EditorTranscriptRemappingCoordinator.swift,
-				Core/Models/Transcription/TranscriptModels.swift,
-				Core/Models/Transcription/TranscriptTimeMapper.swift,
-				Core/Models/Transcription/TranscriptWordHighlightStyle.swift,
-				Core/Models/Transcription/TranscriptWordEditingCoordinator.swift,
-				Core/Models/Transcription/VideoTranscriptionProvider.swift,
-				Core/Models/VideoQuality.swift,
-				Core/Utils/PlaybackTimeMapping.swift,
 				Info.plist,
 			);
 			target = 5ACFF96A29E944FA00827A37 /* VideoEditor */;
@@ -100,8 +79,8 @@
 		5ACFF96229E944FA00827A37 = {
 			isa = PBXGroup;
 			children = (
-				A98D13292F71DE7C0025159E /* VideoEditorKit */,
-				A98D11C12F71D8890025159E /* VideoEditorKitTests */,
+				A98D13292F71DE7C0025159E /* VideoEditor */,
+				A98D11C12F71D8890025159E /* VideoEditorTests */,
 				5ACFF96C29E944FA00827A37 /* Products */,
 				623202D2D70D15A896584F95 /* Frameworks */,
 			);
@@ -140,7 +119,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				A98D13292F71DE7C0025159E /* VideoEditorKit */,
+				A98D13292F71DE7C0025159E /* VideoEditor */,
 			);
 			name = VideoEditor;
 			packageProductDependencies = (
@@ -164,7 +143,7 @@
 				3C7254F2E6060C807CD65555 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				A98D11C12F71D8890025159E /* VideoEditorKitTests */,
+				A98D11C12F71D8890025159E /* VideoEditorTests */,
 			);
 			name = VideoEditorTests;
 			productName = VideoEditorTests;
@@ -190,7 +169,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 5ACFF96629E944FA00827A37 /* Build configuration list for PBXProject "VideoEditorKit" */;
+			buildConfigurationList = 5ACFF96629E944FA00827A37 /* Build configuration list for PBXProject "VideoEditor" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -504,7 +483,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		5ACFF96629E944FA00827A37 /* Build configuration list for PBXProject "VideoEditorKit" */ = {
+		5ACFF96629E944FA00827A37 /* Build configuration list for PBXProject "VideoEditor" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				5ACFF97729E944FC00827A37 /* Debug */,

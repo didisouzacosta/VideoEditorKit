@@ -1,9 +1,9 @@
 import SwiftUI
 import Testing
 import UIKit
-import VideoEditorKit
 
 @testable import VideoEditor
+@testable import VideoEditorKit
 
 @MainActor
 @Suite("ViewModifierSmokeTests")
@@ -54,13 +54,37 @@ struct ViewModifierSmokeTests {
 
     @Test
     func blockedExportQualitiesRenderInsideAHostingController() {
-        let controller = makeHostingController(
-            VideoExporterView(
-                video: Video.mock,
-                editingConfiguration: .initial,
-                exportQualities: ExportQualityAvailability.premiumLocked,
-            ) { _ in
+        struct ExporterPackageHostView: View {
+            @State private var isAlertPresented = false
+
+            var body: some View {
+                VideoEditorKit.VideoExporterView(
+                    isAlertPresented: $isAlertPresented,
+                    state: .init(
+                        selectedQuality: .medium,
+                        exportProgress: 0,
+                        progressText: "0%",
+                        errorMessage: "Error",
+                        actionTitle: "Export",
+                        isInteractionDisabled: false,
+                        canExportVideo: true,
+                        canCancelExport: false,
+                        shouldShowLoadingView: false,
+                        shouldShowFailureMessage: false
+                    ),
+                    qualities: ExportQualityAvailability.premiumLocked,
+                    estimatedVideoSizeText: { _ in "12.4Mb" },
+                    onSelectQuality: { _ in },
+                    onExport: {},
+                    onRetry: {},
+                    onCancelExport: {},
+                    onClose: {}
+                )
             }
+        }
+
+        let controller = makeHostingController(
+            ExporterPackageHostView()
         )
 
         #expect(controller.view.bounds.size == CGSize(width: 240, height: 240))
@@ -344,6 +368,290 @@ struct ViewModifierSmokeTests {
     }
 
     @Test
+    func videoEditorLoadedViewCanRenderHostInjectedSections() throws {
+        let sourceURL = try TestFixtures.createTemporaryFile(fileExtension: "mp4")
+
+        defer { FileManager.default.removeIfExists(for: sourceURL) }
+
+        assertRenders(
+            VideoEditorLoadedView(
+                availableSize: CGSize(width: 320, height: 480),
+                resolvedSourceVideoURL: sourceURL,
+                isPlaybackFocused: false
+            ) {
+                Rectangle()
+                    .fill(.blue)
+                    .frame(height: 96)
+            } controlsContent: {
+                Text("Controls")
+            } toolsContent: {
+                Text("Tools")
+            }
+        )
+    }
+
+    @Test
+    func videoEditorPlayerStageViewCanRenderLoadedCanvasWithInjectedOverlay() {
+        let editorState = VideoCanvasEditorState()
+
+        assertRenders(
+            VideoEditorPlayerStageView(
+                .loaded,
+                canvasEditorState: editorState,
+                source: .init(
+                    naturalSize: CGSize(width: 1920, height: 1080),
+                    preferredTransform: .identity,
+                    userRotationDegrees: 0,
+                    isMirrored: false
+                ),
+                isCanvasInteractive: false
+            ) {
+                Rectangle()
+                    .fill(.blue)
+            } overlay: { _ in
+                Text("Transcript")
+            } trailingControls: {
+                Image(systemName: "arrow.counterclockwise")
+            }
+        )
+    }
+
+    @Test
+    func videoEditorPlaybackTimelineContainerViewCanRenderInjectedControls() {
+        assertRenders(
+            VideoEditorPlaybackTimelineContainerView {
+                Image(systemName: "play.fill")
+            } timeline: {
+                Rectangle()
+                    .fill(.blue)
+                    .frame(height: 60)
+            } footer: {
+                HStack {
+                    Text("0:00")
+                    Spacer()
+                    Text("0:12")
+                }
+            }
+        )
+    }
+
+    @Test
+    func videoEditorPlaybackTimelineTrackSectionViewCanRenderInjectedBadgeAndTrack() {
+        assertRenders(
+            VideoEditorPlaybackTimelineTrackSectionView { _, badgeWidth in
+                Text("00:01 / 00:05")
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(.thinMaterial, in: Capsule())
+                    .overlay {
+                        Color.clear
+                            .accessibilityLabel("Badge width \(Int(badgeWidth.rounded()))")
+                    }
+            } track: { _ in
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(.blue.opacity(0.2))
+                    .overlay {
+                        Capsule(style: .continuous)
+                            .fill(.blue)
+                            .frame(width: 2, height: 70)
+                    }
+            }
+            .frame(width: 320)
+        )
+    }
+
+    @Test
+    func videoEditorPlaybackTimelineViewCanRenderInjectedPlaybackSections() {
+        assertRenders(
+            VideoEditorPlaybackTimelineView {
+                Image(systemName: "play.fill")
+                    .frame(width: 60, height: 60)
+            } badge: { _, _ in
+                Text("00:01 / 00:05")
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(.thinMaterial, in: Capsule())
+            } track: { _ in
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(.blue.opacity(0.2))
+                    .frame(height: 60)
+            } footer: {
+                HStack {
+                    Text("0:00")
+                    Spacer()
+                    Text("0:12")
+                }
+            }
+            .frame(width: 320)
+        )
+    }
+
+    @Test
+    func videoEditorPlayerSurfaceViewCanRenderScaledInjectedPlayerContent() {
+        assertRenders(
+            VideoEditorPlayerSurfaceView(
+                backgroundColor: .blue.opacity(0.2),
+                scale: 0.92,
+                animation: .default
+            ) {
+                Rectangle()
+                    .fill(.blue)
+            }
+        )
+    }
+
+    @Test
+    func hostedVideoEditorTrimSectionViewCanRenderTheHostTimelineAdapter() {
+        let editorViewModel = EditorViewModel()
+        editorViewModel.currentVideo = Video.mock
+
+        assertRenders(
+            HostedVideoEditorTrimSectionView(
+                editorViewModel,
+                videoPlayer: VideoPlayerManager()
+            )
+            .frame(width: 320, height: 120)
+        )
+    }
+
+    @Test
+    func hostedVideoEditorLoadedContentViewCanRenderTheHostLoadedShell() throws {
+        let sourceURL = try TestFixtures.createTemporaryFile(fileExtension: "mp4")
+        let editorViewModel = EditorViewModel()
+        editorViewModel.currentVideo = Video.mock
+
+        defer { FileManager.default.removeIfExists(for: sourceURL) }
+
+        assertRenders(
+            HostedVideoEditorLoadedContentView(
+                availableSize: CGSize(width: 320, height: 480),
+                resolvedSourceVideoURL: sourceURL,
+                sessionEditingConfiguration: .initial,
+                configuration: .init(),
+                editorViewModel: editorViewModel,
+                videoPlayer: VideoPlayerManager()
+            )
+        )
+    }
+
+    @Test
+    func hostedVideoEditorPlayerOverlayViewCanRenderTheTranscriptOverlay() {
+        let activeWordID = UUID()
+
+        assertRenders(
+            HostedVideoEditorPlayerOverlayView(
+                context: .init(
+                    transcriptDocument: .init(
+                        segments: [],
+                        overlayPosition: .bottom,
+                        overlaySize: .medium
+                    ),
+                    activeSegment: .init(
+                        id: UUID(),
+                        timeMapping: .init(
+                            sourceStartTime: 0,
+                            sourceEndTime: 2,
+                            timelineStartTime: 0,
+                            timelineEndTime: 2
+                        ),
+                        originalText: "hello world",
+                        editedText: "hello world",
+                        words: [
+                            .init(
+                                id: activeWordID,
+                                timeMapping: .init(
+                                    sourceStartTime: 0,
+                                    sourceEndTime: 1,
+                                    timelineStartTime: 0,
+                                    timelineEndTime: 1
+                                ),
+                                originalText: "hello",
+                                editedText: "hello"
+                            )
+                        ]
+                    ),
+                    activeWordID: activeWordID,
+                    layoutID: "overlay"
+                ),
+                canvasLayout: .init(
+                    previewCanvasSize: CGSize(width: 320, height: 180),
+                    exportCanvasSize: CGSize(width: 1080, height: 608),
+                    previewScale: 1,
+                    contentBaseSize: CGSize(width: 320, height: 180),
+                    contentScale: 1,
+                    contentCenter: CGPoint(x: 160, y: 90),
+                    totalRotationRadians: 0,
+                    isMirrored: false
+                )
+            )
+            .frame(width: 320, height: 180)
+        )
+    }
+
+    @Test
+    func hostedVideoEditorPlayerTrailingControlsViewCanRenderResetChrome() {
+        assertRenders(
+            HostedVideoEditorPlayerTrailingControlsView(
+                shouldShowResetButton: true,
+                onReset: {}
+            )
+        )
+    }
+
+    @Test
+    func hostedVideoEditorExportSheetContentViewCanRenderTheHostExportAdapter() {
+        let editorViewModel = EditorViewModel()
+        editorViewModel.currentVideo = Video.mock
+
+        assertRenders(
+            HostedVideoEditorExportSheetContentView(
+                editorViewModel: editorViewModel,
+                videoPlayer: VideoPlayerManager(),
+                configuration: .init(),
+                callbacks: .init()
+            )
+        )
+    }
+
+    @Test
+    func videoEditorToolSheetViewCanRenderInjectedContentAndFooter() {
+        assertRenders(
+            NavigationStack {
+                VideoEditorToolSheetView(
+                    title: "Speed",
+                    contentInteraction: .resizes,
+                    onClose: {},
+                    onReset: {}
+                ) {
+                    Text("Tool body")
+                } footer: {
+                    Text("Apply")
+                }
+            }
+        )
+    }
+
+    @Test
+    func videoEditorToolsTrayViewCanRenderInjectedToolbarAndSheetContent() {
+        struct ToolsTrayHostView: View {
+            @State private var selectedTool: ToolEnum? = .speed
+
+            var body: some View {
+                VideoEditorToolsTrayView(
+                    selectedTool: $selectedTool,
+                    initialSheetHeight: { _ in 320 }
+                ) {
+                    Text("Toolbar")
+                } sheetContent: { tool in
+                    Text(tool.title)
+                }
+            }
+        }
+
+        assertRenders(ToolsTrayHostView())
+    }
+
+    @Test
     func refactoredToolViewsRenderInsideAHostingController() {
         assertRenders(
             VStack(spacing: 16) {
@@ -372,6 +680,29 @@ struct ViewModifierSmokeTests {
                     onSelect: { _ in }
                 )
             }
+            .padding()
+        )
+    }
+
+    @Test
+    func hostedVideoEditorToolContentViewCanRenderRoutedHostToolContent() {
+        let editorViewModel = EditorViewModel()
+        editorViewModel.currentVideo = Video.mock
+
+        assertRenders(
+            HostedVideoEditorToolContentView(
+                tool: .audio,
+                draftState: .constant(
+                    .init(
+                        audioDraft: .init(
+                            selectedTrack: .recorded,
+                            videoVolume: 0.9,
+                            recordedVolume: 0.4
+                        )
+                    )
+                ),
+                editorViewModel: editorViewModel
+            )
             .padding()
         )
     }

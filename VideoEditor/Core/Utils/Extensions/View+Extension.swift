@@ -1,10 +1,3 @@
-//
-//  View+Extension.swift
-//  VideoEditorKit
-//
-//  Created by Adriano Souza Costa on 23.03.2026.
-//
-
 import SwiftUI
 
 extension View {
@@ -17,12 +10,20 @@ extension View {
         prominent: Bool = false,
         tint: Color? = nil
     ) -> some View {
-        if let tint {
-            self.glassEffect(
-                .regular.tint(tint.opacity(prominent ? 0.30 : 0.18)),
-                in: .rect(cornerRadius: cornerRadius))
+        if #available(iOS 26, *) {
+            if let tint {
+                self.glassEffect(
+                    .regular.tint(tint.opacity(prominent ? 0.30 : 0.18)),
+                    in: .rect(cornerRadius: cornerRadius)
+                )
+            } else {
+                self.glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
+            }
         } else {
-            self.glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
+            self.background(
+                .ultraThinMaterial,
+                in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            )
         }
     }
 
@@ -31,41 +32,18 @@ extension View {
         prominent: Bool = false,
         tint: Color? = nil
     ) -> some View {
-        if let tint {
-            self.glassEffect(
-                .regular.tint(tint.opacity(prominent ? 0.30 : 0.18)).interactive(), in: .circle)
+        if #available(iOS 26, *) {
+            if let tint {
+                self.glassEffect(
+                    .regular.tint(tint.opacity(prominent ? 0.30 : 0.18)).interactive(),
+                    in: .circle
+                )
+            } else {
+                self.glassEffect(.regular.interactive(), in: .circle)
+            }
         } else {
-            self.glassEffect(.regular.interactive(), in: .circle)
+            self.background(.ultraThinMaterial, in: Circle())
         }
-    }
-
-    @ViewBuilder
-    nonisolated func capsuleControl(
-        prominent: Bool = false,
-        tint: Color? = nil
-    ) -> some View {
-        if let tint {
-            self.glassEffect(
-                .regular.tint(tint.opacity(prominent ? 0.30 : 0.18)).interactive(), in: .capsule)
-        } else {
-            self.glassEffect(.regular.interactive(), in: .capsule)
-        }
-    }
-
-    func vBottom() -> some View {
-        frame(maxHeight: .infinity, alignment: .bottom)
-    }
-
-    func hCenter() -> some View {
-        frame(maxWidth: .infinity, alignment: .center)
-    }
-
-    func hLeading() -> some View {
-        frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    func allFrame() -> some View {
-        frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
 }

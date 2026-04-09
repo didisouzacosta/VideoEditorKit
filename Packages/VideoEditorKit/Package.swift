@@ -1,12 +1,11 @@
-// swift-tools-version: 6.0
+// swift-tools-version: 6.2
 
 import PackageDescription
 
 let package = Package(
     name: "VideoEditorKit",
     platforms: [
-        .iOS(.v16),
-        .macOS(.v10_15),
+        .iOS(.v26)
     ],
     products: [
         .library(

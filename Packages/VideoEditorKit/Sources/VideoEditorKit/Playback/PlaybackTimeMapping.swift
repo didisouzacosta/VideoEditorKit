@@ -70,9 +70,9 @@ public enum PlaybackTimeMapping {
 
 extension Double {
 
-    // MARK: - Private Methods
+    // MARK: - Internal Methods
 
-    fileprivate func clamped(
+    func clamped(
         to range: ClosedRange<Double>
     ) -> Double {
         Swift.min(Swift.max(self, range.lowerBound), range.upperBound)

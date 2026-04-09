@@ -61,8 +61,8 @@ Today the repository is still app-first:
 - [VideoEditorApp.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/VideoEditorApp.swift) defines the app entry point
 - [RootView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Views/RootView/RootView.swift) behaves as the app shell
 - [EditedVideoProjectsStore.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/AppShell/Persistence/EditedVideoProjectsStore.swift) owns SwiftData persistence
-- [VideoEditorView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/API/VideoEditorView.swift) now defines the package-owned editor boundary, while [HostedVideoEditorView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Views/EditorView/HostedVideoEditorView.swift) remains the host-side implementation shell
-- [VideoEditor.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Core/Models/Enums/VideoEditor.swift) owns the current export pipeline
+- [VideoEditorView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/API/VideoEditorView.swift) is now the public editor entry point that the app shell presents directly
+- the editor implementation, playback managers, tool views, and export pipeline now live under `Packages/VideoEditorKit/Sources/VideoEditorKit`
 
 That means the correct package boundary is around the editor feature, not around the current app target.
 
@@ -202,7 +202,7 @@ Keep package resources in the isolated package tree. App-only resources remain i
 ### 4. `PhotosPickerItem` in the public API
 
 Problem:
-[VideoEditorView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/API/VideoEditorView.swift) currently exposes the session boundary publicly, and the host implementation in [HostedVideoEditorView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Views/EditorView/HostedVideoEditorView.swift) still consumes `Session.Source`.
+[VideoEditorView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/API/VideoEditorView.swift) exposes the session boundary publicly, and the host still creates sessions from app-owned import flows.
 
 Solution:
 Move the package toward a source abstraction that is host-neutral, such as:
@@ -344,7 +344,6 @@ Current implementation notes:
   - `VideoCanvasMappingActor`
 - the package manifest now declares minimum platforms compatible with the extracted canvas code:
   - iOS 16
-  - macOS 10.15
 - package tests now validate the extracted canvas mapping rules directly
 
 ### Phase 4
@@ -642,12 +641,10 @@ Exit criteria:
 
 Current implementation notes:
 
-- [HostedVideoEditorView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Views/EditorView/HostedVideoEditorView.swift) now imports `VideoEditorKit` directly and consumes the package-owned `VideoEditorView` boundary types instead of relying on top-level host aliases
+- [RootView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Views/RootView/RootView.swift) now imports `VideoEditorKit` directly and presents the package-owned `VideoEditorView` instead of going through a host-side editor wrapper
 - host consumers of `VideoQuality` and `ExportQualityAvailability`, including:
   - [RootView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Views/RootView/RootView.swift)
-  - [VideoExporterView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Views/EditorView/VideoExporterView.swift)
-  - [ExporterViewModel.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Core/ViewModels/ExporterViewModel.swift)
-  - [VideoEditor.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Core/Models/Enums/VideoEditor.swift)
+  - [EditedVideoProjectsStore.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/AppShell/Persistence/EditedVideoProjectsStore.swift)
   now import `VideoEditorKit` directly
 - host tests covering those extracted types, including:
   - [ViewModifierSmokeTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorTests/Extensions/ViewModifierSmokeTests.swift)
@@ -831,6 +828,8 @@ Current implementation notes:
 Phase 14 status:
 
 - completed
+- the duplicate host copies of `VideoEditingConfiguration`, crop presets, canvas models, transcript models, and `PlaybackTimeMapping` have been removed from `VideoEditor/Core`
+- the app shell now reaches the editor only through [VideoEditorView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/API/VideoEditorView.swift)
 - host validation succeeds with:
   - simulator build through [@build-ios-apps](plugin://build-ios-apps@openai-curated) for scheme `VideoEditor`
   - targeted simulator test validation in two batches for:
