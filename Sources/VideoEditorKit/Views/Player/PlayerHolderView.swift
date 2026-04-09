@@ -143,7 +143,7 @@ extension PlayerHolderView {
                         )
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Reset transform")
+                .accessibilityLabel(VideoEditorStrings.resetTransform)
             } else {
                 EmptyView()
             }

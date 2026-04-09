@@ -33,11 +33,11 @@ struct VideoAudioExtractionService {
         var errorDescription: String? {
             switch self {
             case .invalidVideoSource:
-                "The transcription source must be a local video file."
+                VideoEditorStrings.extractionInvalidVideoSource
             case .audioTrackNotFound:
-                "The selected video does not contain an extractable audio track."
+                VideoEditorStrings.extractionAudioTrackNotFound
             case .unableToCreateExportSession:
-                "Unable to create an audio extraction export session."
+                VideoEditorStrings.extractionUnableToCreateSession
             case .exportFailed(let message):
                 message
             }

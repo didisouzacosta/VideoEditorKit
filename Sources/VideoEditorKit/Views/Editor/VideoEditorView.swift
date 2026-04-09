@@ -34,7 +34,7 @@ public struct VideoEditorView: View {
         ) {
             if editorViewModel.currentVideo != nil {
                 Button(role: .confirm, action: presentExporter) {
-                    Text("Export")
+                    Text(VideoEditorStrings.export)
                 }
                 .disabled(isEditingLocked)
             }
@@ -62,6 +62,7 @@ public struct VideoEditorView: View {
                 )
             }
             .safeAreaPadding(.horizontal)
+            .safeAreaPadding(.top)
         }
         .animation(.default, value: videoPlayer.isPlaybackFocusActive)
         .onDisappear(perform: handleDisappear)
@@ -271,9 +272,9 @@ public struct VideoEditorView: View {
             )
         } else {
             ContentUnavailableView(
-                "Preview video not found",
+                VideoEditorStrings.previewVideoMissingTitle,
                 systemImage: "video.slash",
-                description: Text("Missing resource: preview.mp4")
+                description: Text(VideoEditorStrings.previewVideoMissingDescription)
             )
         }
     }

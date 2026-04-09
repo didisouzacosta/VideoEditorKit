@@ -17,7 +17,7 @@ struct VideoEditorShellView: View {
                     .navigationTitle(title ?? "")
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) {
-                            Button("Cancel", action: onCancel)
+                            Button(VideoEditorStrings.cancel, action: onCancel)
                         }
 
                         ToolbarItem(placement: .primaryAction) {
@@ -84,8 +84,8 @@ struct VideoEditorShellView: View {
         switch bootstrapState {
         case .idle:
             bootstrapStatusView(
-                title: "Add a video to start editing",
-                message: "Choose a clip to begin a new editing session."
+                title: VideoEditorStrings.addVideoTitle,
+                message: VideoEditorStrings.addVideoMessage
             )
         case .loading:
             bootstrapLoadingView
@@ -103,10 +103,10 @@ struct VideoEditorShellView: View {
         VStack(spacing: 16) {
             ProgressView()
 
-            Text("Importing video...")
+            Text(VideoEditorStrings.importingVideoTitle)
                 .font(.headline)
 
-            Text("The editor will open as soon as the selected clip is ready.")
+            Text(VideoEditorStrings.importingVideoMessage)
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -120,7 +120,7 @@ struct VideoEditorShellView: View {
                 .font(.system(size: 28, weight: .semibold))
                 .foregroundColor(.secondary)
 
-            Text("Unable to open the selected video")
+            Text(VideoEditorStrings.unableToOpenVideoTitle)
                 .font(.headline)
 
             Text(message)
@@ -129,11 +129,11 @@ struct VideoEditorShellView: View {
                 .multilineTextAlignment(.center)
 
             HStack(spacing: 12) {
-                Button("Close") {
+                Button(VideoEditorStrings.close) {
                     onCancel()
                 }
 
-                Button("Retry") {
+                Button(VideoEditorStrings.retry) {
                     bootstrapAttempt += 1
                 }
                 .buttonStyle(.borderedProminent)

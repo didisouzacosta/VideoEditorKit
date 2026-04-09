@@ -1222,7 +1222,7 @@ final class EditorViewModel {
             transcriptState = transcriptDocument == nil ? .idle : .loaded
         case .failed:
             transcriptState = .failed(
-                .providerFailure(message: "The previous transcription request failed.")
+                .providerFailure(message: VideoEditorStrings.transcriptPreviousRequestFailed)
             )
         }
     }

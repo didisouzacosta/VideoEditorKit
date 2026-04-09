@@ -107,27 +107,24 @@ struct ToolButtonView: View {
     }
 
     private var accessibilityLabel: String {
-        isBlocked ? "\(label), locked" : label
+        VideoEditorStrings.toolButtonAccessibilityLabel(
+            label: label,
+            isBlocked: isBlocked
+        )
     }
 
     private var accessibilityValue: String {
-        if isBlocked {
-            "Unavailable"
-        } else if isChange {
-            if let subtitle, subtitle.isEmpty == false {
-                "Applied, \(subtitle)"
-            } else {
-                "Applied"
-            }
-        } else {
-            "Available"
-        }
+        VideoEditorStrings.toolButtonAccessibilityValue(
+            subtitle: subtitle,
+            isApplied: isChange,
+            isBlocked: isBlocked
+        )
     }
 
     private var accessibilityHint: String {
         isBlocked
-            ? "Double-tap to learn how to unlock this tool."
-            : "Double-tap to open this editing tool."
+            ? VideoEditorStrings.toolLockedHint
+            : VideoEditorStrings.toolOpenHint
     }
 
     private var accessibilityIdentifier: String {

@@ -1991,13 +1991,13 @@ enum ExporterError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .unknow:
-            return "An unexpected error happened while preparing the export."
+            return VideoEditorStrings.exporterUnexpectedError
         case .cancelled:
-            return "The export was cancelled before the final video was generated."
+            return VideoEditorStrings.exporterCancelledError
         case .cannotCreateExportSession:
-            return "The export session could not be created for this video."
+            return VideoEditorStrings.exporterCannotCreateSessionError
         case .failed:
-            return "The video could not be exported. Please try again."
+            return VideoEditorStrings.exporterFailedError
         }
     }
 }

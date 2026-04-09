@@ -38,22 +38,22 @@ public enum VideoQuality: Int, CaseIterable, Sendable {
     public var title: String {
         switch self {
         case .low:
-            "qHD - 480"
+            VideoEditorStrings.qualityLowTitle
         case .medium:
-            "HD - 720p"
+            VideoEditorStrings.qualityMediumTitle
         case .high:
-            "Full HD - 1080p"
+            VideoEditorStrings.qualityHighTitle
         }
     }
 
     public var subtitle: String {
         switch self {
         case .low:
-            "Fast loading and small size, low quality"
+            VideoEditorStrings.qualityLowSubtitle
         case .medium:
-            "Optimal size to quality ratio"
+            VideoEditorStrings.qualityMediumSubtitle
         case .high:
-            "Ideal for publishing on social networks"
+            VideoEditorStrings.qualityHighSubtitle
         }
     }
 

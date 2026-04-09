@@ -26,7 +26,7 @@ extension TimeInterval {
 
     var minuteSeconds: String {
         guard isFinite, self > 0 else {
-            return "unknown"
+            return VideoEditorStrings.unknown
         }
 
         let totalSeconds = Int(self.rounded(.down))

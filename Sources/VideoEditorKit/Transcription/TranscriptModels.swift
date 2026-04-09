@@ -316,7 +316,11 @@ extension TranscriptStyle {
 
     public static let defaultCaptionStyle = Self(
         id: UUID(uuidString: "E5A04D11-329A-4C8E-B266-1E6A60A6F9F9") ?? UUID(),
-        name: "Default",
+        name: String(
+            localized: "editor.transcript.default-style",
+            defaultValue: "Default",
+            bundle: .module
+        ),
         fontWeight: .semibold,
         hasStroke: true,
         textAlignment: .center,
@@ -380,17 +384,24 @@ public enum TranscriptOverlayPosition: String, Codable, Hashable, Sendable, Case
     // MARK: - Public Properties
 
     public var title: String {
-        rawValue.capitalized
+        switch self {
+        case .top:
+            VideoEditorStrings.transcriptPositionTop
+        case .center:
+            VideoEditorStrings.transcriptPositionCenter
+        case .bottom:
+            VideoEditorStrings.transcriptPositionBottom
+        }
     }
 
     public var abbreviation: String {
         switch self {
         case .top:
-            "T"
+            VideoEditorStrings.transcriptPositionTopAbbreviation
         case .center:
-            "C"
+            VideoEditorStrings.transcriptPositionCenterAbbreviation
         case .bottom:
-            "B"
+            VideoEditorStrings.transcriptPositionBottomAbbreviation
         }
     }
 }
@@ -403,17 +414,24 @@ public enum TranscriptOverlaySize: String, Codable, Hashable, Sendable, CaseIter
     // MARK: - Public Properties
 
     public var title: String {
-        rawValue.capitalized
+        switch self {
+        case .small:
+            VideoEditorStrings.transcriptSizeSmall
+        case .medium:
+            VideoEditorStrings.transcriptSizeMedium
+        case .large:
+            VideoEditorStrings.transcriptSizeLarge
+        }
     }
 
     public var abbreviation: String {
         switch self {
         case .small:
-            "S"
+            VideoEditorStrings.transcriptSizeSmallAbbreviation
         case .medium:
-            "M"
+            VideoEditorStrings.transcriptSizeMediumAbbreviation
         case .large:
-            "L"
+            VideoEditorStrings.transcriptSizeLargeAbbreviation
         }
     }
 }

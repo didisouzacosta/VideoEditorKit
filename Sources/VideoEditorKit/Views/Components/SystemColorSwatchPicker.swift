@@ -72,7 +72,11 @@ struct SystemColorSwatchPicker: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(option.id)
-        .accessibilityValue(isSelected(option) ? "Selected" : "Not selected")
+        .accessibilityValue(
+            isSelected(option)
+                ? VideoEditorStrings.selected
+                : VideoEditorStrings.notSelected
+        )
     }
 
     private func isSelected(_ option: SystemColorOption) -> Bool {

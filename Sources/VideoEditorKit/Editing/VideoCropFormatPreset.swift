@@ -20,37 +20,37 @@ public enum VideoCropFormatPreset: String, CaseIterable, Identifiable, Sendable 
     public var title: String {
         switch self {
         case .original:
-            "Original"
+            VideoEditorStrings.cropOriginalTitle
         case .vertical9x16:
-            "Social"
+            VideoEditorStrings.cropSocialTitle
         case .square1x1:
-            "Square"
+            VideoEditorStrings.cropSquareTitle
         case .portrait4x5:
-            "Portrait"
+            VideoEditorStrings.cropPortraitTitle
         case .landscape16x9:
-            "Landscape"
+            VideoEditorStrings.cropLandscapeTitle
         }
     }
 
     public var subtitle: String {
         switch self {
         case .original:
-            "Keeps the imported framing"
+            VideoEditorStrings.cropOriginalSubtitle
         case .vertical9x16:
-            "Instagram Reels, TikTok, Shorts"
+            VideoEditorStrings.cropSocialSubtitle
         case .square1x1:
-            "Square posts and covers"
+            VideoEditorStrings.cropSquareSubtitle
         case .portrait4x5:
-            "Portrait feed posts"
+            VideoEditorStrings.cropPortraitSubtitle
         case .landscape16x9:
-            "Landscape players and embeds"
+            VideoEditorStrings.cropLandscapeSubtitle
         }
     }
 
     public var dimensionTitle: String {
         switch self {
         case .original:
-            "Source"
+            VideoEditorStrings.cropOriginalDimension
         case .vertical9x16:
             "9:16"
         case .square1x1:

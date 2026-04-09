@@ -278,7 +278,11 @@ struct RangedSliderView: View {
             x: position.x,
             y: position.y
         )
-        .accessibilityLabel(isLeftThumb ? "Trim start" : "Trim end")
+        .accessibilityLabel(
+            isLeftThumb
+                ? VideoEditorStrings.trimStart
+                : VideoEditorStrings.trimEnd
+        )
     }
 
     private func clampedRange(_ range: ClosedRange<Double>) -> ClosedRange<Double> {

@@ -33,9 +33,9 @@ public struct VideoEditorPlayerStageView<Content: View, Overlay: View, TrailingC
                 case .loading:
                     ProgressView()
                 case .unknown:
-                    statusView("Add a video to start editing")
+                    statusView(VideoEditorStrings.playerUnknownState)
                 case .failed:
-                    statusView("Failed to open video")
+                    statusView(VideoEditorStrings.playerFailedState)
                 case .loaded:
                     loadedStageView
                 }
@@ -126,7 +126,7 @@ public struct VideoEditorPlayerStageView<Content: View, Overlay: View, TrailingC
                 }
             }
         } else {
-            statusView("Failed to open video")
+            statusView(VideoEditorStrings.playerFailedState)
         }
     }
 

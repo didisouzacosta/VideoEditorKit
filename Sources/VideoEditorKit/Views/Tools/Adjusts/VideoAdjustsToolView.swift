@@ -18,17 +18,17 @@ struct VideoAdjustsToolView: View {
     var body: some View {
         VStack(spacing: 16) {
             adjustSlider(
-                title: ColorAdjustType.brightness.rawValue,
+                title: ColorAdjustType.brightness.title,
                 systemImage: "sun.max",
                 value: $adjusts.brightness
             )
             adjustSlider(
-                title: ColorAdjustType.contrast.rawValue,
+                title: ColorAdjustType.contrast.title,
                 systemImage: "circle.lefthalf.filled",
                 value: $adjusts.contrast
             )
             adjustSlider(
-                title: ColorAdjustType.saturation.rawValue,
+                title: ColorAdjustType.saturation.title,
                 systemImage: "drop",
                 value: $adjusts.saturation
             )

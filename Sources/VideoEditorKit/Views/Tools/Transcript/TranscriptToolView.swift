@@ -63,15 +63,15 @@ struct TranscriptToolView: View {
     private var idleView: some View {
         if isTranscriptionAvailable {
             statusView(
-                title: "Create a transcript",
-                message: "Generate timed text from the current source video and edit it segment by segment.",
-                actionTitle: "Transcribe",
+                title: VideoEditorStrings.transcriptCreateTitle,
+                message: VideoEditorStrings.transcriptCreateMessage,
+                actionTitle: VideoEditorStrings.transcriptRetry,
                 action: onTranscribe
             )
         } else {
             statusView(
-                title: "Transcription unavailable",
-                message: "No transcription provider is configured for this editor session."
+                title: VideoEditorStrings.transcriptUnavailableTitle,
+                message: VideoEditorStrings.transcriptUnavailableMessage
             )
         }
     }
@@ -80,10 +80,10 @@ struct TranscriptToolView: View {
         VStack(spacing: 16) {
             ProgressView()
 
-            Text("Transcribing audio...")
+            Text(VideoEditorStrings.transcriptLoadingTitle)
                 .font(.headline)
 
-            Text("The transcript will appear here as soon as the provider returns the timed segments.")
+            Text(VideoEditorStrings.transcriptLoadingMessage)
                 .font(.subheadline)
                 .foregroundStyle(Theme.secondary)
                 .multilineTextAlignment(.center)
@@ -96,7 +96,7 @@ struct TranscriptToolView: View {
     private var loadedView: some View {
         if let document, !document.segments.isEmpty {
             List {
-                Section("Layout") {
+                Section(VideoEditorStrings.transcriptLayoutSection) {
                     styleSection(document)
                 }
 
@@ -116,9 +116,9 @@ struct TranscriptToolView: View {
             .listRowSpacing(8)
         } else {
             statusView(
-                title: "No transcript yet",
-                message: "Run the transcription provider to populate timed segments for this video.",
-                actionTitle: "Transcribe",
+                title: VideoEditorStrings.transcriptNoneTitle,
+                message: VideoEditorStrings.transcriptNoneMessage,
+                actionTitle: VideoEditorStrings.transcriptRetry,
                 action: onTranscribe
             )
         }
@@ -135,16 +135,16 @@ struct TranscriptToolView: View {
 
     private func positionPicker(_ document: TranscriptDocument) -> some View {
         HStack {
-            Text("Position")
+            Text(VideoEditorStrings.transcriptPosition)
                 .font(.subheadline)
                 .foregroundStyle(Theme.secondary)
 
             Spacer()
 
-            Picker("Position", selection: positionSelection) {
-                Text("Top").tag(TranscriptOverlayPosition.top)
-                Text("Center").tag(TranscriptOverlayPosition.center)
-                Text("Bottom").tag(TranscriptOverlayPosition.bottom)
+            Picker(VideoEditorStrings.transcriptPosition, selection: positionSelection) {
+                Text(VideoEditorStrings.transcriptPositionTop).tag(TranscriptOverlayPosition.top)
+                Text(VideoEditorStrings.transcriptPositionCenter).tag(TranscriptOverlayPosition.center)
+                Text(VideoEditorStrings.transcriptPositionBottom).tag(TranscriptOverlayPosition.bottom)
             }
             .labelsHidden()
             .pickerStyle(.segmented)
@@ -154,16 +154,16 @@ struct TranscriptToolView: View {
 
     private func sizePicker(_ document: TranscriptDocument) -> some View {
         HStack {
-            Text("Size")
+            Text(VideoEditorStrings.transcriptSize)
                 .font(.subheadline)
                 .foregroundStyle(Theme.secondary)
 
             Spacer()
 
-            Picker("Size", selection: sizeSelection) {
-                Text("Small").tag(TranscriptOverlaySize.small)
-                Text("Medium").tag(TranscriptOverlaySize.medium)
-                Text("Large").tag(TranscriptOverlaySize.large)
+            Picker(VideoEditorStrings.transcriptSize, selection: sizeSelection) {
+                Text(VideoEditorStrings.transcriptSizeSmall).tag(TranscriptOverlaySize.small)
+                Text(VideoEditorStrings.transcriptSizeMedium).tag(TranscriptOverlaySize.medium)
+                Text(VideoEditorStrings.transcriptSizeLarge).tag(TranscriptOverlaySize.large)
             }
             .labelsHidden()
             .pickerStyle(.segmented)
@@ -175,14 +175,14 @@ struct TranscriptToolView: View {
         _ document: TranscriptDocument
     ) -> some View {
         HStack {
-            Text("Transcription")
+            Text(VideoEditorStrings.transcriptSectionTitle)
 
             Spacer()
 
             Button {
                 onCopyTranscript(document.plainText)
             } label: {
-                Label("Copy", systemImage: "doc.on.doc")
+                Label(VideoEditorStrings.copy, systemImage: "doc.on.doc")
                     .labelStyle(.titleAndIcon)
             }
             .buttonStyle(.borderless)
@@ -207,14 +207,14 @@ struct TranscriptToolView: View {
     private func failureView(for error: TranscriptError) -> some View {
         if isNonRetryable(error) {
             statusView(
-                title: "Transcription unavailable",
+                title: VideoEditorStrings.transcriptUnavailableTitle,
                 message: errorMessage(for: error)
             )
         } else {
             statusView(
-                title: "Unable to transcribe",
+                title: VideoEditorStrings.transcriptUnableToTranscribeTitle,
                 message: errorMessage(for: error),
-                actionTitle: "Try again",
+                actionTitle: VideoEditorStrings.transcriptRetryFailure,
                 action: onRetry
             )
         }
@@ -248,8 +248,8 @@ struct TranscriptToolView: View {
             )
         } else {
             statusView(
-                title: "Segment unavailable",
-                message: "This transcript segment is no longer available."
+                title: VideoEditorStrings.transcriptSegmentUnavailableTitle,
+                message: VideoEditorStrings.transcriptSegmentUnavailableMessage
             )
         }
     }
@@ -281,15 +281,15 @@ struct TranscriptToolView: View {
     private func errorMessage(for error: TranscriptError) -> String {
         switch error {
         case .providerNotConfigured:
-            "No transcription provider is configured for this editor session."
+            VideoEditorStrings.transcriptUnavailableMessage
         case .unavailable(let message):
             message
         case .invalidVideoSource:
-            "The current video source could not be used for transcription."
+            VideoEditorStrings.transcriptProviderInvalidSource
         case .emptyResult:
-            "The transcription provider returned no timed segments."
+            VideoEditorStrings.transcriptProviderEmptyResult
         case .cancelled:
-            "The transcription request was cancelled before it finished."
+            VideoEditorStrings.transcriptProviderCancelled
         case .providerFailure(let message):
             message
         }

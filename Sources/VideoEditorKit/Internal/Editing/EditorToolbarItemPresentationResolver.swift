@@ -73,7 +73,7 @@ struct EditorToolbarItemPresentationResolver {
         _ video: Video?
     ) -> String? {
         guard let rate = video?.rate else { return nil }
-        return "\(rate.formatted(.number.precision(.fractionLength(1))))x"
+        return VideoEditorStrings.toolbarSpeedSubtitle(rate)
     }
 
     private static func presetsSubtitle(
@@ -82,7 +82,7 @@ struct EditorToolbarItemPresentationResolver {
         guard let cropPresentationSummary else { return nil }
 
         if cropPresentationSummary.selectedPreset == .original {
-            return "Custom crop"
+            return VideoEditorStrings.toolCustomCrop
         }
 
         return "\(cropPresentationSummary.badgeTitle) \(cropPresentationSummary.badgeDimension)"
@@ -108,9 +108,7 @@ struct EditorToolbarItemPresentationResolver {
         }
 
         guard appliedAdjustmentsCount > 0 else { return nil }
-
-        let suffix = appliedAdjustmentsCount == 1 ? "" : "s"
-        return "\(appliedAdjustmentsCount) adjustment\(suffix)"
+        return VideoEditorStrings.toolbarAdjustmentsCount(appliedAdjustmentsCount)
     }
 
     private static func transcriptSubtitle(
@@ -125,7 +123,7 @@ struct EditorToolbarItemPresentationResolver {
     private static func percentageString(
         for value: Float
     ) -> String {
-        "\(Int((Double(value) * 100).rounded()))%"
+        VideoEditorStrings.toolbarPercentage(value)
     }
 
 }

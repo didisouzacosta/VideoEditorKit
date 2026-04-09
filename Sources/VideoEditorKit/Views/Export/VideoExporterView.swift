@@ -24,7 +24,7 @@ public struct VideoExportPresentationState: Equatable, Sendable {
     }
 
     public var exportButtonTitle: String {
-        isExporting ? "Exporting \(progressText)" : actionTitle
+        isExporting ? VideoEditorStrings.exportButtonTitle(progressText: progressText) : actionTitle
     }
 
     public var exportButtonProgress: Double {
@@ -83,11 +83,11 @@ public struct VideoExporterView: View {
         navigationContent
             .interactiveDismissDisabled(state.isInteractionDisabled)
             .alert(
-                "Unable to export video",
+                VideoEditorStrings.exportAlertTitle,
                 isPresented: $isAlertPresented
             ) {
-                Button("Try Again", action: onRetry)
-                Button("OK", role: .cancel) {}
+                Button(VideoEditorStrings.tryAgain, action: onRetry)
+                Button(VideoEditorStrings.ok, role: .cancel) {}
             } message: {
                 Text(state.errorMessage)
             }
@@ -97,12 +97,12 @@ public struct VideoExporterView: View {
 
     private var navigationContent: some View {
         content
-            .navigationTitle("Export Video")
+            .navigationTitle(VideoEditorStrings.exportVideoTitle)
             .navigationBarTitleDisplayMode(.inline)
             .animation(.easeInOut, value: state)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel", role: .cancel, action: onClose)
+                    Button(VideoEditorStrings.cancel, role: .cancel, action: onClose)
                         .disabled(state.isInteractionDisabled)
                 }
             }
@@ -176,7 +176,7 @@ private struct ExportQualitySelectionSection: View {
     var body: some View {
         VStack(spacing: 32) {
             VStack(alignment: .leading, spacing: 16) {
-                Text("Choose the output quality for the rendered file.")
+                Text(VideoEditorStrings.exportChooseQualityMessage)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal)
@@ -216,7 +216,7 @@ private struct ExportQualitySelectionSection: View {
                 .allowsHitTesting(state.canExportVideo)
 
                 if state.shouldShowCancelAction {
-                    Button("Cancel", role: .cancel, action: onCancelExport)
+                    Button(VideoEditorStrings.cancel, role: .cancel, action: onCancelExport)
                         .buttonStyle(.bordered)
                         .transition(.opacity.combined(with: .move(edge: .top)))
                 }
@@ -319,23 +319,26 @@ private struct ExportQualityOptionRow: View {
     }
 
     private var accessibilityLabel: String {
-        isBlocked ? "\(quality.title), premium" : quality.title
+        VideoEditorStrings.exportQualityAccessibilityLabel(
+            title: quality.title,
+            isBlocked: isBlocked
+        )
     }
 
     private var accessibilityValue: String {
         if isBlocked {
-            "Locked"
+            VideoEditorStrings.locked
         } else if isSelected {
-            "Selected"
+            VideoEditorStrings.selected
         } else {
-            "Available"
+            VideoEditorStrings.available
         }
     }
 
     private var accessibilityHint: String {
         isBlocked
-            ? "Double-tap to learn how to unlock this export quality."
-            : "Double-tap to select this export quality."
+            ? VideoEditorStrings.exportQualityPremiumHint
+            : VideoEditorStrings.exportQualitySelectHint
     }
 
     private var accessibilityIdentifier: String {
@@ -349,7 +352,7 @@ private struct PremiumQualityBadge: View {
     // MARK: - Body
 
     var body: some View {
-        Text("Premium")
+        Text(VideoEditorStrings.premium)
             .font(.caption2.weight(.bold))
             .foregroundStyle(.secondary)
             .padding(.horizontal, 8)
@@ -415,11 +418,16 @@ private struct ExportActionButton: View {
                 }
         }
         .buttonStyle(.plain)
-        .accessibilityValue(isExporting ? "\(Int(progress * 100)) percent complete" : "Ready")
+        .accessibilityValue(
+            VideoEditorStrings.exportButtonAccessibilityValue(
+                progress: progress,
+                isExporting: isExporting
+            )
+        )
         .accessibilityHint(
             isExporting
-                ? "Export in progress."
-                : "Double-tap to export the video."
+                ? VideoEditorStrings.exportButtonInProgressHint
+                : VideoEditorStrings.exportButtonReadyHint
         )
     }
 
@@ -481,7 +489,7 @@ private struct ExportActionButton: View {
                 exportProgress: 0,
                 progressText: "",
                 errorMessage: "",
-                actionTitle: "Export",
+                actionTitle: VideoEditorStrings.export,
                 isInteractionDisabled: false,
                 canExportVideo: true,
                 canCancelExport: false,

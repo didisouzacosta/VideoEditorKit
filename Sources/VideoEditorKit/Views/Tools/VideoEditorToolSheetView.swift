@@ -23,11 +23,11 @@ public struct VideoEditorToolSheetView<Content: View, Footer: View>: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button("Close", action: onClose)
+                Button(VideoEditorStrings.close, action: onClose)
             }
 
             ToolbarItem(placement: .topBarTrailing) {
-                Button("Reset", action: onReset)
+                Button(VideoEditorStrings.reset, action: onReset)
             }
         }
         .presentationDragIndicator(.visible)
@@ -77,7 +77,7 @@ public struct VideoEditorToolSheetView<Content: View, Footer: View>: View {
             Text("Tool content goes here")
                 .padding()
         } footer: {
-            Button("Apply") {}
+            Button(VideoEditorStrings.apply) {}
                 .buttonStyle(.borderedProminent)
                 .padding()
         }

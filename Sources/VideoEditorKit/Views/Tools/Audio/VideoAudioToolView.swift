@@ -76,7 +76,7 @@ struct VideoAudioToolView: View {
 
         VStack(alignment: .leading, spacing: 16) {
             if hasRecordedAudioTrack {
-                Picker("Track", selection: $draft.selectedTrack) {
+                Picker(VideoEditorStrings.audioTrack, selection: $draft.selectedTrack) {
                     ForEach(VideoEditingConfiguration.SelectedTrack.allCases) { track in
                         Text(track.title).tag(track)
                     }

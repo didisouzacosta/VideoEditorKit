@@ -432,9 +432,9 @@ extension VideoEditingConfiguration {
         public var title: String {
             switch self {
             case .video:
-                "Video"
+                VideoEditorStrings.selectedTrackVideo
             case .recorded:
-                "Recorded"
+                VideoEditorStrings.selectedTrackRecorded
             }
         }
     }
@@ -449,22 +449,22 @@ extension VideoEditingConfiguration {
         public var title: String {
             switch self {
             case .instagramReels:
-                "Instagram Reels"
+                VideoEditorStrings.destinationInstagramReels
             case .tikTok:
-                "TikTok"
+                VideoEditorStrings.destinationTikTok
             case .youtubeShorts:
-                "YouTube Shorts"
+                VideoEditorStrings.destinationYouTubeShorts
             }
         }
 
         public var shortTitle: String {
             switch self {
             case .instagramReels:
-                "Instagram"
+                VideoEditorStrings.destinationInstagramShort
             case .tikTok:
-                "TikTok"
+                VideoEditorStrings.destinationTikTokShort
             case .youtubeShorts:
-                "Shorts"
+                VideoEditorStrings.destinationShortsShort
             }
         }
     }

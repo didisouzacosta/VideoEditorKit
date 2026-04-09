@@ -29,7 +29,7 @@ struct TranscriptSegmentEditView: View {
                     .foregroundStyle(Theme.secondary)
 
                 TextField(
-                    "Transcript segment",
+                    VideoEditorStrings.transcriptSegmentPlaceholder,
                     text: editedTextBinding,
                     axis: .vertical
                 )
@@ -37,7 +37,7 @@ struct TranscriptSegmentEditView: View {
                 .lineLimit(3...10)
 
                 if isShowingRevertButton {
-                    Text("Original: \(segment.originalText)")
+                    Text(VideoEditorStrings.transcriptOriginalPrefix(segment.originalText))
                         .font(.caption)
                         .foregroundStyle(Theme.secondary)
                 }
@@ -45,12 +45,12 @@ struct TranscriptSegmentEditView: View {
             .padding(.horizontal, 20)
             .padding(.vertical, 16)
         }
-        .navigationTitle("Edit Segment")
+        .navigationTitle(VideoEditorStrings.editSegment)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if isShowingRevertButton {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Revert") {
+                    Button(VideoEditorStrings.revert) {
                         revertToOriginalText()
                     }
                 }

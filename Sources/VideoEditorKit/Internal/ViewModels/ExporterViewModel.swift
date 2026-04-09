@@ -59,7 +59,7 @@ final class ExporterViewModel {
     }
 
     var exportActionTitle: String {
-        shouldShowFailureMessage ? "Try Again" : "Export"
+        shouldShowFailureMessage ? VideoEditorStrings.tryAgain : VideoEditorStrings.export
     }
 
     var progressText: String {
@@ -70,7 +70,7 @@ final class ExporterViewModel {
         if case .failed(let error) = renderState {
             error.localizedDescription
         } else {
-            "The video could not be exported right now. Please try again."
+            VideoEditorStrings.exportButtonFallbackMessage
         }
     }
 

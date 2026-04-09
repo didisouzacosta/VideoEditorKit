@@ -39,12 +39,10 @@ extension PresentToolView {
 
     private var formatSection: some View {
         VStack(spacing: 16) {
-            Text(
-                "Choose a preset. Original also supports drag and pinch. Double tap or use reset to go back to full."
-            )
-            .font(.footnote.weight(.medium))
-            .foregroundStyle(Theme.secondary)
-            .multilineTextAlignment(.center)
+            Text(VideoEditorStrings.cropPresetHelper)
+                .font(.footnote.weight(.medium))
+                .foregroundStyle(Theme.secondary)
+                .multilineTextAlignment(.center)
 
             LazyVGrid(
                 columns: [

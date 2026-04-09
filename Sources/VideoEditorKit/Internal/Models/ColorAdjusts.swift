@@ -8,13 +8,24 @@
 import CoreImage
 import Foundation
 
-enum ColorAdjustType: String, CaseIterable {
+enum ColorAdjustType: CaseIterable {
 
     // MARK: - Public Properties
 
-    case brightness = "Brightness"
-    case contrast = "Contrast"
-    case saturation = "Saturation"
+    case brightness
+    case contrast
+    case saturation
+
+    var title: String {
+        switch self {
+        case .brightness:
+            VideoEditorStrings.brightness
+        case .contrast:
+            VideoEditorStrings.contrast
+        case .saturation:
+            VideoEditorStrings.saturation
+        }
+    }
 
     var key: String {
         switch self {

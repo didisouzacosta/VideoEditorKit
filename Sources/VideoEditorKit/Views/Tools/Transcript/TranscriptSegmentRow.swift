@@ -28,7 +28,7 @@ struct TranscriptSegmentRow: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             if segment.isEdited {
-                Text("Edited")
+                Text(VideoEditorStrings.edited)
                     .font(.caption2)
                     .foregroundStyle(Theme.accent)
             }

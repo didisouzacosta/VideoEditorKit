@@ -156,7 +156,7 @@ extension ToolsSectionView {
             Button {
                 applyTool(tool)
             } label: {
-                Text("Apply")
+                Text(VideoEditorStrings.apply)
                     .font(.headline.weight(.semibold))
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)

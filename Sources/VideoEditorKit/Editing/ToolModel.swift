@@ -34,12 +34,12 @@ public enum ToolEnum: Int, CaseIterable, Identifiable, Codable, Sendable {
 
     public var title: String {
         switch self {
-        case .cut: "Cut"
-        case .speed: "Speed"
-        case .presets: "Presets"
-        case .audio: "Audio"
-        case .transcript: "Transcript"
-        case .adjusts: "Adjusts"
+        case .cut: VideoEditorStrings.toolCut
+        case .speed: VideoEditorStrings.toolSpeed
+        case .presets: VideoEditorStrings.toolPresets
+        case .audio: VideoEditorStrings.toolAudio
+        case .transcript: VideoEditorStrings.toolTranscript
+        case .adjusts: VideoEditorStrings.toolAdjusts
         }
     }
 

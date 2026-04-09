@@ -171,7 +171,7 @@ public enum SafeAreaGuideProfile: Equatable, Sendable {
     public var title: String {
         switch self {
         case .universalSocial:
-            "Universal Social Safe Zone"
+            VideoEditorStrings.safeAreaUniversalTitle
         case .platform(let platform):
             platform.title
         }
@@ -180,7 +180,7 @@ public enum SafeAreaGuideProfile: Equatable, Sendable {
     public var explanation: String {
         switch self {
         case .universalSocial:
-            "Use this guide when you want one 9:16 composition that stays safer across Instagram, TikTok and YouTube Shorts. Keep headlines, faces, logos and CTAs inside the highlighted center area."
+            VideoEditorStrings.safeAreaUniversalExplanation
         case .platform(let platform):
             platform.safeAreaExplanation
         }
@@ -274,22 +274,22 @@ public enum SocialPlatform: String, Codable, CaseIterable, Equatable, Sendable {
     public var title: String {
         switch self {
         case .instagram:
-            "Instagram Reels & Stories"
+            VideoEditorStrings.platformInstagram
         case .tiktok:
-            "TikTok"
+            VideoEditorStrings.platformTikTok
         case .youtubeShorts:
-            "YouTube Shorts"
+            VideoEditorStrings.platformYouTubeShorts
         }
     }
 
     public var safeAreaExplanation: String {
         switch self {
         case .instagram:
-            "Based on the current Instagram Reels and Stories safe-zone guidance. Keep key text, logos and CTAs away from the top 14%, bottom 35% and outer 6% on each side."
+            VideoEditorStrings.platformInstagramExplanation
         case .tiktok:
-            "Keeps important content inside TikTok's clearer viewing area, away from top chrome, right-side actions and lower captions."
+            VideoEditorStrings.platformTikTokExplanation
         case .youtubeShorts:
-            "Keeps important content inside the clearer viewing area for YouTube Shorts, away from top labels and lower playback overlays."
+            VideoEditorStrings.platformYouTubeShortsExplanation
         }
     }
 

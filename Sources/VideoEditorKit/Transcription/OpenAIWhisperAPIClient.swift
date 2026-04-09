@@ -41,13 +41,13 @@ struct OpenAIWhisperAPIClient {
         var errorDescription: String? {
             switch self {
             case .invalidAudioFileURL:
-                "The audio file URL must reference a local file."
+                VideoEditorStrings.whisperInvalidAudioURL
             case .invalidServerResponse:
-                "The transcription service returned an invalid response."
+                VideoEditorStrings.whisperInvalidResponse
             case .unsuccessfulStatusCode(let statusCode, let message):
-                message ?? "The transcription service returned HTTP \(statusCode)."
+                message ?? VideoEditorStrings.whisperHTTPError(statusCode)
             case .emptyResponseData:
-                "The transcription service returned an empty response body."
+                VideoEditorStrings.whisperEmptyResponse
             }
         }
     }

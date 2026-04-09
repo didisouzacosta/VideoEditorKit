@@ -65,17 +65,17 @@ public enum VideoCanvasPreset: Codable, Equatable, Sendable {
     public var title: String {
         switch self {
         case .original:
-            "Original"
+            VideoEditorStrings.canvasOriginal
         case .free:
-            "Free"
+            VideoEditorStrings.canvasFree
         case .custom:
-            "Custom"
+            VideoEditorStrings.canvasCustom
         case .social(let platform):
             platform.title
         case .story:
-            "Story"
+            VideoEditorStrings.canvasStory
         case .facebookPost:
-            "Facebook Post"
+            VideoEditorStrings.canvasFacebookPost
         }
     }
 
