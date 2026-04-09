@@ -1,12 +1,4 @@
-//
-//  OpenAIWhisperTranscriptionComponent.swift
-//  VideoEditorKit
-//
-//  Created by Codex on 06.04.2026.
-//
-
 import Foundation
-import VideoEditorKit
 
 actor OpenAIWhisperTranscriptionComponent: VideoTranscriptionComponentProtocol {
 

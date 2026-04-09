@@ -1,5 +1,9 @@
 # Plano Tecnico de Transcricao Multi-Provider
 
+> Nota
+> Este documento permanece como historico de exploracao arquitetural.
+> O estado atual do projeto usa somente OpenAI Whisper dentro do package `VideoEditorKit`, e o antigo backend local experimental foi removido da implementacao ativa.
+
 ## Objetivo
 
 Evoluir a feature de transcricao do editor para suportar mais de um backend, mantendo o fluxo atual do editor estavel e sem reintroduzir acoplamento entre UI, extracao de audio e tecnologia de speech-to-text.
@@ -31,7 +35,7 @@ O editor deve continuar enxergando apenas:
 - opcionalmente um componente stateful que implementa `VideoTranscriptionComponentProtocol`
 - um `VideoTranscriptionResult` padronizado
 
-As decisoes de backend devem sair da UI e passar para uma camada pequena de resolucao em `TranscriptionKit`.
+As decisoes de backend devem sair da UI e passar para uma camada pequena de resolucao dentro do package.
 
 ## Backends planejados
 
@@ -41,12 +45,11 @@ As decisoes de backend devem sair da UI e passar para uma camada pequena de reso
 - exige `OPENAI_API_KEY`
 - continua usando extracao local de audio e upload multipart
 
-### 2. `appleSpeech`
+### 2. backend local experimental
 
 - backend local do OS
-- deve usar o framework `Speech`
-- para iOS 26+, a implementacao alvo deve priorizar `SpeechAnalyzer`, `SpeechTranscriber` e `AssetInventory`
-- o resultado deve ser convertido para `VideoTranscriptionResult`
+- esta alternativa ficou apenas como referencia historica nesta iteracao
+- qualquer retomada futura deve acontecer dentro do package, nao no app shell
 
 Referencias oficiais usadas para orientar a implementacao:
 
@@ -84,7 +87,7 @@ concluida
 Entregas realizadas:
 
 - uma camada intermediaria de resolucao de backend
-- `OpenAIWhisperTranscriptionProviderFactory.swift`
+- factory intermediaria do Whisper
 - `VideoEditorView.Configuration.TranscriptionConfiguration` passou a carregar metadata intermediaria da resolucao
 - `RootView` passou a resolver providers via factory + resolver
 - `NSSpeechRecognitionUsageDescription` adicionada ao target
@@ -92,7 +95,8 @@ Entregas realizadas:
 
 Nota historica:
 
-- essa camada intermediaria foi removida depois, quando a API publica passou a expor apenas `.appleSpeech(...)` e `.openAIWhisper(...)`
+- essa camada intermediaria foi removida depois, quando a API publica foi simplificada
+- o estado atual nao expoe mais o backend local experimental e a implementacao ativa ficou restrita ao Whisper no package
 
 Verificacao:
 
@@ -105,7 +109,7 @@ fazer um spike tecnico do backend local da Apple e validar o formato real dos re
 
 Entregas:
 
-- criar `AppleSpeechTranscriptionComponent`
+- criar um componente experimental de backend local
 - validar consumo de arquivo de audio extraido
 - validar disponibilidade de assets e locale
 - validar se o resultado nativo fornece segmentos, palavras e tempos suficientes
@@ -115,15 +119,14 @@ Critero de saida:
 ter uma prova concreta de viabilidade para transcricao local de video pregravado no target atual.
 
 Status atual:
-concluida
+arquivada
 
 Entregas realizadas:
 
-- `AppleSpeechTranscriptionComponent.swift`
-- `AppleSpeechTranscriptionService.swift`
-- `AppleSpeechTranscriptionResultMapper.swift`
+- exploracao inicial do backend local em branch de trabalho
 - testes de caracterizacao para o mapper
-- testes de ciclo de vida, erro e cancelamento do componente local
+- referencia historica preservada neste documento, embora a implementacao tenha sido removida depois
+- testes de ciclo de vida, erro e cancelamento do componente local durante o spike
 
 Descobertas tecnicas confirmadas:
 
@@ -137,12 +140,12 @@ Descobertas tecnicas confirmadas:
 - os tempos por token podem ser extraidos de `AttributedString.audioTimeRange` quando o resultado vier segmentado em runs individuais
 - quando um run temporizado cobre mais de uma palavra, a Fase 2 prefere preservar o `segment.text` e deixar `words` vazio em vez de inferir tempos artificiais
 
-Escopo entregue nesta fase:
+Escopo historico desta fase:
 
-- o componente local ja extrai audio via `VideoAudioExtractionService`
-- o servico Apple ja transcreve `.m4a` local e mapeia para `VideoTranscriptionResult`
-- o componente local ja normaliza erros de source invalida, locale nao suportado, indisponibilidade do speech local e resultado vazio
-- o componente local ja suporta cancelamento e limpeza do arquivo temporario extraido
+- houve um componente local experimental que extraia audio via `VideoAudioExtractionService`
+- houve um servico Apple experimental que transcrevia `.m4a` local e mapeava para `VideoTranscriptionResult`
+- o spike cobriu normalizacao de erros de source invalida, locale nao suportado, indisponibilidade do speech local e resultado vazio
+- o spike tambem cobriu cancelamento e limpeza do arquivo temporario extraido
 
 Fora de escopo nesta fase:
 
@@ -150,9 +153,9 @@ Fora de escopo nesta fase:
 - definir a politica final de selecao exposta ao host
 - executar validacao em device fisico
 
-Verificacao:
+Verificacao historica:
 
-- `xcodebuild test -project VideoEditor.xcodeproj -scheme VideoEditor -destination 'platform=iOS Simulator,id=48607FD1-353D-447C-968A-109A56036C2F' -only-testing:VideoEditorTests/AppleSpeechTranscriptionResultMapperTests -only-testing:VideoEditorTests/AppleSpeechTranscriptionComponentTests`
+- essa verificacao existiu apenas enquanto o spike do backend local ainda vivia fora do package
 
 ### Fase 3
 
@@ -161,21 +164,21 @@ integrar o backend local ao resolver e habilitar selecao real de backend.
 
 Entregas:
 
-- adicionar `AppleSpeechTranscriptionProviderFactory`
+- adicionar uma factory do backend local experimental
 - suportar resolucao por estrategia configuravel no app
 - padronizar erros de permissao, indisponibilidade de asset e locale nao suportado
 - manter cancelamento e `TranscriptFeatureState` consistentes
 
 Status atual:
-concluida
+arquivada
 
 Entregas realizadas:
 
-- `AppleSpeechTranscriptionProviderFactory.swift`
-- uma estrategia intermediaria de resolucao explicita de provider
-- `RootView` passou a publicar factories padrao para Apple local e Whisper remoto
-- a infraestrutura do app passou a suportar selecao explicita de backend
-- `RootView` tambem passou a expor helpers internos de resolucao durante a fase de transicao
+- houve uma factory intermediaria para o backend Apple durante a transicao
+- houve uma estrategia intermediaria de resolucao explicita de provider
+- `RootView` chegou a publicar factories padrao para Apple local e Whisper remoto
+- a infraestrutura do app suportou selecao explicita de backend por um periodo
+- `RootView` tambem expunha helpers internos de resolucao durante a fase de transicao
 
 Resultado pratico:
 
@@ -205,21 +208,21 @@ concluida
 
 Entregas realizadas:
 
-- testes do `EditorViewModel` cobrindo `AppleSpeechTranscriptionComponent`
-- cobertura explicita para resposta local com `segments` sem `words`
-- cobertura explicita para resposta local com `words` temporizadas
-- teste de mapping garantindo que o editor preserva o texto do segmento quando o provider nao expoe granularidade por palavra
-- consolidacao da cobertura da camada de transcricao e do componente local no pacote de validacao da feature
+- testes do `EditorViewModel` chegaram a cobrir o componente local experimental
+- houve cobertura explicita para resposta local com `segments` sem `words`
+- houve cobertura explicita para resposta local com `words` temporizadas
+- houve teste de mapping garantindo que o editor preservava o texto do segmento quando o provider nao expunha granularidade por palavra
+- essa cobertura foi removida junto com o backend local
 
-Resultado pratico:
+Resultado pratico historico:
 
 - o editor continua agnostico ao backend no fluxo de transcricao
-- respostas do backend Apple sem word-level timing continuam editaveis e renderizaveis no editor
-- quando o backend Apple fornecer `words`, elas entram no draft com `timelineRange` remapeado corretamente
+- respostas do backend Apple sem word-level timing eram editaveis e renderizaveis no editor durante o spike
+- quando o backend Apple fornecia `words`, elas entravam no draft com `timelineRange` remapeado corretamente
 
-Verificacao:
+Verificacao historica:
 
-- `xcodebuild test -project VideoEditor.xcodeproj -scheme VideoEditor -destination 'platform=iOS Simulator,id=48607FD1-353D-447C-968A-109A56036C2F' -only-testing:VideoEditorTests/EditorViewModelTests -only-testing:VideoEditorTests/EditorTranscriptMappingCoordinatorTests -only-testing:VideoEditorTests/AppleSpeechTranscriptionComponentTests -only-testing:VideoEditorTests/AppleSpeechTranscriptionResultMapperTests`
+- essa validacao existiu apenas enquanto o backend Apple ainda estava presente no app
 
 ### Fase 5
 
@@ -239,28 +242,27 @@ Decisao adotada:
 
 - remover `.automatic` da configuracao exposta ao host
 - expor preferencia de backend apenas em configuracao interna do host
-- exigir que quem integra a transcricao escolha explicitamente entre `appleSpeech` e `openAIWhisper`
+- exigir explicitacao de backend apenas enquanto o experimento multi-provider existiu
 - nao expor seletor de backend na UI do editor nesta fase
 
 Entregas realizadas:
 
-- a configuracao de transcricao do editor agora pode expor factories simplificadas por backend
-- `RootView` foi simplificada para assumir diretamente `transcription: .appleSpeech()`
-- o fluxo de composicao da tela nao precisa mais montar resolver, strategy ou factories para o caso Apple-only
-- `preferredLocale` continua parte da configuracao interna do host
-- selecao explicita por backend nao faz mais fallback silencioso para outro provider quando o backend escolhido estiver indisponivel
+- a configuracao de transcricao do editor chegou a expor factories simplificadas por backend
+- `RootView` foi simplificada naquele momento para assumir um backend explicito
+- o fluxo de composicao da tela deixou de montar resolver, strategy ou factories durante aquela fase
+- `preferredLocale` continuou parte da configuracao interna do host
+- selecao explicita por backend nao fazia fallback silencioso para outro provider quando o backend escolhido estivesse indisponivel
 
-Resultado pratico:
+Resultado pratico historico:
 
 - o produto final continua simples para o usuario final
-- quem integra a transcricao e obrigado a tomar uma decisao explicita de backend
-- builds internas, QA ou integracoes futuras podem forcar backend sem alterar `EditorViewModel`
-- quando o backend escolhido nao estiver disponivel, a configuracao fica sem provider em vez de trocar silenciosamente de tecnologia
+- quem integrava a transcricao era obrigado a tomar uma decisao explicita de backend
+- builds internas, QA ou integracoes futuras podiam forcar backend sem alterar `EditorViewModel`
+- quando o backend escolhido nao estivesse disponivel, a configuracao ficava sem provider em vez de trocar silenciosamente de tecnologia
 
-Verificacao:
+Verificacao historica:
 
-- testes do `RootView` cobrindo preferencia explicita por Apple Speech
-- testes do `RootView` cobrindo preferencia explicita por OpenAI Whisper
+- houve testes do `RootView` cobrindo preferencias explicitas de backend durante a fase multi-provider
 
 ## Riscos tecnicos principais
 

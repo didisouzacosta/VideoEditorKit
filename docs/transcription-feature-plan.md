@@ -2,6 +2,7 @@
 
 > Nota
 > Este documento continua como historico da entrega do backend remoto com OpenAI Whisper.
+> A implementacao atual mora no package em `Packages/VideoEditorKit/Sources/VideoEditorKit/Transcription/`.
 > A estrategia oficial atual para evoluir a feature, incluindo multiplos adapters de transcricao, esta em `docs/multi-provider-transcription-plan.md`.
 
 ## Objetivo
@@ -31,7 +32,7 @@ Esse passa a ser o unico plano oficial de transcricao do projeto.
 
 O projeto ja possui a base funcional de transcricao no editor:
 
-- contrato [`VideoTranscriptionProvider`](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Core/Models/Transcription/VideoTranscriptionProvider.swift)
+- contrato [`VideoTranscriptionProvider`](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/Transcription/VideoTranscriptionProvider.swift)
 - tipos `VideoTranscriptionInput`, `VideoTranscriptionResult`, `TranscriptionSegment` e `TranscriptionWord`
 - disparo de transcricao em [`EditorViewModel.transcribeCurrentVideo()`](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Core/ViewModels/EditorViewModel.swift#L697)
 - injecao do provider via [`VideoEditorView.Configuration.TranscriptionConfiguration`](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/API/VideoEditorPublicTypes.swift)
@@ -47,7 +48,7 @@ O gap atual nao e de UI nem de persistencia. O gap e a ausencia de um provider r
 
 ## Decisao de arquitetura
 
-Criar um componente unico em `VideoEditor/TranscriptionKit/` chamado `OpenAIWhisperTranscriptionComponent`.
+Criar um componente unico no package em `Packages/VideoEditorKit/Sources/VideoEditorKit/Transcription/` chamado `OpenAIWhisperTranscriptionComponent`.
 
 Esse componente sera o ponto de entrada da feature e devera:
 
@@ -135,7 +136,7 @@ Compatibilidade:
 
 ## Estrutura proposta
 
-Arquivos esperados em `VideoEditor/TranscriptionKit/`:
+Arquivos esperados em `Packages/VideoEditorKit/Sources/VideoEditorKit/Transcription/`:
 
 - `OpenAIWhisperTranscriptionComponent.swift`
 - `VideoAudioExtractionService.swift`
@@ -204,7 +205,7 @@ Ela nao deve:
 
 ### `RootView`
 
-A configuracao de transcricao da `RootView` nao deve carregar mais infraestrutura de resolver e factories quando o app assumir `AppleSpeech` como caminho padrao.
+A configuracao de transcricao da `RootView` nao deve carregar infraestrutura de resolver e factories; o host deve apenas ler a API key e delegar a construcao do Whisper para o package.
 
 ## Configuracao e segredo
 

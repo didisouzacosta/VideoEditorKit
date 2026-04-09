@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-@testable import VideoEditor
+@testable import VideoEditorKit
 
 @Suite("OpenAIWhisperAPIClientTests")
 struct OpenAIWhisperAPIClientTests {
@@ -265,7 +265,7 @@ private actor RecordingHTTPSession: HTTPSession {
     // MARK: - Private Properties
 
     private let result: Result<(Data, URLResponse), Error>
-    private var requests: [URLRequest] = []
+    private var requests = [URLRequest]()
 
     // MARK: - Initializer
 

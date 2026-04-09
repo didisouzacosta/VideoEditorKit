@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-@testable import VideoEditor
+@testable import VideoEditorKit
 
 @Suite("OpenAIWhisperMultipartFormDataBuilderTests")
 struct OpenAIWhisperMultipartFormDataBuilderTests {

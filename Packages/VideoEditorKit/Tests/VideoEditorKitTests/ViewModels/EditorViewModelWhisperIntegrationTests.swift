@@ -1,12 +1,13 @@
 import Foundation
 import Testing
 
-@testable import VideoEditor
 @testable import VideoEditorKit
 
 @MainActor
-@Suite("EditorViewModelTranscriptionIntegrationTests")
-struct EditorViewModelTranscriptionIntegrationTests {
+@Suite("EditorViewModelWhisperIntegrationTests")
+struct EditorViewModelWhisperIntegrationTests {
+
+    // MARK: - Public Methods
 
     @Test
     func transcribeCurrentVideoWithTheOpenAIWhisperComponentMapsTheResponseIntoATranscriptDraft()
@@ -77,147 +78,6 @@ struct EditorViewModelTranscriptionIntegrationTests {
 
         #expect(viewModel.transcriptFeatureState == .loaded)
         #expect(viewModel.transcriptDocument == viewModel.transcriptDraftDocument)
-    }
-
-    @Test
-    func transcribeCurrentVideoWithTheAppleSpeechComponentMapsSegmentOnlyResponsesIntoATranscriptDraft()
-        async throws
-    {
-        let cleanupRecorder = TranscriptionCleanupRecorder()
-        let localeProbe = AppleSpeechEditorLocaleProbe()
-        let extractedAudioURL = URL(fileURLWithPath: "/tmp/editor-apple-speech-segment-only.m4a")
-        let component = AppleSpeechTranscriptionComponent(
-            dependencies: .init(
-                extractAudio: { _ in extractedAudioURL },
-                removeExtractedAudio: { cleanupRecorder.remove($0) },
-                transcribeAudio: { audioURL, preferredLocale in
-                    await localeProbe.record(
-                        audioURL: audioURL,
-                        preferredLocale: preferredLocale
-                    )
-                    await localeProbe.waitForResume()
-
-                    return VideoTranscriptionResult(
-                        segments: [
-                            TranscriptionSegment(
-                                id: UUID(),
-                                startTime: 8,
-                                endTime: 12,
-                                text: "segmento local"
-                            )
-                        ]
-                    )
-                }
-            )
-        )
-        let viewModel = EditorViewModel()
-        var video = Video(
-            url: URL(fileURLWithPath: "/tmp/transcription-source.mov"),
-            rangeDuration: 0...20
-        )
-        video.updateRate(2)
-        viewModel.currentVideo = video
-        viewModel.configureTranscription(
-            provider: component,
-            preferredLocale: "pt-BR"
-        )
-
-        viewModel.transcribeCurrentVideo()
-        await waitForTranscriptState(on: viewModel, equals: .loading)
-
-        let capturedInput = try #require(await localeProbe.lastInput())
-        #expect(capturedInput.audioURL == extractedAudioURL)
-        #expect(capturedInput.preferredLocale == "pt-BR")
-        #expect(viewModel.transcriptState == .loading)
-
-        await localeProbe.resume()
-        await waitForTranscriptState(on: viewModel, equals: .loaded)
-
-        #expect(await component.state == .loaded)
-        #expect(cleanupRecorder.urls == [extractedAudioURL])
-        #expect(viewModel.transcriptState == .loaded)
-        #expect(viewModel.transcriptFeatureState == .idle)
-        #expect(viewModel.transcriptDocument == nil)
-        #expect(viewModel.transcriptDraftDocument?.segments.first?.originalText == "segmento local")
-        #expect(viewModel.transcriptDraftDocument?.segments.first?.editedText == "segmento local")
-        #expect(viewModel.transcriptDraftDocument?.segments.first?.timeMapping.timelineRange == 4...6)
-        #expect(viewModel.transcriptDraftDocument?.segments.first?.words.isEmpty == true)
-
-        viewModel.applyTranscriptChanges()
-
-        #expect(viewModel.transcriptFeatureState == .loaded)
-        #expect(viewModel.transcriptDocument == viewModel.transcriptDraftDocument)
-    }
-
-    @Test
-    func transcribeCurrentVideoWithTheAppleSpeechComponentMapsTimedWordsIntoEditableTranscriptWords()
-        async throws
-    {
-        let cleanupRecorder = TranscriptionCleanupRecorder()
-        let localeProbe = AppleSpeechEditorLocaleProbe()
-        let extractedAudioURL = URL(fileURLWithPath: "/tmp/editor-apple-speech-tokenized.m4a")
-        let component = AppleSpeechTranscriptionComponent(
-            dependencies: .init(
-                extractAudio: { _ in extractedAudioURL },
-                removeExtractedAudio: { cleanupRecorder.remove($0) },
-                transcribeAudio: { audioURL, preferredLocale in
-                    await localeProbe.record(
-                        audioURL: audioURL,
-                        preferredLocale: preferredLocale
-                    )
-                    await localeProbe.waitForResume()
-
-                    return VideoTranscriptionResult(
-                        segments: [
-                            TranscriptionSegment(
-                                id: UUID(),
-                                startTime: 8,
-                                endTime: 12,
-                                text: "ola mundo",
-                                words: [
-                                    TranscriptionWord(
-                                        id: UUID(),
-                                        startTime: 8,
-                                        endTime: 9,
-                                        text: "ola"
-                                    ),
-                                    TranscriptionWord(
-                                        id: UUID(),
-                                        startTime: 10,
-                                        endTime: 12,
-                                        text: "mundo"
-                                    ),
-                                ]
-                            )
-                        ]
-                    )
-                }
-            )
-        )
-        let viewModel = EditorViewModel()
-        var video = Video(
-            url: URL(fileURLWithPath: "/tmp/transcription-source.mov"),
-            rangeDuration: 0...20
-        )
-        video.updateRate(2)
-        viewModel.currentVideo = video
-        viewModel.configureTranscription(
-            provider: component,
-            preferredLocale: "pt-BR"
-        )
-
-        viewModel.transcribeCurrentVideo()
-        await waitForTranscriptState(on: viewModel, equals: .loading)
-        await localeProbe.resume()
-        await waitForTranscriptState(on: viewModel, equals: .loaded)
-
-        #expect(await component.state == .loaded)
-        #expect(cleanupRecorder.urls == [extractedAudioURL])
-        #expect(viewModel.transcriptDraftDocument?.segments.first?.editedText == "ola mundo")
-        #expect(viewModel.transcriptDraftDocument?.segments.first?.timeMapping.timelineRange == 4...6)
-        #expect(viewModel.transcriptDraftDocument?.segments.first?.words.map(\.editedText) == ["ola", "mundo"])
-        #expect(viewModel.transcriptDraftDocument?.segments.first?.words.first?.timeMapping.timelineRange == 4...4.5)
-        #expect(viewModel.transcriptDraftDocument?.segments.first?.words.last?.timeMapping.timelineRange == 5...6)
     }
 
     @Test
@@ -301,12 +161,17 @@ struct EditorViewModelTranscriptionIntegrationTests {
         #expect(viewModel.transcriptDocument == nil)
         #expect(viewModel.transcriptDraftDocument == nil)
     }
+
 }
 
 private final class TranscriptionCleanupRecorder: @unchecked Sendable {
 
+    // MARK: - Private Properties
+
     private let lock = NSLock()
     private var recordedURLs = [URL]()
+
+    // MARK: - Public Properties
 
     var urls: [URL] {
         lock.lock()
@@ -314,18 +179,25 @@ private final class TranscriptionCleanupRecorder: @unchecked Sendable {
         return recordedURLs
     }
 
+    // MARK: - Public Methods
+
     func remove(_ url: URL) {
         lock.lock()
         recordedURLs.append(url)
         lock.unlock()
     }
+
 }
 
 private actor OpenAIWhisperEditorRequestProbe {
 
+    // MARK: - Private Properties
+
     private var requests = [OpenAIWhisperAPIClient.Request]()
     private var continuation: CheckedContinuation<Void, Never>?
     private var hasResumed = false
+
+    // MARK: - Public Methods
 
     func record(_ request: OpenAIWhisperAPIClient.Request) {
         requests.append(request)
@@ -348,12 +220,17 @@ private actor OpenAIWhisperEditorRequestProbe {
     func lastRequest() -> OpenAIWhisperAPIClient.Request? {
         requests.last
     }
+
 }
 
 private actor OpenAIWhisperEditorStartProbe {
 
+    // MARK: - Private Properties
+
     private var hasStarted = false
     private var continuation: CheckedContinuation<Void, Never>?
+
+    // MARK: - Public Methods
 
     func markStarted() {
         hasStarted = true
@@ -368,45 +245,7 @@ private actor OpenAIWhisperEditorStartProbe {
             self.continuation = continuation
         }
     }
-}
 
-private actor AppleSpeechEditorLocaleProbe {
-
-    struct Input: Sendable {
-        let audioURL: URL
-        let preferredLocale: String?
-    }
-
-    private var inputs = [Input]()
-    private var continuation: CheckedContinuation<Void, Never>?
-    private var hasResumed = false
-
-    func record(audioURL: URL, preferredLocale: String?) {
-        inputs.append(
-            .init(
-                audioURL: audioURL,
-                preferredLocale: preferredLocale
-            )
-        )
-    }
-
-    func waitForResume() async {
-        guard hasResumed == false else { return }
-
-        await withCheckedContinuation { continuation in
-            self.continuation = continuation
-        }
-    }
-
-    func resume() {
-        hasResumed = true
-        continuation?.resume()
-        continuation = nil
-    }
-
-    func lastInput() -> Input? {
-        inputs.last
-    }
 }
 
 @MainActor

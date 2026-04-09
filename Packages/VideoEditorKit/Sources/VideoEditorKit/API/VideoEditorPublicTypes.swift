@@ -116,6 +116,22 @@ public struct VideoEditorConfiguration {
             self.preferredLocale = preferredLocale
         }
 
+        public static func openAIWhisper(
+            apiKey: String,
+            preferredLocale: String? = nil
+        ) -> Self {
+            let trimmedAPIKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+
+            guard trimmedAPIKey.isEmpty == false else {
+                return .init(preferredLocale: preferredLocale)
+            }
+
+            return .init(
+                provider: OpenAIWhisperTranscriptionComponent(trimmedAPIKey),
+                preferredLocale: preferredLocale
+            )
+        }
+
     }
 
     // MARK: - Public Properties

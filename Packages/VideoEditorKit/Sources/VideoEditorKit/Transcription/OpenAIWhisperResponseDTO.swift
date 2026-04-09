@@ -1,10 +1,3 @@
-//
-//  OpenAIWhisperResponseDTO.swift
-//  VideoEditorKit
-//
-//  Created by Codex on 06.04.2026.
-//
-
 import Foundation
 
 struct OpenAIWhisperVerboseTranscriptionResponseDTO: Decodable, Equatable, Sendable {
@@ -45,6 +38,8 @@ struct OpenAIWhisperVerboseTranscriptionResponseDTO: Decodable, Equatable, Senda
         segments = try container.decodeIfPresent([Segment].self, forKey: .segments) ?? []
         words = try container.decodeIfPresent([Word].self, forKey: .words) ?? []
     }
+
+    // MARK: - Private Properties
 
     private enum CodingKeys: String, CodingKey {
         case task

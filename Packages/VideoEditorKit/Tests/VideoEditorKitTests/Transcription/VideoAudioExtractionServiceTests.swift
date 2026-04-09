@@ -1,7 +1,7 @@
 import AVFoundation
 import Testing
 
-@testable import VideoEditor
+@testable import VideoEditorKit
 
 @Suite("VideoAudioExtractionServiceTests")
 struct VideoAudioExtractionServiceTests {

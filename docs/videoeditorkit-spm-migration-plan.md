@@ -877,13 +877,12 @@ Current implementation notes:
   - [TranscriptSegmentEditView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Views/ToolsView/Transcript/TranscriptSegmentEditView.swift)
   - [TranscriptSegmentRow.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Views/ToolsView/Transcript/TranscriptSegmentRow.swift)
   - [TranscriptToolView.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/Views/ToolsView/Transcript/TranscriptToolView.swift)
-  - [AppleSpeechTranscriptionComponent.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/TranscriptionKit/AppleSpeechTranscriptionComponent.swift)
-  - [OpenAIWhisperTranscriptionComponent.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/TranscriptionKit/OpenAIWhisperTranscriptionComponent.swift)
-  - [AppleSpeechTranscriptionProviderFactory.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/TranscriptionKit/AppleSpeechTranscriptionProviderFactory.swift)
-  - [OpenAIWhisperTranscriptionProviderFactory.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/TranscriptionKit/OpenAIWhisperTranscriptionProviderFactory.swift)
-  - [AppleSpeechTranscriptionResultMapper.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/TranscriptionKit/AppleSpeechTranscriptionResultMapper.swift)
-  - [AppleSpeechTranscriptionService.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/TranscriptionKit/AppleSpeechTranscriptionService.swift)
-  - [OpenAIWhisperResponseMapper.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditor/TranscriptionKit/OpenAIWhisperResponseMapper.swift)
+  - [OpenAIWhisperTranscriptionComponent.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/Transcription/OpenAIWhisperTranscriptionComponent.swift)
+  - [OpenAIWhisperAPIClient.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/Transcription/OpenAIWhisperAPIClient.swift)
+  - [OpenAIWhisperMultipartFormDataBuilder.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/Transcription/OpenAIWhisperMultipartFormDataBuilder.swift)
+  - [OpenAIWhisperResponseDTO.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/Transcription/OpenAIWhisperResponseDTO.swift)
+  - [OpenAIWhisperResponseMapper.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/Transcription/OpenAIWhisperResponseMapper.swift)
+  - [VideoAudioExtractionService.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Sources/VideoEditorKit/Transcription/VideoAudioExtractionService.swift)
 - direct `VideoEditorKit` imports now cover the remaining toolbar and transcription tests, including:
   - [EditorToolSelectionCoordinatorTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorTests/Models/EditorToolSelectionCoordinatorTests.swift)
   - [EditorToolbarLayoutResolverTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorTests/Models/EditorToolbarLayoutResolverTests.swift)
@@ -894,8 +893,7 @@ Current implementation notes:
   - [TranscriptTextStyleResolverTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorTests/Models/TranscriptTextStyleResolverTests.swift)
   - [TranscriptTimeMapperTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorTests/Models/TranscriptTimeMapperTests.swift)
   - [TranscriptWordEditingCoordinatorTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorTests/Models/TranscriptWordEditingCoordinatorTests.swift)
-  - [AppleSpeechTranscriptionComponentTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorTests/TranscriptionKit/AppleSpeechTranscriptionComponentTests.swift)
-  - [OpenAIWhisperTranscriptionComponentTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/VideoEditorTests/TranscriptionKit/OpenAIWhisperTranscriptionComponentTests.swift)
+  - [OpenAIWhisperTranscriptionComponentTests.swift](/Users/adrianocosta/Documents/Projects/VideoEditorKit/Packages/VideoEditorKit/Tests/VideoEditorKitTests/Transcription/OpenAIWhisperTranscriptionComponentTests.swift)
 - the temporary alias seam file at `VideoEditor/AppShell/Integration/VideoEditorKitPackageAliases.swift` was deleted
 
 Phase 15 status:
@@ -913,7 +911,6 @@ Phase 15 status:
     - `TranscriptTextStyleResolverTests`
     - `TranscriptTimeMapperTests`
     - `TranscriptWordEditingCoordinatorTests`
-    - `AppleSpeechTranscriptionComponentTests`
     - `OpenAIWhisperTranscriptionComponentTests`
     - `VideoEditorKitPackageSmokeTests`
 - the host no longer relies on the alias bridge at all; direct package imports now cover every migrated slice still in active use by the app and tests

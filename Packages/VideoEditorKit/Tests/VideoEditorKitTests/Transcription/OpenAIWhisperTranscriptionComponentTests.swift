@@ -1,8 +1,7 @@
 import Foundation
 import Testing
-import VideoEditorKit
 
-@testable import VideoEditor
+@testable import VideoEditorKit
 
 @Suite("OpenAIWhisperTranscriptionComponentTests")
 struct OpenAIWhisperTranscriptionComponentTests {

@@ -17,50 +17,8 @@ enum AppShellTranscriptionConfiguration {
     static func makeDefaultTranscriptionConfiguration(
         infoDictionary: [String: Any]? = Bundle.main.infoDictionary
     ) -> VideoEditorView.Configuration.TranscriptionConfiguration {
-        guard let apiKey = optionalOpenAIAPIKey(infoDictionary: infoDictionary) else {
-            return .init()
-        }
-
-        return openAIWhisper(apiKey: apiKey)
-    }
-
-    static func appleSpeech(
-        preferredLocale: String? = nil,
-        dependencies: AppleSpeechTranscriptionProviderFactory.Dependencies = .init()
-    ) -> VideoEditorView.Configuration.TranscriptionConfiguration {
-        let provider = AppleSpeechTranscriptionProviderFactory(
-            dependencies: dependencies
-        )
-        .makeProvider()
-        let resolvedPreferredLocale =
-            preferredLocale
-            ?? Locale.autoupdatingCurrent.identifier.replacingOccurrences(
-                of: "_",
-                with: "-"
-            )
-
-        return .init(
-            provider: provider,
-            preferredLocale: resolvedPreferredLocale
-        )
-    }
-
-    static func openAIWhisper(
-        apiKey: String,
-        preferredLocale: String? = nil,
-        dependencies: OpenAIWhisperTranscriptionProviderFactory.Dependencies = .init()
-    ) -> VideoEditorView.Configuration.TranscriptionConfiguration {
-        let provider = OpenAIWhisperTranscriptionProviderFactory(
-            dependencies: .init(
-                resolveAPIKey: { apiKey },
-                makeProvider: dependencies.makeProvider
-            )
-        )
-        .makeProvider()
-
-        return .init(
-            provider: provider,
-            preferredLocale: preferredLocale
+        VideoEditorView.Configuration.TranscriptionConfiguration.openAIWhisper(
+            apiKey: resolvedOpenAIAPIKey(infoDictionary: infoDictionary)
         )
     }
 

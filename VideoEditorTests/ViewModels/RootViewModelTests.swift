@@ -396,61 +396,6 @@ struct AppShellTranscriptionConfigurationTests {
 
     @MainActor
     @Test
-    func appShellAppleSpeechFactoryUsesTheResolvedLocaleAndProvider() {
-        let configuration = AppShellTranscriptionConfiguration.appleSpeech(
-            dependencies: .init(
-                makeProvider: { RootViewModelProbeTranscriptionProvider() }
-            )
-        )
-
-        #expect(
-            configuration.preferredLocale
-                == Locale.autoupdatingCurrent.identifier.replacingOccurrences(
-                    of: "_",
-                    with: "-"
-                )
-        )
-        #expect(configuration.provider != nil)
-        #expect(configuration.isConfigured)
-    }
-
-    @MainActor
-    @Test
-    func appShellOpenAIWhisperFactoryReturnsAnUnconfiguredStateWhenTheAPIKeyIsBlank() {
-        let configuration = AppShellTranscriptionConfiguration.openAIWhisper(
-            apiKey: "   ",
-            dependencies: .init(
-                resolveAPIKey: { nil },
-                makeProvider: { _ in
-                    Issue.record("A blank API key should not create a Whisper provider.")
-                    return RootViewModelProbeTranscriptionProvider()
-                }
-            )
-        )
-
-        #expect(configuration.provider == nil)
-        #expect(configuration.isConfigured == false)
-    }
-
-    @MainActor
-    @Test
-    func appShellOpenAIWhisperFactoryKeepsThePreferredLocale() {
-        let configuration = AppShellTranscriptionConfiguration.openAIWhisper(
-            apiKey: "test-api-key",
-            preferredLocale: "en-US",
-            dependencies: .init(
-                resolveAPIKey: { nil },
-                makeProvider: { _ in RootViewModelProbeTranscriptionProvider() }
-            )
-        )
-
-        #expect(configuration.preferredLocale == "en-US")
-        #expect(configuration.provider != nil)
-        #expect(configuration.isConfigured)
-    }
-
-    @MainActor
-    @Test
     func appShellReturnsAnUnconfiguredTranscriptionWhenTheAPIKeyIsMissing() {
         let configuration = AppShellTranscriptionConfiguration.makeDefaultTranscriptionConfiguration(
             infoDictionary: [:]
@@ -458,25 +403,6 @@ struct AppShellTranscriptionConfigurationTests {
 
         #expect(configuration.provider == nil)
         #expect(configuration.isConfigured == false)
-    }
-
-}
-
-private actor RootViewModelProbeTranscriptionProvider: VideoTranscriptionProvider {
-
-    // MARK: - Public Methods
-
-    func transcribeVideo(input: VideoTranscriptionInput) async throws -> VideoTranscriptionResult {
-        VideoTranscriptionResult(
-            segments: [
-                TranscriptionSegment(
-                    id: UUID(),
-                    startTime: 0,
-                    endTime: 1,
-                    text: "probe"
-                )
-            ]
-        )
     }
 
 }

@@ -1,6 +1,5 @@
 import SwiftUI
 
-@MainActor
 public struct VideoEditorView: View {
 
     // MARK: - Public Properties
