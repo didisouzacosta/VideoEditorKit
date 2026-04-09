@@ -16,7 +16,10 @@ let package = Package(
     targets: [
         .target(
             name: "VideoEditorKit",
-            path: "Sources/VideoEditorKit"
+            path: "Sources/VideoEditorKit",
+            resources: [
+                .process("Resources")
+            ]
         ),
         .testTarget(
             name: "VideoEditorKitTests",

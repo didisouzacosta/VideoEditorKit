@@ -61,9 +61,9 @@ public struct VideoEditorView: View {
                     configuration: configuration
                 )
             }
+            .safeAreaPadding(.horizontal)
         }
         .animation(.default, value: videoPlayer.isPlaybackFocusActive)
-        .safeAreaPadding()
         .onDisappear(perform: handleDisappear)
         .dynamicHeightSheet(
             isPresented: $bindablePresentationState.showVideoQualitySheet,
@@ -258,8 +258,23 @@ public struct VideoEditorView: View {
 }
 
 #Preview {
-    VideoEditorView(
-        "Preview",
-        session: VideoEditorSession(source: nil)
+    let previewVideoURL = Bundle.module.url(
+        forResource: "preview",
+        withExtension: "mp4"
     )
+
+    Group {
+        if let previewVideoURL {
+            VideoEditorView(
+                "Preview",
+                sourceVideoURL: previewVideoURL
+            )
+        } else {
+            ContentUnavailableView(
+                "Preview video not found",
+                systemImage: "video.slash",
+                description: Text("Missing resource: preview.mp4")
+            )
+        }
+    }
 }

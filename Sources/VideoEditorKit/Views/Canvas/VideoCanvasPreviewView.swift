@@ -7,7 +7,6 @@
 
 import SwiftUI
 
-@available(iOS 17.0, *)
 public struct VideoCanvasInteractionCancellationPolicy {
 
     // MARK: - Public Methods
@@ -22,8 +21,6 @@ public struct VideoCanvasInteractionCancellationPolicy {
 
 }
 
-@available(iOS 17.0, *)
-@MainActor
 public struct VideoCanvasPreviewView<Content: View, Overlay: View>: View {
 
     // MARK: - Bindables
@@ -379,8 +376,6 @@ public struct VideoCanvasPreviewView<Content: View, Overlay: View>: View {
     .frame(height: 400)
 }
 
-@available(iOS 17.0, *)
-@MainActor
 private struct InteractionState {
 
     // MARK: - Public Properties
@@ -410,6 +405,7 @@ private struct InteractionState {
         )
     }
 
+    @MainActor
     func resolvedTransform(
         editorState: VideoCanvasEditorState,
         source: VideoCanvasSourceDescriptor,

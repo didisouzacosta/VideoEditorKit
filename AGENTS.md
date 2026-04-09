@@ -32,6 +32,17 @@ Build settings atuais:
 - app em Swift 6
 - tests em Swift 6
 
+## Validacao oficial
+
+Como o projeto e **iOS-only**, a validacao oficial deve acontecer no runtime de **iOS Simulator**.
+
+- nao usar `swift test` como validacao principal do repositorio
+- usar `xcodebuild test` com destino de simulador iOS
+- para uso local em terminal, preferir `scripts/test-ios.sh`
+- para agentes com `xcodebuildmcp`, preferir `build_sim` e `test_sim`
+- quando preciso validar o package, usar o scheme compartilhado `VideoEditorKit-Package` no workspace `Example/VideoEditor.xcworkspace`
+- quando preciso validar o app de integracao, usar o scheme `VideoEditor`
+
 ---
 
 ## Estrutura real do repositório
@@ -387,6 +398,8 @@ Para mudanças futuras neste repositório, usar o padrão abaixo como baseline:
 - só introduzir `@State` local para edição quando ele representar estado transitório real de UI, desacoplado da fonte persistida ou do preview, como fluxos explícitos de aplicar/cancelar
 - quando um draft local for inevitável, documentar claramente a fronteira de commit desse estado e cobrir com testes a ausência de propagação duplicada ou reentrância
 - ao editar Swift, rodar formatação do projeto antes de finalizar
+- não introduzir `@available(iOS ...)` ou checagens `#available(iOS ...)` para versões abaixo ou iguais ao deployment target atual; o projeto roda apenas em iOS 26+, então esse tipo de anotação é ruído e só faz sentido ao isolar APIs realmente futuras acima de iOS 26 ou código genuinamente multiplataforma
+- não marcar `View`, subviews ou extensões de `View` com `@MainActor` por padrão; preferir isolamento em `ViewModel`, `Manager` e APIs específicas, e só usar `@MainActor` em views quando houver necessidade técnica concreta que não possa ser resolvida com isolamento mais estreito
 - novos testes e refactors de testes devem usar `Swift Testing`; não introduzir novos casos em `XCTestCase`
 - em testes, preferir `@Suite` + `@Test` + `#expect`/`#require` e só usar `@MainActor` quando o cenário realmente tocar estado de UI ou tipos main-thread-bound
 

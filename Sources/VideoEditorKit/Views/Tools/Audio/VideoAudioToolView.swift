@@ -92,7 +92,7 @@ struct VideoAudioToolView: View {
             }
             .font(.caption)
         }
-        .safeAreaPadding(.horizontal)
+        .safeAreaPadding(32)
     }
 
     // MARK: - Private Properties

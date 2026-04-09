@@ -127,7 +127,11 @@ final class EditorViewModel {
 
     // MARK: - Public Methods
 
-    func setNewVideo(_ url: URL, containerSize: CGSize) {
+    func setNewVideo(
+        _ url: URL,
+        containerSize: CGSize,
+        videoPlayer: VideoPlayerManager? = nil
+    ) {
         invalidateThumbnailRequests()
         cancelActiveTranscription()
         cancelPendingToolResetTasks()
@@ -152,12 +156,14 @@ final class EditorViewModel {
             remapTranscriptDocumentIfNeeded()
 
             await self.restorePendingEditingPresentationState()
+            guard !Task.isCancelled else { return }
 
             loadThumbnails(
                 for: video,
                 containerSize: containerSize,
                 displayScale: self.lastThumbnailDisplayScale
             )
+            videoPlayer?.loadState = .loaded(url)
             markEditingConfigurationChanged()
         }
     }
@@ -639,16 +645,24 @@ final class EditorViewModel {
             bootstrap.editingConfiguration,
             videoPlayer: videoPlayer
         )
-        videoPlayer.loadState = .loaded(bootstrap.sourceVideoURL)
-        setNewVideo(bootstrap.sourceVideoURL, containerSize: bootstrap.containerSize)
+        videoPlayer.loadState = .loading
+        setNewVideo(
+            bootstrap.sourceVideoURL,
+            containerSize: bootstrap.containerSize,
+            videoPlayer: videoPlayer
+        )
     }
 
     func handleRecordedVideo(_ url: URL, videoPlayer: VideoPlayerManager) {
         let recordedVideoSession = EditorSessionCoordinator.recordedVideoSession(url)
         hasLoadedSourceVideo = recordedVideoSession.hasLoadedSourceVideo
         presentationState.selectedAudioTrack = recordedVideoSession.selectedAudioTrack
-        videoPlayer.loadState = recordedVideoSession.playerLoadState
-        setNewVideo(url, containerSize: lastPlayerContainerSize)
+        videoPlayer.loadState = .loading
+        setNewVideo(
+            url,
+            containerSize: lastPlayerContainerSize,
+            videoPlayer: videoPlayer
+        )
     }
 
     func presentExporter() {

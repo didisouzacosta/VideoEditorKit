@@ -32,6 +32,12 @@ The package provides a video editor with tools for trimming, playback changes, c
 
 Package validation is iOS-only. `swift test` at the repository root is not a supported validation path because the package depends on iOS-only frameworks and UI runtime behavior.
 
+The official validation flow for this repository is:
+
+- `xcodebuild test` on an iOS Simulator destination
+- `scripts/test-ios.sh` for local terminal use
+- `build_sim` / `test_sim` when validating through `xcodebuildmcp`
+
 Open the example app from:
 
 ```text
@@ -60,6 +66,22 @@ Run the supported test/build validation on iOS Simulator:
 
 ```bash
 scripts/test-ios.sh
+```
+
+Equivalent `xcodebuild` commands:
+
+```bash
+xcodebuild \
+  -workspace Example/VideoEditor.xcworkspace \
+  -scheme VideoEditorKit-Package \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
+  test
+
+xcodebuild \
+  -workspace Example/VideoEditor.xcworkspace \
+  -scheme VideoEditor \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
+  test
 ```
 
 Install `SwiftLint` locally if needed:

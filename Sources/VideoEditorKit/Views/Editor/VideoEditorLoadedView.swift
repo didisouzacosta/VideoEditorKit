@@ -22,6 +22,10 @@ public struct VideoEditorLoadedView<PlayerContent: View, ControlsContent: View, 
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
+        .animation(
+            .easeInOut(duration: 0.24),
+            value: isPlaybackFocused
+        )
         .task(id: contentTaskID) {
             onLoad(
                 availableSize,

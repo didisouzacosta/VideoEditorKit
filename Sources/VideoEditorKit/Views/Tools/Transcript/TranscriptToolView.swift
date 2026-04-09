@@ -48,12 +48,15 @@ struct TranscriptToolView: View {
         switch transcriptState {
         case .idle:
             idleView
+                .safeAreaPadding(.horizontal, 32)
         case .loading:
             loadingView
+                .safeAreaPadding(.horizontal, 32)
         case .loaded:
             loadedView
         case .failed(let error):
             failureView(for: error)
+                .safeAreaPadding(.horizontal, 32)
         }
     }
 

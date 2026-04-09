@@ -33,7 +33,7 @@ struct VideoAdjustsToolView: View {
                 value: $adjusts.saturation
             )
         }
-        .safeAreaPadding(.horizontal)
+        .safeAreaPadding(32)
     }
 
     // MARK: - Initializer

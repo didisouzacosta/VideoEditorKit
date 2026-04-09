@@ -1117,10 +1117,12 @@ struct EditorViewModelTests {
     @Test
     func setSourceVideoIfNeededBootstrapsTheFirstSourceOnlyOnce() async {
         let loadVideoProbe = LoadedVideoURLProbe()
+        let deferredVideoLoadProbe = DeferredVideoLoadProbe()
         let viewModel = EditorViewModel(
             .init(
                 loadVideo: { url in
                     await loadVideoProbe.record(url)
+                    await deferredVideoLoadProbe.wait()
                     return Video(url: url, rangeDuration: 0...10)
                 },
                 makeThumbnails: { _, _, _ in [] },
@@ -1146,8 +1148,45 @@ struct EditorViewModelTests {
             try? await Task.sleep(for: .milliseconds(10))
         }
 
+        #expect(videoPlayer.loadState == .loading)
+
+        await deferredVideoLoadProbe.resumeNext()
+
+        for _ in 0..<10 where videoPlayer.loadState != .loaded(firstURL) {
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+
         #expect(await loadVideoProbe.urls() == [firstURL])
         #expect(videoPlayer.loadState == .loaded(firstURL))
+    }
+
+    @Test
+    func handleRecordedVideoKeepsThePlayerInLoadingUntilTheVideoFinishesBootstrapping() async {
+        let deferredVideoLoadProbe = DeferredVideoLoadProbe()
+        let viewModel = EditorViewModel(
+            .init(
+                loadVideo: { url in
+                    await deferredVideoLoadProbe.wait()
+                    return Video(url: url, rangeDuration: 0...10)
+                },
+                makeThumbnails: { _, _, _ in [] },
+                sleep: { try await Task.sleep(for: $0) }
+            )
+        )
+        let videoPlayer = VideoPlayerManager()
+        let recordedVideoURL = URL(fileURLWithPath: "/tmp/recorded-video.mp4")
+
+        viewModel.handleRecordedVideo(recordedVideoURL, videoPlayer: videoPlayer)
+
+        #expect(videoPlayer.loadState == .loading)
+
+        await deferredVideoLoadProbe.resumeNext()
+
+        for _ in 0..<10 where videoPlayer.loadState != .loaded(recordedVideoURL) {
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+
+        #expect(videoPlayer.loadState == .loaded(recordedVideoURL))
     }
 
     @Test
@@ -2267,6 +2306,27 @@ private actor LoadedVideoURLProbe {
 
     func urls() -> [URL] {
         recordedURLs
+    }
+
+}
+
+private actor DeferredVideoLoadProbe {
+
+    // MARK: - Private Properties
+
+    private var continuations = [CheckedContinuation<Void, Never>]()
+
+    // MARK: - Public Methods
+
+    func wait() async {
+        await withCheckedContinuation { continuation in
+            continuations.append(continuation)
+        }
+    }
+
+    func resumeNext() {
+        guard !continuations.isEmpty else { return }
+        continuations.removeFirst().resume()
     }
 
 }
