@@ -20,7 +20,7 @@ The repository is structured around a Swift Package at the root and an example i
 ## Screenshots
 
 <div align="center">
-  <img src="screenshots/tool_editor.png" height="350" alt="Editor"/>
+  <img src="screenshots/editor.png" height="350" alt="Editor"/>
   <img src="screenshots/export.png" height="350" alt="Export"/>
   <img src="screenshots/tool_adjusts.png" height="350" alt="Tool Adjusts"/>
   <img src="screenshots/tool_presets.png" height="350" alt="Tool Presets"/>
