@@ -14,4 +14,11 @@ struct VideoEditorPlaybackFocusTransitionPolicyTests {
         )
     }
 
+    @Test
+    func usesTheExpectedSharedStageBounce() {
+        #expect(
+            VideoEditorPlaybackFocusTransitionPolicy.animationExtraBounce == 0.04
+        )
+    }
+
 }

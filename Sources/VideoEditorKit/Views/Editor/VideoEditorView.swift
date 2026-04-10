@@ -91,7 +91,7 @@ public struct VideoEditorView: View {
             editorViewModel.setToolAvailability(newValue)
         }
         .onChange(of: configuration.maximumVideoDuration) { _, newValue in
-            HostedVideoEditorRuntimeCoordinator.handleMaximumVideoDurationChange(
+            Self.handleMaximumVideoDurationChange(
                 newValue,
                 editorViewModel: editorViewModel,
                 videoPlayer: videoPlayer
@@ -115,7 +115,7 @@ public struct VideoEditorView: View {
                 exportQualities: configuration.exportQualities,
                 onBlockedQualityTap: configuration.notifyBlockedExportQualityTap(for:)
             ) { exportedVideo in
-                HostedVideoEditorShellCoordinator.handleExportedVideo(
+                Self.handleExportedVideo(
                     exportedVideo,
                     videoPlayer: videoPlayer,
                     callbacks: callbacks
@@ -201,7 +201,7 @@ public struct VideoEditorView: View {
         _ availableSize: CGSize,
         _ resolvedSourceVideoURL: URL
     ) {
-        HostedVideoEditorRuntimeCoordinator.bootstrapEditorContent(
+        Self.bootstrapEditorContent(
             availableSize: availableSize,
             resolvedSourceVideoURL: resolvedSourceVideoURL,
             sessionEditingConfiguration: session.editingConfiguration,
@@ -212,14 +212,12 @@ public struct VideoEditorView: View {
     }
 
     private func handlePlaybackLockChange(_ isPlaybackFocusActive: Bool) {
-        HostedVideoEditorRuntimeCoordinator.handlePlaybackFocusChange(
-            isPlaybackFocusActive,
-            editorViewModel: editorViewModel
-        )
+        guard isPlaybackFocusActive else { return }
+        editorViewModel.closeSelectedTool()
     }
 
     private func dismissEditor() {
-        HostedVideoEditorShellCoordinator.dismissEditor(
+        Self.dismissEditor(
             editorViewModel: editorViewModel,
             currentTimelineTime: videoPlayer.currentTime,
             fallbackEditingConfiguration: session.editingConfiguration,
@@ -229,14 +227,14 @@ public struct VideoEditorView: View {
     }
 
     private func presentExporter() {
-        HostedVideoEditorShellCoordinator.presentExporter(
+        Self.presentExporter(
             editorViewModel: editorViewModel,
             videoPlayer: videoPlayer
         )
     }
 
     private func handleRecordedVideo(_ url: URL) {
-        HostedVideoEditorShellCoordinator.handleRecordedVideo(
+        Self.handleRecordedVideo(
             url,
             editorViewModel: editorViewModel,
             videoPlayer: videoPlayer
@@ -244,17 +242,24 @@ public struct VideoEditorView: View {
     }
 
     private func publishEditingConfigurationIfNeeded() {
-        HostedVideoEditorShellCoordinator.publishEditingConfigurationIfNeeded(
+        Self.scheduleSaveIfNeeded(
             editorViewModel: editorViewModel,
             currentTimelineTime: videoPlayer.currentTime,
             fallbackSourceVideoURL: session.sourceVideoURL,
             saveEmissionCoordinator: saveEmissionCoordinator,
-            callbacks: callbacks
+            onPublish: { publishedSave in
+                callbacks.onSaveStateChanged(
+                    .init(
+                        editingConfiguration: publishedSave.editingConfiguration,
+                        thumbnailData: publishedSave.thumbnailData
+                    )
+                )
+            }
         )
     }
 
     private func handleDisappear() {
-        HostedVideoEditorRuntimeCoordinator.handleDisappear(
+        Self.handleDisappear(
             saveEmissionCoordinator: saveEmissionCoordinator,
             editorViewModel: editorViewModel
         )
@@ -263,7 +268,7 @@ public struct VideoEditorView: View {
     private func syncPlayerLoadState(
         for bootstrapState: VideoEditorSessionBootstrapCoordinator.BootstrapState
     ) {
-        videoPlayer.loadState = HostedVideoEditorRuntimeCoordinator.resolvedPlayerLoadState(
+        videoPlayer.loadState = Self.resolvedPlayerLoadState(
             for: bootstrapState,
             currentVideoURL: editorViewModel.currentVideo?.url
         )

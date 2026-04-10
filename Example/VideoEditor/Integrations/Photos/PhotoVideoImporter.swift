@@ -1,18 +1,11 @@
-//
-//  VideoEditorSessionSourceResolver.swift
-//  VideoEditor
-//
-//  Created by Codex on 02.04.2026.
-//
-
 import Foundation
 import PhotosUI
 import SwiftUI
 import VideoEditorKit
 
-struct VideoEditorSessionSourceResolver {
+struct PhotoVideoImporter {
 
-    enum ResolutionError: LocalizedError, Equatable {
+    enum ImportError: LocalizedError, Equatable {
 
         // MARK: - Public Properties
 
@@ -53,29 +46,27 @@ struct VideoEditorSessionSourceResolver {
         from item: PhotosPickerItem
     ) -> VideoEditorSessionSource {
         .importedFile(
-            .init(
-                taskIdentifier: taskIdentifier(for: item)
-            ) {
-                try await resolveImportedVideo {
+            .init(taskIdentifier: taskIdentifier(for: item)) {
+                try await importVideo {
                     try await videoItemLoader(item)
                 }
             }
         )
     }
 
-    func resolveImportedVideo(
+    func importVideo(
         using loader: @escaping @Sendable () async throws -> VideoItem?
     ) async throws -> URL {
         do {
             guard let importedVideo = try await loader() else {
-                throw ResolutionError.unableToLoadSelectedVideo
+                throw ImportError.unableToLoadSelectedVideo
             }
 
             return importedVideo.url
-        } catch let error as ResolutionError {
+        } catch let error as ImportError {
             throw error
         } catch {
-            throw ResolutionError.importFailed(error.localizedDescription)
+            throw ImportError.importFailed(error.localizedDescription)
         }
     }
 

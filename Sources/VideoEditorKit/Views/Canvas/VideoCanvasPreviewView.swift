@@ -335,10 +335,7 @@ public struct VideoCanvasPreviewView<Content: View, Overlay: View>: View {
     }
 
     private var settleAnimation: Animation {
-        .smooth(
-            duration: 0.28,
-            extraBounce: 0.04
-        )
+        VideoEditorPlaybackFocusTransitionPolicy.stageAnimation
     }
 
     private func resolvedSnapshot(

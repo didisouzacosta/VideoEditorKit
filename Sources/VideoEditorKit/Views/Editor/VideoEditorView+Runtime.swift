@@ -1,23 +1,15 @@
-//
-//  HostedVideoEditorRuntimeCoordinator.swift
-//  VideoEditorKit
-//
-//  Created by Codex on 09.04.2026.
-//
-
 import CoreGraphics
 import Foundation
 
-@MainActor
-enum HostedVideoEditorRuntimeCoordinator {
+extension VideoEditorView {
 
-    // MARK: - Public Methods
+    // MARK: - Internal Methods
 
     static func bootstrapEditorContent(
         availableSize: CGSize,
         resolvedSourceVideoURL: URL,
         sessionEditingConfiguration: VideoEditingConfiguration?,
-        configuration: VideoEditorView.Configuration,
+        configuration: Configuration,
         editorViewModel: EditorViewModel,
         videoPlayer: VideoPlayerManager
     ) {
@@ -94,14 +86,6 @@ enum HostedVideoEditorRuntimeCoordinator {
         )
     }
 
-    static func handlePlaybackFocusChange(
-        _ isPlaybackFocusActive: Bool,
-        editorViewModel: EditorViewModel
-    ) {
-        guard isPlaybackFocusActive else { return }
-        editorViewModel.closeSelectedTool()
-    }
-
     static func handleMaximumVideoDurationChange(
         _ maximumVideoDuration: Double?,
         editorViewModel: EditorViewModel,
@@ -110,10 +94,52 @@ enum HostedVideoEditorRuntimeCoordinator {
         editorViewModel.setMaximumVideoDuration(maximumVideoDuration)
 
         guard let currentVideo = editorViewModel.currentVideo else { return }
+        videoPlayer.updatePlaybackRange(currentVideo.outputRangeDuration)
+    }
 
-        videoPlayer.updatePlaybackRange(
-            currentVideo.outputRangeDuration
+    static func dismissEditor(
+        editorViewModel: EditorViewModel,
+        currentTimelineTime: Double,
+        fallbackEditingConfiguration: VideoEditingConfiguration?,
+        callbacks: Callbacks,
+        dismiss: () -> Void
+    ) {
+        callbacks.onDismissed(
+            dismissedEditingConfiguration(
+                editorViewModel: editorViewModel,
+                currentTimelineTime: currentTimelineTime,
+                fallbackEditingConfiguration: fallbackEditingConfiguration
+            )
         )
+        dismiss()
+    }
+
+    static func presentExporter(
+        editorViewModel: EditorViewModel,
+        videoPlayer: VideoPlayerManager
+    ) {
+        videoPlayer.pause()
+        editorViewModel.presentExporter()
+    }
+
+    static func handleRecordedVideo(
+        _ url: URL,
+        editorViewModel: EditorViewModel,
+        videoPlayer: VideoPlayerManager
+    ) {
+        editorViewModel.handleRecordedVideo(
+            url,
+            videoPlayer: videoPlayer
+        )
+    }
+
+    static func handleExportedVideo(
+        _ video: ExportedVideo,
+        videoPlayer: VideoPlayerManager,
+        callbacks: Callbacks
+    ) {
+        videoPlayer.pause()
+        callbacks.onExportedVideoURL(video.url)
     }
 
     static func handleDisappear(

@@ -6,15 +6,15 @@ import VideoEditorKit
 @testable import VideoEditor
 
 @MainActor
-@Suite("EditedVideoProjectsStoreTests")
-struct EditedVideoProjectsStoreTests {
+@Suite("ProjectsRepositoryTests")
+struct ProjectsRepositoryTests {
 
     // MARK: - Public Methods
 
     @Test
     func saveEditingStatePersistsOriginalVideoAndEditingConfigurationBeforeExport() async throws {
         let container = try makeContainer()
-        let store = EditedVideoProjectsStore(modelContext: container.mainContext)
+        let store = ProjectsRepository(modelContext: container.mainContext)
         let originalVideoURL = try await TestFixtures.createTemporaryVideo(color: .systemBlue)
         let audioURL = try TestFixtures.createTemporaryAudio()
         let saveState = VideoEditorView.SaveState(
@@ -66,7 +66,7 @@ struct EditedVideoProjectsStoreTests {
     @Test
     func saveEditingStateUpdatesTheExistingDraftInsteadOfCreatingANewOne() async throws {
         let container = try makeContainer()
-        let store = EditedVideoProjectsStore(modelContext: container.mainContext)
+        let store = ProjectsRepository(modelContext: container.mainContext)
         let originalVideoURL = try await TestFixtures.createTemporaryVideo(color: .systemBlue)
         let firstSaveState = VideoEditorView.SaveState(
             editingConfiguration: .init(
@@ -103,7 +103,7 @@ struct EditedVideoProjectsStoreTests {
     @Test
     func saveEditingStateKeepsPersistedRecordedAudioWhenSavingTheSameDraftAgain() async throws {
         let container = try makeContainer()
-        let store = EditedVideoProjectsStore(modelContext: container.mainContext)
+        let store = ProjectsRepository(modelContext: container.mainContext)
         let originalVideoURL = try await TestFixtures.createTemporaryVideo(color: .systemBlue)
         let audioURL = try TestFixtures.createTemporaryAudio()
         let initialSaveState = VideoEditorView.SaveState(
@@ -141,7 +141,7 @@ struct EditedVideoProjectsStoreTests {
     @Test
     func saveExportedVideoPromotesTheExistingDraftWithoutCreatingANewRecord() async throws {
         let container = try makeContainer()
-        let store = EditedVideoProjectsStore(modelContext: container.mainContext)
+        let store = ProjectsRepository(modelContext: container.mainContext)
         let originalVideoURL = try await TestFixtures.createTemporaryVideo(color: .systemBlue)
         let exportedVideoURL = try await TestFixtures.createTemporaryVideo(color: .systemGreen)
         let exportedVideo = await ExportedVideo.load(from: exportedVideoURL)
@@ -180,7 +180,7 @@ struct EditedVideoProjectsStoreTests {
     @Test
     func saveExportedVideoUsesTheCurrentTimelineFrameForThePersistedThumbnail() async throws {
         let container = try makeContainer()
-        let store = EditedVideoProjectsStore(modelContext: container.mainContext)
+        let store = ProjectsRepository(modelContext: container.mainContext)
         let originalVideoURL = try await TestFixtures.createTemporaryVideo(color: .systemBlue)
         let exportedVideoURL = try await TestFixtures.createTemporaryVideo(
             size: CGSize(width: 80, height: 40),
@@ -230,7 +230,7 @@ struct EditedVideoProjectsStoreTests {
     @Test
     func deleteProjectRemovesTheStoredFilesAndTheSwiftDataRecord() async throws {
         let container = try makeContainer()
-        let store = EditedVideoProjectsStore(modelContext: container.mainContext)
+        let store = ProjectsRepository(modelContext: container.mainContext)
         let originalVideoURL = try await TestFixtures.createTemporaryVideo(color: .systemBlue)
         let exportedVideoURL = try await TestFixtures.createTemporaryVideo(color: .systemGreen)
         let exportedVideo = await ExportedVideo.load(from: exportedVideoURL)
@@ -272,7 +272,7 @@ struct EditedVideoProjectsStoreTests {
 
         #expect(
             abs(
-                EditedVideoProjectsStore.resolvedThumbnailTimestamp(
+                ProjectsRepository.resolvedThumbnailTimestamp(
                     for: 10,
                     editingConfiguration: editingConfiguration
                 ) - 1
@@ -283,19 +283,19 @@ struct EditedVideoProjectsStoreTests {
     @Test
     func thumbnailTimestampFallsBackToTheStartOfTheExportedClipWhenNoCurrentTimeIsAvailable() {
         #expect(
-            EditedVideoProjectsStore.resolvedThumbnailTimestamp(
+            ProjectsRepository.resolvedThumbnailTimestamp(
                 for: 0,
                 editingConfiguration: .initial
             ) == 0
         )
         #expect(
-            EditedVideoProjectsStore.resolvedThumbnailTimestamp(
+            ProjectsRepository.resolvedThumbnailTimestamp(
                 for: 3.5,
                 editingConfiguration: .initial
             ) == 0
         )
         #expect(
-            EditedVideoProjectsStore.resolvedThumbnailTimestamp(
+            ProjectsRepository.resolvedThumbnailTimestamp(
                 for: 120,
                 editingConfiguration: .initial
             ) == 0
@@ -358,17 +358,17 @@ extension UIImage {
             y: min(max(point.y, 0), max(size.height - 1, 0))
         )
         let pixel = UnsafeMutablePointer<UInt8>.allocate(capacity: 4)
+
         defer { pixel.deallocate() }
 
         guard
-            let colorSpace = CGColorSpace(name: CGColorSpace.sRGB),
             let context = CGContext(
                 data: pixel,
                 width: 1,
                 height: 1,
                 bitsPerComponent: 8,
                 bytesPerRow: 4,
-                space: colorSpace,
+                space: CGColorSpaceCreateDeviceRGB(),
                 bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
             )
         else {
@@ -378,22 +378,14 @@ extension UIImage {
         context.translateBy(x: -clampedPoint.x, y: clampedPoint.y - size.height + 1)
         context.draw(
             cgImage,
-            in: CGRect(
-                origin: .zero,
-                size: size
-            )
+            in: CGRect(origin: .zero, size: size)
         )
 
-        let red = CGFloat(pixel[0]) / 255
-        let green = CGFloat(pixel[1]) / 255
-        let blue = CGFloat(pixel[2]) / 255
-        let alpha = CGFloat(pixel[3]) / 255
-
-        return PersistedProjectSampledColor(
-            redComponent: red,
-            greenComponent: green,
-            blueComponent: blue,
-            alphaComponent: alpha
+        return .init(
+            redComponent: CGFloat(pixel[0]) / 255,
+            greenComponent: CGFloat(pixel[1]) / 255,
+            blueComponent: CGFloat(pixel[2]) / 255,
+            alphaComponent: CGFloat(pixel[3]) / 255
         )
     }
 

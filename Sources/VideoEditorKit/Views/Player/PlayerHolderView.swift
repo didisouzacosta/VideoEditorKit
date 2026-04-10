@@ -10,13 +10,6 @@ import SwiftUI
 @MainActor
 struct PlayerHolderView: View {
 
-    private enum Constants {
-        static let settleAnimation = Animation.smooth(
-            duration: 0.28,
-            extraBounce: 0.04
-        )
-    }
-
     // MARK: - Private Properties
 
     private let editorViewModel: EditorViewModel
@@ -107,7 +100,7 @@ extension PlayerHolderView {
         VideoEditorPlayerSurfaceView(
             backgroundColor: editorViewModel.frames.frameColor,
             scale: editorViewModel.frames.scale,
-            animation: Constants.settleAnimation
+            animation: VideoEditorPlaybackFocusTransitionPolicy.stageAnimation
         ) {
             PlayerView(
                 videoPlayer.videoPlayer,
@@ -129,7 +122,7 @@ extension PlayerHolderView {
         Group {
             if cropSummary.shouldShowCanvasResetButton {
                 Button {
-                    withAnimation(Constants.settleAnimation) {
+                    withAnimation(VideoEditorPlaybackFocusTransitionPolicy.stageAnimation) {
                         editorViewModel.resetCanvasTransform()
                     }
                 } label: {

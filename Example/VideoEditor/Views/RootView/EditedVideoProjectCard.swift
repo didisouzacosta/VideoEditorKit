@@ -56,7 +56,7 @@ struct EditedVideoProjectCard: View {
 
     // MARK: - Private Properties
 
-    private let cornerRadius: CGFloat = 4
+    private let cornerRadius: CGFloat = 16
 
     private var cardShape: RoundedRectangle {
         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
