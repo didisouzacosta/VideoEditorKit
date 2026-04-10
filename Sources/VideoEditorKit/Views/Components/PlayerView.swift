@@ -41,7 +41,7 @@ struct PlayerView: View {
 
     // MARK: - Private Properties
 
-    static func resolvedContentMode(for videoGravity: AVLayerVideoGravity) -> ContentMode {
+    nonisolated static func resolvedContentMode(for videoGravity: AVLayerVideoGravity) -> ContentMode {
         switch videoGravity {
         case .resizeAspectFill:
             .fill
