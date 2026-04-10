@@ -59,6 +59,28 @@ struct HostedVideoEditorShellCoordinatorTests {
     }
 
     @Test
+    func presentExporterPausesPlaybackAndPresentsTheQualitySheet() async throws {
+        let editorViewModel = EditorViewModel()
+        let videoPlayer = VideoPlayerManager()
+
+        editorViewModel.currentVideo = Video.mock
+        videoPlayer.pause(maintainingPlaybackFocus: true)
+
+        HostedVideoEditorShellCoordinator.presentExporter(
+            editorViewModel: editorViewModel,
+            videoPlayer: videoPlayer
+        )
+
+        #expect(videoPlayer.isPlaybackFocusActive == false)
+
+        for _ in 0..<40 where editorViewModel.presentationState.showVideoQualitySheet == false {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+
+        #expect(editorViewModel.presentationState.showVideoQualitySheet)
+    }
+
+    @Test
     func publishEditingConfigurationIfNeededMapsPublishedSaveIntoThePublicCallbackShape() async throws {
         let sourceVideoURL = try TestFixtures.createTemporaryFile(fileExtension: "mp4")
         let saveStateRecorder = SaveStateRecorder()

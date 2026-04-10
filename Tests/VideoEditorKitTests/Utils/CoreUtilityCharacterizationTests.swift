@@ -61,7 +61,7 @@ struct CoreUtilityCharacterizationTests {
             width: 200
         )
 
-        #expect(abs(metrics.playbackPositionX() - 64) < 0.0001)
+        #expect(abs(metrics.playbackPositionX() - 60) < 0.0001)
     }
 
 }

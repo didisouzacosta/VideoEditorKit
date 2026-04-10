@@ -7,6 +7,14 @@
 
 import SwiftUI
 
+enum RangeSliderMaskedRegionStyle {
+
+    // MARK: - Public Properties
+
+    static let cornerRadius: CGFloat = 8
+
+}
+
 struct RangedSliderView: View {
 
     private enum SliderFeedbackEvent: Int {
@@ -101,26 +109,25 @@ struct RangedSliderView: View {
         let selectedWidth = max(rightThumbLocation - leftThumbLocation, 0)
 
         return ZStack {
-            HStack(spacing: 0) {
-                maskedRegion(
-                    width: leftThumbLocation,
-                    height: trackHeight
-                )
+            maskedOverlay(
+                width: sliderSize.width,
+                height: trackHeight,
+                selectionX: leftThumbLocation,
+                selectionWidth: selectedWidth
+            )
 
-                Rectangle()
-                    .fill(.black.opacity(0.36))
-                    .overlay {
-                        Rectangle()
-                            .strokeBorder(.yellow, lineWidth: 2)
-                    }
-                    .frame(width: selectedWidth, height: trackHeight)
-
-                maskedRegion(
-                    width: max(sliderSize.width - rightThumbLocation, 0),
-                    height: trackHeight
+            Rectangle()
+                .fill(.black.opacity(0.36))
+                .overlay {
+                    Rectangle()
+                        .strokeBorder(.yellow, lineWidth: 2)
+                }
+                .frame(width: selectedWidth, height: trackHeight)
+                .position(
+                    x: leftThumbLocation + (selectedWidth / 2),
+                    y: trackHeight / 2
                 )
-            }
-            .allowsHitTesting(false)
+                .allowsHitTesting(false)
 
             let leftThumbPoint = CGPoint(
                 x: leftThumbLocation - (handleWidth / 4),
@@ -237,10 +244,29 @@ struct RangedSliderView: View {
         return max(stepWidth, minimumVisualGap, minimumDistanceWidth)
     }
 
-    private func maskedRegion(width: CGFloat, height: CGFloat) -> some View {
-        Rectangle()
-            .fill(.black.opacity(0.8))
-            .frame(width: max(width, 0), height: height)
+    private func maskedOverlay(
+        width: CGFloat,
+        height: CGFloat,
+        selectionX: CGFloat,
+        selectionWidth: CGFloat
+    ) -> some View {
+        RoundedRectangle(
+            cornerRadius: RangeSliderMaskedRegionStyle.cornerRadius,
+            style: .continuous
+        )
+        .fill(.black.opacity(0.8))
+        .frame(width: max(width, 0), height: height)
+        .overlay {
+            Rectangle()
+                .fill(.black)
+                .frame(width: max(selectionWidth, 0), height: height)
+                .position(
+                    x: selectionX + (selectionWidth / 2),
+                    y: height / 2
+                )
+                .blendMode(.destinationOut)
+        }
+        .compositingGroup()
     }
 
     private func handleView(height: CGFloat, position: CGPoint, isLeftThumb: Bool) -> some View {

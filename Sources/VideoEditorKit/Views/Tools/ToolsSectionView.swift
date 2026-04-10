@@ -15,7 +15,9 @@ struct ToolsSectionView: View {
     // MARK: - Body
 
     var body: some View {
+        let currentVideo = editorViewModel.currentVideo
         let cropPresentationSummary = editorViewModel.cropPresentationSummary
+        let transcriptDocument = editorViewModel.transcriptDocument
 
         VideoEditorToolsTrayView(
             selectedTool: selectedToolBinding,
@@ -24,7 +26,9 @@ struct ToolsSectionView: View {
             PagedToolsRow(configuration.tools) { tool in
                 toolbarItemPresentation(
                     for: tool,
-                    cropPresentationSummary: cropPresentationSummary
+                    currentVideo: currentVideo,
+                    cropPresentationSummary: cropPresentationSummary,
+                    transcriptDocument: transcriptDocument
                 )
             } action: { toolAvailability in
                 handleToolTap(toolAvailability)
@@ -131,12 +135,15 @@ extension ToolsSectionView {
 
     private func toolbarItemPresentation(
         for tool: ToolEnum,
-        cropPresentationSummary: EditorCropPresentationSummary
+        currentVideo: Video?,
+        cropPresentationSummary: EditorCropPresentationSummary,
+        transcriptDocument: TranscriptDocument?
     ) -> EditorToolbarItemPresentation {
-        HostedVideoEditorToolActionCoordinator.toolbarItemPresentation(
+        EditorToolbarItemPresentationResolver.resolve(
             for: tool,
+            video: currentVideo,
             cropPresentationSummary: cropPresentationSummary,
-            editorViewModel: editorViewModel
+            transcriptDocument: transcriptDocument
         )
     }
 

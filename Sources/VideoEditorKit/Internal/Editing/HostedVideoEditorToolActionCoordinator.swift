@@ -38,19 +38,6 @@ enum HostedVideoEditorToolActionCoordinator {
         )
     }
 
-    static func toolbarItemPresentation(
-        for tool: ToolEnum,
-        cropPresentationSummary: EditorCropPresentationSummary,
-        editorViewModel: EditorViewModel
-    ) -> EditorToolbarItemPresentation {
-        EditorToolbarItemPresentationResolver.resolve(
-            for: tool,
-            video: editorViewModel.currentVideo,
-            cropPresentationSummary: cropPresentationSummary,
-            transcriptDocument: editorViewModel.transcriptDocument
-        )
-    }
-
     static func handleToolTap(
         _ toolAvailability: ToolAvailability,
         configuration: VideoEditorView.Configuration,

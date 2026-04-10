@@ -85,6 +85,7 @@ struct ThumbnailsSliderView: View {
     private let playheadLineWidth: CGFloat = 2
     private let playheadLabelHeight: CGFloat = 28
     private let timelineHeight: CGFloat = 60
+    private let timelineCornerRadius = RangeSliderMaskedRegionStyle.cornerRadius
 
     // MARK: - Initializer
 
@@ -225,16 +226,9 @@ extension ThumbnailsSliderView {
 
     private func timelineTrack(_ size: CGSize) -> some View {
         ZStack {
-            timelineBackground
-            thumbnailsImagesSection(size)
+            timelineSurface(size)
 
             if let video {
-                playbackIndicator(
-                    size: size,
-                    video: video
-                )
-                .zIndex(999)
-
                 RangedSliderView(
                     $rangeDuration,
                     bounds: 0...video.originalDuration,
@@ -246,6 +240,12 @@ extension ThumbnailsSliderView {
                     onStartChange: beginTrimRangeInteraction,
                     onEndChange: commitRangeChange
                 )
+
+                playbackIndicator(
+                    size: size,
+                    video: video
+                )
+                .zIndex(999)
             }
         }
         .onAppear {
@@ -254,6 +254,20 @@ extension ThumbnailsSliderView {
         .task(id: thumbnailRequestID(for: size)) {
             onRequestThumbnails(size)
         }
+    }
+
+    @ViewBuilder
+    private func timelineSurface(_ size: CGSize) -> some View {
+        ZStack {
+            timelineBackground
+            thumbnailsImagesSection(size)
+        }
+        .clipShape(
+            RoundedRectangle(
+                cornerRadius: timelineCornerRadius,
+                style: .continuous
+            )
+        )
     }
 
     @ViewBuilder
@@ -411,7 +425,8 @@ extension ThumbnailsSliderView {
             playbackRange: rangeDuration,
             currentTime: sourceTime(for: video, timelineTime: currentTime),
             width: width,
-            handleInset: handleInnerInset
+            handleInset: handleInnerInset,
+            playbackIndicatorWidth: playheadLineWidth
         )
     }
 

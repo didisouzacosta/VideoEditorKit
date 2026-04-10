@@ -30,8 +30,10 @@ enum HostedVideoEditorShellCoordinator {
     }
 
     static func presentExporter(
-        editorViewModel: EditorViewModel
+        editorViewModel: EditorViewModel,
+        videoPlayer: VideoPlayerManager
     ) {
+        videoPlayer.pause()
         editorViewModel.presentExporter()
     }
 

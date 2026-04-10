@@ -17,15 +17,9 @@ struct VideoPlayerManagerDependencies: Sendable {
 
     // MARK: - Public Properties
 
-    let colorAdjustsDebounceDuration: Duration
-    let sleep: @Sendable (Duration) async throws -> Void
     let makeVideoComposition: @Sendable (AVAsset, [CIFilter]) async throws -> AVVideoComposition
 
     static let live = Self(
-        colorAdjustsDebounceDuration: .milliseconds(60),
-        sleep: {
-            try await ContinuousClock().sleep(for: $0)
-        },
         makeVideoComposition: { asset, filters in
             try await asset.makeVideoComposition(applying: filters)
         }
@@ -84,9 +78,6 @@ final class VideoPlayerManager {
 
     @ObservationIgnored
     private var adjustsCompositionTask: Task<Void, Never>?
-
-    @ObservationIgnored
-    private var scheduledAdjustsCompositionTask: Task<Void, Never>?
 
     @ObservationIgnored
     private var pendingPlaybackTask: Task<Void, Never>?
@@ -386,6 +377,7 @@ final class VideoPlayerManager {
         }
 
         currentTime = startTime
+        isPlaying = true
 
         let playbackStartTime = startTime
 
@@ -522,8 +514,6 @@ final class VideoPlayerManager {
     private func cleanupObservers() {
         pendingPlaybackTask?.cancel()
         pendingPlaybackTask = nil
-        scheduledAdjustsCompositionTask?.cancel()
-        scheduledAdjustsCompositionTask = nil
         removeTimeObserver()
         removeEndPlaybackObserver()
         statusCancellable?.cancel()
@@ -584,11 +574,11 @@ extension VideoPlayerManager {
 
     func setColorAdjusts(_ colorAdjusts: ColorAdjusts?) {
         previewColorAdjusts = colorAdjusts ?? .init()
-        scheduleColorAdjustsCompositionUpdate()
+        applyCurrentColorAdjustsComposition()
     }
 
     func clearColorAdjusts() {
-        guard !previewColorAdjusts.isIdentity || scheduledAdjustsCompositionTask != nil else { return }
+        guard !previewColorAdjusts.isIdentity || adjustsCompositionTask != nil else { return }
 
         previewColorAdjusts = .init()
         applyCurrentColorAdjustsComposition()
@@ -596,40 +586,11 @@ extension VideoPlayerManager {
 
     // MARK: - Private Methods
 
-    private func scheduleColorAdjustsCompositionUpdate() {
-        scheduledAdjustsCompositionTask?.cancel()
+    private func applyCurrentColorAdjustsComposition() {
+        adjustsCompositionTask?.cancel()
         adjustsCompositionGeneration += 1
 
         let generation = adjustsCompositionGeneration
-        let debounceDuration = dependencies.colorAdjustsDebounceDuration
-
-        guard debounceDuration > .zero else {
-            applyCurrentColorAdjustsComposition()
-            return
-        }
-
-        scheduledAdjustsCompositionTask = Task { @MainActor [weak self] in
-            guard let self else { return }
-
-            do {
-                try await self.dependencies.sleep(debounceDuration)
-            } catch {
-                return
-            }
-
-            guard !Task.isCancelled, self.adjustsCompositionGeneration == generation else { return }
-
-            self.applyCurrentColorAdjustsComposition()
-
-            guard self.adjustsCompositionGeneration == generation else { return }
-            self.scheduledAdjustsCompositionTask = nil
-        }
-    }
-
-    private func applyCurrentColorAdjustsComposition() {
-        scheduledAdjustsCompositionTask?.cancel()
-        scheduledAdjustsCompositionTask = nil
-        adjustsCompositionTask?.cancel()
 
         guard let currentItem = videoPlayer.currentItem else {
             appliedAdjustsSignature = nil
@@ -682,6 +643,7 @@ extension VideoPlayerManager {
             }
 
             await MainActor.run {
+                guard self.adjustsCompositionGeneration == generation else { return }
                 guard self.videoPlayer.currentItem === currentItem else { return }
                 currentItem.videoComposition = composition
                 self.refreshCurrentVideoFrame()

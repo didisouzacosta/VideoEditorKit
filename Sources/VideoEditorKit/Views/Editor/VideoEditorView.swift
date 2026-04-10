@@ -44,7 +44,6 @@ public struct VideoEditorView: View {
                 Button(role: .confirm, action: presentExporter) {
                     Text(VideoEditorStrings.export)
                 }
-                .disabled(isEditingLocked)
             }
         } loadedContent: { availableSize, resolvedSourceVideoURL in
             VideoEditorLoadedView(
@@ -72,7 +71,6 @@ public struct VideoEditorView: View {
             .safeAreaPadding(.horizontal)
             .safeAreaPadding(.top)
         }
-        .animation(.default, value: videoPlayer.isPlaybackFocusActive)
         .onDisappear(perform: handleDisappear)
         .dynamicHeightSheet(
             isPresented: $bindablePresentationState.showVideoQualitySheet,
@@ -107,10 +105,6 @@ public struct VideoEditorView: View {
     private let session: Session
     private let configuration: Configuration
     private let callbacks: Callbacks
-
-    private var isEditingLocked: Bool {
-        videoPlayer.isPlaybackFocusActive
-    }
 
     @ViewBuilder
     private var exportSheetContent: some View {
@@ -236,7 +230,8 @@ public struct VideoEditorView: View {
 
     private func presentExporter() {
         HostedVideoEditorShellCoordinator.presentExporter(
-            editorViewModel: editorViewModel
+            editorViewModel: editorViewModel,
+            videoPlayer: videoPlayer
         )
     }
 

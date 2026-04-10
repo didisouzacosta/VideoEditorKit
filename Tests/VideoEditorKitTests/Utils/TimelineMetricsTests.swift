@@ -14,10 +14,12 @@ struct TimelineMetricsTests {
             duration: 100,
             playbackRange: 20...80,
             currentTime: 10,
-            width: 200
+            width: 200,
+            handleInset: 4,
+            playbackIndicatorWidth: 2
         )
 
-        #expect(abs(metrics.playbackPositionX() - 44) < 0.0001)
+        #expect(abs(metrics.playbackPositionX() - 45) < 0.0001)
     }
 
     @Test
@@ -90,6 +92,48 @@ struct TimelineMetricsTests {
         )
 
         #expect(abs(metrics.badgePositionX(for: 120) - 140) < 0.0001)
+    }
+
+    @Test
+    func playbackPositionXReachesTheExactTrimmedUpperBoundOnlyAtTheMaximumTime() {
+        let metrics = TimelineMetrics(
+            duration: 100,
+            playbackRange: 20...80,
+            currentTime: 80,
+            width: 200,
+            handleInset: 4,
+            playbackIndicatorWidth: 2
+        )
+
+        #expect(abs(metrics.playbackPositionX() - 155) < 0.0001)
+    }
+
+    @Test
+    func playbackPositionXReachesTheExactTrimmedLowerBoundOnlyAtTheMinimumTime() {
+        let metrics = TimelineMetrics(
+            duration: 100,
+            playbackRange: 20...80,
+            currentTime: 20,
+            width: 200,
+            handleInset: 4,
+            playbackIndicatorWidth: 2
+        )
+
+        #expect(abs(metrics.playbackPositionX() - 45) < 0.0001)
+    }
+
+    @Test
+    func playbackPositionXMapsThePlaybackMidpointToTheVisibleCenterBetweenTrimHandles() {
+        let metrics = TimelineMetrics(
+            duration: 100,
+            playbackRange: 20...80,
+            currentTime: 50,
+            width: 200,
+            handleInset: 4,
+            playbackIndicatorWidth: 2
+        )
+
+        #expect(abs(metrics.playbackPositionX() - 100) < 0.0001)
     }
 
 }

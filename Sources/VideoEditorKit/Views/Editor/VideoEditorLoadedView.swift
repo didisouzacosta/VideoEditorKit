@@ -19,11 +19,11 @@ public struct VideoEditorLoadedView<PlayerContent: View, ControlsContent: View, 
 
             if !isPlaybackFocused {
                 toolsContent()
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .transition(VideoEditorPlaybackFocusTransitionPolicy.toolsTransition)
             }
         }
         .animation(
-            .easeInOut(duration: 0.24),
+            VideoEditorPlaybackFocusTransitionPolicy.animation,
             value: isPlaybackFocused
         )
         .task(id: contentTaskID) {

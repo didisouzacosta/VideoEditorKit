@@ -190,6 +190,23 @@ struct VideoPlayerManagerTests {
     }
 
     @Test
+    func actionMarksPlaybackAsActiveImmediatelyWhenStartingPlayback() async throws {
+        let manager = VideoPlayerManager()
+        let videoURL = try await TestFixtures.createTemporaryVideo(frameCount: 60)
+        defer { FileManager.default.removeIfExists(for: videoURL) }
+
+        let video = await Video.load(from: videoURL)
+
+        manager.loadState = .loaded(videoURL)
+        manager.syncPlaybackState(with: video)
+
+        manager.action(video)
+
+        #expect(manager.isPlaybackFocusActive)
+        #expect(manager.isPlaying)
+    }
+
+    @Test
     func playbackInteractionResumesPlaybackWhenTheVideoWasPlaying() async throws {
         let manager = VideoPlayerManager()
         let videoURL = try await TestFixtures.createTemporaryVideo(frameCount: 60)
@@ -311,14 +328,10 @@ struct VideoPlayerManagerTests {
     }
 
     @Test
-    func rapidColorAdjustsChangesAreGroupedIntoASinglePreviewCompositionBuild() async throws {
+    func setColorAdjustsStartsPreviewCompositionImmediately() async throws {
         let compositionRecorder = CompositionBuildRecorder()
         let manager = VideoPlayerManager(
             VideoPlayerManagerDependencies(
-                colorAdjustsDebounceDuration: .milliseconds(60),
-                sleep: {
-                    try await ContinuousClock().sleep(for: $0)
-                },
                 makeVideoComposition: { asset, filters in
                     await compositionRecorder.recordBuild()
                     return try await asset.makeVideoComposition(applying: filters)
@@ -330,28 +343,22 @@ struct VideoPlayerManagerTests {
 
         manager.loadState = .loaded(videoURL)
         manager.setColorAdjusts(ColorAdjusts(brightness: 0.1))
-        manager.setColorAdjusts(ColorAdjusts(brightness: 0.2))
-        manager.setColorAdjusts(ColorAdjusts(brightness: 0.3))
 
-        for _ in 0..<60 where manager.videoPlayer.currentItem?.videoComposition == nil {
+        for _ in 0..<20 where await compositionRecorder.buildCount() == 0 {
             try? await Task.sleep(for: .milliseconds(20))
         }
 
         #expect(await compositionRecorder.buildCount() == 1)
-        #expect(manager.videoPlayer.currentItem?.videoComposition != nil)
     }
 
     @Test
-    func clearingColorAdjustsBeforeTheDebounceWindowSkipsThePreviewCompositionBuild() async throws {
-        let compositionRecorder = CompositionBuildRecorder()
+    func clearingColorAdjustsPreventsAnOutdatedPreviewCompositionFromBeingApplied() async throws {
+        let compositionContinuation = CompositionContinuation()
         let manager = VideoPlayerManager(
             VideoPlayerManagerDependencies(
-                colorAdjustsDebounceDuration: .milliseconds(80),
-                sleep: {
-                    try await ContinuousClock().sleep(for: $0)
-                },
                 makeVideoComposition: { asset, filters in
-                    await compositionRecorder.recordBuild()
+                    await compositionContinuation.markBuildStarted()
+                    await compositionContinuation.waitForResume()
                     return try await asset.makeVideoComposition(applying: filters)
                 }
             )
@@ -361,11 +368,12 @@ struct VideoPlayerManagerTests {
 
         manager.loadState = .loaded(videoURL)
         manager.setColorAdjusts(ColorAdjusts(brightness: 0.2))
+        await compositionContinuation.waitUntilStarted()
         manager.clearColorAdjusts()
+        await compositionContinuation.resume()
 
-        try? await Task.sleep(for: .milliseconds(160))
+        try? await Task.sleep(for: .milliseconds(80))
 
-        #expect(await compositionRecorder.buildCount() == 0)
         #expect(manager.videoPlayer.currentItem?.videoComposition == nil)
     }
 
@@ -409,6 +417,47 @@ private actor CompositionBuildRecorder {
 
     func buildCount() -> Int {
         builds
+    }
+
+}
+
+private actor CompositionContinuation {
+
+    // MARK: - Private Properties
+
+    private var hasStarted = false
+    private var hasResumed = false
+    private var resumeContinuation: CheckedContinuation<Void, Never>?
+    private var startContinuation: CheckedContinuation<Void, Never>?
+
+    // MARK: - Public Methods
+
+    func markBuildStarted() {
+        hasStarted = true
+        startContinuation?.resume()
+        startContinuation = nil
+    }
+
+    func waitUntilStarted() async {
+        guard hasStarted == false else { return }
+
+        await withCheckedContinuation { continuation in
+            startContinuation = continuation
+        }
+    }
+
+    func waitForResume() async {
+        guard hasResumed == false else { return }
+
+        await withCheckedContinuation { continuation in
+            resumeContinuation = continuation
+        }
+    }
+
+    func resume() {
+        hasResumed = true
+        resumeContinuation?.resume()
+        resumeContinuation = nil
     }
 
 }
