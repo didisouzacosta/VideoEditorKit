@@ -161,15 +161,17 @@ public struct VideoEditorConfiguration {
 
     /// A convenience configuration with every currently public tool and export quality enabled.
     public static var allToolsEnabled: Self {
-        Self()
+        Self(
+            transcription: .init()
+        )
     }
 
     /// Ordered tool availability definitions displayed by the editor.
     public let tools: [ToolAvailability]
     /// Ordered export-quality availability definitions displayed during export.
     public let exportQualities: [ExportQualityAvailability]
-    /// Transcript generation integration settings.
-    public let transcription: TranscriptionConfiguration
+    /// Optional transcript generation integration settings.
+    public let transcription: TranscriptionConfiguration?
     /// Optional upper bound, in seconds, for accepted source video duration.
     public let maximumVideoDuration: TimeInterval?
 
@@ -188,12 +190,15 @@ public struct VideoEditorConfiguration {
     public init(
         tools: [ToolAvailability] = ToolAvailability.enabled(ToolEnum.all),
         exportQualities: [ExportQualityAvailability] = ExportQualityAvailability.allEnabled,
-        transcription: TranscriptionConfiguration = .init(),
+        transcription: TranscriptionConfiguration? = nil,
         maximumVideoDuration: TimeInterval? = nil,
         onBlockedToolTap: ((ToolEnum) -> Void)? = nil,
         onBlockedExportQualityTap: ((VideoQuality) -> Void)? = nil
     ) {
-        self.tools = tools.sorted {
+        self.tools = Self.normalizedTools(
+            tools,
+            transcription: transcription
+        ).sorted {
             if $0.order == $1.order {
                 return $0.tool.rawValue < $1.tool.rawValue
             }
@@ -273,6 +278,17 @@ public struct VideoEditorConfiguration {
         }
 
         return maximumVideoDuration
+    }
+
+    private static func normalizedTools(
+        _ tools: [ToolAvailability],
+        transcription: TranscriptionConfiguration?
+    ) -> [ToolAvailability] {
+        guard transcription != nil else {
+            return tools.filter { $0.tool != .transcript }
+        }
+
+        return tools
     }
 
 }

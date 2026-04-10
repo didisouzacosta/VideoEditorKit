@@ -20,8 +20,8 @@ extension VideoEditorView {
             videoPlayer: videoPlayer
         )
         editorViewModel.configureTranscription(
-            provider: configuration.transcription.provider,
-            preferredLocale: configuration.transcription.preferredLocale
+            provider: configuration.transcription?.provider,
+            preferredLocale: configuration.transcription?.preferredLocale
         )
         editorViewModel.setSourceVideoIfNeeded(
             resolvedSourceVideoURL,

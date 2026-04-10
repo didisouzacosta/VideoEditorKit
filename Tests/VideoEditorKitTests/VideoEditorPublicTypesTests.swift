@@ -22,6 +22,7 @@ struct VideoEditorPublicTypesTests {
         #expect(session.sourceVideoURL == url)
         #expect(saveState.editingConfiguration == .initial)
         #expect(configuration.tools == VideoEditorConfiguration.allToolsEnabled.tools)
+        #expect(configuration.transcription != nil)
         callbacks.onDismissed(nil)
     }
 

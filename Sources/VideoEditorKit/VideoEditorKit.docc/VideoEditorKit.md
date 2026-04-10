@@ -13,7 +13,7 @@ These are the symbols most host apps start with:
 - `VideoEditorSessionSource`: either a ready local file URL or an asynchronously resolved imported file
 - `VideoEditorImportedFileSource`: async file resolver used by `VideoEditorSessionSource.importedFile`
 - `VideoEditorCallbacks`: host callbacks for save, dismiss, source resolution, and export
-- `VideoEditorConfiguration`: runtime tool, export, transcription, and duration configuration
+- `VideoEditorConfiguration`: runtime tool, export, optional transcription, and duration configuration
 - `VideoEditorSaveState`: continuous-save payload emitted by the editor
 - `VideoEditingConfiguration`: serializable editing snapshot used to restore a session later
 - `VideoEditorKitPackage`: lightweight package metadata namespace

@@ -85,11 +85,12 @@ struct VideoEditorConfigurationTests {
     func defaultConfigurationExposesAllVisibleToolsAsEnabled() {
         let configuration = VideoEditorView.Configuration()
 
-        #expect(configuration.tools.map(\.tool) == [.transcript, .presets, .audio, .adjusts, .speed])
+        #expect(configuration.tools.map(\.tool) == [.presets, .audio, .adjusts, .speed])
         #expect(configuration.tools.allSatisfy { $0.access == .enabled })
-        #expect(configuration.visibleTools == [.transcript, .presets, .audio, .adjusts, .speed])
+        #expect(configuration.visibleTools == [.presets, .audio, .adjusts, .speed])
         #expect(configuration.exportQualities.map(\.quality) == [.high, .medium, .low])
         #expect(configuration.exportQualities.allSatisfy { $0.access == .enabled })
+        #expect(configuration.transcription == nil)
     }
 
     @Test
@@ -145,7 +146,32 @@ struct VideoEditorConfigurationTests {
     }
 
     @Test
-    func transcriptToolRemainsVisibleWhenTranscriptionIsNotConfigured() {
+    func transcriptToolIsRemovedWhenTranscriptionIsNotConfigured() {
+        let configuration = VideoEditorView.Configuration(
+            tools: ToolAvailability.enabled(ToolEnum.all)
+        )
+
+        #expect(configuration.tools.map(\.tool) == [.presets, .audio, .adjusts, .speed])
+        #expect(configuration.visibleTools == [.presets, .audio, .adjusts, .speed])
+        #expect(configuration.isVisible(.transcript) == false)
+        #expect(configuration.isEnabled(.transcript) == false)
+    }
+
+    @Test
+    func transcriptToolIsRemovedEvenWhenExplicitlyProvidedWithoutTranscriptionConfiguration() {
+        let configuration = VideoEditorView.Configuration(
+            tools: [
+                .enabled(.transcript, order: 0),
+                .enabled(.speed, order: 1),
+            ]
+        )
+
+        #expect(configuration.tools.map(\.tool) == [.speed])
+        #expect(configuration.visibleTools == [.speed])
+    }
+
+    @Test
+    func transcriptToolRemainsVisibleWhenTranscriptionConfigurationIsProvided() {
         let configuration = VideoEditorView.Configuration(
             tools: ToolAvailability.enabled(ToolEnum.all),
             transcription: .init(
@@ -156,23 +182,6 @@ struct VideoEditorConfigurationTests {
         #expect(configuration.tools.map(\.tool) == [.transcript, .presets, .audio, .adjusts, .speed])
         #expect(configuration.visibleTools == [.transcript, .presets, .audio, .adjusts, .speed])
         #expect(configuration.isVisible(.transcript))
-        #expect(configuration.isEnabled(.transcript))
-    }
-
-    @Test
-    func transcriptToolIsPreservedEvenWhenExplicitlyProvidedWithoutTranscriptionConfiguration() {
-        let configuration = VideoEditorView.Configuration(
-            tools: [
-                .enabled(.transcript, order: 0),
-                .enabled(.speed, order: 1),
-            ],
-            transcription: .init(
-                provider: nil
-            )
-        )
-
-        #expect(configuration.tools.map(\.tool) == [.transcript, .speed])
-        #expect(configuration.visibleTools == [.transcript, .speed])
     }
 
     @Test
@@ -202,11 +211,12 @@ struct VideoEditorConfigurationTests {
     }
 
     @Test
-    func allToolsEnabledStaticPresetMatchesTheDefaultConfiguration() {
+    func allToolsEnabledStaticPresetKeepsTranscriptVisible() {
         let preset = VideoEditorView.Configuration.allToolsEnabled
 
-        #expect(preset.tools == VideoEditorView.Configuration().tools)
+        #expect(preset.tools.map(\.tool) == [.transcript, .presets, .audio, .adjusts, .speed])
         #expect(preset.exportQualities == VideoEditorView.Configuration().exportQualities)
+        #expect(preset.transcription != nil)
     }
 
     @Test
