@@ -2,6 +2,8 @@
 
 `VideoEditorKit` is a package-first iOS video editor framework built with SwiftUI, Observation, AVFoundation, and PhotosUI.
 
+It currently supports iOS 26 on iPhone only. iPad support is planned and coming soon.
+
 It ships a full-screen editor that already includes trimming, playback speed changes, crop presets, audio recording and mixing, color adjustments, transcript overlays, frame/background styling, and `.mp4` export.
 
 The repository is structured around a Swift Package at the root and an example iOS app in `Example/` that exercises the package as a real integration client.
@@ -17,7 +19,8 @@ The repository is structured around a Swift Package at the root and an example i
 
 ## Requirements
 
-- iOS 26.0+
+- iOS 26.0+ on iPhone
+- iPad support coming soon
 - Swift 6
 - Xcode with Swift Package Manager support
 

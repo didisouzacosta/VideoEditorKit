@@ -41,18 +41,40 @@ public struct EditorToolbarLayoutMetrics: Equatable, Sendable {
     public func pageContentWidth(
         for itemCount: Int
     ) -> CGFloat {
-        guard itemCount > 0 else { return 0 }
+        pageContentWidth(
+            for: Array(
+                repeating: minimumItemWidth,
+                count: itemCount
+            )
+        )
+    }
 
-        return (minimumItemWidth * CGFloat(itemCount))
-            + (itemSpacing * CGFloat(max(itemCount - 1, 0)))
+    public func pageContentWidth(
+        for itemWidths: [CGFloat]
+    ) -> CGFloat {
+        guard itemWidths.isEmpty == false else { return 0 }
+
+        return itemWidths.reduce(0, +)
+            + (itemSpacing * CGFloat(max(itemWidths.count - 1, 0)))
     }
 
     public func pageWidth(
         for itemCount: Int
     ) -> CGFloat {
+        pageWidth(
+            for: Array(
+                repeating: minimumItemWidth,
+                count: itemCount
+            )
+        )
+    }
+
+    public func pageWidth(
+        for itemWidths: [CGFloat]
+    ) -> CGFloat {
         max(
             pageMinimumWidth,
-            pageContentWidth(for: itemCount)
+            pageContentWidth(for: itemWidths)
         )
     }
 
@@ -60,10 +82,23 @@ public struct EditorToolbarLayoutMetrics: Equatable, Sendable {
         for itemCount: Int,
         availableWidth: CGFloat
     ) -> Bool {
-        guard itemCount > 0 else { return false }
-        guard itemCount <= itemsPerPage else { return false }
+        shouldCenterRowContent(
+            for: Array(
+                repeating: minimumItemWidth,
+                count: itemCount
+            ),
+            availableWidth: availableWidth
+        )
+    }
 
-        return pageContentWidth(for: itemCount) < availableWidth
+    public func shouldCenterRowContent(
+        for itemWidths: [CGFloat],
+        availableWidth: CGFloat
+    ) -> Bool {
+        guard itemWidths.isEmpty == false else { return false }
+        guard itemWidths.count <= itemsPerPage else { return false }
+
+        return pageContentWidth(for: itemWidths) < availableWidth
     }
 
 }

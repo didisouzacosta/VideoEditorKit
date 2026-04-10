@@ -91,4 +91,37 @@ struct EditorToolbarLayoutResolverTests {
         )
     }
 
+    @Test
+    func pageWidthExpandsWhenAnItemNeedsMoreHorizontalSpace() {
+        let metrics = EditorToolbarLayoutResolver.resolvedMetrics(for: 393)
+        let widenedItemWidths = [
+            metrics.minimumItemWidth,
+            metrics.minimumItemWidth,
+            metrics.minimumItemWidth + 48,
+            metrics.minimumItemWidth,
+        ]
+
+        #expect(
+            metrics.pageWidth(for: widenedItemWidths) > metrics.pageMinimumWidth
+        )
+    }
+
+    @Test
+    func centeringUsesResolvedVariableItemWidths() {
+        let metrics = EditorToolbarLayoutResolver.resolvedMetrics(for: 393)
+        let widenedItemWidths = [
+            metrics.minimumItemWidth + 120,
+            metrics.minimumItemWidth,
+            metrics.minimumItemWidth,
+            metrics.minimumItemWidth,
+        ]
+
+        #expect(
+            metrics.shouldCenterRowContent(
+                for: widenedItemWidths,
+                availableWidth: 393
+            ) == false
+        )
+    }
+
 }
