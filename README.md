@@ -112,28 +112,23 @@ let configuration = VideoEditorConfiguration(
 )
 ```
 
-The example app reads the key from `Info.plist` through `AppShellTranscriptionConfiguration`, which keeps the editor wiring simple:
-
-```xml
-<key>OPENAI_API_KEY</key>
-<string>YOUR_OPENAI_API_KEY</string>
-```
-
-Then create the transcription configuration from the host app:
+Then create the transcription configuration directly in your host app:
 
 ```swift
 let editorConfiguration = VideoEditorConfiguration(
     tools: ToolAvailability.enabled(ToolEnum.all),
     exportQualities: ExportQualityAvailability.allEnabled,
-    transcription: AppShellTranscriptionConfiguration.makeDefaultTranscriptionConfiguration()
+    transcription: .openAIWhisper(
+        apiKey: "YOUR_OPENAI_API_KEY"
+    )
 )
 ```
 
 Recommended host-side setup:
 
-1. Add `OPENAI_API_KEY` to your app configuration.
+1. Pass the API key directly when building `VideoEditorConfiguration`.
 2. Keep the real key out of source control.
-3. Pass the resulting transcription configuration into `VideoEditorView`.
+3. Do not rely on `Info.plist` key lookup for transcript setup.
 4. Optionally set `preferredLocale` when you want to bias recognition toward a known language.
 
 ### Option 2: Inject Your Own Transcription Provider
