@@ -104,8 +104,7 @@ The package ships with a convenience factory for OpenAI Whisper:
 ```swift
 let configuration = VideoEditorConfiguration(
     transcription: .openAIWhisper(
-        apiKey: resolvedOpenAIAPIKey(),
-        preferredLocale: "en"
+        apiKey: "YOUR_OPENAI_API_KEY"
     )
 )
 ```
