@@ -17,6 +17,16 @@ The repository is structured around a Swift Package at the root and an example i
 - Optional transcript generation through a custom `VideoTranscriptionProvider`
 - Reusable public canvas, export, transcript, and layout utilities for advanced integrations
 
+## Screenshots
+
+<div align="center">
+  <img src="screenshots/tool_editor.png" height="350" alt="Editor"/>
+  <img src="screenshots/export.png" height="350" alt="Export"/>
+  <img src="screenshots/tool_adjusts.png" height="350" alt="Tool Adjusts"/>
+  <img src="screenshots/tool_presets.png" height="350" alt="Tool Presets"/>
+  <img src="screenshots/tool_transcription.png" height="350" alt="Tool Transcription"/>
+</div>
+
 ## Requirements
 
 - iOS 26.0+ on iPhone
@@ -543,29 +553,5 @@ That means:
 - freeform crop is not fully exported today
 - export still works directly from live `Video` state rather than a detached immutable export snapshot
 - advanced features such as multi-track audio, multi-layer video composition, or normalized subtitle coordinates are not part of the current public contract
-
-## Screenshots
-
-### Projects and editor views
-
-<div align="center">
-  <img src="screenshots/mainScreen.png" height="350" alt="Projects screen"/>
-  <img src="screenshots/editor_screen.png" height="350" alt="Editor screen"/>
-  <img src="screenshots/fullscreen.png" height="350" alt="Fullscreen editor"/>
-  <img src="screenshots/export_screen.png" height="350" alt="Export screen"/>
-</div>
-
-### Editor tools
-
-<div align="center">
-  <img src="screenshots/tool_cut.png" height="350" alt="Trim tool"/>
-  <img src="screenshots/tool_speed.png" height="350" alt="Speed tool"/>
-  <img src="screenshots/tool_audio.png" height="350" alt="Audio tool"/>
-  <img src="screenshots/tool_filters.png" height="350" alt="Filters tool"/>
-  <img src="screenshots/tool_crop.png" height="350" alt="Crop tool"/>
-  <img src="screenshots/tool_frame.png" height="350" alt="Frame tool"/>
-  <img src="screenshots/tool_text.png" height="350" alt="Transcript tool"/>
-  <img src="screenshots/tool_corrections.png" height="350" alt="Adjustments tool"/>
-</div>
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
