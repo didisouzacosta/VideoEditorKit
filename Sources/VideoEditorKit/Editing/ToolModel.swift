@@ -1,5 +1,6 @@
 import Foundation
 
+/// Public tool identifiers used by the editor UI and host feature-gating configuration.
 public enum ToolEnum: Int, CaseIterable, Identifiable, Codable, Sendable {
 
     // MARK: - Public Properties
@@ -11,10 +12,12 @@ public enum ToolEnum: Int, CaseIterable, Identifiable, Codable, Sendable {
     case transcript = 4
     case adjusts = 6
 
+    /// Stable identifier for SwiftUI lists and selection.
     public var id: Int {
         rawValue
     }
 
+    /// The set of tools exposed by default in the editor tray.
     public static var all: [ToolEnum] {
         allCases
             .filter { $0 != .cut }
@@ -32,6 +35,7 @@ public enum ToolEnum: Int, CaseIterable, Identifiable, Codable, Sendable {
         }
     }
 
+    /// Human-readable tool title shown by the package UI.
     public var title: String {
         switch self {
         case .cut: VideoEditorStrings.toolCut
@@ -43,6 +47,7 @@ public enum ToolEnum: Int, CaseIterable, Identifiable, Codable, Sendable {
         }
     }
 
+    /// SF Symbol name used by the default package UI.
     public var image: String {
         switch self {
         case .cut: "scissors"
@@ -56,19 +61,25 @@ public enum ToolEnum: Int, CaseIterable, Identifiable, Codable, Sendable {
 
 }
 
+/// Describes whether a tool should be enabled or blocked in the host app UI.
 public struct ToolAvailability: Hashable, Identifiable {
 
     // MARK: - Public Properties
 
+    /// Access mode used by the host app for a tool entry.
     public enum Access: Hashable {
         case enabled
         case blocked
     }
 
+    /// The tool being configured.
     public let tool: ToolEnum
+    /// Whether the tool is enabled or visible-but-blocked.
     public let access: Access
+    /// Relative ordering used by the editor tray.
     public let order: Int
 
+    /// Stable identifier for SwiftUI collections.
     public var id: ToolEnum {
         tool
     }
@@ -83,6 +94,7 @@ public struct ToolAvailability: Hashable, Identifiable {
 
     // MARK: - Initializer
 
+    /// Creates a tool-availability entry with optional custom ordering.
     public init(
         _ tool: ToolEnum,
         access: Access = .enabled,
@@ -93,6 +105,7 @@ public struct ToolAvailability: Hashable, Identifiable {
         self.order = order ?? tool.order
     }
 
+    /// Convenience constructor for an enabled tool.
     public static func enabled(
         _ tool: ToolEnum,
         order: Int? = nil
@@ -100,6 +113,7 @@ public struct ToolAvailability: Hashable, Identifiable {
         .init(tool, order: order)
     }
 
+    /// Convenience constructor for a blocked tool.
     public static func blocked(
         _ tool: ToolEnum,
         order: Int? = nil
@@ -107,6 +121,7 @@ public struct ToolAvailability: Hashable, Identifiable {
         .init(tool, access: .blocked, order: order)
     }
 
+    /// Maps a list of tools into enabled availability entries.
     public static func enabled(_ tools: [ToolEnum]) -> [Self] {
         tools.map { Self.enabled($0) }
     }

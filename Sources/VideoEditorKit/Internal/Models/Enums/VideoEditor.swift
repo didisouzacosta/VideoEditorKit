@@ -22,6 +22,11 @@ enum VideoEditor {
         videoQuality: VideoQuality,
         onProgress: ProgressHandler? = nil
     ) async throws -> URL {
+        let exportProfile = resolvedExportProfile(
+            for: video,
+            editingConfiguration: editingConfiguration,
+            videoQuality: videoQuality
+        )
         let adjusts = Helpers.createColorAdjustsFilters(
             colorAdjusts: video.colorAdjusts
         )
@@ -41,7 +46,7 @@ enum VideoEditor {
             let url = try await resizeAndLayerOperation(
                 video: video,
                 editingConfiguration: editingConfiguration,
-                videoQuality: videoQuality,
+                exportProfile: exportProfile,
                 progressRange: progressRange(
                     for: .base,
                     activeStages: renderStages
@@ -56,6 +61,7 @@ enum VideoEditor {
             let adjustedURL = try await applyAdjustsOperation(
                 adjusts,
                 fromUrl: url,
+                exportProfile: exportProfile,
                 progressRange: progressRange(
                     for: .adjusts,
                     activeStages: renderStages
@@ -70,6 +76,7 @@ enum VideoEditor {
             let transcribedURL = try await applyTranscriptOperation(
                 editingConfiguration: editingConfiguration,
                 fromUrl: adjustedURL,
+                exportProfile: exportProfile,
                 progressRange: progressRange(
                     for: .transcript,
                     activeStages: renderStages
@@ -98,7 +105,7 @@ enum VideoEditor {
     private static func resizeAndLayerOperation(
         video: Video,
         editingConfiguration: VideoEditingConfiguration,
-        videoQuality: VideoQuality,
+        exportProfile: ExportProfile,
         progressRange: ClosedRange<Double>,
         onProgress: ProgressHandler?
     ) async throws -> URL {
@@ -128,7 +135,8 @@ enum VideoEditor {
                 naturalSize: naturalSize,
                 preferredTransform: videoTrackPreferredTransform,
                 sourcePresentationSize: presentationSize,
-                editingConfiguration: editingConfiguration
+                editingConfiguration: editingConfiguration,
+                exportSize: exportProfile.renderSize
             )
             let mappingActor = VideoCanvasMappingActor()
             let exportMapping = mappingActor.makeExportMapping(
@@ -146,11 +154,7 @@ enum VideoEditor {
                 configuration: layerInstructionConfiguration
             )
         } else {
-            outputSize = resolvedBaseRenderSize(
-                for: presentationSize,
-                editingConfiguration: editingConfiguration,
-                videoQuality: videoQuality
-            )
+            outputSize = exportProfile.renderSize
 
             layerInstruction = videoCompositionInstructionForTrackWithSizeAndTime(
                 preferredTransform: videoTrackPreferredTransform,
@@ -172,7 +176,7 @@ enum VideoEditor {
 
         var configuration = AVVideoComposition.Configuration(
             animationTool: animationTool,
-            frameDuration: CMTime(value: 1, timescale: 30),
+            frameDuration: exportProfile.frameDuration,
             instructions: [instruction],
             renderSize: outputSize
         )
@@ -181,8 +185,12 @@ enum VideoEditor {
         let videoComposition = AVVideoComposition(configuration: configuration)
         let outputURL = createTempPath()
         let session = try exportSession(
-            composition: composition, videoComposition: videoComposition, outputURL: outputURL,
-            timeRange: timeRange)
+            composition: composition,
+            videoComposition: videoComposition,
+            outputURL: outputURL,
+            timeRange: timeRange,
+            exportProfile: exportProfile
+        )
 
         try await export(
             session,
@@ -198,6 +206,7 @@ enum VideoEditor {
     private static func applyAdjustsOperation(
         _ adjusts: [CIFilter],
         fromUrl: URL,
+        exportProfile: ExportProfile,
         progressRange: ClosedRange<Double>,
         onProgress: ProgressHandler?
     ) async throws -> URL {
@@ -214,8 +223,8 @@ enum VideoEditor {
             let session = AVAssetExportSession(
                 asset: asset,
                 presetName: resolvedExportPresetName(
-                    appliesVideoComposition: true,
-                    isSimulatorEnvironment: isSimulator
+                    for: exportProfile,
+                    appliesVideoComposition: true
                 )
             )
         else {
@@ -239,6 +248,7 @@ enum VideoEditor {
     private static func applyTranscriptOperation(
         editingConfiguration: VideoEditingConfiguration,
         fromUrl: URL,
+        exportProfile: ExportProfile,
         progressRange: ClosedRange<Double>,
         onProgress: ProgressHandler?
     ) async throws -> URL {
@@ -299,7 +309,7 @@ enum VideoEditor {
         let videoComposition = AVVideoComposition(
             configuration: .init(
                 animationTool: animationContext.animationTool,
-                frameDuration: CMTime(value: 1, timescale: 30),
+                frameDuration: exportProfile.frameDuration,
                 instructions: [videoInstruction],
                 renderSize: presentationSize
             )
@@ -310,8 +320,8 @@ enum VideoEditor {
             let session = AVAssetExportSession(
                 asset: asset,
                 presetName: resolvedExportPresetName(
-                    appliesVideoComposition: true,
-                    isSimulatorEnvironment: isSimulator
+                    for: exportProfile,
+                    appliesVideoComposition: true
                 )
             )
         else {
@@ -380,6 +390,18 @@ extension VideoEditor {
         let timeRange: ClosedRange<Double>
         let style: TranscriptStyle
         let mode: Mode
+
+    }
+
+    struct ExportProfile: Equatable {
+
+        // MARK: - Public Properties
+
+        let quality: VideoQuality
+        let renderSize: CGSize
+        let frameDuration: CMTime
+        let renderPresetName: String
+        let passthroughPresetName: String
 
     }
 
@@ -510,11 +532,12 @@ extension VideoEditor {
         editingConfiguration: VideoEditingConfiguration,
         videoQuality: VideoQuality
     ) -> CGSize {
-        if let canvasSize = preferredCanvasRenderSize(
+        if let canvasSize = resolvedCanvasRenderSize(
             for: sourceSize,
-            editingConfiguration: editingConfiguration
+            editingConfiguration: editingConfiguration,
+            videoQuality: videoQuality
         ) {
-            return evenPixelSize(for: canvasSize)
+            return canvasSize
         }
 
         let layout = resolvedOutputRenderLayout(
@@ -529,6 +552,73 @@ extension VideoEditor {
         return resolvedRenderSize(
             for: sourceSize,
             constrainedTo: videoQuality.size(for: layout)
+        )
+    }
+
+    static func resolvedExportProfile(
+        for video: Video,
+        editingConfiguration: VideoEditingConfiguration,
+        videoQuality: VideoQuality,
+        isSimulatorEnvironment: Bool = isSimulator
+    ) -> ExportProfile {
+        return resolvedExportProfile(
+            for: video.presentationSize,
+            editingConfiguration: editingConfiguration,
+            videoQuality: videoQuality,
+            isSimulatorEnvironment: isSimulatorEnvironment
+        )
+    }
+
+    static func resolvedExportProfile(
+        for sourceSize: CGSize,
+        editingConfiguration: VideoEditingConfiguration,
+        videoQuality: VideoQuality,
+        isSimulatorEnvironment: Bool = isSimulator
+    ) -> ExportProfile {
+        let renderSize = resolvedOutputRenderSize(
+            for: sourceSize,
+            editingConfiguration: editingConfiguration,
+            videoQuality: videoQuality
+        )
+        let presetNames = resolvedExportPresetNames(
+            for: videoQuality,
+            isSimulatorEnvironment: isSimulatorEnvironment
+        )
+
+        return ExportProfile(
+            quality: videoQuality,
+            renderSize: renderSize,
+            frameDuration: frameDuration(for: videoQuality),
+            renderPresetName: presetNames.renderPresetName,
+            passthroughPresetName: presetNames.passthroughPresetName
+        )
+    }
+
+    static func resolvedCanvasRenderSize(
+        for sourceSize: CGSize,
+        editingConfiguration: VideoEditingConfiguration,
+        videoQuality: VideoQuality
+    ) -> CGSize? {
+        guard
+            let canvasSize = preferredCanvasRenderSize(
+                for: sourceSize,
+                editingConfiguration: editingConfiguration
+            )
+        else {
+            return nil
+        }
+
+        let layout: VideoQuality.RenderLayout =
+            canvasSize.height > canvasSize.width ? .portrait : .landscape
+        let maximumSize = videoQuality.size(for: layout)
+
+        if canvasSize.width <= maximumSize.width, canvasSize.height <= maximumSize.height {
+            return evenPixelSize(for: canvasSize)
+        }
+
+        return resolvedRenderSize(
+            for: canvasSize,
+            constrainedTo: maximumSize
         )
     }
 
@@ -608,17 +698,27 @@ extension VideoEditor {
     }
 
     static func resolvedExportPresetName(
+        videoQuality: VideoQuality,
         appliesVideoComposition: Bool,
         isSimulatorEnvironment: Bool
     ) -> String {
-        guard isSimulatorEnvironment else {
-            return AVAssetExportPresetHighestQuality
-        }
+        let presetNames = resolvedExportPresetNames(
+            for: videoQuality,
+            isSimulatorEnvironment: isSimulatorEnvironment
+        )
 
-        // `passthrough` ignores videoComposition, which would drop preset/canvas and adjusts renders.
         return appliesVideoComposition
-            ? AVAssetExportPresetHighestQuality
-            : AVAssetExportPresetPassthrough
+            ? presetNames.renderPresetName
+            : presetNames.passthroughPresetName
+    }
+
+    static func resolvedExportPresetName(
+        for exportProfile: ExportProfile,
+        appliesVideoComposition: Bool
+    ) -> String {
+        appliesVideoComposition
+            ? exportProfile.renderPresetName
+            : exportProfile.passthroughPresetName
     }
 
     static func resolvedRenderStages(
@@ -757,29 +857,37 @@ extension VideoEditor {
         naturalSize: CGSize,
         preferredTransform: CGAffineTransform,
         sourcePresentationSize: CGSize,
-        editingConfiguration: VideoEditingConfiguration
+        editingConfiguration: VideoEditingConfiguration,
+        exportSize: CGSize
     ) async -> VideoCanvasRenderRequest {
         let mappingActor = VideoCanvasMappingActor()
+        let source = VideoCanvasSourceDescriptor(
+            naturalSize: naturalSize,
+            preferredTransform: preferredTransform,
+            userRotationDegrees: editingConfiguration.crop.rotationDegrees,
+            isMirrored: editingConfiguration.crop.isMirrored
+        )
         let snapshot = await resolvedCanvasSnapshot(
             for: sourcePresentationSize,
             editingConfiguration: editingConfiguration,
+            exportSize: exportSize,
             mappingActor: mappingActor
         )
 
         return mappingActor.makeRenderRequest(
-            source: VideoCanvasSourceDescriptor(
-                naturalSize: naturalSize,
-                preferredTransform: preferredTransform,
-                userRotationDegrees: editingConfiguration.crop.rotationDegrees,
-                isMirrored: editingConfiguration.crop.isMirrored
+            source: source,
+            snapshot: snapshot,
+            resolvedPreset: VideoCanvasResolvedPreset(
+                preset: snapshot.preset,
+                exportSize: exportSize
             ),
-            snapshot: snapshot
         )
     }
 
     private static func resolvedCanvasSnapshot(
         for sourcePresentationSize: CGSize,
         editingConfiguration: VideoEditingConfiguration,
+        exportSize: CGSize,
         mappingActor: VideoCanvasMappingActor
     ) async -> VideoCanvasSnapshot {
         let storedSnapshot = editingConfiguration.canvas.snapshot
@@ -791,15 +899,10 @@ extension VideoEditor {
             for: sourcePresentationSize,
             editingConfiguration: editingConfiguration
         )
-        let resolvedPreset = mappingActor.resolvePreset(
-            preset,
-            naturalSize: sourcePresentationSize,
-            freeCanvasSize: storedSnapshot.freeCanvasSize
-        )
 
         var snapshot = VideoCanvasSnapshot(
             preset: preset,
-            freeCanvasSize: resolvedPreset.exportSize,
+            freeCanvasSize: exportSize,
             transform: .identity,
             showsSafeAreaOverlay: false
         )
@@ -807,7 +910,7 @@ extension VideoEditor {
         snapshot.transform = mappingActor.snapshotTransform(
             fromLegacyFreeformRect: editingConfiguration.crop.freeformRect,
             referenceSize: sourcePresentationSize,
-            exportSize: resolvedPreset.exportSize
+            exportSize: exportSize
         )
 
         return snapshot
@@ -873,14 +976,15 @@ extension VideoEditor {
 
     private static func exportSession(
         composition: AVMutableComposition, videoComposition: AVVideoComposition, outputURL: URL,
-        timeRange: CMTimeRange
+        timeRange: CMTimeRange,
+        exportProfile: ExportProfile
     ) throws -> AVAssetExportSession {
         guard
             let export = AVAssetExportSession(
                 asset: composition,
                 presetName: resolvedExportPresetName(
-                    appliesVideoComposition: true,
-                    isSimulatorEnvironment: isSimulator
+                    for: exportProfile,
+                    appliesVideoComposition: true
                 )
             )
         else {
@@ -892,6 +996,38 @@ extension VideoEditor {
         export.timeRange = timeRange
 
         return export
+    }
+
+    private static func resolvedExportPresetNames(
+        for videoQuality: VideoQuality,
+        isSimulatorEnvironment: Bool
+    ) -> (
+        renderPresetName: String,
+        passthroughPresetName: String
+    ) {
+        _ = videoQuality
+
+        guard isSimulatorEnvironment else {
+            return (
+                renderPresetName: AVAssetExportPresetHighestQuality,
+                passthroughPresetName: AVAssetExportPresetHighestQuality
+            )
+        }
+
+        // `passthrough` ignores videoComposition, which would drop preset/canvas and adjusts renders.
+        return (
+            renderPresetName: AVAssetExportPresetHighestQuality,
+            passthroughPresetName: AVAssetExportPresetPassthrough
+        )
+    }
+
+    private static func frameDuration(
+        for videoQuality: VideoQuality
+    ) -> CMTime {
+        CMTime(
+            seconds: 1 / max(videoQuality.frameRate, 1),
+            preferredTimescale: 600
+        )
     }
 
     private static func createAnimationTool(

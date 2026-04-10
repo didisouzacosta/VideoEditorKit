@@ -111,6 +111,7 @@ final class EditorViewModel {
     private var hasLoadedSourceVideo = false
     private var lastPlayerContainerSize = CGSize(width: 1, height: 220)
     private var lastThumbnailDisplayScale: CGFloat = 1
+    private var maximumVideoDuration: Double?
     private var pendingEditingConfiguration: VideoEditingConfiguration?
     private var preferredTranscriptLocale: String?
     private var transcriptAvailabilityError: TranscriptError?
@@ -182,6 +183,43 @@ final class EditorViewModel {
         if previousSelection != presentationState.selectedTool {
             markEditingConfigurationChanged()
         }
+    }
+
+    func setMaximumVideoDuration(_ maximumVideoDuration: Double?) {
+        let normalizedMaximumDuration = EditorDurationLimitCoordinator.normalizedMaximumDuration(
+            maximumVideoDuration
+        )
+
+        guard self.maximumVideoDuration != normalizedMaximumDuration else {
+            return
+        }
+
+        self.maximumVideoDuration = normalizedMaximumDuration
+
+        guard var currentVideo else { return }
+
+        let previousRangeDuration = currentVideo.rangeDuration
+        EditorDurationLimitCoordinator.applyDurationLimit(
+            to: &currentVideo,
+            maximumDuration: normalizedMaximumDuration
+        )
+
+        guard currentVideo.rangeDuration != previousRangeDuration else {
+            return
+        }
+
+        self.currentVideo = currentVideo
+        remapTranscriptDocumentIfNeeded()
+        markEditingConfigurationChanged()
+    }
+
+    func maximumTrimDuration(
+        for video: Video
+    ) -> Double? {
+        EditorDurationLimitCoordinator.resolvedMaximumTrimDuration(
+            originalDuration: video.originalDuration,
+            maximumDuration: maximumVideoDuration
+        )
     }
 
     func refreshThumbnailsIfNeeded(
@@ -963,7 +1001,8 @@ final class EditorViewModel {
         EditorInitialLoadCoordinator.applyPendingEditingConfiguration(
             pendingEditingConfiguration,
             to: &video,
-            containerSize: containerSize
+            containerSize: containerSize,
+            maximumDuration: maximumVideoDuration
         ) { [self] video, containerSize in
             resolvedPlayerDisplaySize(
                 for: video,

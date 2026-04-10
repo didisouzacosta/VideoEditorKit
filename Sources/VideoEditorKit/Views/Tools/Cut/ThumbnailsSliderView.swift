@@ -26,6 +26,7 @@ struct ThumbnailsSliderView: View {
 
     private let isPlaying: Bool
     private let isChangeState: Bool?
+    private let maximumSelectionDuration: Double?
     private let onPlayPauseTapped: () -> Void
     private let onChangeTimeValue: (ClosedRange<Double>) -> Void
     private let onRequestThumbnails: (CGSize) -> Void
@@ -69,6 +70,10 @@ struct ThumbnailsSliderView: View {
         .onChange(of: video?.id) { _, _ in
             setVideoRange()
         }
+        .onChange(of: video?.rangeDuration) { _, _ in
+            guard !isEditingTrimRange else { return }
+            setVideoRange()
+        }
         .onChange(of: rangeDuration) { oldRange, newRange in
             syncAnchoredPlaybackIfNeeded(from: oldRange, to: newRange)
         }
@@ -88,6 +93,7 @@ struct ThumbnailsSliderView: View {
         video: Binding<Video?>,
         isPlaying: Bool,
         isChangeState: Bool? = nil,
+        maximumSelectionDuration: Double? = nil,
         onPlayPauseTapped: @escaping () -> Void,
         onChangeTimeValue: @escaping (ClosedRange<Double>) -> Void,
         onRequestThumbnails: @escaping (CGSize) -> Void,
@@ -102,6 +108,7 @@ struct ThumbnailsSliderView: View {
 
         self.isPlaying = isPlaying
         self.isChangeState = isChangeState
+        self.maximumSelectionDuration = maximumSelectionDuration
         self.onPlayPauseTapped = onPlayPauseTapped
         self.onChangeTimeValue = onChangeTimeValue
         self.onRequestThumbnails = onRequestThumbnails
@@ -235,6 +242,7 @@ extension ThumbnailsSliderView {
                     minimumDistance: EditorPlaybackEditingCoordinator.minimumTrimDuration(
                         for: video.originalDuration
                     ),
+                    maximumDistance: maximumSelectionDuration,
                     onStartChange: beginTrimRangeInteraction,
                     onEndChange: commitRangeChange
                 )

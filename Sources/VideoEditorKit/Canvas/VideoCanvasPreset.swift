@@ -1,6 +1,7 @@
 import CoreGraphics
 import Foundation
 
+/// Canvas presets supported by the package preview and export mapping system.
 public enum VideoCanvasPreset: Codable, Equatable, Sendable {
 
     // MARK: - Cases
@@ -62,6 +63,7 @@ public enum VideoCanvasPreset: Codable, Equatable, Sendable {
 
     // MARK: - Public Properties
 
+    /// Human-readable title used by the package UI.
     public var title: String {
         switch self {
         case .original:
@@ -79,6 +81,7 @@ public enum VideoCanvasPreset: Codable, Equatable, Sendable {
         }
     }
 
+    /// Indicates whether the preset represents a short-form social output.
     public var isSocial: Bool {
         switch self {
         case .social:
@@ -94,6 +97,7 @@ public enum VideoCanvasPreset: Codable, Equatable, Sendable {
 
     // MARK: - Public Methods
 
+    /// Encodes the preset while preserving associated values.
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
 
@@ -116,6 +120,7 @@ public enum VideoCanvasPreset: Codable, Equatable, Sendable {
         }
     }
 
+    /// Resolves the export canvas size for the preset.
     public func resolvedExportSize(
         naturalSize: CGSize,
         freeCanvasSize: CGSize
@@ -144,6 +149,7 @@ public enum VideoCanvasPreset: Codable, Equatable, Sendable {
         }
     }
 
+    /// Converts the legacy crop-preset selection into the newer canvas preset model.
     public static func fromLegacySelection(
         preset: VideoCropFormatPreset,
         socialVideoDestination: VideoEditingConfiguration.SocialVideoDestination?

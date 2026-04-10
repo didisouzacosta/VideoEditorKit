@@ -69,7 +69,6 @@ public struct VideoExporterView: View {
 
     private let state: VideoExportPresentationState
     private let qualities: [ExportQualityAvailability]
-    private let estimatedVideoSizeText: (VideoQuality) -> String?
     private let onSelectQuality: (VideoQuality) -> Void
     private let onBlockedQualityTap: (VideoQuality) -> Void
     private let onExport: () -> Void
@@ -112,7 +111,6 @@ public struct VideoExporterView: View {
         ExportQualitySelectionSection(
             qualities: qualities,
             selectedQuality: state.selectedQuality,
-            estimatedVideoSizeText: estimatedVideoSizeText,
             state: state,
             onSelectQuality: onSelectQuality,
             onBlockedQualityTap: onBlockedQualityTap,
@@ -129,7 +127,6 @@ public struct VideoExporterView: View {
         isAlertPresented: Binding<Bool>,
         state: VideoExportPresentationState,
         qualities: [ExportQualityAvailability] = ExportQualityAvailability.allEnabled,
-        estimatedVideoSizeText: @escaping (VideoQuality) -> String? = { _ in nil },
         onSelectQuality: @escaping (VideoQuality) -> Void,
         onBlockedQualityTap: @escaping (VideoQuality) -> Void = { _ in },
         onExport: @escaping () -> Void,
@@ -147,7 +144,6 @@ public struct VideoExporterView: View {
 
             return $0.order < $1.order
         }
-        self.estimatedVideoSizeText = estimatedVideoSizeText
         self.onSelectQuality = onSelectQuality
         self.onBlockedQualityTap = onBlockedQualityTap
         self.onExport = onExport
@@ -164,7 +160,6 @@ private struct ExportQualitySelectionSection: View {
 
     let qualities: [ExportQualityAvailability]
     let selectedQuality: VideoQuality
-    let estimatedVideoSizeText: (VideoQuality) -> String?
     let state: VideoExportPresentationState
     let onSelectQuality: (VideoQuality) -> Void
     let onBlockedQualityTap: (VideoQuality) -> Void
@@ -185,7 +180,6 @@ private struct ExportQualitySelectionSection: View {
                     ForEach(qualities) { availability in
                         ExportQualityOptionRow(
                             quality: availability.quality,
-                            estimatedSizeText: estimatedVideoSizeText(availability.quality),
                             isSelected: availability.quality == selectedQuality,
                             isBlocked: availability.isBlocked,
                             onTap: {
@@ -232,7 +226,6 @@ private struct ExportQualityOptionRow: View {
     // MARK: - Public Properties
 
     let quality: VideoQuality
-    let estimatedSizeText: String?
     let isSelected: Bool
     let isBlocked: Bool
     let onTap: () -> Void
@@ -259,16 +252,9 @@ private struct ExportQualityOptionRow: View {
 
                 Spacer()
 
-                VStack(alignment: .trailing, spacing: 4) {
-                    if let estimatedSizeText {
-                        Text(estimatedSizeText)
-                            .font(.subheadline.weight(.semibold))
-                    }
-
-                    Image(systemName: trailingSymbolName)
-                        .font(.headline)
-                        .foregroundStyle(trailingSymbolTint)
-                }
+                Image(systemName: trailingSymbolName)
+                    .font(.headline)
+                    .foregroundStyle(trailingSymbolTint)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(16)

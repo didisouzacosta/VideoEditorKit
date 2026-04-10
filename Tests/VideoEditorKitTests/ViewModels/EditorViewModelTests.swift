@@ -1102,13 +1102,17 @@ struct EditorViewModelTests {
     }
 
     @Test
-    func handleRecordedVideoResetsTheSelectedAudioTrackAndLoadsThePlayer() {
+    func handleRecordedVideoResetsTheSelectedAudioTrackAndLoadsThePlayer() async {
         let viewModel = EditorViewModel()
         let videoPlayer = VideoPlayerManager()
         let recordedVideoURL = URL(fileURLWithPath: "/tmp/recorded-video.mov")
         viewModel.presentationState.selectedAudioTrack = .recorded
 
         viewModel.handleRecordedVideo(recordedVideoURL, videoPlayer: videoPlayer)
+
+        for _ in 0..<20 where videoPlayer.loadState != .loaded(recordedVideoURL) {
+            try? await Task.sleep(for: .milliseconds(10))
+        }
 
         #expect(viewModel.presentationState.selectedAudioTrack == .video)
         #expect(videoPlayer.loadState == .loaded(recordedVideoURL))
@@ -1161,11 +1165,48 @@ struct EditorViewModelTests {
     }
 
     @Test
+    func setMaximumVideoDurationClampsTheLoadedVideoRange() {
+        let viewModel = EditorViewModel()
+        var video = Video.mock
+        video.rangeDuration = 0...250
+        viewModel.currentVideo = video
+
+        viewModel.setMaximumVideoDuration(60)
+
+        #expect(viewModel.currentVideo?.rangeDuration == 0...60)
+    }
+
+    @Test
+    func applyPendingEditingConfigurationUsesTheConfiguredMaximumVideoDuration() {
+        let viewModel = EditorViewModel()
+        let videoPlayer = VideoPlayerManager()
+        let editingConfiguration = VideoEditingConfiguration(
+            trim: .init(lowerBound: 30, upperBound: 120)
+        )
+
+        viewModel.setMaximumVideoDuration(60)
+        viewModel.prepareEditingConfigurationForInitialLoad(
+            editingConfiguration,
+            videoPlayer: videoPlayer
+        )
+
+        var video = Video.mock
+        viewModel.applyPendingEditingConfiguration(
+            to: &video,
+            containerSize: CGSize(width: 320, height: 240)
+        )
+
+        #expect(video.rangeDuration == 30...90)
+    }
+
+    @Test
     func handleRecordedVideoKeepsThePlayerInLoadingUntilTheVideoFinishesBootstrapping() async {
+        let loadVideoProbe = LoadedVideoURLProbe()
         let deferredVideoLoadProbe = DeferredVideoLoadProbe()
         let viewModel = EditorViewModel(
             .init(
                 loadVideo: { url in
+                    await loadVideoProbe.record(url)
                     await deferredVideoLoadProbe.wait()
                     return Video(url: url, rangeDuration: 0...10)
                 },
@@ -1179,6 +1220,10 @@ struct EditorViewModelTests {
         viewModel.handleRecordedVideo(recordedVideoURL, videoPlayer: videoPlayer)
 
         #expect(videoPlayer.loadState == .loading)
+
+        for _ in 0..<10 where await loadVideoProbe.urls().count != 1 {
+            try? await Task.sleep(for: .milliseconds(10))
+        }
 
         await deferredVideoLoadProbe.resumeNext()
 

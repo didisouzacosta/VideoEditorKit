@@ -39,7 +39,7 @@ struct ToolButtonView: View {
 
     private var buttonContent: some View {
         toolLabel
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .frame(maxWidth: .infinity, maxHeight: 80)
             .opacity(isBlocked ? 0.55 : 1)
             .contentShape(Rectangle())
             .overlay(alignment: .topLeading) {

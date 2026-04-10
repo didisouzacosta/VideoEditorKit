@@ -1,5 +1,6 @@
 import Foundation
 
+/// Persisted transcript document stored inside `VideoEditingConfiguration`.
 public struct TranscriptDocument: Codable, Hashable, Sendable {
 
     enum CodingKeys: String, CodingKey {
@@ -58,10 +59,12 @@ extension TranscriptDocument {
 
     // MARK: - Public Properties
 
+    /// Plain-text transcript grouped into paragraphs.
     public var plainText: String {
         plainTextParagraphs.joined(separator: "\n\n")
     }
 
+    /// Returns `true` when the document contains non-empty text that can be copied.
     public var hasCopyableText: Bool {
         plainTextParagraphs.isEmpty == false
     }
@@ -74,6 +77,7 @@ extension TranscriptDocument {
 
 }
 
+/// Editable transcript segment stored inside a transcript document.
 public struct EditableTranscriptSegment: Identifiable, Codable, Hashable, Sendable {
 
     enum CodingKeys: String, CodingKey {
@@ -138,6 +142,7 @@ extension EditableTranscriptSegment {
 
     // MARK: - Public Properties
 
+    /// Returns `true` when the segment text differs from its original transcription.
     public var isEdited: Bool {
         originalText != editedText
     }
@@ -151,6 +156,7 @@ extension EditableTranscriptSegment {
 
     // MARK: - Public Methods
 
+    /// Restores the segment and all its words to their original transcription text.
     public mutating func revertEdits() {
         editedText = originalText
         words = words.map {
@@ -162,6 +168,7 @@ extension EditableTranscriptSegment {
 
 }
 
+/// Editable transcript word stored inside an editable segment.
 public struct EditableTranscriptWord: Identifiable, Codable, Hashable, Sendable {
 
     // MARK: - Public Properties
@@ -187,6 +194,7 @@ public struct EditableTranscriptWord: Identifiable, Codable, Hashable, Sendable 
 
 }
 
+/// Maps transcript content between source-video time and edited timeline time.
 public struct TranscriptTimeMapping: Codable, Hashable, Sendable {
 
     // MARK: - Public Properties
@@ -221,6 +229,7 @@ public struct TranscriptTimeMapping: Codable, Hashable, Sendable {
 
 }
 
+/// Caption styling information stored with transcript content.
 public struct TranscriptStyle: Identifiable, Codable, Hashable, Sendable {
 
     enum CodingKeys: String, CodingKey {
@@ -314,6 +323,7 @@ extension TranscriptStyle {
 
     // MARK: - Public Properties
 
+    /// Default caption style used by the current package UI.
     public static let defaultCaptionStyle = Self(
         id: UUID(uuidString: "E5A04D11-329A-4C8E-B266-1E6A60A6F9F9") ?? UUID(),
         name: String(
@@ -335,6 +345,7 @@ extension TranscriptStyle {
 
 }
 
+/// Codable RGBA color used by transcript styling models.
 public struct RGBAColor: Codable, Hashable, Sendable {
 
     // MARK: - Public Properties
@@ -363,12 +374,14 @@ public struct RGBAColor: Codable, Hashable, Sendable {
 
 }
 
+/// Text alignment options for transcript overlays.
 public enum TranscriptTextAlignment: String, Codable, Hashable, Sendable {
     case leading
     case center
     case trailing
 }
 
+/// Supported font-weight options for transcript overlays.
 public enum TranscriptFontWeight: String, Codable, Hashable, Sendable, CaseIterable {
     case regular
     case semibold
@@ -376,6 +389,7 @@ public enum TranscriptFontWeight: String, Codable, Hashable, Sendable, CaseItera
     case heavy
 }
 
+/// Vertical placement options for transcript overlays.
 public enum TranscriptOverlayPosition: String, Codable, Hashable, Sendable, CaseIterable {
     case top
     case center
@@ -406,6 +420,7 @@ public enum TranscriptOverlayPosition: String, Codable, Hashable, Sendable, Case
     }
 }
 
+/// Relative sizing options for transcript overlays.
 public enum TranscriptOverlaySize: String, Codable, Hashable, Sendable, CaseIterable {
     case small
     case medium
@@ -436,12 +451,14 @@ public enum TranscriptOverlaySize: String, Codable, Hashable, Sendable, CaseIter
     }
 }
 
+/// Persisted transcript feature state stored in `VideoEditingConfiguration`.
 public enum TranscriptFeaturePersistenceState: String, Codable, Equatable, Sendable {
     case idle
     case loaded
     case failed
 }
 
+/// Runtime transcript feature state used by transcription components.
 public enum TranscriptFeatureState: Sendable, Equatable {
     case idle
     case loading
@@ -449,6 +466,7 @@ public enum TranscriptFeatureState: Sendable, Equatable {
     case failed(TranscriptError)
 }
 
+/// Public transcript-related errors surfaced by the package.
 public enum TranscriptError: Error, Sendable, Equatable {
     case providerNotConfigured
     case unavailable(message: String)

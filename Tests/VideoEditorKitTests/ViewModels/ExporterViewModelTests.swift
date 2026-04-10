@@ -62,14 +62,13 @@ struct ExporterViewModelTests {
     }
 
     @Test
-    func qualitySelectionAndEstimatedSizeUseTheCurrentVideoDuration() {
+    func qualitySelectionUpdatesTheCurrentExportQuality() {
         let viewModel = ExporterViewModel(Video.mock)
 
         viewModel.selectQuality(.medium)
 
         #expect(viewModel.isSelectedQuality(.medium))
         #expect(viewModel.selectedQuality == .medium)
-        #expect(viewModel.estimatedVideoSizeText(for: .medium)?.hasSuffix("Mb") == true)
     }
 
     @Test

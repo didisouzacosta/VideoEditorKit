@@ -60,11 +60,17 @@ struct EditorInitialLoadCoordinator {
         _ editingConfiguration: VideoEditingConfiguration?,
         to video: inout Video,
         containerSize: CGSize,
+        maximumDuration: Double? = nil,
         resolveLayoutSize: (Video, CGSize) -> CGSize
     ) {
-        guard let editingConfiguration else { return }
+        if let editingConfiguration {
+            VideoEditingConfigurationMapper.apply(editingConfiguration, to: &video)
+        }
 
-        VideoEditingConfigurationMapper.apply(editingConfiguration, to: &video)
+        EditorDurationLimitCoordinator.applyDurationLimit(
+            to: &video,
+            maximumDuration: maximumDuration
+        )
 
         let resolvedLayoutSize = resolveLayoutSize(video, containerSize)
         if resolvedLayoutSize.width > 0, resolvedLayoutSize.height > 0 {

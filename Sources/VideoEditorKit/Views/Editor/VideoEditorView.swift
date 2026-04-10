@@ -1,5 +1,9 @@
 import SwiftUI
 
+/// The main SwiftUI entry point for embedding the VideoEditorKit editor in a host app.
+///
+/// Create it with a `VideoEditorSession` when you need asynchronous source loading or resume
+/// behavior, or use one of the convenience initializers when you already have a local file URL.
 @MainActor
 public struct VideoEditorView: View {
 
@@ -15,9 +19,13 @@ public struct VideoEditorView: View {
 
     // MARK: - Public Properties
 
+    /// The continuous-save payload emitted by the editor.
     public typealias SaveState = VideoEditorSaveState
+    /// The host-controlled source and restore payload for one editing run.
     public typealias Session = VideoEditorSession
+    /// Callback bundle invoked as the user edits, dismisses, and exports content.
     public typealias Callbacks = VideoEditorCallbacks
+    /// Runtime configuration that controls tool visibility, export options, and integrations.
     public typealias Configuration = VideoEditorConfiguration
 
     // MARK: - Body
@@ -84,6 +92,13 @@ public struct VideoEditorView: View {
         .onChange(of: configuration.tools) { _, newValue in
             editorViewModel.setToolAvailability(newValue)
         }
+        .onChange(of: configuration.maximumVideoDuration) { _, newValue in
+            HostedVideoEditorRuntimeCoordinator.handleMaximumVideoDurationChange(
+                newValue,
+                editorViewModel: editorViewModel,
+                videoPlayer: videoPlayer
+            )
+        }
     }
 
     // MARK: - Private Properties
@@ -123,6 +138,7 @@ public struct VideoEditorView: View {
 
     // MARK: - Initializer
 
+    /// Creates the editor from an explicit session object.
     public init(
         _ title: String? = nil,
         session: Session,
@@ -135,6 +151,7 @@ public struct VideoEditorView: View {
         self.callbacks = callbacks
     }
 
+    /// Creates the editor from a session source and an optional restore snapshot.
     public init(
         _ title: String? = nil,
         source: Session.Source? = nil,
@@ -161,6 +178,7 @@ public struct VideoEditorView: View {
         )
     }
 
+    /// Creates the editor directly from a local source file URL.
     public init(
         _ title: String? = nil,
         sourceVideoURL: URL?,

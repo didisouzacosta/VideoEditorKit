@@ -12,6 +12,7 @@ struct TranscriptSegmentEditView: View {
     // MARK: - States
 
     @State private var editedText: String
+    @State private var isApplyingRevert = false
 
     // MARK: - Public Properties
 
@@ -30,11 +31,14 @@ struct TranscriptSegmentEditView: View {
 
                 TextField(
                     VideoEditorStrings.transcriptSegmentPlaceholder,
-                    text: editedTextBinding,
+                    text: $editedText,
                     axis: .vertical
                 )
                 .textFieldStyle(.roundedBorder)
                 .lineLimit(3...10)
+                .onChange(of: editedText) { _, newValue in
+                    handleEditedTextChange(newValue)
+                }
 
                 if isShowingRevertButton {
                     Text(VideoEditorStrings.transcriptOriginalPrefix(segment.originalText))
@@ -74,16 +78,6 @@ struct TranscriptSegmentEditView: View {
 
     // MARK: - Private Properties
 
-    private var editedTextBinding: Binding<String> {
-        Binding(
-            get: { editedText },
-            set: { newValue in
-                editedText = newValue
-                onUpdateText(newValue)
-            }
-        )
-    }
-
     private var isShowingRevertButton: Bool {
         segment.originalText != editedText
     }
@@ -97,8 +91,18 @@ struct TranscriptSegmentEditView: View {
     private func revertToOriginalText() {
         guard isShowingRevertButton else { return }
 
+        isApplyingRevert = true
         editedText = segment.originalText
         onRevertText()
+    }
+
+    private func handleEditedTextChange(_ newValue: String) {
+        guard isApplyingRevert == false else {
+            isApplyingRevert = false
+            return
+        }
+
+        onUpdateText(newValue)
     }
 
     private func formattedTime(_ value: Double) -> String {

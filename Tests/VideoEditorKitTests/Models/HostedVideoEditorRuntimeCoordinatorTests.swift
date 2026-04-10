@@ -102,6 +102,25 @@ struct HostedVideoEditorRuntimeCoordinatorTests {
         #expect(editorViewModel.presentationState.selectedTool == nil)
     }
 
+    @Test
+    func handleMaximumVideoDurationChangeClampsTheLoadedRangeAndPlayerTime() {
+        let editorViewModel = EditorViewModel()
+        let videoPlayer = VideoPlayerManager()
+        var video = Video.mock
+        video.rangeDuration = 0...250
+        editorViewModel.currentVideo = video
+        videoPlayer.currentTime = 120
+
+        HostedVideoEditorRuntimeCoordinator.handleMaximumVideoDurationChange(
+            60,
+            editorViewModel: editorViewModel,
+            videoPlayer: videoPlayer
+        )
+
+        #expect(editorViewModel.currentVideo?.rangeDuration == 0...60)
+        #expect(videoPlayer.currentTime == 60)
+    }
+
 }
 
 private actor SourceURLRecorder {

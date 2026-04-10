@@ -1,6 +1,5 @@
 import SwiftUI
 
-@available(iOS 26.0, *)
 public struct VideoEditorToolSheetView<Content: View, Footer: View>: View {
 
     // MARK: - Public Properties

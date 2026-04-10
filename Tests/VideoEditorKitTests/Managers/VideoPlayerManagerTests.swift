@@ -168,18 +168,6 @@ struct VideoPlayerManagerTests {
     }
 
     @Test
-    func currentTimeBindingReflectsAndMutatesManagerState() {
-        let manager = VideoPlayerManager()
-        let binding = manager.currentTimeBinding()
-
-        manager.currentTime = 12
-        #expect(abs(binding.wrappedValue - 12) < 0.0001)
-
-        binding.wrappedValue = 44
-        #expect(abs(manager.currentTime - 44) < 0.0001)
-    }
-
-    @Test
     func actionRestartsFromRangeStartWhenTimelineIsAtTheEnd() async throws {
         let manager = VideoPlayerManager()
         let videoURL = try await TestFixtures.createTemporaryVideo(frameCount: 60)

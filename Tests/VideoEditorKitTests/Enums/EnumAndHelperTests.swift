@@ -365,30 +365,6 @@ struct VideoQualityTests {
         #expect(VideoQuality.low.frameRate == 30)
         #expect(VideoQuality.medium.frameRate == 30)
         #expect(VideoQuality.high.frameRate == 60)
-
-        #expect(VideoQuality.low.bitrate == 2.5)
-        #expect(VideoQuality.medium.bitrate == 5)
-        #expect(VideoQuality.high.bitrate == 8)
-    }
-
-    @Test
-    func calculateVideoSizeUsesTheMegaBytesPerSecondEstimate() {
-        let duration = 12.5
-        let estimatedSize = VideoQuality.medium.calculateVideoSize(duration: duration)
-        let portraitEstimatedSize = VideoQuality.medium.calculateVideoSize(
-            duration: duration,
-            layout: .portrait
-        )
-
-        #expect(estimatedSize != nil)
-        #expect(abs((estimatedSize ?? 0) - (VideoQuality.medium.megaBytesPerSecond * duration)) < 0.0001)
-        #expect(portraitEstimatedSize != nil)
-        #expect(
-            abs(
-                (portraitEstimatedSize ?? 0)
-                    - (VideoQuality.medium.megaBytesPerSecond(for: .portrait) * duration)
-            ) < 0.0001
-        )
     }
 
 }
@@ -635,7 +611,7 @@ struct VideoEditorGeometryTests {
     }
 
     @Test
-    func resolvedOutputRenderSizeUsesExactCanvasSizeForPortraitCropPresets() {
+    func resolvedOutputRenderSizeScalesPortraitCropPresetsToTheSelectedQuality() {
         let configuration = VideoEditingConfiguration(
             crop: .init(
                 freeformRect: .init(
@@ -657,7 +633,7 @@ struct VideoEditorGeometryTests {
             videoQuality: .medium
         )
 
-        #expect(renderSize == CGSize(width: 1080, height: 1920))
+        #expect(renderSize == CGSize(width: 720, height: 1280))
     }
 
 }

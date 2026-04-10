@@ -221,8 +221,6 @@ O pipeline real fica em `Utils/Helpers/VideoEditor.swift` e ocorre em duas etapa
 - `medium`: 1280x720
 - `high`: 1920x1080
 
-O `VideoQuality` também expõe estimativa simples de tamanho por duração.
-
 ---
 
 ## Persistência atual

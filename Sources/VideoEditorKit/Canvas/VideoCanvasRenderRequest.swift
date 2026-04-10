@@ -1,15 +1,21 @@
 import CoreGraphics
 import Foundation
 
+/// Immutable description of the source video used by the canvas mapping system.
 public struct VideoCanvasSourceDescriptor: Equatable, Sendable {
 
     // MARK: - Public Properties
 
+    /// Natural pixel size reported by the source track.
     public let naturalSize: CGSize
+    /// Preferred transform reported by the source track.
     public let preferredTransform: CGAffineTransform
+    /// User-authored rotation in degrees stored in editing state.
     public let userRotationDegrees: Double
+    /// Whether the content should be mirrored horizontally.
     public let isMirrored: Bool
 
+    /// The presentation size after applying the preferred transform.
     public var resolvedPresentationSize: CGSize {
         let transformedBounds = CGRect(origin: .zero, size: naturalSize)
             .applying(preferredTransform)
@@ -42,6 +48,7 @@ public struct VideoCanvasSourceDescriptor: Equatable, Sendable {
 
 }
 
+/// A preset paired with its resolved export size.
 public struct VideoCanvasResolvedPreset: Equatable, Sendable {
 
     // MARK: - Public Properties
@@ -61,6 +68,7 @@ public struct VideoCanvasResolvedPreset: Equatable, Sendable {
 
 }
 
+/// Immutable input bundle used to derive preview and export mappings.
 public struct VideoCanvasRenderRequest: Equatable, Sendable {
 
     // MARK: - Public Properties
@@ -83,6 +91,7 @@ public struct VideoCanvasRenderRequest: Equatable, Sendable {
 
 }
 
+/// Final geometry used by the export pipeline to compose rendered content.
 public struct VideoCanvasExportMapping: Equatable, Sendable {
 
     // MARK: - Public Properties

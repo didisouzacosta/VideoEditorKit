@@ -22,12 +22,16 @@ struct VideoEditorTrimSectionView: View {
     // MARK: - Body
 
     var body: some View {
+        @Bindable var bindableEditorViewModel = editorViewModel
+        @Bindable var bindableVideoPlayer = videoPlayer
+
         if let video = editorViewModel.currentVideo {
             ThumbnailsSliderView(
-                videoPlayer.currentTimeBinding(),
-                video: currentVideoBinding,
+                $bindableVideoPlayer.currentTime,
+                video: $bindableEditorViewModel.currentVideo,
                 isPlaying: videoPlayer.isPlaying,
                 isChangeState: video.isAppliedTool(for: .cut),
+                maximumSelectionDuration: editorViewModel.maximumTrimDuration(for: video),
                 onPlayPauseTapped: handlePlayPauseTap,
                 onChangeTimeValue: handleTrimRangeChange,
                 onRequestThumbnails: requestThumbnails,
@@ -57,15 +61,6 @@ struct VideoEditorTrimSectionView: View {
                 }
             )
         }
-    }
-
-    // MARK: - Private Properties
-
-    private var currentVideoBinding: Binding<Video?> {
-        Binding(
-            get: { editorViewModel.currentVideo },
-            set: { editorViewModel.currentVideo = $0 }
-        )
     }
 
     // MARK: - Initializer

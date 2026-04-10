@@ -1,6 +1,5 @@
 import SwiftUI
 
-@MainActor
 struct ToolsSectionView: View {
 
     // MARK: - States
@@ -187,8 +186,64 @@ extension ToolsSectionView {
 }
 
 #Preview {
-    VideoEditorView(
-        "Preview",
-        session: VideoEditorSession(source: nil)
-    )
+    ToolsSectionViewPreviewHost()
+        .padding(.vertical, 24)
+        .background(Theme.rootBackground)
+}
+
+#Preview("Audio Tool Selected") {
+    ToolsSectionViewPreviewHost(initialTool: .audio)
+        .padding(.vertical, 24)
+        .background(Theme.rootBackground)
+}
+
+@MainActor
+private struct ToolsSectionViewPreviewHost: View {
+
+    // MARK: - States
+
+    @State private var editorViewModel: EditorViewModel
+    @State private var videoPlayer: VideoPlayerManager
+
+    // MARK: - Private Properties
+
+    private let configuration: VideoEditorView.Configuration
+
+    // MARK: - Body
+
+    var body: some View {
+        ToolsSectionView(
+            videoPlayer,
+            editorVM: editorViewModel,
+            configuration: configuration
+        )
+    }
+
+    // MARK: - Initializer
+
+    init(initialTool: ToolEnum? = nil) {
+        let editorViewModel = EditorViewModel()
+        let videoPlayer = VideoPlayerManager()
+        var video = Video.mock
+
+        video.presentationSize = CGSize(width: 1080, height: 1920)
+        video.geometrySize = CGSize(width: 1080, height: 1920)
+        video.frameSize = CGSize(width: 1080, height: 1920)
+
+        editorViewModel.currentVideo = video
+        editorViewModel.handleCurrentVideoChange(
+            video,
+            videoPlayer: videoPlayer
+        )
+
+        if let initialTool {
+            editorViewModel.selectTool(initialTool)
+        }
+
+        _editorViewModel = State(initialValue: editorViewModel)
+        _videoPlayer = State(initialValue: videoPlayer)
+        configuration = .init(
+            tools: ToolAvailability.enabled(ToolEnum.all)
+        )
+    }
 }

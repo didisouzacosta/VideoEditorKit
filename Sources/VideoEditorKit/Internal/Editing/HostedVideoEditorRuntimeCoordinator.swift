@@ -22,6 +22,11 @@ enum HostedVideoEditorRuntimeCoordinator {
         videoPlayer: VideoPlayerManager
     ) {
         editorViewModel.setToolAvailability(configuration.tools)
+        handleMaximumVideoDurationChange(
+            configuration.maximumVideoDuration,
+            editorViewModel: editorViewModel,
+            videoPlayer: videoPlayer
+        )
         editorViewModel.configureTranscription(
             provider: configuration.transcription.provider,
             preferredLocale: configuration.transcription.preferredLocale
@@ -95,6 +100,20 @@ enum HostedVideoEditorRuntimeCoordinator {
     ) {
         guard isPlaybackFocusActive else { return }
         editorViewModel.closeSelectedTool()
+    }
+
+    static func handleMaximumVideoDurationChange(
+        _ maximumVideoDuration: Double?,
+        editorViewModel: EditorViewModel,
+        videoPlayer: VideoPlayerManager
+    ) {
+        editorViewModel.setMaximumVideoDuration(maximumVideoDuration)
+
+        guard let currentVideo = editorViewModel.currentVideo else { return }
+
+        videoPlayer.updatePlaybackRange(
+            currentVideo.outputRangeDuration
+        )
     }
 
     static func handleDisappear(

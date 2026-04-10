@@ -24,7 +24,7 @@ struct RootView: View {
     @State private var selectedItem: PhotosPickerItem?
     @State private var saveStateTask: Task<Void, Never>?
     @State private var premiumPresentation: PremiumPresentation?
-    @State private var persistenceErrorMessage: String?
+    @State private var persistenceAlert: RootAlertPresentation?
 
     // MARK: - Private Properties
 
@@ -48,9 +48,7 @@ struct RootView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 24) {
                         heroSection
-
                         selectVideoCard($selectedItem)
-
                         editedProjectsSection
                     }
                 }
@@ -66,12 +64,13 @@ struct RootView: View {
                 selectedItem = nil
             }
             .alert(
-                "Unable to Save Project",
-                isPresented: persistenceAlertBinding
-            ) {
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text(persistenceErrorMessage ?? "")
+                item: $persistenceAlert
+            ) { alert in
+                Alert(
+                    title: Text(alert.title),
+                    message: Text(alert.message),
+                    dismissButton: .cancel(Text("OK"))
+                )
             }
             .fullScreenCover(
                 item: $bindableViewModel.editorDestination,
@@ -89,14 +88,12 @@ struct RootView: View {
                 ) { shareDestination in
                     VideoShareSheet(activityItems: [shareDestination.videoURL])
                 }
-                .alert(
-                    premiumAlertTitle,
-                    isPresented: premiumAlertBinding,
-                    presenting: premiumPresentation
-                ) { _ in
-                    Button("OK", role: .cancel) {}
-                } message: { presentation in
-                    Text(premiumAlertMessage(for: presentation))
+                .alert(item: $premiumPresentation) { presentation in
+                    Alert(
+                        title: Text(presentation.alertTitle),
+                        message: Text(premiumAlertMessage(for: presentation)),
+                        dismissButton: .cancel(Text("OK"))
+                    )
                 }
             }
         }
@@ -104,6 +101,19 @@ struct RootView: View {
 }
 
 extension RootView {
+
+    private struct RootAlertPresentation: Identifiable {
+
+        // MARK: - Public Properties
+
+        let title: String
+        let message: String
+
+        var id: String {
+            "\(title)-\(message)"
+        }
+
+    }
 
     private enum PremiumPresentation: Identifiable {
 
@@ -132,21 +142,6 @@ extension RootView {
 
     }
 
-    private var premiumAlertBinding: Binding<Bool> {
-        Binding(
-            get: { premiumPresentation != nil },
-            set: { isPresented in
-                if !isPresented {
-                    premiumPresentation = nil
-                }
-            }
-        )
-    }
-
-    private var premiumAlertTitle: String {
-        premiumPresentation?.alertTitle ?? "Premium Feature"
-    }
-
     private var editorConfiguration: VideoEditorView.Configuration {
         .init(
             tools: ToolAvailability.enabled(ToolEnum.all),
@@ -157,17 +152,6 @@ extension RootView {
             },
             onBlockedExportQualityTap: { quality in
                 premiumPresentation = .exportQuality(quality)
-            }
-        )
-    }
-
-    private var persistenceAlertBinding: Binding<Bool> {
-        Binding(
-            get: { persistenceErrorMessage != nil },
-            set: { isPresented in
-                if !isPresented {
-                    persistenceErrorMessage = nil
-                }
             }
         )
     }
@@ -326,7 +310,7 @@ extension RootView {
 
     private func openProject(_ project: EditedVideoProject) {
         guard project.hasOriginalVideo else {
-            persistenceErrorMessage = "The original video for this project is no longer available."
+            showPersistenceError("The original video for this project is no longer available.")
             return
         }
 
@@ -341,7 +325,7 @@ extension RootView {
         do {
             try projectsStore.deleteProject(project)
         } catch {
-            persistenceErrorMessage = error.localizedDescription
+            showPersistenceError(error.localizedDescription)
         }
     }
 
@@ -370,7 +354,7 @@ extension RootView {
         _ saveState: VideoEditorView.SaveState
     ) async {
         guard let originalVideoURL = viewModel.currentSourceVideoURL else {
-            persistenceErrorMessage = "The original video for this editing session could not be resolved."
+            showPersistenceError("The original video for this editing session could not be resolved.")
             return
         }
 
@@ -397,7 +381,7 @@ extension RootView {
                 return
             }
             viewModel.clearPendingEditingStateSave(for: saveState)
-            persistenceErrorMessage = error.localizedDescription
+            showPersistenceError(error.localizedDescription)
         }
     }
 
@@ -408,7 +392,7 @@ extension RootView {
         saveStateTask = nil
 
         guard let originalVideoURL = viewModel.currentSourceVideoURL else {
-            persistenceErrorMessage = "The original video for this editing session could not be resolved."
+            showPersistenceError("The original video for this editing session could not be resolved.")
             return
         }
 
@@ -433,8 +417,15 @@ extension RootView {
             )
             selectedItem = nil
         } catch {
-            persistenceErrorMessage = error.localizedDescription
+            showPersistenceError(error.localizedDescription)
         }
+    }
+
+    private func showPersistenceError(_ message: String) {
+        persistenceAlert = .init(
+            title: "Unable to Save Project",
+            message: message
+        )
     }
 
 }

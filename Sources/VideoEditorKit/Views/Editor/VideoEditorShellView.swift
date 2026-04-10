@@ -1,6 +1,5 @@
 import SwiftUI
 
-@MainActor
 struct VideoEditorShellView: View {
 
     // MARK: - States

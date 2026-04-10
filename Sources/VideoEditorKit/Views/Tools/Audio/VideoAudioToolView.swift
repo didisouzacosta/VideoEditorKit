@@ -86,22 +86,13 @@ struct VideoAudioToolView: View {
 
             HStack {
                 Image(systemName: currentVolume > 0 ? "speaker.wave.2.fill" : "speaker.slash.fill")
-                Slider(value: selectedTrackVolume, in: 0...1) { _ in }
+                Slider(value: $draft.selectedTrackVolume, in: 0...1) { _ in }
                     .tint(Theme.accent)
                 Text("\(Int(currentVolume * 100))")
             }
             .font(.caption)
         }
         .safeAreaPadding(32)
-    }
-
-    // MARK: - Private Properties
-
-    private var selectedTrackVolume: Binding<Float> {
-        Binding(
-            get: { draft.selectedTrackVolume },
-            set: { draft.selectedTrackVolume = $0 }
-        )
     }
 
     // MARK: - Initializer

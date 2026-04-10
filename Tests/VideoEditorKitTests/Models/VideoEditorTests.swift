@@ -62,7 +62,7 @@ struct VideoEditorTests {
     }
 
     @Test
-    func resolvedOutputRenderSizeUsesExactCanvasSizeForFacebookPostPresetExports() {
+    func resolvedOutputRenderSizeScalesFacebookPostPresetExportsToTheSelectedQuality() {
         let configuration = VideoEditingConfiguration(
             crop: .init(
                 freeformRect: .init(
@@ -80,7 +80,7 @@ struct VideoEditorTests {
             videoQuality: .medium
         )
 
-        #expect(renderSize == CGSize(width: 1080, height: 1350))
+        #expect(renderSize == CGSize(width: 720, height: 900))
     }
 
     @Test
@@ -129,7 +129,7 @@ struct VideoEditorTests {
     }
 
     @Test
-    func resolvedOutputRenderSizeUsesCanvasPresetDimensionsWhenPersisted() {
+    func resolvedOutputRenderSizeScalesPersistedCanvasPresetDimensionsToTheSelectedQuality() {
         let configuration = VideoEditingConfiguration(
             canvas: .init(
                 snapshot: .init(
@@ -145,7 +145,34 @@ struct VideoEditorTests {
             videoQuality: .low
         )
 
-        #expect(renderSize == CGSize(width: 1080, height: 1350))
+        #expect(renderSize == CGSize(width: 480, height: 600))
+    }
+
+    @Test
+    func resolvedExportProfileSharesTheCanvasRenderSizeForTheSelectedQuality() {
+        let video = Video(
+            url: URL(fileURLWithPath: "/tmp/export-profile.mp4"),
+            asset: AVURLAsset(url: URL(fileURLWithPath: "/tmp/export-profile.mp4")),
+            originalDuration: 12,
+            rangeDuration: 0...12,
+            presentationSize: CGSize(width: 1920, height: 1080)
+        )
+        let configuration = VideoEditingConfiguration(
+            canvas: .init(
+                snapshot: .init(
+                    preset: .facebookPost,
+                    freeCanvasSize: CGSize(width: 1080, height: 1350)
+                )
+            )
+        )
+
+        let exportProfile = VideoEditor.resolvedExportProfile(
+            for: video,
+            editingConfiguration: configuration,
+            videoQuality: .medium
+        )
+
+        #expect(exportProfile.renderSize == CGSize(width: 720, height: 900))
     }
 
     @Test
@@ -170,6 +197,7 @@ struct VideoEditorTests {
     @Test
     func resolvedExportPresetNameUsesARealRenderPresetForVideoCompositionOnSimulator() {
         let presetName = VideoEditor.resolvedExportPresetName(
+            videoQuality: .low,
             appliesVideoComposition: true,
             isSimulatorEnvironment: true
         )
@@ -180,6 +208,7 @@ struct VideoEditorTests {
     @Test
     func resolvedExportPresetNameKeepsPassthroughAvailableOnlyWithoutRenderingStages() {
         let presetName = VideoEditor.resolvedExportPresetName(
+            videoQuality: .high,
             appliesVideoComposition: false,
             isSimulatorEnvironment: true
         )

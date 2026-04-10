@@ -7,7 +7,6 @@
 
 import Foundation
 import Observation
-import SwiftUI
 
 @MainActor
 @Observable
@@ -209,19 +208,6 @@ final class ExporterViewModel {
 
     func isSelectedQuality(_ quality: VideoQuality) -> Bool {
         selectedQuality == quality
-    }
-
-    func estimatedVideoSizeText(for quality: VideoQuality) -> String? {
-        let renderSize = VideoEditor.resolvedOutputRenderSize(
-            for: video.presentationSize,
-            editingConfiguration: editingConfiguration,
-            videoQuality: quality
-        )
-        guard let value = quality.calculateVideoSize(duration: video.totalDuration, renderSize: renderSize) else {
-            return nil
-        }
-
-        return "\(value.formatted(.number.precision(.fractionLength(1))))Mb"
     }
 
     // MARK: - Private Methods

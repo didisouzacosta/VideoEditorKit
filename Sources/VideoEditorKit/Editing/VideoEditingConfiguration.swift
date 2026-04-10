@@ -1,23 +1,40 @@
 import Foundation
 
+/// A serializable snapshot of all user-editable state managed by the package.
+///
+/// Host apps typically persist this value to resume a project later and mirror autosave updates
+/// emitted by `VideoEditorView`.
 public struct VideoEditingConfiguration: Codable, Equatable, Sendable {
 
     // MARK: - Public Properties
 
+    /// The latest schema version understood by the package.
     public static let currentSchemaVersion: SchemaVersion = .current
+    /// An empty editing configuration with package defaults.
     public static let initial = Self()
 
+    /// Stored schema version for the encoded payload.
     public var version = Self.currentSchemaVersion.rawValue
+    /// Trim bounds stored in source timeline seconds.
     public var trim = Trim()
+    /// Playback-related state such as rate and current timeline position.
     public var playback = Playback()
+    /// Crop-related state such as rotation, mirroring, and freeform rect.
     public var crop = Crop()
+    /// Canvas preset and interactive transform state.
     public var canvas = Canvas()
+    /// Color adjustment values used by preview and export.
     public var adjusts = Adjusts()
+    /// Frame/background styling state.
     public var frame = Frame()
+    /// Extra recorded-audio state.
     public var audio = Audio()
+    /// Transcript generation and editing state.
     public var transcript = Transcript()
+    /// UI presentation state that should survive across editing sessions.
     public var presentation = Presentation()
 
+    /// Typed schema version when the stored payload is recognized by this package.
     public var schemaVersion: SchemaVersion? {
         SchemaVersion(rawValue: version)
     }
@@ -154,11 +171,13 @@ public struct VideoEditingConfiguration: Codable, Equatable, Sendable {
 
 extension VideoEditingConfiguration {
 
+    /// Schema versions supported by persisted editing snapshots.
     public enum SchemaVersion: Int, Codable, Equatable, Sendable {
         case v1 = 1
         case current = 2
     }
 
+    /// Trim bounds stored in source timeline seconds.
     public struct Trim: Codable, Equatable, Sendable {
 
         // MARK: - Public Properties
@@ -178,6 +197,7 @@ extension VideoEditingConfiguration {
 
     }
 
+    /// Playback and source-audio settings.
     public struct Playback: Codable, Equatable, Sendable {
 
         // MARK: - Public Properties
@@ -200,6 +220,7 @@ extension VideoEditingConfiguration {
 
     }
 
+    /// Crop, rotation, and mirror state.
     public struct Crop: Codable, Equatable, Sendable {
 
         // MARK: - Public Properties
@@ -222,6 +243,7 @@ extension VideoEditingConfiguration {
 
     }
 
+    /// A normalized freeform crop rectangle encoded relative to a reference size.
     public struct FreeformRect: Codable, Equatable, Sendable {
 
         // MARK: - Public Properties
@@ -247,6 +269,7 @@ extension VideoEditingConfiguration {
 
     }
 
+    /// Color adjustment values shared by preview and export.
     public struct Adjusts: Codable, Equatable, Sendable {
 
         // MARK: - Public Properties
@@ -269,6 +292,7 @@ extension VideoEditingConfiguration {
 
     }
 
+    /// Canvas state persisted alongside the rest of the editing snapshot.
     public struct Canvas: Codable, Equatable, Sendable {
 
         // MARK: - Public Properties
@@ -283,6 +307,7 @@ extension VideoEditingConfiguration {
 
     }
 
+    /// Background frame styling for the rendered video.
     public struct Frame: Codable, Equatable, Sendable {
 
         // MARK: - Public Properties
@@ -302,6 +327,7 @@ extension VideoEditingConfiguration {
 
     }
 
+    /// Optional recorded-audio state and selected-audio-track state.
     public struct Audio: Codable, Equatable, Sendable {
 
         // MARK: - Public Properties
@@ -321,6 +347,7 @@ extension VideoEditingConfiguration {
 
     }
 
+    /// Metadata for the single recorded audio clip supported by the current editor.
     public struct RecordedClip: Codable, Equatable, Sendable {
 
         // MARK: - Public Properties
@@ -343,6 +370,7 @@ extension VideoEditingConfiguration {
 
     }
 
+    /// Transcript feature state stored inside the editing snapshot.
     public struct Transcript: Codable, Equatable, Sendable {
 
         // MARK: - Public Properties
@@ -362,6 +390,7 @@ extension VideoEditingConfiguration {
 
     }
 
+    /// UI presentation state that should round-trip with persisted edits.
     public struct Presentation: Codable, Equatable, Sendable {
 
         // MARK: - Public Properties
@@ -419,6 +448,7 @@ extension VideoEditingConfiguration {
 
     }
 
+    /// The audio track currently selected by the editor UI.
     public enum SelectedTrack: String, Codable, Equatable, Sendable, CaseIterable, Identifiable {
         case video
         case recorded
@@ -439,6 +469,7 @@ extension VideoEditingConfiguration {
         }
     }
 
+    /// Supported short-form social destinations used by preset-related UI.
     public enum SocialVideoDestination: String, Codable, CaseIterable, Equatable, Sendable {
         case instagramReels
         case tikTok
@@ -475,6 +506,7 @@ extension VideoEditingConfiguration {
 
     // MARK: - Public Properties
 
+    /// A normalized configuration suitable for autosave deduplication.
     public var continuousSaveFingerprint: Self {
         var configuration = self
         configuration.playback.currentTimelineTime = nil

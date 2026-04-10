@@ -11,7 +11,7 @@ struct TranscriptToolView: View {
 
     // MARK: - States
 
-    @State private var selectedSegmentID: UUID?
+    @State private var selectedSegment: EditableTranscriptSegment?
 
     // MARK: - Public Properties
 
@@ -30,14 +30,14 @@ struct TranscriptToolView: View {
 
     var body: some View {
         content
-            .navigationDestination(isPresented: isShowingSegmentEditor) {
-                segmentEditorDestination
+            .navigationDestination(item: $selectedSegment) { segment in
+                segmentEditorDestination(segment)
             }
             .onChange(of: document?.segments.map(\.id)) { _, segmentIDs in
-                guard let selectedSegmentID else { return }
-                guard segmentIDs?.contains(selectedSegmentID) != true else { return }
+                guard let selectedSegment else { return }
+                guard segmentIDs?.contains(selectedSegment.id) != true else { return }
 
-                self.selectedSegmentID = nil
+                self.selectedSegment = nil
             }
     }
 
@@ -97,13 +97,13 @@ struct TranscriptToolView: View {
         if let document, !document.segments.isEmpty {
             List {
                 Section(VideoEditorStrings.transcriptLayoutSection) {
-                    styleSection(document)
+                    styleSection
                 }
 
                 Section {
                     ForEach(document.segments) { segment in
                         Button {
-                            selectedSegmentID = segment.id
+                            selectedSegment = segment
                         } label: {
                             TranscriptSegmentRow(segment: segment)
                         }
@@ -126,14 +126,14 @@ struct TranscriptToolView: View {
 
     // MARK: - Private Methods
 
-    private func styleSection(_ document: TranscriptDocument) -> some View {
+    private var styleSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            positionPicker(document)
-            sizePicker(document)
+            positionPicker
+            sizePicker
         }
     }
 
-    private func positionPicker(_ document: TranscriptDocument) -> some View {
+    private var positionPicker: some View {
         HStack {
             Text(VideoEditorStrings.transcriptPosition)
                 .font(.subheadline)
@@ -152,7 +152,7 @@ struct TranscriptToolView: View {
         }
     }
 
-    private func sizePicker(_ document: TranscriptDocument) -> some View {
+    private var sizePicker: some View {
         HStack {
             Text(VideoEditorStrings.transcriptSize)
                 .font(.subheadline)
@@ -220,38 +220,18 @@ struct TranscriptToolView: View {
         }
     }
 
-    private var isShowingSegmentEditor: Binding<Bool> {
-        Binding(
-            get: { selectedSegmentID != nil },
-            set: { isPresented in
-                if !isPresented {
-                    selectedSegmentID = nil
-                }
+    private func segmentEditorDestination(
+        _ segment: EditableTranscriptSegment
+    ) -> some View {
+        TranscriptSegmentEditView(
+            segment,
+            onUpdateText: { newText in
+                onUpdateSegmentText(segment.id, newText)
+            },
+            onRevertText: {
+                onRevertSegmentText(segment.id)
             }
         )
-    }
-
-    @ViewBuilder
-    private var segmentEditorDestination: some View {
-        if let selectedSegmentID,
-            let document,
-            let segment = document.segments.first(where: { $0.id == selectedSegmentID })
-        {
-            TranscriptSegmentEditView(
-                segment,
-                onUpdateText: { newText in
-                    onUpdateSegmentText(selectedSegmentID, newText)
-                },
-                onRevertText: {
-                    onRevertSegmentText(selectedSegmentID)
-                }
-            )
-        } else {
-            statusView(
-                title: VideoEditorStrings.transcriptSegmentUnavailableTitle,
-                message: VideoEditorStrings.transcriptSegmentUnavailableMessage
-            )
-        }
     }
 
     private func statusView(

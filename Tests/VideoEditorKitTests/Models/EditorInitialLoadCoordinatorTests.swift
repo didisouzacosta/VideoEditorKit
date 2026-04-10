@@ -100,6 +100,26 @@ struct EditorInitialLoadCoordinatorTests {
     }
 
     @Test
+    @MainActor
+    func applyPendingEditingConfigurationClampsTheTrimRangeToTheMaximumDuration() {
+        let configuration = VideoEditingConfiguration(
+            trim: .init(lowerBound: 30, upperBound: 120)
+        )
+        var video = Video.mock
+
+        EditorInitialLoadCoordinator.applyPendingEditingConfiguration(
+            configuration,
+            to: &video,
+            containerSize: CGSize(width: 320, height: 240),
+            maximumDuration: 60
+        ) { _, _ in
+            CGSize(width: 200, height: 120)
+        }
+
+        #expect(video.rangeDuration == 30...90)
+    }
+
+    @Test
     func restorePendingEditingPresentationStateBuildsTheEditorPresentationState() async throws {
         let persistedSnapshot = VideoCanvasSnapshot(
             preset: .facebookPost,

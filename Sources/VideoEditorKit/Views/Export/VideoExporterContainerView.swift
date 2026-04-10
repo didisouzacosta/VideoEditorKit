@@ -34,7 +34,6 @@ struct VideoExporterContainerView: View {
             isAlertPresented: $bindableViewModel.showAlert,
             state: exportPresentationState,
             qualities: exportQualities,
-            estimatedVideoSizeText: viewModel.estimatedVideoSizeText(for:),
             onSelectQuality: viewModel.selectQuality(_:),
             onBlockedQualityTap: onBlockedQualityTap,
             onExport: exportVideo,

@@ -57,6 +57,19 @@ struct VideoEditorPublicTypesTests {
     }
 
     @Test
+    func configurationNormalizesTheMaximumVideoDuration() {
+        let validConfiguration = VideoEditorConfiguration(
+            maximumVideoDuration: 45
+        )
+        let invalidConfiguration = VideoEditorConfiguration(
+            maximumVideoDuration: 0
+        )
+
+        #expect(validConfiguration.maximumVideoDuration == 45)
+        #expect(invalidConfiguration.maximumVideoDuration == nil)
+    }
+
+    @Test
     func saveStateExposesTheContinuousSaveFingerprint() {
         let configuration = VideoEditingConfiguration(
             presentation: .init(.audio)

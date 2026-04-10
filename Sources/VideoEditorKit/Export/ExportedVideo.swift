@@ -2,16 +2,23 @@ import AVFoundation
 import CoreGraphics
 import Foundation
 
+/// Metadata describing a finished exported video file.
 public struct ExportedVideo: Equatable, Sendable {
 
     // MARK: - Public Properties
 
+    /// File URL of the exported `.mp4`.
     public let url: URL
+    /// Resolved presentation width of the exported asset.
     public let width: CGFloat
+    /// Resolved presentation height of the exported asset.
     public let height: CGFloat
+    /// Duration, in seconds, of the exported asset.
     public let duration: Double
+    /// File size in bytes.
     public let fileSize: Int64
 
+    /// Width divided by height for convenience in host UI.
     public var aspectRatio: CGFloat {
         guard width > 0, height > 0 else { return 1 }
         return width / height
@@ -35,6 +42,7 @@ public struct ExportedVideo: Equatable, Sendable {
 
     // MARK: - Public Methods
 
+    /// Loads export metadata from a file URL asynchronously.
     public static func load(from url: URL) async -> ExportedVideo {
         let asset = AVURLAsset(url: url)
         let presentationSize = await resolvedPresentationSize(for: asset)

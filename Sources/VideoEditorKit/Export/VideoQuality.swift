@@ -2,6 +2,7 @@ import AVFoundation
 import CoreGraphics
 import Foundation
 
+/// Export qualities supported by the current package export pipeline.
 public enum VideoQuality: Int, CaseIterable, Sendable {
 
     // MARK: - Public Properties
@@ -10,11 +11,13 @@ public enum VideoQuality: Int, CaseIterable, Sendable {
     case medium
     case high
 
+    /// Orientation used when resolving a final output size.
     public enum RenderLayout: Sendable {
         case landscape
         case portrait
     }
 
+    /// The AVFoundation preset used by the current export implementation.
     public var exportPresetName: String {
         switch self {
         case .low:
@@ -24,6 +27,7 @@ public enum VideoQuality: Int, CaseIterable, Sendable {
         }
     }
 
+    /// Display ordering used by the package export UI.
     public var order: Int {
         switch self {
         case .high:
@@ -35,6 +39,7 @@ public enum VideoQuality: Int, CaseIterable, Sendable {
         }
     }
 
+    /// Human-readable title shown in the export sheet.
     public var title: String {
         switch self {
         case .low:
@@ -46,6 +51,7 @@ public enum VideoQuality: Int, CaseIterable, Sendable {
         }
     }
 
+    /// Human-readable subtitle describing the target export profile.
     public var subtitle: String {
         switch self {
         case .low:
@@ -57,6 +63,7 @@ public enum VideoQuality: Int, CaseIterable, Sendable {
         }
     }
 
+    /// The base landscape render size for the quality.
     public var size: CGSize {
         switch self {
         case .low:
@@ -68,10 +75,12 @@ public enum VideoQuality: Int, CaseIterable, Sendable {
         }
     }
 
+    /// The portrait render size for the quality.
     public var portraitSize: CGSize {
         CGSize(width: size.height, height: size.width)
     }
 
+    /// The target frame rate used by the current export implementation.
     public var frameRate: Double {
         switch self {
         case .low, .medium:
@@ -81,23 +90,9 @@ public enum VideoQuality: Int, CaseIterable, Sendable {
         }
     }
 
-    public var bitrate: Double {
-        switch self {
-        case .low:
-            2.5
-        case .medium:
-            5
-        case .high:
-            8
-        }
-    }
-
-    public var megaBytesPerSecond: Double {
-        megaBytesPerSecond(for: .landscape)
-    }
-
     // MARK: - Public Methods
 
+    /// Resolves the render size for a given orientation.
     public func size(for layout: RenderLayout) -> CGSize {
         switch layout {
         case .landscape:
@@ -107,42 +102,19 @@ public enum VideoQuality: Int, CaseIterable, Sendable {
         }
     }
 
-    public func megaBytesPerSecond(for layout: RenderLayout) -> Double {
-        megaBytesPerSecond(for: size(for: layout))
-    }
-
-    public func megaBytesPerSecond(for renderSize: CGSize) -> Double {
-        let totalPixels = renderSize.width * renderSize.height
-        let bitsPerSecond = bitrate * Double(totalPixels)
-        let bytesPerSecond = bitsPerSecond / 8.0
-
-        return bytesPerSecond / (1024 * 1024)
-    }
-
-    public func calculateVideoSize(
-        duration: Double,
-        layout: RenderLayout = .landscape
-    ) -> Double? {
-        duration * megaBytesPerSecond(for: layout)
-    }
-
-    public func calculateVideoSize(
-        duration: Double,
-        renderSize: CGSize
-    ) -> Double? {
-        duration * megaBytesPerSecond(for: renderSize)
-    }
-
 }
 
+/// Host-facing availability wrapper for `VideoQuality`.
 public struct ExportQualityAvailability: Hashable, Identifiable {
 
     // MARK: - Public Properties
 
+    /// Convenience list with every quality enabled.
     public static var allEnabled: [Self] {
         enabled(VideoQuality.allCases)
     }
 
+    /// Convenience list commonly used for premium gating flows.
     public static var premiumLocked: [Self] {
         [
             .enabled(.low),
@@ -151,10 +123,14 @@ public struct ExportQualityAvailability: Hashable, Identifiable {
         ]
     }
 
+    /// The export quality being configured.
     public let quality: VideoQuality
+    /// Whether the quality is enabled or visible-but-blocked.
     public let access: ToolAvailability.Access
+    /// Relative ordering used by the export sheet.
     public let order: Int
 
+    /// Stable identifier for SwiftUI collections.
     public var id: VideoQuality {
         quality
     }
@@ -169,6 +145,7 @@ public struct ExportQualityAvailability: Hashable, Identifiable {
 
     // MARK: - Initializer
 
+    /// Creates an availability entry for one export quality.
     public init(
         _ quality: VideoQuality,
         access: ToolAvailability.Access = .enabled,
@@ -179,6 +156,7 @@ public struct ExportQualityAvailability: Hashable, Identifiable {
         self.order = order ?? quality.order
     }
 
+    /// Convenience constructor for an enabled export quality.
     public static func enabled(
         _ quality: VideoQuality,
         order: Int? = nil
@@ -186,6 +164,7 @@ public struct ExportQualityAvailability: Hashable, Identifiable {
         .init(quality, order: order)
     }
 
+    /// Convenience constructor for a blocked export quality.
     public static func blocked(
         _ quality: VideoQuality,
         order: Int? = nil
@@ -193,6 +172,7 @@ public struct ExportQualityAvailability: Hashable, Identifiable {
         .init(quality, access: .blocked, order: order)
     }
 
+    /// Maps a list of qualities into enabled availability entries.
     public static func enabled(_ qualities: [VideoQuality]) -> [Self] {
         qualities.map { Self.enabled($0) }
     }

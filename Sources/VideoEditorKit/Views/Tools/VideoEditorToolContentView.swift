@@ -7,7 +7,6 @@
 
 import SwiftUI
 
-@MainActor
 struct VideoEditorToolContentView: View {
 
     // MARK: - Bindings

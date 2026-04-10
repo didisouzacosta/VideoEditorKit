@@ -2,6 +2,8 @@ import CoreGraphics
 import Foundation
 import SwiftUI
 
+/// Stateless geometry mapper used by the package to keep canvas preview and export calculations
+/// aligned.
 public struct VideoCanvasMappingActor {
 
     // MARK: - Private Properties
@@ -17,6 +19,7 @@ public struct VideoCanvasMappingActor {
 
     // MARK: - Public Methods
 
+    /// Builds a render request from a source descriptor and persisted snapshot.
     public func makeRenderRequest(
         source: VideoCanvasSourceDescriptor,
         snapshot: VideoCanvasSnapshot
@@ -26,6 +29,19 @@ public struct VideoCanvasMappingActor {
             naturalSize: source.resolvedPresentationSize,
             freeCanvasSize: snapshot.freeCanvasSize
         )
+        return makeRenderRequest(
+            source: source,
+            snapshot: snapshot,
+            resolvedPreset: resolvedPreset
+        )
+    }
+
+    /// Builds a render request from pre-resolved preset information.
+    public func makeRenderRequest(
+        source: VideoCanvasSourceDescriptor,
+        snapshot: VideoCanvasSnapshot,
+        resolvedPreset: VideoCanvasResolvedPreset
+    ) -> VideoCanvasRenderRequest {
         var normalizedSnapshot = snapshot
         normalizedSnapshot.transform = clampedTransform(
             snapshot.transform,
@@ -40,6 +56,7 @@ public struct VideoCanvasMappingActor {
         )
     }
 
+    /// Resolves the preset and snaps the target size to an even-pixel export size.
     public func resolvePreset(
         _ preset: VideoCanvasPreset,
         naturalSize: CGSize,
@@ -56,6 +73,7 @@ public struct VideoCanvasMappingActor {
         )
     }
 
+    /// Produces preview layout geometry for a given render request and available SwiftUI size.
     public func makePreviewLayout(
         request: VideoCanvasRenderRequest,
         availableSize: CGSize
@@ -89,6 +107,7 @@ public struct VideoCanvasMappingActor {
         )
     }
 
+    /// Produces export geometry that the renderer can apply to the source content.
     public func makeExportMapping(
         request: VideoCanvasRenderRequest
     ) -> VideoCanvasExportMapping {
@@ -139,6 +158,7 @@ public struct VideoCanvasMappingActor {
         )
     }
 
+    /// Applies a drag gesture to a baseline transform while respecting package constraints.
     public func dragTransform(
         from baseline: VideoCanvasTransform,
         translation: CGSize,
@@ -170,6 +190,7 @@ public struct VideoCanvasMappingActor {
         )
     }
 
+    /// Applies magnification using a centered anchor.
     public func magnifiedTransform(
         from baseline: VideoCanvasTransform,
         magnification: CGFloat,
@@ -188,6 +209,7 @@ public struct VideoCanvasMappingActor {
         )
     }
 
+    /// Applies magnification using an explicit anchor point in preview coordinates.
     public func magnifiedTransform(
         from baseline: VideoCanvasTransform,
         magnification: CGFloat,

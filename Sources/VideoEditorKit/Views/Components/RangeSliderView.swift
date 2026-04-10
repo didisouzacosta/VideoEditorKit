@@ -29,6 +29,7 @@ struct RangedSliderView: View {
     private let sliderBounds: ClosedRange<Double>
     private let step: Double
     private let minimumDistance: Double
+    private let maximumDistance: Double?
     private let onStartChange: (() -> Void)?
     private let onEndChange: (() -> Void)?
 
@@ -76,6 +77,7 @@ struct RangedSliderView: View {
         bounds: ClosedRange<Double>,
         step: Double = 1,
         minimumDistance: Double = 0,
+        maximumDistance: Double? = nil,
         onStartChange: (() -> Void)? = nil,
         onEndChange: (() -> Void)?
     ) {
@@ -85,6 +87,7 @@ struct RangedSliderView: View {
         self.onEndChange = onEndChange
         self.step = step
         self.minimumDistance = max(minimumDistance, 0)
+        self.maximumDistance = maximumDistance
         self.sliderBounds = bounds
     }
 
@@ -286,26 +289,12 @@ struct RangedSliderView: View {
     }
 
     private func clampedRange(_ range: ClosedRange<Double>) -> ClosedRange<Double> {
-        let lowerBound = clampedValue(range.lowerBound)
-        let upperBound = clampedValue(range.upperBound)
-        let resolvedMinimumDistance = min(minimumDistance, sliderRange)
-
-        if upperBound < lowerBound {
-            return lowerBound...lowerBound
-        }
-
-        if resolvedMinimumDistance > 0, upperBound - lowerBound < resolvedMinimumDistance {
-            let expandedUpperBound = (lowerBound + resolvedMinimumDistance).clamped(
-                to: lowerBound...sliderBounds.upperBound
-            )
-            let adjustedLowerBound = (expandedUpperBound - resolvedMinimumDistance).clamped(
-                to: sliderBounds.lowerBound...expandedUpperBound
-            )
-
-            return adjustedLowerBound...expandedUpperBound
-        }
-
-        return lowerBound...upperBound
+        RangeSliderConstraintResolver.clampedRange(
+            range,
+            bounds: sliderBounds,
+            minimumDistance: minimumDistance,
+            maximumDistance: maximumDistance
+        )
     }
 
     private func clampedValue(_ value: Double) -> Double {
@@ -316,8 +305,16 @@ struct RangedSliderView: View {
         guard let currentValue else { return }
 
         let currentRange = clampedRange(currentValue.wrappedValue)
-        let maximumLowerBound = max(currentRange.upperBound - minimumDistance, sliderBounds.lowerBound)
-        let newLowerBound = min(value(at: xThumbOffset, width: width), maximumLowerBound)
+        let allowedRange = RangeSliderConstraintResolver.allowedLowerBoundRange(
+            for: currentRange,
+            bounds: sliderBounds,
+            minimumDistance: minimumDistance,
+            maximumDistance: maximumDistance
+        )
+        let newLowerBound = value(
+            at: xThumbOffset,
+            width: width
+        ).clamped(to: allowedRange)
         let newRange = newLowerBound...currentRange.upperBound
 
         guard newRange != currentRange else { return }
@@ -330,8 +327,16 @@ struct RangedSliderView: View {
         guard let currentValue else { return }
 
         let currentRange = clampedRange(currentValue.wrappedValue)
-        let minimumUpperBound = min(currentRange.lowerBound + minimumDistance, sliderBounds.upperBound)
-        let newUpperBound = max(value(at: xThumbOffset, width: width), minimumUpperBound)
+        let allowedRange = RangeSliderConstraintResolver.allowedUpperBoundRange(
+            for: currentRange,
+            bounds: sliderBounds,
+            minimumDistance: minimumDistance,
+            maximumDistance: maximumDistance
+        )
+        let newUpperBound = value(
+            at: xThumbOffset,
+            width: width
+        ).clamped(to: allowedRange)
         let newRange = currentRange.lowerBound...newUpperBound
 
         guard newRange != currentRange else { return }
@@ -360,6 +365,7 @@ struct RangedSliderView: View {
     RangedSliderView(
         .constant(20...60),
         bounds: 1...100,
+        maximumDistance: 30,
         onStartChange: {},
         onEndChange: {}
     )
