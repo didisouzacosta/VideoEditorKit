@@ -91,6 +91,117 @@ struct EditorHostView: View {
 }
 ```
 
+## Transcription Setup
+
+Transcript generation is optional. `VideoEditorKit` only enables the transcript flow when you provide a `VideoEditorConfiguration.TranscriptionConfiguration`.
+
+If you do not inject a provider, the editor still works normally for trimming, crop, audio, adjustments, and export, but transcript generation will stay unavailable for that session.
+
+### Option 1: Use The Built-In OpenAI Whisper Integration
+
+The package ships with a convenience factory for OpenAI Whisper:
+
+```swift
+let configuration = VideoEditorConfiguration(
+    transcription: .openAIWhisper(
+        apiKey: resolvedOpenAIAPIKey(),
+        preferredLocale: "en"
+    )
+)
+```
+
+The example app reads the key from `Info.plist` through `AppShellTranscriptionConfiguration`, which keeps the editor wiring simple:
+
+```xml
+<key>OPENAI_API_KEY</key>
+<string>YOUR_OPENAI_API_KEY</string>
+```
+
+Then create the transcription configuration from the host app:
+
+```swift
+let editorConfiguration = VideoEditorConfiguration(
+    tools: ToolAvailability.enabled(ToolEnum.all),
+    exportQualities: ExportQualityAvailability.allEnabled,
+    transcription: AppShellTranscriptionConfiguration.makeDefaultTranscriptionConfiguration()
+)
+```
+
+Recommended host-side setup:
+
+1. Add `OPENAI_API_KEY` to your app configuration.
+2. Keep the real key out of source control.
+3. Pass the resulting transcription configuration into `VideoEditorView`.
+4. Optionally set `preferredLocale` when you want to bias recognition toward a known language.
+
+### Option 2: Inject Your Own Transcription Provider
+
+If you already have a speech-to-text backend, implement `VideoTranscriptionProvider` and inject it directly:
+
+```swift
+import Foundation
+import VideoEditorKit
+
+struct MyTranscriptionProvider: VideoTranscriptionProvider {
+
+    func transcribeVideo(
+        input: VideoTranscriptionInput
+    ) async throws -> VideoTranscriptionResult {
+        switch input.source {
+        case let .fileURL(fileURL):
+            _ = fileURL
+
+            return VideoTranscriptionResult(
+                segments: [
+                    TranscriptionSegment(
+                        id: UUID(),
+                        startTime: 0,
+                        endTime: 2.4,
+                        text: "Hello from my custom provider",
+                        words: [
+                            TranscriptionWord(
+                                id: UUID(),
+                                startTime: 0,
+                                endTime: 0.8,
+                                text: "Hello"
+                            )
+                        ]
+                    )
+                ]
+            )
+        }
+    }
+}
+```
+
+Inject it like this:
+
+```swift
+let editorConfiguration = VideoEditorConfiguration(
+    transcription: .init(
+        provider: MyTranscriptionProvider(),
+        preferredLocale: "en"
+    )
+)
+```
+
+### What Your Provider Must Return
+
+For the best editing and export experience, your provider should return:
+
+- segment-level timing through `TranscriptionSegment`
+- word-level timing through `TranscriptionWord` whenever available
+- stable, correctly ordered timestamps in seconds
+- text that matches the spoken timeline closely enough for overlay playback and export
+
+### Practical Notes
+
+- `preferredLocale` is forwarded to the active provider. Use it when your backend supports locale hints.
+- The source passed into the provider is a local file URL via `VideoTranscriptionSource.fileURL`.
+- Word timings are strongly recommended because they improve transcript overlay behavior.
+- If the provider returns no timed segments, the transcript tool will not have usable caption content to edit or render.
+- If you use OpenAI in production, route the credential through your app configuration or backend strategy rather than hardcoding it in source files.
+
 ## Integration Concepts
 
 ### `VideoEditorView`
