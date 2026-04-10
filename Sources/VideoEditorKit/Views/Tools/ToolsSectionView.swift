@@ -176,9 +176,8 @@ extension ToolsSectionView {
             .buttonStyle(.plain)
             .disabled(!isEnabled)
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 12)
-        .padding(.bottom, 12)
+        .padding(.top)
+        .safeAreaPadding(.horizontal)
     }
 
     private func applyTool(_ tool: ToolEnum) {

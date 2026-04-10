@@ -21,13 +21,6 @@ struct VideoEditorToolContentView: View {
     // MARK: - Body
 
     var body: some View {
-        content
-    }
-
-    // MARK: - Private Properties
-
-    @ViewBuilder
-    private var content: some View {
         switch tool {
         case .speed:
             VideoSpeedToolView($draftState.speedDraft)

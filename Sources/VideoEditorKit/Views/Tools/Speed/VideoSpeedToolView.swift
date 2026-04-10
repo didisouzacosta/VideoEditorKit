@@ -25,7 +25,7 @@ struct VideoSpeedToolView: View {
                 .monospacedDigit()
         }
         .font(.caption)
-        .safeAreaPadding(32)
+        .safeAreaPadding()
     }
 
     // MARK: - Private Properties

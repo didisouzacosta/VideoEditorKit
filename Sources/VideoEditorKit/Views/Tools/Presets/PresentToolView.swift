@@ -51,7 +51,7 @@ extension PresentToolView {
                 }
             }
         }
-        .safeAreaPadding(32)
+        .safeAreaPadding()
     }
 
     private func cropFormatButton(_ preset: VideoCropFormatPreset) -> some View {

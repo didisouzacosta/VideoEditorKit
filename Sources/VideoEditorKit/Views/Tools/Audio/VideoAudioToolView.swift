@@ -92,7 +92,7 @@ struct VideoAudioToolView: View {
             }
             .font(.caption)
         }
-        .safeAreaPadding(32)
+        .safeAreaPadding()
     }
 
     // MARK: - Initializer
