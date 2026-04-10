@@ -28,39 +28,44 @@ struct PagedToolsRow: View {
                 let metrics = EditorToolbarLayoutResolver.resolvedMetrics(
                     for: proxy.size.width
                 )
-
-                let shouldCenterRow = metrics.shouldCenterRowContent(
-                    for: toolAvailability.count,
-                    availableWidth: proxy.size.width
+                let resolvedToolPages = resolvedToolPages(
+                    for: metrics
                 )
+
+                let shouldCenterRow =
+                    toolAvailability.count <= metrics.itemsPerPage
+                    && metrics.shouldCenterRowContent(
+                        for: resolvedToolPages.first?.map(\.width) ?? [],
+                        availableWidth: proxy.size.width
+                    )
 
                 ScrollView(.horizontal) {
                     GlassEffectContainer(spacing: metrics.itemSpacing) {
                         LazyHStack(spacing: metrics.pageSpacing) {
-                            ForEach(Array(toolPages.enumerated()), id: \.offset) { index, page in
+                            ForEach(Array(resolvedToolPages.enumerated()), id: \.offset) { index, page in
                                 HStack(spacing: metrics.itemSpacing) {
                                     ForEach(page) { item in
-                                        let itemPresentation = presentation(item.tool)
-
                                         ToolButtonView(
-                                            itemPresentation.title,
-                                            image: itemPresentation.image,
-                                            subtitle: itemPresentation.subtitle,
-                                            isChange: itemPresentation.isApplied,
-                                            isBlocked: item.isBlocked,
+                                            item.presentation.title,
+                                            image: item.presentation.image,
+                                            subtitle: item.presentation.subtitle,
+                                            isChange: item.presentation.isApplied,
+                                            isBlocked: item.availability.isBlocked,
                                             horizontalPadding: metrics.itemHorizontalPadding
                                         ) {
-                                            action(item)
+                                            action(item.availability)
                                         }
                                         .frame(
-                                            width: metrics.minimumItemWidth,
+                                            width: item.width,
                                             height: metrics.itemHeight
                                         )
                                     }
                                 }
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .frame(
-                                    minWidth: metrics.pageWidth(for: page.count),
+                                    minWidth: metrics.pageWidth(
+                                        for: page.map(\.width)
+                                    ),
                                     alignment: .leading
                                 )
                                 .background(pageOffsetReader(for: index))
@@ -167,9 +172,44 @@ struct PagedToolsRow: View {
         }
     }
 
+    private func resolvedToolPages(
+        for metrics: EditorToolbarLayoutMetrics
+    ) -> [[ResolvedToolItem]] {
+        toolPages.map { page in
+            page.map { availability in
+                let itemPresentation = presentation(availability.tool)
+
+                return ResolvedToolItem(
+                    availability: availability,
+                    presentation: itemPresentation,
+                    width: ToolButtonWidthResolver.resolvedWidth(
+                        title: itemPresentation.title,
+                        subtitle: itemPresentation.subtitle,
+                        minimumWidth: metrics.minimumItemWidth,
+                        horizontalPadding: metrics.itemHorizontalPadding
+                    )
+                )
+            }
+        }
+    }
+
 }
 
 extension PagedToolsRow {
+
+    fileprivate struct ResolvedToolItem: Identifiable {
+
+        // MARK: - Public Properties
+
+        let availability: ToolAvailability
+        let presentation: EditorToolbarItemPresentation
+        let width: CGFloat
+
+        var id: ToolEnum {
+            availability.tool
+        }
+
+    }
 
     fileprivate enum Layout {
 
