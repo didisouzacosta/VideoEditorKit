@@ -3,7 +3,7 @@ import Testing
 @testable import VideoEditorKit
 
 @Suite("VideoEditorTranscriptionConfigurationTests")
-struct VideoEditorTranscriptionConfigurationTests {
+struct EditorTranscriptionConfigTests {
 
     // MARK: - Public Methods
 

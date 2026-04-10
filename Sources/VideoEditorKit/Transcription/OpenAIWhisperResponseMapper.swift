@@ -4,7 +4,7 @@ struct OpenAIWhisperResponseMapper {
 
     // MARK: - Public Methods
 
-    func map(_ response: OpenAIWhisperVerboseTranscriptionResponseDTO) -> VideoTranscriptionResult {
+    func map(_ response: WhisperVerboseTranscriptionResponseDTO) -> VideoTranscriptionResult {
         let normalizedWords = normalizedWords(from: response.words)
         let segments = mappedSegments(
             from: response.segments,
@@ -24,7 +24,7 @@ struct OpenAIWhisperResponseMapper {
     // MARK: - Private Methods
 
     private func mappedSegments(
-        from segments: [OpenAIWhisperVerboseTranscriptionResponseDTO.Segment],
+        from segments: [WhisperVerboseTranscriptionResponseDTO.Segment],
         normalizedWords: [TranscriptionWord]
     ) -> [TranscriptionSegment] {
         segments
@@ -55,7 +55,7 @@ struct OpenAIWhisperResponseMapper {
     }
 
     private func words(
-        for segment: OpenAIWhisperVerboseTranscriptionResponseDTO.Segment,
+        for segment: WhisperVerboseTranscriptionResponseDTO.Segment,
         normalizedWords: [TranscriptionWord]
     ) -> [TranscriptionWord] {
         let startTime = normalizedStartTime(for: segment.start)
@@ -71,7 +71,7 @@ struct OpenAIWhisperResponseMapper {
     }
 
     private func normalizedWords(
-        from words: [OpenAIWhisperVerboseTranscriptionResponseDTO.Word]
+        from words: [WhisperVerboseTranscriptionResponseDTO.Word]
     ) -> [TranscriptionWord] {
         words
             .sorted(by: wordSortComparator(_:_:))
@@ -92,7 +92,7 @@ struct OpenAIWhisperResponseMapper {
     }
 
     private func fallbackResult(
-        from response: OpenAIWhisperVerboseTranscriptionResponseDTO,
+        from response: WhisperVerboseTranscriptionResponseDTO,
         normalizedWords: [TranscriptionWord]
     ) -> VideoTranscriptionResult {
         let text = resolvedSegmentText(
@@ -123,7 +123,7 @@ struct OpenAIWhisperResponseMapper {
     }
 
     private func fallbackTimeBounds(
-        response: OpenAIWhisperVerboseTranscriptionResponseDTO,
+        response: WhisperVerboseTranscriptionResponseDTO,
         normalizedWords: [TranscriptionWord]
     ) -> (startTime: Double, endTime: Double) {
         if let firstWord = normalizedWords.first,
@@ -170,8 +170,8 @@ struct OpenAIWhisperResponseMapper {
     }
 
     private func segmentSortComparator(
-        _ lhs: OpenAIWhisperVerboseTranscriptionResponseDTO.Segment,
-        _ rhs: OpenAIWhisperVerboseTranscriptionResponseDTO.Segment
+        _ lhs: WhisperVerboseTranscriptionResponseDTO.Segment,
+        _ rhs: WhisperVerboseTranscriptionResponseDTO.Segment
     ) -> Bool {
         if lhs.start != rhs.start {
             return lhs.start < rhs.start
@@ -181,8 +181,8 @@ struct OpenAIWhisperResponseMapper {
     }
 
     private func wordSortComparator(
-        _ lhs: OpenAIWhisperVerboseTranscriptionResponseDTO.Word,
-        _ rhs: OpenAIWhisperVerboseTranscriptionResponseDTO.Word
+        _ lhs: WhisperVerboseTranscriptionResponseDTO.Word,
+        _ rhs: WhisperVerboseTranscriptionResponseDTO.Word
     ) -> Bool {
         if lhs.start != rhs.start {
             return lhs.start < rhs.start

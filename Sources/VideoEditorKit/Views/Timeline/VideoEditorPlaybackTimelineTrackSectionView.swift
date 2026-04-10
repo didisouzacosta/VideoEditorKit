@@ -1,6 +1,7 @@
 import SwiftUI
 
 @available(iOS 16.0, *)
+// swiftlint:disable:next type_name
 public struct VideoEditorPlaybackTimelineTrackSectionView<Badge: View, Track: View>: View {
 
     // MARK: - States

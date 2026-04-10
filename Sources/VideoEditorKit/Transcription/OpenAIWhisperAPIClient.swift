@@ -87,7 +87,7 @@ struct OpenAIWhisperAPIClient {
 
     func createTranscription(
         request: Request
-    ) async throws -> OpenAIWhisperVerboseTranscriptionResponseDTO {
+    ) async throws -> WhisperVerboseTranscriptionResponseDTO {
         guard request.audioFileURL.isFileURL else {
             throw ClientError.invalidAudioFileURL
         }
@@ -131,7 +131,7 @@ struct OpenAIWhisperAPIClient {
             throw ClientError.emptyResponseData
         }
 
-        return try decoder.decode(OpenAIWhisperVerboseTranscriptionResponseDTO.self, from: data)
+        return try decoder.decode(WhisperVerboseTranscriptionResponseDTO.self, from: data)
     }
 
     // MARK: - Private Methods

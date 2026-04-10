@@ -11,7 +11,7 @@ struct OpenAIWhisperResponseMapperTests {
     @Test
     func mapBuildsSegmentsAndWordsFromVerboseResponse() {
         let mapper = OpenAIWhisperResponseMapper()
-        let response = OpenAIWhisperVerboseTranscriptionResponseDTO(
+        let response = WhisperVerboseTranscriptionResponseDTO(
             task: "transcribe",
             language: "portuguese",
             duration: 5,
@@ -43,7 +43,7 @@ struct OpenAIWhisperResponseMapperTests {
     @Test
     func mapDerivesSegmentTextFromWordsWhenSegmentTextIsBlank() {
         let mapper = OpenAIWhisperResponseMapper()
-        let response = OpenAIWhisperVerboseTranscriptionResponseDTO(
+        let response = WhisperVerboseTranscriptionResponseDTO(
             text: "",
             segments: [
                 .init(id: 0, start: 1, end: 3, text: " \n ")
@@ -65,7 +65,7 @@ struct OpenAIWhisperResponseMapperTests {
     @Test
     func mapFallsBackToSingleSegmentWhenVerboseResponseHasNoSegments() {
         let mapper = OpenAIWhisperResponseMapper()
-        let response = OpenAIWhisperVerboseTranscriptionResponseDTO(
+        let response = WhisperVerboseTranscriptionResponseDTO(
             duration: nil,
             text: "  hello   world  ",
             segments: [],
@@ -87,7 +87,7 @@ struct OpenAIWhisperResponseMapperTests {
     @Test
     func mapSkipsSegmentsThatRemainEmptyAfterNormalization() {
         let mapper = OpenAIWhisperResponseMapper()
-        let response = OpenAIWhisperVerboseTranscriptionResponseDTO(
+        let response = WhisperVerboseTranscriptionResponseDTO(
             text: "   ",
             segments: [
                 .init(id: 0, start: 0, end: 1, text: "   ")

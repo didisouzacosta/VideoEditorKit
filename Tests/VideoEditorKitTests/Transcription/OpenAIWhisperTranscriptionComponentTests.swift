@@ -20,7 +20,7 @@ struct OpenAIWhisperTranscriptionComponentTests {
                 createTranscription: { request in
                     await requestProbe.record(request)
                     await requestProbe.waitForResume()
-                    return OpenAIWhisperVerboseTranscriptionResponseDTO(
+                    return WhisperVerboseTranscriptionResponseDTO(
                         text: "ola mundo",
                         segments: [
                             .init(id: 0, start: 0, end: 2, text: "ola mundo")
@@ -118,7 +118,7 @@ struct OpenAIWhisperTranscriptionComponentTests {
                 createTranscription: { _ in
                     await startProbe.markStarted()
                     try await Task.sleep(for: .seconds(60))
-                    return OpenAIWhisperVerboseTranscriptionResponseDTO(text: "never finishes")
+                    return WhisperVerboseTranscriptionResponseDTO(text: "never finishes")
                 },
                 mapResponse: { response in
                     OpenAIWhisperResponseMapper().map(response)
@@ -168,7 +168,7 @@ struct OpenAIWhisperTranscriptionComponentTests {
                 removeExtractedAudio: { _ in },
                 createTranscription: { _ in
                     Issue.record("The API client should not be called for an invalid source.")
-                    return OpenAIWhisperVerboseTranscriptionResponseDTO(text: "")
+                    return WhisperVerboseTranscriptionResponseDTO(text: "")
                 },
                 mapResponse: { _ in
                     VideoTranscriptionResult()

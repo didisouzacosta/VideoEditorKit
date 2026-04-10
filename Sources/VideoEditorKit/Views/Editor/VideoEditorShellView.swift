@@ -107,7 +107,7 @@ struct VideoEditorShellView: View {
 
             Text(VideoEditorStrings.importingVideoMessage)
                 .font(.subheadline)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -117,14 +117,14 @@ struct VideoEditorShellView: View {
         VStack(spacing: 16) {
             Image(systemName: "exclamationmark.triangle")
                 .font(.system(size: 28, weight: .semibold))
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
 
             Text(VideoEditorStrings.unableToOpenVideoTitle)
                 .font(.headline)
 
             Text(message)
                 .font(.subheadline)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
 
             HStack(spacing: 12) {
@@ -151,7 +151,7 @@ struct VideoEditorShellView: View {
 
             Text(message)
                 .font(.subheadline)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

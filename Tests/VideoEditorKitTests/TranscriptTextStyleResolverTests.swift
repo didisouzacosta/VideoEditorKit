@@ -1,6 +1,5 @@
 import SwiftUI
 import Testing
-import VideoEditorKit
 
 @testable import VideoEditorKit
 

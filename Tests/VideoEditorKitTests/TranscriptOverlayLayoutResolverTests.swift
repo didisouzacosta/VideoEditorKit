@@ -1,7 +1,6 @@
 import CoreGraphics
 import Foundation
 import Testing
-import VideoEditorKit
 
 @testable import VideoEditorKit
 

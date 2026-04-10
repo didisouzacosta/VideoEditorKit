@@ -3,7 +3,7 @@ import Testing
 @testable import VideoEditorKit
 
 @Suite("VideoEditorToolSheetPresentationPolicyTests")
-struct VideoEditorToolSheetPresentationPolicyTests {
+struct ToolSheetPolicyTests {
 
     // MARK: - Public Methods
 

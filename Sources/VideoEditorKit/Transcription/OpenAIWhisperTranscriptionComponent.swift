@@ -31,8 +31,8 @@ actor OpenAIWhisperTranscriptionComponent: VideoTranscriptionComponentProtocol {
         let extractAudio: @Sendable (URL) async throws -> URL
         let removeExtractedAudio: @Sendable (URL) -> Void
         let createTranscription:
-            @Sendable (OpenAIWhisperAPIClient.Request) async throws -> OpenAIWhisperVerboseTranscriptionResponseDTO
-        let mapResponse: @Sendable (OpenAIWhisperVerboseTranscriptionResponseDTO) -> VideoTranscriptionResult
+            @Sendable (OpenAIWhisperAPIClient.Request) async throws -> WhisperVerboseTranscriptionResponseDTO
+        let mapResponse: @Sendable (WhisperVerboseTranscriptionResponseDTO) -> VideoTranscriptionResult
 
         // MARK: - Initializer
 
@@ -41,9 +41,9 @@ actor OpenAIWhisperTranscriptionComponent: VideoTranscriptionComponentProtocol {
             removeExtractedAudio: @escaping @Sendable (URL) -> Void,
             createTranscription:
                 @escaping @Sendable (OpenAIWhisperAPIClient.Request) async throws ->
-                OpenAIWhisperVerboseTranscriptionResponseDTO,
+                WhisperVerboseTranscriptionResponseDTO,
             mapResponse:
-                @escaping @Sendable (OpenAIWhisperVerboseTranscriptionResponseDTO) ->
+                @escaping @Sendable (WhisperVerboseTranscriptionResponseDTO) ->
                 VideoTranscriptionResult
         ) {
             self.extractAudio = extractAudio

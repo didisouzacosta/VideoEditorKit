@@ -4,7 +4,7 @@ import Testing
 @testable import VideoEditorKit
 
 @Suite("OpenAIWhisperMultipartFormDataBuilderTests")
-struct OpenAIWhisperMultipartFormDataBuilderTests {
+struct WhisperFormDataBuilderTests {
 
     // MARK: - Public Methods
 

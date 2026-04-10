@@ -1,6 +1,6 @@
 import Foundation
 
-struct OpenAIWhisperVerboseTranscriptionResponseDTO: Decodable, Equatable, Sendable {
+struct WhisperVerboseTranscriptionResponseDTO: Decodable, Equatable, Sendable {
 
     // MARK: - Public Properties
 
@@ -52,7 +52,7 @@ struct OpenAIWhisperVerboseTranscriptionResponseDTO: Decodable, Equatable, Senda
 
 }
 
-extension OpenAIWhisperVerboseTranscriptionResponseDTO {
+extension WhisperVerboseTranscriptionResponseDTO {
 
     struct Segment: Decodable, Equatable, Sendable {
 

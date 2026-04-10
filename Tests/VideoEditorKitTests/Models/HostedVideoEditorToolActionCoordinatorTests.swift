@@ -5,7 +5,7 @@ import Testing
 
 @MainActor
 @Suite("HostedVideoEditorToolActionCoordinatorTests")
-struct HostedVideoEditorToolActionCoordinatorTests {
+struct HostedToolActionTests {
 
     // MARK: - Public Methods
 
