@@ -118,7 +118,7 @@ public struct VideoExporterView: View {
             onCancelExport: onCancelExport
         )
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
+        .safeAreaPadding(.horizontal)
     }
 
     // MARK: - Initializer

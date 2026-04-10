@@ -168,10 +168,9 @@ extension ToolsSectionView {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
                     .background(
-                        Capsule(style: .continuous)
+                        RoundedRectangle(cornerRadius: 16)
                             .fill(Theme.accent.opacity(isEnabled ? 1.0 : 0.45))
                     )
-                    .contentShape(.capsule)
             }
             .buttonStyle(.plain)
             .disabled(!isEnabled)
