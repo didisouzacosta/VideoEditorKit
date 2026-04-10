@@ -201,6 +201,209 @@ For the best editing and export experience, your provider should return:
 - If the provider returns no timed segments, the transcript tool will not have usable caption content to edit or render.
 - If you use OpenAI in production, route the credential through your app configuration or backend strategy rather than hardcoding it in source files.
 
+## Configuration Reference
+
+This section is the host-app configuration guide for `VideoEditorKit`. If you are deciding what to pass into `VideoEditorView`, start here.
+
+### `VideoEditorConfiguration`
+
+This is the main runtime configuration object for the editor.
+
+```swift
+let configuration = VideoEditorConfiguration(
+    tools: ToolAvailability.enabled(ToolEnum.all),
+    exportQualities: ExportQualityAvailability.allEnabled,
+    transcription: .init(),
+    maximumVideoDuration: nil,
+    onBlockedToolTap: nil,
+    onBlockedExportQualityTap: nil
+)
+```
+
+Each parameter controls a different part of the host integration:
+
+- `tools`: which tools appear in the editor tray, whether they are interactive, and in which order they are shown.
+- `exportQualities`: which export options appear in the export sheet, whether they are interactive, and in which order they are shown.
+- `transcription`: whether transcript generation is available, which provider is used, and which locale hint should be forwarded.
+- `maximumVideoDuration`: optional source-duration limit in seconds. When `nil`, no extra host-side duration cap is enforced.
+- `onBlockedToolTap`: callback invoked when a tool is visible but intentionally blocked, useful for paywalls or upgrade flows.
+- `onBlockedExportQualityTap`: callback invoked when an export quality is visible but blocked, useful for premium export gating.
+
+Use `VideoEditorConfiguration.allToolsEnabled` when you want the package defaults without any gating.
+
+### `ToolAvailability`
+
+`ToolAvailability` configures one tool entry in the tray.
+
+```swift
+let tools: [ToolAvailability] = [
+    .enabled(.transcript),
+    .enabled(.presets),
+    .blocked(.audio),
+    .enabled(.adjusts),
+    .enabled(.speed)
+]
+```
+
+Each entry contains:
+
+- `tool`: the `ToolEnum` case being configured.
+- `access`: `.enabled` or `.blocked`.
+- `order`: the visual order in the tray.
+
+Blocked tools stay visible but are not usable. That makes them a good fit for feature previews and monetization flows.
+
+Available public tool identifiers today are:
+
+- `.transcript`
+- `.presets`
+- `.audio`
+- `.adjusts`
+- `.speed`
+- `.cut`
+
+`ToolEnum.all` returns the default set used by the package UI. At the moment it intentionally excludes `.cut` from that convenience list, so include `.cut` manually if your host wants to control it explicitly.
+
+### `ExportQualityAvailability`
+
+`ExportQualityAvailability` works the same way as tool gating, but for export choices.
+
+```swift
+let exportQualities: [ExportQualityAvailability] = [
+    .enabled(.low),
+    .blocked(.medium),
+    .blocked(.high)
+]
+```
+
+Each entry contains:
+
+- `quality`: the `VideoQuality` case being configured.
+- `access`: `.enabled` or `.blocked`.
+- `order`: the order shown in the export sheet.
+
+Useful convenience presets:
+
+- `ExportQualityAvailability.allEnabled`: every quality enabled.
+- `ExportQualityAvailability.premiumLocked`: low enabled, medium and high blocked.
+
+### `VideoQuality`
+
+`VideoQuality` defines the export profile that the package uses.
+
+- `.low`: `854x480`
+- `.medium`: `1280x720`
+- `.high`: `1920x1080`
+
+The type also exposes user-facing titles, subtitles, target frame rate, and render sizes for portrait or landscape exports. In most host apps, you will only need to decide which qualities are visible and enabled.
+
+### `VideoEditorConfiguration.TranscriptionConfiguration`
+
+This nested configuration enables transcript generation.
+
+```swift
+let transcription = VideoEditorConfiguration.TranscriptionConfiguration(
+    provider: myProvider,
+    preferredLocale: "en"
+)
+```
+
+Its fields are:
+
+- `provider`: any `VideoTranscriptionProvider` implementation. If `nil`, transcript generation is unavailable for that session.
+- `preferredLocale`: optional locale hint forwarded into the provider input.
+
+You can also build it with:
+
+```swift
+let transcription = VideoEditorConfiguration.TranscriptionConfiguration.openAIWhisper(
+    apiKey: resolvedOpenAIAPIKey(),
+    preferredLocale: "en"
+)
+```
+
+### `VideoEditorSession`
+
+`VideoEditorSession` defines one editor run.
+
+```swift
+let session = VideoEditorSession(
+    source: .fileURL(sourceVideoURL),
+    editingConfiguration: savedConfiguration
+)
+```
+
+Its fields are:
+
+- `source`: where the video comes from.
+- `editingConfiguration`: the previously saved `VideoEditingConfiguration` used to resume work.
+
+Use a session when the host wants to restore an existing project or resolve the source asynchronously.
+
+### `VideoEditorSessionSource`
+
+This enum defines how the editor receives a video:
+
+- `.fileURL(URL)`: use this when the video is already available locally.
+- `.importedFile(VideoEditorImportedFileSource)`: use this when the host must finish an async import step before the editor can open the file.
+
+If you already have a local file URL, `sourceVideoURL:` is the simplest `VideoEditorView` initializer. Reach for `VideoEditorSessionSource` when you need more control.
+
+### `VideoEditorImportedFileSource`
+
+This type wraps an async resolver used by `.importedFile`.
+
+```swift
+let importedSource = VideoEditorImportedFileSource(
+    taskIdentifier: assetID
+) {
+    try await importer.resolveLocalVideoURL()
+}
+```
+
+Its fields are:
+
+- `taskIdentifier`: stable identifier for the import task. The editor uses it to distinguish one source-loading job from another.
+- `resolveURL`: async closure that must return a local file URL the editor can open.
+
+Use this when your app imports from cloud storage, a document picker, a temporary sandbox copy, or another async asset pipeline.
+
+### `VideoEditorCallbacks`
+
+`VideoEditorCallbacks` groups the host lifecycle closures:
+
+- `onSaveStateChanged`: emitted during editing with the latest `VideoEditorSaveState`.
+- `onSourceVideoResolved`: called when an async source finishes resolving into a local URL.
+- `onDismissed`: called when the editor closes, returning the latest available editing snapshot.
+- `onExportedVideoURL`: called after a successful export.
+
+You can pass callbacks through the convenience `VideoEditorView` initializer or construct `VideoEditorCallbacks` directly when using the `session:` initializer.
+
+### `VideoEditorSaveState`
+
+This is the autosave payload emitted by `onSaveStateChanged`.
+
+Its fields are:
+
+- `editingConfiguration`: the current serializable editor snapshot.
+- `thumbnailData`: optional thumbnail data representing the latest project state.
+- `continuousSaveFingerprint`: normalized snapshot intended for host-side change detection.
+
+If your app persists drafts, this is the payload to store.
+
+### `VideoEditingConfiguration`
+
+`VideoEditingConfiguration` is the package's persisted editing snapshot. It is the main value you save when the user edits and the main value you pass back when resuming later.
+
+Use it for:
+
+- restoring trim and playback decisions
+- restoring crop and visual adjustments
+- restoring transcript editing state
+- restoring audio and other editor choices across launches
+
+For most host apps, the mental model is simple: treat `VideoEditingConfiguration` as the document state, and treat `VideoEditorConfiguration` as the host policy for what the editor is allowed to do.
+
 ## Integration Concepts
 
 ### `VideoEditorView`
