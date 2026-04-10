@@ -146,7 +146,7 @@ extension RootView {
         .init(
             tools: ToolAvailability.enabled(ToolEnum.all),
             exportQualities: ExportQualityAvailability.allEnabled,
-            transcription: AppShellTranscriptionConfiguration.makeDefaultTranscriptionConfiguration(),
+            transcription: .init(),
             onBlockedToolTap: { tool in
                 premiumPresentation = .tool(tool)
             },
