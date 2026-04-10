@@ -76,4 +76,19 @@ struct EditorToolbarLayoutResolverTests {
         )
     }
 
+    @Test
+    func pageWidthKeepsPartialPagesAlignedToThePagingViewport() {
+        let metrics = EditorToolbarLayoutResolver.resolvedMetrics(for: 393)
+
+        #expect(
+            abs(metrics.pageWidth(for: 1) - metrics.pageMinimumWidth) < 0.0001
+        )
+        #expect(
+            abs(metrics.pageWidth(for: 2) - metrics.pageMinimumWidth) < 0.0001
+        )
+        #expect(
+            abs(metrics.pageWidth(for: 4) - metrics.pageMinimumWidth) < 0.0001
+        )
+    }
+
 }

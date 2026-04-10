@@ -11,7 +11,7 @@ struct PagedToolsRow: View {
 
     // MARK: - States
 
-    @State private var currentPageID: Int?
+    @State private var currentPageID = 0
     @State private var rowHeight = Layout.defaultRowHeight
 
     // MARK: - Private Properties
@@ -53,16 +53,17 @@ struct PagedToolsRow: View {
                                             action(item)
                                         }
                                         .frame(
-                                            minWidth: metrics.minimumItemWidth,
-                                            minHeight: metrics.itemHeight,
-                                            maxHeight: metrics.itemHeight
+                                            width: metrics.minimumItemWidth,
+                                            height: metrics.itemHeight
                                         )
                                     }
                                 }
+                                .frame(maxWidth: .infinity, alignment: .leading)
                                 .frame(
-                                    minWidth: metrics.pageContentWidth(for: page.count),
+                                    minWidth: metrics.pageWidth(for: page.count),
                                     alignment: .leading
                                 )
+                                .background(pageOffsetReader(for: index))
                                 .id(index)
                             }
                         }
@@ -73,10 +74,22 @@ struct PagedToolsRow: View {
                         alignment: shouldCenterRow ? .center : .leading
                     )
                 }
+                .coordinateSpace(name: Layout.scrollCoordinateSpaceName)
                 .scrollClipDisabled()
                 .scrollIndicators(.hidden)
-                .scrollPosition(id: $currentPageID)
                 .scrollTargetBehavior(.viewAligned)
+                .onPreferenceChange(ToolPageMinXPreferenceKey.self) { pageOffsets in
+                    guard
+                        let resolvedPageID = PagedToolsRowPageSelectionResolver.selectedPageID(
+                            from: pageOffsets
+                        ),
+                        resolvedPageID != currentPageID
+                    else {
+                        return
+                    }
+
+                    currentPageID = resolvedPageID
+                }
                 .onAppear {
                     updateRowHeight(for: proxy.size.width)
                 }
@@ -120,19 +133,15 @@ struct PagedToolsRow: View {
         HStack(spacing: 8) {
             ForEach(Array(toolPages.indices), id: \.self) { index in
                 Capsule()
-                    .fill(index == selectedPageID ? Theme.primary : Theme.secondary.opacity(0.4))
+                    .fill(index == currentPageID ? Theme.primary : Theme.secondary.opacity(0.4))
                     .frame(
-                        width: index == selectedPageID ? Layout.activeIndicatorWidth : Layout.indicatorSize,
+                        width: index == currentPageID ? Layout.activeIndicatorWidth : Layout.indicatorSize,
                         height: Layout.indicatorSize
                     )
-                    .animation(.snappy(duration: 0.18), value: selectedPageID)
+                    .animation(.snappy(duration: 0.18), value: currentPageID)
                     .accessibilityHidden(true)
             }
         }
-    }
-
-    private var selectedPageID: Int {
-        currentPageID ?? 0
     }
 
     // MARK: - Private Methods
@@ -146,6 +155,18 @@ struct PagedToolsRow: View {
         rowHeight = resolvedRowHeight
     }
 
+    private func pageOffsetReader(for pageID: Int) -> some View {
+        GeometryReader { geometry in
+            Color.clear
+                .preference(
+                    key: ToolPageMinXPreferenceKey.self,
+                    value: [
+                        pageID: geometry.frame(in: .named(Layout.scrollCoordinateSpaceName)).minX
+                    ]
+                )
+        }
+    }
+
 }
 
 extension PagedToolsRow {
@@ -157,7 +178,45 @@ extension PagedToolsRow {
         static let defaultRowHeight: CGFloat = 104
         static let indicatorSize: CGFloat = 6
         static let activeIndicatorWidth: CGFloat = 18
+        static let scrollCoordinateSpaceName = "PagedToolsRowScrollView"
 
+    }
+
+}
+
+struct PagedToolsRowPageSelectionResolver {
+
+    // MARK: - Public Methods
+
+    static func selectedPageID(
+        from pageOffsets: [Int: CGFloat]
+    ) -> Int? {
+        pageOffsets.min { leftPage, rightPage in
+            let leftDistance = abs(leftPage.value)
+            let rightDistance = abs(rightPage.value)
+
+            guard abs(leftDistance - rightDistance) > 0.0001 else {
+                return leftPage.key < rightPage.key
+            }
+
+            return leftDistance < rightDistance
+        }?.key
+    }
+
+}
+
+private struct ToolPageMinXPreferenceKey: PreferenceKey {
+
+    static let defaultValue: [Int: CGFloat] = [:]
+
+    static func reduce(
+        value: inout [Int: CGFloat],
+        nextValue: () -> [Int: CGFloat]
+    ) {
+        value.merge(
+            nextValue(),
+            uniquingKeysWith: { _, next in next }
+        )
     }
 
 }
