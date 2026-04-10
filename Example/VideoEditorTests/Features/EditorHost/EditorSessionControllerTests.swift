@@ -169,7 +169,7 @@ struct EditorSessionControllerTests {
     func handlePersistedExportUpdatesTheCurrentContextAndPresentsShare() throws {
         let originalURL = try TestFixtures.createTemporaryFile(fileExtension: "mp4")
         let exportedURL = try TestFixtures.createTemporaryFile(fileExtension: "mp4")
-        var project = makeProject(
+        let project = makeProject(
             originalVideoFileName: originalURL.lastPathComponent,
             exportedVideoFileName: exportedURL.lastPathComponent
         )
@@ -187,7 +187,7 @@ struct EditorSessionControllerTests {
         #expect(controller.shareDestination == nil)
 
         controller.handlePersistedExport(project: project)
-        controller.handleDisappear()
+        controller.dismissShareDestination()
         #expect(controller.shareDestination == nil)
     }
 

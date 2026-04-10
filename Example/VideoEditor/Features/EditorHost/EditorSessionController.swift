@@ -109,8 +109,4 @@ final class EditorSessionController {
         shareDestination = nil
     }
 
-    func handleDisappear() {
-        shareDestination = nil
-    }
-
 }

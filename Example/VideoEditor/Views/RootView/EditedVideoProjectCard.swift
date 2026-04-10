@@ -14,14 +14,13 @@ struct EditedVideoProjectCard: View {
     // MARK: - Public Properties
 
     let project: EditedVideoProject
-    let onOpen: () -> Void
-    let onEdit: () -> Void
+    let onOpenProject: () -> Void
     let onDelete: () -> Void
 
     // MARK: - Body
 
     var body: some View {
-        Button(action: onOpen) {
+        Button(action: onOpenProject) {
             thumbnailContent
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .overlay(alignment: .bottomLeading) {
@@ -82,7 +81,7 @@ struct EditedVideoProjectCard: View {
 
     private var menuButton: some View {
         Menu {
-            Button(action: onEdit) {
+            Button(action: onOpenProject) {
                 Label("Edit", systemImage: "pencil")
             }
 
@@ -168,8 +167,7 @@ private enum EditedVideoProjectCardPreviewFixture {
 #Preview("Edited Video Project Card") {
     EditedVideoProjectCard(
         project: EditedVideoProjectCardPreviewFixture.project,
-        onOpen: {},
-        onEdit: {},
+        onOpenProject: {},
         onDelete: {}
     )
     .frame(width: 120, height: 120)

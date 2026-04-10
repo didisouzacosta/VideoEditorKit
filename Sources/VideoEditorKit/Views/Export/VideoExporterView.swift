@@ -428,14 +428,14 @@ private struct ExportActionButton: View {
         ZStack {
             if isExporting == false {
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .strokeBorder(baseBorderColor, lineWidth: 1)
+                    .strokeBorder(.white.opacity(0.18), lineWidth: 1)
             }
 
             if isExporting {
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .trim(from: 0, to: progress.clamped(to: 0...1))
                     .stroke(
-                        progressBorderColor,
+                        .blue,
                         style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round)
                     )
                     .animation(.easeInOut(duration: 0.2), value: progress)
@@ -453,14 +453,6 @@ private struct ExportActionButton: View {
         }
 
         return .accentColor
-    }
-
-    private var baseBorderColor: Color {
-        Color.white.opacity(0.18)
-    }
-
-    private var progressBorderColor: Color {
-        .red
     }
 
 }

@@ -171,10 +171,7 @@ private struct ProjectsGridSection: View {
                     ForEach(projects) { project in
                         EditedVideoProjectCard(
                             project: project,
-                            onOpen: {
-                                onOpenProject(project)
-                            },
-                            onEdit: {
+                            onOpenProject: {
                                 onOpenProject(project)
                             },
                             onDelete: {

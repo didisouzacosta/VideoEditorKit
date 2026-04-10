@@ -36,12 +36,9 @@ struct ProjectsRepository {
 
     }
 
-    // MARK: - Public Properties
-
-    let modelContext: ModelContext
-
     // MARK: - Private Properties
 
+    private let modelContext: ModelContext
     private let mediaStore: ProjectMediaStore
 
     // MARK: - Initializer

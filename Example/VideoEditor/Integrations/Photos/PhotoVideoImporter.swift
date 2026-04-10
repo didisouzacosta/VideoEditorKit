@@ -9,14 +9,11 @@ struct PhotoVideoImporter {
 
         // MARK: - Public Properties
 
-        case unsupportedSource
         case unableToLoadSelectedVideo
         case importFailed(String)
 
         var errorDescription: String? {
             switch self {
-            case .unsupportedSource:
-                return "The selected source is not supported."
             case .unableToLoadSelectedVideo:
                 return "The selected video could not be loaded."
             case .importFailed(let message):

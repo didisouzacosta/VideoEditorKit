@@ -7,45 +7,15 @@ struct EditorHostScreen: View {
         static let editingStateSaveDebounceInNanoseconds: UInt64 = 250_000_000
     }
 
-    private enum AlertPresentation: Identifiable {
+    private struct PersistenceAlertPresentation: Identifiable {
 
         // MARK: - Public Properties
 
-        case persistenceError(String)
-        case blockedTool(ToolEnum)
-        case blockedExportQuality(VideoQuality)
+        let title: String
+        let message: String
 
         var id: String {
-            switch self {
-            case .persistenceError(let message):
-                "persistence-\(message)"
-            case .blockedTool(let tool):
-                "tool-\(tool.rawValue)"
-            case .blockedExportQuality(let quality):
-                "quality-\(quality.rawValue)"
-            }
-        }
-
-        var title: String {
-            switch self {
-            case .persistenceError:
-                "Unable to Save Project"
-            case .blockedTool:
-                "Premium Tool"
-            case .blockedExportQuality:
-                "Premium Export"
-            }
-        }
-
-        var message: String {
-            switch self {
-            case .persistenceError(let message):
-                message
-            case .blockedTool(let tool):
-                "\(tool.title) is locked in this demo. Connect `onBlockedToolTap` to your paywall or upgrade flow in the host app."
-            case .blockedExportQuality(let quality):
-                "\(quality.title) export is locked in this demo. Connect `onBlockedExportQualityTap` to your paywall or upgrade flow in the host app."
-            }
+            "\(title)-\(message)"
         }
 
     }
@@ -54,7 +24,7 @@ struct EditorHostScreen: View {
 
     @State private var sessionController: EditorSessionController
     @State private var saveStateTask: Task<Void, Never>?
-    @State private var alertPresentation: AlertPresentation?
+    @State private var persistenceAlert: PersistenceAlertPresentation?
 
     // MARK: - Body
 
@@ -64,7 +34,6 @@ struct EditorHostScreen: View {
         VideoEditorView(
             "Editor",
             session: sessionController.session,
-            configuration: editorConfiguration,
             callbacks: editorCallbacks
         )
         .sheet(
@@ -75,7 +44,7 @@ struct EditorHostScreen: View {
         ) { shareDestination in
             VideoShareSheet(activityItems: [shareDestination.videoURL])
         }
-        .alert(item: $alertPresentation) { alert in
+        .alert(item: $persistenceAlert) { alert in
             Alert(
                 title: Text(alert.title),
                 message: Text(alert.message),
@@ -89,20 +58,6 @@ struct EditorHostScreen: View {
 
     private let repository: ProjectsRepository
 
-    private var editorConfiguration: VideoEditorView.Configuration {
-        .init(
-            tools: ToolAvailability.enabled(ToolEnum.all),
-            exportQualities: ExportQualityAvailability.allEnabled,
-            transcription: .init(),
-            onBlockedToolTap: { tool in
-                alertPresentation = .blockedTool(tool)
-            },
-            onBlockedExportQualityTap: { quality in
-                alertPresentation = .blockedExportQuality(quality)
-            }
-        )
-    }
-
     private var editorCallbacks: VideoEditorView.Callbacks {
         .init(
             onSaveStateChanged: { saveState in
@@ -113,7 +68,6 @@ struct EditorHostScreen: View {
             onSourceVideoResolved: { sourceVideoURL in
                 sessionController.handleSourceVideoResolved(sourceVideoURL)
             },
-            onDismissed: { _ in },
             onExportedVideoURL: { exportedVideoURL in
                 Task {
                     await persistExportedVideo(at: exportedVideoURL)
@@ -138,7 +92,7 @@ struct EditorHostScreen: View {
     private func handleDisappear() {
         saveStateTask?.cancel()
         saveStateTask = nil
-        sessionController.handleDisappear()
+        sessionController.dismissShareDestination()
     }
 
     private func scheduleEditingStateSave(
@@ -224,7 +178,10 @@ struct EditorHostScreen: View {
     }
 
     private func presentPersistenceError(_ message: String) {
-        alertPresentation = .persistenceError(message)
+        persistenceAlert = .init(
+            title: "Unable to Save Project",
+            message: message
+        )
     }
 
 }
