@@ -77,19 +77,15 @@ private struct HomeHeroSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Edit, export, and revisit your clips.")
+            Text(ExampleStrings.homeHeroTitle)
                 .font(.largeTitle.bold())
 
-            Text(
-                "Choose a video from Photos, export it, and keep both the original media and the rendered output saved for future edits."
-            )
-            .font(.title3.weight(.semibold))
+            Text(ExampleStrings.homeHeroMessage)
+                .font(.title3.weight(.semibold))
 
-            Text(
-                "The example app stays intentionally small: import a clip, edit it, and reopen the saved draft or exported video later."
-            )
-            .font(.subheadline)
-            .foregroundStyle(Theme.secondary)
+            Text(ExampleStrings.homeHeroFootnote)
+                .font(.subheadline)
+                .foregroundStyle(Theme.secondary)
         }
         .padding(32)
         .card()
@@ -114,10 +110,10 @@ private struct ImportVideoCard: View {
                     .circleControl(prominent: true, tint: Theme.accent)
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Choose a Video")
+                    Text(ExampleStrings.homeImportTitle)
                         .font(.headline)
 
-                    Text("Import a clip from Photos and open it directly in the editor.")
+                    Text(ExampleStrings.homeImportMessage)
                         .font(.subheadline)
                         .foregroundStyle(Theme.secondary)
                 }
@@ -156,7 +152,7 @@ private struct ProjectsGridSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Edited Videos")
+            Text(ExampleStrings.homeProjectsTitle)
                 .font(.headline)
                 .padding(.horizontal)
 
@@ -193,14 +189,12 @@ private struct EmptyProjectsCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("No saved videos yet")
+            Text(ExampleStrings.homeEmptyTitle)
                 .font(.headline)
 
-            Text(
-                "Choose a video, make your edits, and it will appear here with the latest saved configuration even before export."
-            )
-            .font(.subheadline)
-            .foregroundStyle(Theme.secondary)
+            Text(ExampleStrings.homeEmptyMessage)
+                .font(.subheadline)
+                .foregroundStyle(Theme.secondary)
         }
         .padding(24)
         .card()

@@ -71,7 +71,7 @@ struct EditedVideoProjectCard: View {
     }
 
     private var draftBadge: some View {
-        Text("Draft")
+        Text(ExampleStrings.projectDraft)
             .font(.caption2.weight(.bold))
             .foregroundStyle(.white)
             .padding(.horizontal, 8)
@@ -82,11 +82,11 @@ struct EditedVideoProjectCard: View {
     private var menuButton: some View {
         Menu {
             Button(action: onOpenProject) {
-                Label("Edit", systemImage: "pencil")
+                Label(ExampleStrings.projectEdit, systemImage: "pencil")
             }
 
             Button(role: .destructive, action: onDelete) {
-                Label("Delete", systemImage: "trash")
+                Label(ExampleStrings.projectDelete, systemImage: "trash")
             }
         } label: {
             Image(systemName: "ellipsis")

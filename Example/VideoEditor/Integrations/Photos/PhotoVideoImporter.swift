@@ -15,7 +15,7 @@ struct PhotoVideoImporter {
         var errorDescription: String? {
             switch self {
             case .unableToLoadSelectedVideo:
-                return "The selected video could not be loaded."
+                return ExampleStrings.unableToLoadSelectedVideo
             case .importFailed(let message):
                 return message
             }
