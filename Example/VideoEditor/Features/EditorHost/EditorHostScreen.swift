@@ -32,7 +32,7 @@ struct EditorHostScreen: View {
         @Bindable var bindableSessionController = sessionController
 
         VideoEditorView(
-            "Editor",
+            ExampleStrings.editorTitle,
             session: sessionController.session,
             callbacks: editorCallbacks
         )
@@ -48,7 +48,7 @@ struct EditorHostScreen: View {
             Alert(
                 title: Text(alert.title),
                 message: Text(alert.message),
-                dismissButton: .cancel(Text("OK"))
+                dismissButton: .cancel(Text(ExampleStrings.ok))
             )
         }
         .onDisappear(perform: handleDisappear)
@@ -114,9 +114,7 @@ struct EditorHostScreen: View {
         _ saveState: VideoEditorView.SaveState
     ) async {
         guard let originalVideoURL = sessionController.currentSourceVideoURL else {
-            presentPersistenceError(
-                "The original video for this editing session could not be resolved."
-            )
+            presentPersistenceError(ExampleStrings.missingSessionOriginalVideo)
             return
         }
 
@@ -151,9 +149,7 @@ struct EditorHostScreen: View {
         saveStateTask = nil
 
         guard let originalVideoURL = sessionController.currentSourceVideoURL else {
-            presentPersistenceError(
-                "The original video for this editing session could not be resolved."
-            )
+            presentPersistenceError(ExampleStrings.missingSessionOriginalVideo)
             return
         }
 
@@ -179,7 +175,7 @@ struct EditorHostScreen: View {
 
     private func presentPersistenceError(_ message: String) {
         persistenceAlert = .init(
-            title: "Unable to Save Project",
+            title: ExampleStrings.persistenceErrorTitle,
             message: message
         )
     }

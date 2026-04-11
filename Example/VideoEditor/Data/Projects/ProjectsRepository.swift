@@ -20,7 +20,7 @@ struct ProjectsRepository {
         var errorDescription: String? {
             switch self {
             case .missingOriginalVideo:
-                "The original video could not be found for this project."
+                ExampleStrings.missingStoredOriginalVideo
             }
         }
     }

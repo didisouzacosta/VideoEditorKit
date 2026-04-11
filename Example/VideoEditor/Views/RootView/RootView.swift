@@ -49,7 +49,7 @@ struct RootView: View {
                 Alert(
                     title: Text(alert.title),
                     message: Text(alert.message),
-                    dismissButton: .cancel(Text("OK"))
+                    dismissButton: .cancel(Text(ExampleStrings.ok))
                 )
             }
             .fullScreenCover(
@@ -95,7 +95,7 @@ extension RootView {
 
     private func openProject(_ project: EditedVideoProject) {
         guard project.hasOriginalVideo else {
-            showPersistenceError("The original video for this project is no longer available.")
+            showPersistenceError(ExampleStrings.missingProjectOriginalVideo)
             return
         }
 
@@ -116,7 +116,7 @@ extension RootView {
 
     private func showPersistenceError(_ message: String) {
         persistenceAlert = .init(
-            title: "Unable to Save Project",
+            title: ExampleStrings.persistenceErrorTitle,
             message: message
         )
     }
