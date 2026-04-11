@@ -97,9 +97,7 @@ extension ToolsSectionView {
                 }
             },
             footer: {
-                if VideoEditorToolSheetPresentationPolicy.requiresExplicitApply(tool) {
-                    applyFooter(tool)
-                }
+                sheetFooter(tool)
             }
         )
     }
@@ -158,25 +156,12 @@ extension ToolsSectionView {
     private func applyFooter(_ tool: ToolEnum) -> some View {
         let isEnabled = canApply(tool)
 
-        return VStack(spacing: 0) {
-            Button {
-                applyTool(tool)
-            } label: {
-                Text(VideoEditorStrings.apply)
-                    .font(.headline.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(Theme.accent.opacity(isEnabled ? 1.0 : 0.45))
-                    )
-            }
-            .buttonStyle(.plain)
-            .disabled(!isEnabled)
+        return PrimaryActionButton(
+            title: VideoEditorStrings.apply,
+            isEnabled: isEnabled
+        ) {
+            applyTool(tool)
         }
-        .padding(.top)
-        .safeAreaPadding(.horizontal)
     }
 
     private func applyTool(_ tool: ToolEnum) {
@@ -186,6 +171,40 @@ extension ToolsSectionView {
             editorViewModel: editorViewModel,
             videoPlayer: videoPlayer
         )
+    }
+
+    @ViewBuilder
+    private func sheetFooter(_ tool: ToolEnum) -> some View {
+        switch tool {
+        case .transcript:
+            transcriptFooter
+        case .cut:
+            EmptyView()
+        case .speed, .presets, .audio, .adjusts:
+            applyFooter(tool)
+        }
+    }
+
+    @ViewBuilder
+    private var transcriptFooter: some View {
+        if let action = TranscriptToolFooterActionResolver.resolve(
+            isTranscriptionAvailable: editorViewModel.isTranscriptionAvailable,
+            transcriptState: editorViewModel.transcriptState,
+            document: editorViewModel.transcriptDraftDocument
+        ) {
+            switch action {
+            case .transcribe:
+                PrimaryActionButton(title: action.title) {
+                    editorViewModel.transcribeCurrentVideo()
+                }
+            case .retry:
+                PrimaryActionButton(title: action.title) {
+                    editorViewModel.transcribeCurrentVideo()
+                }
+            case .apply:
+                applyFooter(.transcript)
+            }
+        }
     }
 
 }

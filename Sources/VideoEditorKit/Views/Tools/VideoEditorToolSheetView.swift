@@ -16,6 +16,7 @@ public struct VideoEditorToolSheetView<Content: View, Footer: View>: View {
             }
             .safeAreaBar(edge: .bottom) {
                 footer()
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .navigationTitle(title)
@@ -76,9 +77,7 @@ public struct VideoEditorToolSheetView<Content: View, Footer: View>: View {
             Text("Tool content goes here")
                 .padding()
         } footer: {
-            Button(VideoEditorStrings.apply) {}
-                .buttonStyle(.borderedProminent)
-                .padding()
+            PrimaryActionButton(title: VideoEditorStrings.apply) {}
         }
     }
 }

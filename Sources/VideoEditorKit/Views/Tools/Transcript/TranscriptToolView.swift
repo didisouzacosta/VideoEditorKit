@@ -18,8 +18,6 @@ struct TranscriptToolView: View {
     let isTranscriptionAvailable: Bool
     let transcriptState: TranscriptFeatureState
     let document: TranscriptDocument?
-    let onTranscribe: () -> Void
-    let onRetry: () -> Void
     let onCopyTranscript: (String) -> Void
     let onUpdateSegmentText: (UUID, String) -> Void
     let onRevertSegmentText: (UUID) -> Void
@@ -64,9 +62,7 @@ struct TranscriptToolView: View {
         if isTranscriptionAvailable {
             statusView(
                 title: VideoEditorStrings.transcriptCreateTitle,
-                message: VideoEditorStrings.transcriptCreateMessage,
-                actionTitle: VideoEditorStrings.transcriptRetry,
-                action: onTranscribe
+                message: VideoEditorStrings.transcriptCreateMessage
             )
         } else {
             statusView(
@@ -117,9 +113,7 @@ struct TranscriptToolView: View {
         } else {
             statusView(
                 title: VideoEditorStrings.transcriptNoneTitle,
-                message: VideoEditorStrings.transcriptNoneMessage,
-                actionTitle: VideoEditorStrings.transcriptRetry,
-                action: onTranscribe
+                message: VideoEditorStrings.transcriptNoneMessage
             )
         }
     }
@@ -213,9 +207,7 @@ struct TranscriptToolView: View {
         } else {
             statusView(
                 title: VideoEditorStrings.transcriptUnableToTranscribeTitle,
-                message: errorMessage(for: error),
-                actionTitle: VideoEditorStrings.transcriptRetryFailure,
-                action: onRetry
+                message: errorMessage(for: error)
             )
         }
     }
@@ -236,9 +228,7 @@ struct TranscriptToolView: View {
 
     private func statusView(
         title: String,
-        message: String,
-        actionTitle: String? = nil,
-        action: (() -> Void)? = nil
+        message: String
     ) -> some View {
         VStack(spacing: 16) {
             Text(title)
@@ -248,11 +238,6 @@ struct TranscriptToolView: View {
                 .font(.subheadline)
                 .foregroundStyle(Theme.secondary)
                 .multilineTextAlignment(.center)
-
-            if let actionTitle, let action {
-                Button(actionTitle, action: action)
-                    .buttonStyle(.borderedProminent)
-            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(.vertical, 40)
@@ -292,8 +277,6 @@ struct TranscriptToolView: View {
             isTranscriptionAvailable: true,
             transcriptState: .idle,
             document: nil,
-            onTranscribe: {},
-            onRetry: {},
             onCopyTranscript: { _ in },
             onUpdateSegmentText: { _, _ in },
             onRevertSegmentText: { _ in },
@@ -309,8 +292,6 @@ struct TranscriptToolView: View {
             isTranscriptionAvailable: true,
             transcriptState: .loading,
             document: nil,
-            onTranscribe: {},
-            onRetry: {},
             onCopyTranscript: { _ in },
             onUpdateSegmentText: { _, _ in },
             onRevertSegmentText: { _ in },

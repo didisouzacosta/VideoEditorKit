@@ -96,6 +96,9 @@ public struct VideoExporterView: View {
 
     private var navigationContent: some View {
         content
+            .safeAreaBar(edge: .bottom) {
+                footer
+            }
             .navigationTitle(VideoEditorStrings.exportVideoTitle)
             .navigationBarTitleDisplayMode(.inline)
             .animation(.easeInOut, value: state)
@@ -113,12 +116,40 @@ public struct VideoExporterView: View {
             selectedQuality: state.selectedQuality,
             state: state,
             onSelectQuality: onSelectQuality,
-            onBlockedQualityTap: onBlockedQualityTap,
-            onExport: onExport,
-            onCancelExport: onCancelExport
+            onBlockedQualityTap: onBlockedQualityTap
         )
         .frame(maxWidth: .infinity, alignment: .leading)
         .safeAreaPadding(.horizontal)
+    }
+
+    private var footer: some View {
+        VStack(spacing: 12) {
+            PrimaryActionButton(
+                title: state.exportButtonTitle,
+                isEnabled: state.canExportVideo || state.isExporting,
+                progress: state.isExporting ? state.exportButtonProgress : nil,
+                action: onExport
+            )
+            .allowsHitTesting(state.canExportVideo)
+            .accessibilityValue(
+                VideoEditorStrings.exportButtonAccessibilityValue(
+                    progress: state.exportButtonProgress,
+                    isExporting: state.isExporting
+                )
+            )
+            .accessibilityHint(
+                state.isExporting
+                    ? VideoEditorStrings.exportButtonInProgressHint
+                    : VideoEditorStrings.exportButtonReadyHint
+            )
+
+            if state.shouldShowCancelAction {
+                Button(VideoEditorStrings.cancel, role: .cancel, action: onCancelExport)
+                    .buttonStyle(.bordered)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+        .animation(.easeInOut(duration: 0.2), value: state.shouldShowCancelAction)
     }
 
     // MARK: - Initializer
@@ -163,59 +194,37 @@ private struct ExportQualitySelectionSection: View {
     let state: VideoExportPresentationState
     let onSelectQuality: (VideoQuality) -> Void
     let onBlockedQualityTap: (VideoQuality) -> Void
-    let onExport: () -> Void
-    let onCancelExport: () -> Void
 
     // MARK: - Body
 
     var body: some View {
-        VStack(spacing: 32) {
-            VStack(alignment: .leading, spacing: 16) {
-                Text(VideoEditorStrings.exportChooseQualityMessage)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal)
+        VStack(alignment: .leading, spacing: 16) {
+            Text(VideoEditorStrings.exportChooseQualityMessage)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal)
 
-                VStack(spacing: 8) {
-                    ForEach(qualities) { availability in
-                        ExportQualityOptionRow(
-                            quality: availability.quality,
-                            isSelected: availability.quality == selectedQuality,
-                            isBlocked: availability.isBlocked,
-                            onTap: {
-                                if availability.isBlocked {
-                                    onBlockedQualityTap(availability.quality)
-                                } else {
-                                    onSelectQuality(availability.quality)
-                                }
+            VStack(spacing: 8) {
+                ForEach(qualities) { availability in
+                    ExportQualityOptionRow(
+                        quality: availability.quality,
+                        isSelected: availability.quality == selectedQuality,
+                        isBlocked: availability.isBlocked,
+                        onTap: {
+                            if availability.isBlocked {
+                                onBlockedQualityTap(availability.quality)
+                            } else {
+                                onSelectQuality(availability.quality)
                             }
-                        )
-                    }
-                }
-                .disabled(state.isInteractionDisabled)
-
-                if state.shouldShowFailureMessage {
-                    ExportFailureMessageCard(message: state.errorMessage)
+                        }
+                    )
                 }
             }
+            .disabled(state.isInteractionDisabled)
 
-            VStack(spacing: 12) {
-                ExportActionButton(
-                    title: state.exportButtonTitle,
-                    progress: state.exportButtonProgress,
-                    isExporting: state.isExporting,
-                    action: onExport
-                )
-                .disabled(!state.canExportVideo && !state.isExporting)
-                .allowsHitTesting(state.canExportVideo)
-
-                if state.shouldShowCancelAction {
-                    Button(VideoEditorStrings.cancel, role: .cancel, action: onCancelExport)
-                        .buttonStyle(.bordered)
-                        .transition(.opacity.combined(with: .move(edge: .top)))
-                }
+            if state.shouldShowFailureMessage {
+                ExportFailureMessageCard(message: state.errorMessage)
             }
-            .animation(.easeInOut(duration: 0.2), value: state.shouldShowCancelAction)
         }
     }
 
@@ -374,85 +383,6 @@ private struct ExportFailureMessageCard: View {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(Color.yellow.opacity(0.12))
         )
-    }
-
-}
-
-private struct ExportActionButton: View {
-
-    // MARK: - Public Properties
-
-    let title: String
-    let progress: Double
-    let isExporting: Bool
-    let action: () -> Void
-
-    // MARK: - Body
-
-    var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(.headline.weight(.bold))
-                .foregroundStyle(labelColor)
-                .contentTransition(.numericText())
-                .frame(maxWidth: .infinity)
-                .padding(.horizontal, 20)
-                .padding(.vertical, 18)
-                .background(buttonBackground)
-                .overlay {
-                    buttonBorder
-                }
-        }
-        .buttonStyle(.plain)
-        .accessibilityValue(
-            VideoEditorStrings.exportButtonAccessibilityValue(
-                progress: progress,
-                isExporting: isExporting
-            )
-        )
-        .accessibilityHint(
-            isExporting
-                ? VideoEditorStrings.exportButtonInProgressHint
-                : VideoEditorStrings.exportButtonReadyHint
-        )
-    }
-
-    // MARK: - Private Properties
-
-    private var buttonBackground: some View {
-        RoundedRectangle(cornerRadius: 18, style: .continuous)
-            .fill(backgroundColor)
-    }
-
-    private var buttonBorder: some View {
-        ZStack {
-            if isExporting == false {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .strokeBorder(.white.opacity(0.18), lineWidth: 1)
-            }
-
-            if isExporting {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .trim(from: 0, to: progress.clamped(to: 0...1))
-                    .stroke(
-                        .blue,
-                        style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round)
-                    )
-                    .animation(.easeInOut(duration: 0.2), value: progress)
-            }
-        }
-    }
-
-    private var labelColor: Color {
-        isExporting ? .accentColor : .white
-    }
-
-    private var backgroundColor: Color {
-        if isExporting {
-            return Color.accentColor.opacity(0.14)
-        }
-
-        return .accentColor
     }
 
 }

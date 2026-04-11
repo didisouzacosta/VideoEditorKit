@@ -41,12 +41,6 @@ struct VideoEditorToolContentView: View {
                 isTranscriptionAvailable: editorViewModel.isTranscriptionAvailable,
                 transcriptState: editorViewModel.transcriptState,
                 document: editorViewModel.transcriptDraftDocument,
-                onTranscribe: {
-                    editorViewModel.transcribeCurrentVideo()
-                },
-                onRetry: {
-                    editorViewModel.transcribeCurrentVideo()
-                },
                 onCopyTranscript: { text in
                     PlainTextClipboard.copy(text)
                 },
