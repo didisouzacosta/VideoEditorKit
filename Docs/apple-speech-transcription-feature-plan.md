@@ -24,6 +24,7 @@ Adicionar ao package um componente de transcricao nativo que:
 - Fase 1 concluida
 - Fase 2 concluida
 - Fase 3 concluida
+- Fase 4 concluida
 
 ## Estado atual relevante
 
@@ -302,6 +303,7 @@ Para agentes com `xcodebuildmcp`:
 - adicionar factory publica `appleSpeech(preferredLocale:)`
 - atualizar testes de `VideoEditorTranscriptionConfigurationTests`
 - atualizar README e DocC
+- status atual: concluida
 
 ### Fase 5
 
