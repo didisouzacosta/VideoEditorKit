@@ -21,7 +21,8 @@ Adicionar ao package um componente de transcricao nativo que:
 ## Status de implementacao
 
 - planejamento documentado
-- implementacao nao iniciada
+- Fase 1 concluida
+- Fase 2 concluida
 
 ## Estado atual relevante
 
@@ -278,12 +279,14 @@ Para agentes com `xcodebuildmcp`:
 - criar `AppleSpeechTranscriptionMapper`
 - criar testes puros de mapeamento
 - validar normalizacao de texto, ranges e ordenacao
+- status atual: concluida
 
 ### Fase 2
 
 - criar `AppleSpeechAvailabilityResolver`
 - criar testes para locale suportado, locale equivalente e locale indisponivel
 - integrar `availabilityError(preferredLocale:)`
+- status atual: concluida
 
 ### Fase 3
 
