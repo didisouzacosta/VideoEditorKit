@@ -23,6 +23,7 @@ Adicionar ao package um componente de transcricao nativo que:
 - planejamento documentado
 - Fase 1 concluida
 - Fase 2 concluida
+- Fase 3 concluida
 
 ## Estado atual relevante
 
@@ -294,6 +295,7 @@ Para agentes com `xcodebuildmcp`:
 - reutilizar `VideoAudioExtractionService`
 - adicionar seams de teste para extracao, transcricao e limpeza
 - cobrir sucesso, falha e cancelamento
+- status atual: concluida
 
 ### Fase 4
 
