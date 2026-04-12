@@ -14,7 +14,7 @@ The repository is structured around a Swift Package at the root and an example i
 - A serializable editing snapshot through `VideoEditingConfiguration`
 - Host-controlled feature gating for tools and export qualities
 - Continuous save callbacks so your app can persist work-in-progress state
-- Optional transcript generation through a custom `VideoTranscriptionProvider`
+- Optional transcript generation through Apple Speech, OpenAI Whisper, or a custom `VideoTranscriptionProvider`
 - Reusable public canvas, export, transcript, and layout utilities for advanced integrations
 
 ## Screenshots
@@ -110,7 +110,27 @@ Transcript generation is optional. `VideoEditorKit` only enables the transcript 
 
 If you do not inject a provider, the editor still works normally for trimming, crop, audio, adjustments, and export, but transcript generation will stay unavailable for that session.
 
-### Option 1: Use The Built-In OpenAI Whisper Integration
+### Option 1: Use The Built-In Apple Speech Integration
+
+The package ships with a convenience factory for Apple Speech:
+
+```swift
+let configuration = VideoEditorConfiguration(
+    transcription: .appleSpeech(
+        preferredLocale: "en-US"
+    )
+)
+```
+
+Apple Speech does not require an API key. It uses the system Speech framework and preserves timed transcript segments and words when the framework returns timing metadata.
+
+Recommended host-side setup:
+
+1. Add the Speech recognition usage description your app needs in its own `Info.plist`.
+2. Set `preferredLocale` when your app already knows the spoken language.
+3. Keep a custom provider or remote fallback strategy when your product needs behavior beyond Apple Speech availability for a given device or locale.
+
+### Option 2: Use The Built-In OpenAI Whisper Integration
 
 The package ships with a convenience factory for OpenAI Whisper:
 
@@ -141,7 +161,7 @@ Recommended host-side setup:
 3. Do not rely on `Info.plist` key lookup for transcript setup.
 4. Optionally set `preferredLocale` when you want to bias recognition toward a known language.
 
-### Option 2: Inject Your Own Transcription Provider
+### Option 3: Inject Your Own Transcription Provider
 
 If you already have a speech-to-text backend, implement `VideoTranscriptionProvider` and inject it directly:
 
@@ -203,7 +223,7 @@ For the best editing and export experience, your provider should return:
 
 ### Practical Notes
 
-- `preferredLocale` is forwarded to the active provider. Use it when your backend supports locale hints.
+- `preferredLocale` is forwarded to the active provider. Use it when Apple Speech or your backend supports locale hints.
 - The source passed into the provider is a local file URL via `VideoTranscriptionSource.fileURL`.
 - Word timings are strongly recommended because they improve transcript overlay behavior.
 - If the provider returns no timed segments, the transcript tool will not have usable caption content to edit or render.
