@@ -36,7 +36,7 @@ struct VideoEditorSaveEmissionCoordinatorTests {
                 await recorder.record(publishedSave)
             }
         }
-        await sleepProbe.waitUntilCount(is: 1)
+        #expect(await sleepProbe.waitUntilCount(is: 1))
 
         coordinator.scheduleSave(
             editingConfiguration: secondConfiguration,
@@ -46,14 +46,14 @@ struct VideoEditorSaveEmissionCoordinatorTests {
                 await recorder.record(publishedSave)
             }
         }
-        await sleepProbe.waitUntilCount(is: 2)
+        #expect(await sleepProbe.waitUntilCount(is: 2))
 
         await sleepProbe.resumeNext()
         try? await Task.sleep(for: .milliseconds(20))
         #expect(await recorder.saves.isEmpty)
 
         await sleepProbe.resumeNext()
-        await recorder.waitUntilCount(is: 1)
+        #expect(await recorder.waitUntilCount(is: 1))
 
         #expect(
             await recorder.saves.map(\.editingConfiguration)
@@ -101,7 +101,7 @@ struct VideoEditorSaveEmissionCoordinatorTests {
                 await recorder.record(publishedSave)
             }
         }
-        await sleepProbe.waitUntilCount(is: 1)
+        #expect(await sleepProbe.waitUntilCount(is: 1))
 
         coordinator.scheduleSave(
             editingConfiguration: transientOnlyChange,
@@ -116,7 +116,7 @@ struct VideoEditorSaveEmissionCoordinatorTests {
         #expect(await sleepProbe.count == 1)
 
         await sleepProbe.resumeNext()
-        await recorder.waitUntilCount(is: 1)
+        #expect(await recorder.waitUntilCount(is: 1))
 
         #expect(
             await recorder.saves.map(\.editingConfiguration)
@@ -148,7 +148,7 @@ struct VideoEditorSaveEmissionCoordinatorTests {
                 await recorder.record(publishedSave)
             }
         }
-        await sleepProbe.waitUntilCount(is: 1)
+        #expect(await sleepProbe.waitUntilCount(is: 1))
 
         coordinator.reset()
         await sleepProbe.resumeNext()
@@ -163,10 +163,10 @@ struct VideoEditorSaveEmissionCoordinatorTests {
                 await recorder.record(publishedSave)
             }
         }
-        await sleepProbe.waitUntilCount(is: 2)
+        #expect(await sleepProbe.waitUntilCount(is: 2))
 
         await sleepProbe.resumeNext()
-        await recorder.waitUntilCount(is: 1)
+        #expect(await recorder.waitUntilCount(is: 1))
 
         #expect(
             await recorder.saves.map(\.editingConfiguration)
@@ -181,25 +181,33 @@ private actor SaveEmissionSleepProbe {
     // MARK: - Private Properties
 
     private var continuations = [CheckedContinuation<Void, Never>]()
+    private var sleepCallCount = 0
 
     // MARK: - Public Properties
 
     var count: Int {
-        continuations.count
+        sleepCallCount
     }
 
     // MARK: - Public Methods
 
     func sleep() async {
         await withCheckedContinuation { continuation in
+            sleepCallCount += 1
             continuations.append(continuation)
         }
     }
 
-    func waitUntilCount(is expectedCount: Int) async {
-        while continuations.count < expectedCount {
+    func waitUntilCount(is expectedCount: Int) async -> Bool {
+        for _ in 0..<50 {
+            if sleepCallCount >= expectedCount {
+                return true
+            }
+
             try? await Task.sleep(for: .milliseconds(10))
         }
+
+        return false
     }
 
     func resumeNext() {
@@ -223,10 +231,16 @@ private actor SaveEmissionRecorder {
         saves.append(save)
     }
 
-    func waitUntilCount(is expectedCount: Int) async {
-        while saves.count < expectedCount {
+    func waitUntilCount(is expectedCount: Int) async -> Bool {
+        for _ in 0..<50 {
+            if saves.count >= expectedCount {
+                return true
+            }
+
             try? await Task.sleep(for: .milliseconds(10))
         }
+
+        return false
     }
 
 }

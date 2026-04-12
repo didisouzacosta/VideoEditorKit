@@ -168,6 +168,23 @@ struct AudioRecorderManagerTests {
         manager.cancel()
     }
 
+    @Test
+    func recordingProgressWithImmediateSleeperStillYieldsToCancellation() async throws {
+        let recordingURL = URL(fileURLWithPath: "/tmp/injected-yield.m4a")
+        let recorder = AudioRecorderDouble(url: recordingURL)
+        let tracker = AudioRecorderDependencyTracker(recorder: recorder)
+        let manager = AudioRecorderManager(dependencies: tracker.makeDependencies(recordingURL: recordingURL))
+
+        manager.startRecording(recordMaxTime: 4)
+        await Task.yield()
+
+        manager.cancel()
+
+        #expect(recorder.stopCallCount == 1)
+        #expect(manager.controlState == .empty)
+        #expect(manager.recordState == .empty)
+    }
+
 }
 
 private final class AudioRecorderDouble: AudioRecorderControlling {

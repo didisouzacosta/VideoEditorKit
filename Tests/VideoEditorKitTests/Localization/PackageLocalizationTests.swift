@@ -109,6 +109,15 @@ struct PackageLocalizationTests {
     // MARK: - Private Methods
 
     private func moduleResourceBundle() throws -> Bundle {
+        let testBundle = Bundle(for: PackageLocalizationBundleProbe.self)
+
+        if let packageResourceBundle = testBundle.url(
+            forResource: "VideoEditorKit_VideoEditorKit",
+            withExtension: "bundle"
+        ).flatMap(Bundle.init(url:)) {
+            return packageResourceBundle
+        }
+
         let candidateBundles = Bundle.allBundles + Bundle.allFrameworks
         let bundle = candidateBundles.first { bundle in
             bundle.url(forResource: "preview", withExtension: "mp4") != nil
@@ -128,3 +137,5 @@ struct PackageLocalizationTests {
     }
 
 }
+
+private final class PackageLocalizationBundleProbe {}

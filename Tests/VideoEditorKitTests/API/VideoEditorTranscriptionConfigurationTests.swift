@@ -9,29 +9,6 @@ struct EditorTranscriptionConfigTests {
 
     @MainActor
     @Test
-    func appleSpeechKeepsThePreferredLocaleAndCreatesAStatefulProvider() {
-        let configuration = VideoEditorView.Configuration.TranscriptionConfiguration.appleSpeech(
-            preferredLocale: "pt-BR"
-        )
-
-        #expect(configuration.preferredLocale == "pt-BR")
-        #expect(configuration.provider != nil)
-        #expect((configuration.provider as? any VideoTranscriptionComponentProtocol) != nil)
-        #expect(configuration.isConfigured)
-    }
-
-    @MainActor
-    @Test
-    func appleSpeechCreatesAProviderWithoutAPreferredLocale() {
-        let configuration = VideoEditorView.Configuration.TranscriptionConfiguration.appleSpeech()
-
-        #expect(configuration.preferredLocale == nil)
-        #expect(configuration.provider != nil)
-        #expect(configuration.isConfigured)
-    }
-
-    @MainActor
-    @Test
     func openAIWhisperReturnsAnUnconfiguredStateWhenTheAPIKeyIsBlank() {
         let configuration = VideoEditorView.Configuration.TranscriptionConfiguration.openAIWhisper(
             apiKey: "   "

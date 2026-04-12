@@ -49,7 +49,7 @@ struct OpenAIWhisperTranscriptionComponentTests {
 
         await waitForState(of: component, equals: .loading)
 
-        let capturedRequest = try #require(await requestProbe.lastRequest())
+        let capturedRequest = try #require(await waitForLastRequest(on: requestProbe))
         #expect(capturedRequest.audioFileURL == extractedAudioURL)
         #expect(capturedRequest.language == "pt-BR")
         #expect(capturedRequest.model == "whisper-1")
@@ -209,6 +209,21 @@ struct OpenAIWhisperTranscriptionComponentTests {
         }
 
         Issue.record("Timed out waiting for component state \(expectedState).")
+    }
+
+    private func waitForLastRequest(
+        on requestProbe: RequestProbe
+    ) async -> OpenAIWhisperAPIClient.Request? {
+        for _ in 0..<50 {
+            if let request = await requestProbe.lastRequest() {
+                return request
+            }
+
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+
+        Issue.record("Timed out waiting for the Whisper transcription request.")
+        return nil
     }
 
 }

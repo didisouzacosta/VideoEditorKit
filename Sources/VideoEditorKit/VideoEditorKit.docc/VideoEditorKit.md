@@ -123,12 +123,9 @@ For most host apps:
 
 For custom caption workflows:
 
-1. Use `VideoEditorConfiguration.TranscriptionConfiguration.appleSpeech(preferredLocale:)` when you want the built-in Apple Speech integration.
-2. Use `VideoEditorConfiguration.TranscriptionConfiguration.openAIWhisper(apiKey:preferredLocale:)` when you want the built-in OpenAI Whisper integration.
-3. Implement `VideoTranscriptionProvider` and pass it through `VideoEditorConfiguration.TranscriptionConfiguration` when you already have a custom speech-to-text backend.
-4. Persist the resulting `VideoEditingConfiguration.transcript` state with the rest of the editing snapshot.
-
-Apple Speech does not require an API key. It uses the system Speech framework, so the host app is still responsible for its own Speech recognition usage description and for choosing an appropriate `preferredLocale` when the spoken language is known.
+1. Use `VideoEditorConfiguration.TranscriptionConfiguration.openAIWhisper(apiKey:preferredLocale:)` when you want the built-in OpenAI Whisper integration.
+2. Implement `VideoTranscriptionProvider` and pass it through `VideoEditorConfiguration.TranscriptionConfiguration` when you already have a custom speech-to-text backend.
+3. Persist the resulting `VideoEditingConfiguration.transcript` state with the rest of the editing snapshot.
 
 For custom crop or preview tooling:
 

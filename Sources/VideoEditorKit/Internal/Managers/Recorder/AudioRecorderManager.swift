@@ -195,6 +195,8 @@ final class AudioRecorderManager: NSObject {
                 } catch {
                     return
                 }
+
+                await Task.yield()
             }
         }
     }

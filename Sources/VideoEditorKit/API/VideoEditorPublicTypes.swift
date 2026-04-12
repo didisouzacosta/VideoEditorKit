@@ -139,17 +139,6 @@ public struct VideoEditorConfiguration {
 
         // MARK: - Public Methods
 
-        /// Creates an Apple Speech-backed transcription configuration for on-device or
-        /// system-provided speech recognition.
-        public static func appleSpeech(
-            preferredLocale: String? = nil
-        ) -> Self {
-            .init(
-                provider: AppleSpeechTranscriptionComponent(),
-                preferredLocale: preferredLocale
-            )
-        }
-
         /// Creates an OpenAI Whisper-backed transcription configuration when an API key is
         /// available.
         public static func openAIWhisper(

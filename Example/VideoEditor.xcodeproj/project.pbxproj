@@ -373,7 +373,6 @@
 				INFOPLIST_KEY_NSCameraUsageDescription = "Allow camera access to record videos inside the editor.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Allow microphone access to record narration and capture audio in the editor.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Allow photo library access to import videos and save rendered exports.";
-				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Allow speech recognition to generate local transcripts from your videos.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -412,7 +411,6 @@
 				INFOPLIST_KEY_NSCameraUsageDescription = "Allow camera access to record videos inside the editor.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Allow microphone access to record narration and capture audio in the editor.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Allow photo library access to import videos and save rendered exports.";
-				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Allow speech recognition to generate local transcripts from your videos.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
