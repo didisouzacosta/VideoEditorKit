@@ -29,6 +29,7 @@ A evolucao deve permitir que o host controle:
 O package ja tem uma base publica de transcricao:
 
 - `VideoEditorConfiguration.TranscriptionConfiguration` injeta o provider de transcricao.
+- `VideoEditorConfiguration` ainda nao tem uma sessao dedicada para estilos de transcricao.
 - `TranscriptStyle` modela parte do estilo visual atual.
 - `TranscriptTextStyleResolver` resolve atributos de texto para preview e export.
 - `TranscriptOverlayLayoutResolver` calcula geometria de preview e export.
@@ -150,14 +151,16 @@ struct BrandTranscriptStyle: VideoTranscriptStyleModel {
 
 ### Configuracao
 
-Adicionar o provider na configuracao de transcricao:
+Adicionar uma sessao dedicada de estilos na configuracao do editor:
 
 ```swift
 let configuration = VideoEditorConfiguration(
+    transcriptStyles: .init(
+        provider: BrandTranscriptStyleProvider()
+    ),
     transcription: .init(
         provider: MyTranscriptionProvider(),
-        preferredLocale: "pt-BR",
-        styleProvider: BrandTranscriptStyleProvider()
+        preferredLocale: "pt-BR"
     )
 )
 ```
@@ -190,7 +193,7 @@ Regras:
 ## Fluxo de preview
 
 1. `VideoEditorView` recebe `VideoEditorConfiguration`.
-2. A runtime config resolve o catalogo do `VideoTranscriptStyleProvider`.
+2. A runtime config resolve o catalogo do `VideoTranscriptStyleProvider` a partir de `configuration.transcriptStyles`.
 3. `EditorViewModel` ou um coordinator dedicado guarda os estilos resolvidos da sessao e o estilo selecionado.
 4. `PlayerHolderView` passa o estilo resolvido selecionado para `TranscriptOverlayPreview`.
 5. `TranscriptOverlayLayoutResolver` recebe `wordsPerCaption` e monta uma janela de palavras ao redor da palavra ativa.
@@ -294,7 +297,7 @@ Para agentes com `xcodebuildmcp`, preferir `build_sim` e `test_sim`.
 ### Fase 1: Contratos publicos
 
 - criar os protocolos e modelos concretos resolvidos.
-- adicionar `styleProvider` em `VideoEditorConfiguration.TranscriptionConfiguration`.
+- adicionar uma sessao `VideoEditorConfiguration.TranscriptStyleConfiguration`.
 - manter fallback para o estilo atual.
 - persistir `selectedStyleIdentifier`.
 - adicionar testes de normalizacao e fallback.
@@ -330,7 +333,7 @@ Para agentes com `xcodebuildmcp`, preferir `build_sim` e `test_sim`.
 
 ## Criterios de aceite
 
-- O host consegue customizar fonte, cor, stroke, alinhamento, quantidade de palavras visiveis, destaque ativo e fundo da palavra ativa implementando protocolos publicos.
+- O host consegue customizar fonte, cor, stroke, alinhamento, quantidade de palavras visiveis, destaque ativo e fundo da palavra ativa implementando protocolos publicos dentro de uma sessao dedicada de estilos.
 - O editor continua funcionando sem nenhuma configuracao extra.
 - A UI do VideoEditorKit exibe um submenu de selecao de estilos, mas nao cria nem edita estilos.
 - Preview e export usam a mesma politica resolvida.

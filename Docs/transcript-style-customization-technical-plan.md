@@ -21,7 +21,7 @@ Com os novos requisitos, o editor deve:
 ## Principios de implementacao
 
 - A API publica deve ser baseada em protocolos simples.
-- O provider do host deve entrar por `VideoEditorConfiguration.TranscriptionConfiguration`.
+- O provider de estilos do host deve entrar por uma sessao dedicada em `VideoEditorConfiguration`, separada de `TranscriptionConfiguration`.
 - O package deve resolver o catalogo do provider para modelos concretos antes de preview/export.
 - `VideoEditingConfiguration` nao deve armazenar provider, closures ou existentials.
 - Preview e export devem consumir a mesma politica resolvida.
@@ -156,29 +156,44 @@ Regras de normalizacao:
 
 ## Mudanca em `VideoEditorConfiguration`
 
-Evoluir `VideoEditorConfiguration.TranscriptionConfiguration`:
+Adicionar uma sessao dedicada:
+
+```swift
+public struct VideoEditorConfiguration {
+    public struct TranscriptStyleConfiguration {
+        public init(
+            provider: (any VideoTranscriptStyleProvider)? = nil
+        )
+
+        public var provider: (any VideoTranscriptStyleProvider)?
+    }
+}
+```
+
+E evoluir o objeto principal:
 
 ```swift
 public init(
-    provider: (any VideoTranscriptionProvider)? = nil,
-    preferredLocale: String? = nil,
-    styleProvider: (any VideoTranscriptStyleProvider)? = nil
+    tools: [ToolAvailability] = ToolAvailability.enabled(ToolEnum.all),
+    exportQualities: [ExportQualityAvailability] = ExportQualityAvailability.allEnabled,
+    transcription: TranscriptionConfiguration? = nil,
+    transcriptStyles: TranscriptStyleConfiguration? = nil,
+    maximumVideoDuration: TimeInterval? = nil,
 )
 ```
 
-Adicionar:
+Na forma real do tipo, isso significa:
 
 ```swift
-public var styleProvider: (any VideoTranscriptStyleProvider)? {
-    explicitStyleProvider
-}
+public let transcriptStyles: TranscriptStyleConfiguration?
+public let transcription: TranscriptionConfiguration?
 ```
 
 Manter compatibilidade:
 
-- o init atual continua funcionando porque `styleProvider` tem default `nil`.
-- `.openAIWhisper(apiKey:preferredLocale:)` deve aceitar um overload ou parametro default opcional `styleProvider`.
-- quando `styleProvider == nil`, usar um catalogo com `ResolvedTranscriptStyle.defaultCaptionStyle`.
+- `TranscriptionConfiguration` continua responsavel apenas por provider e locale.
+- `TranscriptStyleConfiguration` fica responsavel apenas pelo catalogo de estilos.
+- quando `transcriptStyles == nil`, usar um catalogo com `ResolvedTranscriptStyle.defaultCaptionStyle`.
 
 ## Resolvedor de estilo
 
@@ -212,7 +227,7 @@ Essa camada deve ser coberta por testes sem tocar em SwiftUI nem AVFoundation.
 
 Em `VideoEditorView+Runtime.bootstrapEditorContent(...)`:
 
-1. Ler `configuration.transcription?.styleProvider`.
+1. Ler `configuration.transcriptStyles?.provider`.
 2. Resolver o catalogo com `VideoTranscriptStyleResolver`.
 3. Passar estilos resolvidos para `EditorViewModel.configureTranscription(...)`.
 
@@ -468,9 +483,9 @@ Atualizar testes de export helpers:
 
 Atualizar teste de configuracao publica:
 
-- `TranscriptionConfiguration` preserva provider existente.
-- `TranscriptionConfiguration` aceita `styleProvider`.
-- `.openAIWhisper` aceita estilo sem exigir provider customizado de transcricao.
+- `TranscriptionConfiguration` preserva provider e locale existentes.
+- `TranscriptStyleConfiguration` aceita o provider de estilos.
+- `.openAIWhisper` continua focado apenas em transcricao.
 
 ## Ordem de implementacao
 
@@ -479,7 +494,7 @@ Atualizar teste de configuracao publica:
 1. Criar `VideoTranscriptStyleProvider.swift`.
 2. Adicionar `ResolvedTranscriptStyle.defaultCaptionStyle`.
 3. Implementar `VideoTranscriptStyleResolver`.
-4. Evoluir `TranscriptionConfiguration`.
+4. Criar `TranscriptStyleConfiguration` em `VideoEditorConfiguration`.
 5. Adicionar `selectedStyleIdentifier` em `TranscriptDocument`.
 6. Adicionar testes unitarios da API.
 
@@ -549,7 +564,7 @@ Atualizar teste de configuracao publica:
 
 ## Criterios de aceite tecnicos
 
-- O host consegue passar `styleProvider` via `VideoEditorConfiguration.TranscriptionConfiguration`.
+- O host consegue passar o provider de estilos via uma sessao dedicada de estilos em `VideoEditorConfiguration`.
 - Sem provider, a transcricao continua igual ao comportamento atual.
 - `wordsPerCaption` controla a quantidade de palavras visiveis no preview.
 - `highlightsActiveWord` controla o destaque no preview.
