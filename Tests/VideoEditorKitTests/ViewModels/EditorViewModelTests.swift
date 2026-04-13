@@ -1786,7 +1786,7 @@ struct EditorViewModelTests {
         viewModel.reset(.speed, videoPlayer: videoPlayer)
         viewModel.updateRate(rate: 1.5)
 
-        await sleepProbe.resumeNext()
+        await sleepProbe.resumeNextWhenAvailable()
         try? await Task.sleep(for: .milliseconds(10))
 
         #expect(abs(Double(viewModel.currentVideo?.rate ?? 0) - 1.5) < 0.0001)
@@ -1945,6 +1945,44 @@ struct EditorViewModelTests {
         try? await Task.sleep(for: .milliseconds(10))
 
         #expect(viewModel.currentVideo?.isAppliedTool(for: .speed) == true)
+    }
+
+    @Test
+    func pendingToolResetClearsTheAppliedStateAfterDelay() async {
+        let sleepProbe = DeferredSleepProbe()
+        let viewModel = EditorViewModel(
+            .init(
+                loadVideo: { await Video.load(from: $0) },
+                makeThumbnails: { video, containerSize, displayScale in
+                    await video.makeThumbnails(
+                        containerSize: containerSize,
+                        displayScale: displayScale
+                    )
+                },
+                sleep: { _ in
+                    try await sleepProbe.sleep()
+                    try Task.checkCancellation()
+                }
+            )
+        )
+        let videoPlayer = VideoPlayerManager()
+        var video = Video.mock
+        video.rate = 2
+        video.appliedTool(for: .speed)
+        viewModel.currentVideo = video
+        viewModel.selectTool(.speed)
+
+        viewModel.reset(.speed, videoPlayer: videoPlayer)
+
+        #expect(viewModel.currentVideo?.isAppliedTool(for: .speed) == true)
+
+        await sleepProbe.resumeNextWhenAvailable()
+
+        for _ in 0..<50 where viewModel.currentVideo?.isAppliedTool(for: .speed) != false {
+            await Task.yield()
+        }
+
+        #expect(viewModel.currentVideo?.isAppliedTool(for: .speed) == false)
     }
 
     @Test
@@ -2239,6 +2277,14 @@ private actor DeferredSleepProbe {
 
     func resumeNext() {
         guard !continuations.isEmpty else { return }
+        continuations.removeFirst().resume()
+    }
+
+    func resumeNextWhenAvailable() async {
+        while continuations.isEmpty {
+            await Task.yield()
+        }
+
         continuations.removeFirst().resume()
     }
 

@@ -2,7 +2,7 @@
 
 ## Objetivo tecnico
 
-Implementar customizacao de estilo de transcricao como configuracao runtime fornecida pelo app host, sem criar UI interna no `VideoEditorKit` e sem persistir tipos do host dentro de `VideoEditingConfiguration`.
+Implementar customizacao de estilo de transcricao como configuracao runtime fornecida pelo app host, sem criar UI interna de autoria de estilos no `VideoEditorKit` e sem persistir tipos do host dentro de `VideoEditingConfiguration`.
 
 O comportamento atual deve continuar sendo o fallback:
 
@@ -11,13 +11,21 @@ O comportamento atual deve continuar sendo o fallback:
 - alinhamento centralizado
 - uma palavra ativa por vez
 
+Com os novos requisitos, o editor deve:
+
+- suportar cor de fundo na palavra ativa
+- exibir um submenu de estilos na secao `Layout` da tela de transcricoes
+- listar os estilos fornecidos pelo host com um exemplo visual
+- persistir o identificador do estilo selecionado no snapshot
+
 ## Principios de implementacao
 
 - A API publica deve ser baseada em protocolos simples.
 - O provider do host deve entrar por `VideoEditorConfiguration.TranscriptionConfiguration`.
-- O package deve resolver o protocolo para um modelo concreto antes de preview/export.
+- O package deve resolver o catalogo do provider para modelos concretos antes de preview/export.
 - `VideoEditingConfiguration` nao deve armazenar provider, closures ou existentials.
 - Preview e export devem consumir a mesma politica resolvida.
+- A UI do editor pode selecionar um estilo, mas nao pode criar ou editar estilos.
 - A mudanca deve manter compatibilidade com snapshots antigos de transcricao.
 - Novos testes devem usar Swift Testing.
 - Validacao oficial deve seguir o runtime de iOS Simulator.
@@ -37,6 +45,7 @@ Runtime do editor:
 - `Sources/VideoEditorKit/Internal/ViewModels/EditorViewModel.swift`
 - `Sources/VideoEditorKit/Internal/Editing/HostedVideoEditorPlayerStageCoordinator.swift`
 - `Sources/VideoEditorKit/Views/Player/PlayerHolderView.swift`
+- `Sources/VideoEditorKit/Internal/Editing/EditorInitialLoadCoordinator.swift`
 
 Preview/layout:
 
@@ -44,6 +53,7 @@ Preview/layout:
 - `Sources/VideoEditorKit/Transcription/TranscriptOverlayLayoutResolver.swift`
 - `Sources/VideoEditorKit/Transcription/TranscriptTextStyleResolver.swift`
 - novo arquivo sugerido: `Sources/VideoEditorKit/Transcription/TranscriptWordWindowResolver.swift`
+- novo arquivo sugerido: `Sources/VideoEditorKit/Views/Tools/Transcript/TranscriptStyleListRow.swift`
 
 Export:
 
@@ -58,6 +68,7 @@ Testes:
 - novo arquivo sugerido: `Tests/VideoEditorKitTests/Transcription/TranscriptWordWindowResolverTests.swift`
 - `Tests/VideoEditorKitTests/TranscriptOverlayLayoutResolverTests.swift`
 - `Tests/VideoEditorKitTests/TranscriptTextStyleResolverTests.swift`
+- novo arquivo sugerido: `Tests/VideoEditorKitTests/Views/TranscriptToolViewTests.swift`
 - testes de export helpers em `Tests/VideoEditorKitTests/Models/` se o helper ficar em `VideoEditor`.
 
 ## Contratos publicos propostos
@@ -66,9 +77,13 @@ Adicionar um provider host-facing:
 
 ```swift
 public protocol VideoTranscriptStyleProvider: Sendable {
-    func transcriptStyle(
+    func transcriptStyles(
         for context: VideoTranscriptStyleContext
-    ) -> any VideoTranscriptStyleModel
+    ) -> [any VideoTranscriptStyleModel]
+
+    func defaultStyleIdentifier(
+        for context: VideoTranscriptStyleContext
+    ) -> String?
 }
 ```
 
@@ -85,6 +100,7 @@ public protocol VideoTranscriptStyleModel: Sendable {
     var wordsPerCaption: Int { get }
     var highlightsActiveWord: Bool { get }
     var activeWordTextColor: RGBAColor? { get }
+    var activeWordBackgroundColor: RGBAColor? { get }
 }
 ```
 
@@ -124,6 +140,7 @@ public struct ResolvedTranscriptStyle: Hashable, Sendable {
     public var wordsPerCaption: Int
     public var highlightsActiveWord: Bool
     public var activeWordTextColor: RGBAColor?
+    public var activeWordBackgroundColor: RGBAColor?
 }
 ```
 
@@ -134,6 +151,7 @@ Regras de normalizacao:
 - `wordsPerCaption` fica limitado a `1...8`.
 - `stroke.width <= 0` remove o stroke.
 - `activeWordTextColor == nil` cai para `textColor`.
+- `activeWordBackgroundColor == nil` desabilita a camada de fundo da palavra ativa.
 - fonte customizada inexistente cai para `fallbackWeight` com system font.
 
 ## Mudanca em `VideoEditorConfiguration`
@@ -160,7 +178,7 @@ Manter compatibilidade:
 
 - o init atual continua funcionando porque `styleProvider` tem default `nil`.
 - `.openAIWhisper(apiKey:preferredLocale:)` deve aceitar um overload ou parametro default opcional `styleProvider`.
-- quando `styleProvider == nil`, usar `ResolvedTranscriptStyle.defaultCaptionStyle`.
+- quando `styleProvider == nil`, usar um catalogo com `ResolvedTranscriptStyle.defaultCaptionStyle`.
 
 ## Resolvedor de estilo
 
@@ -168,9 +186,14 @@ Criar um resolvedor puro:
 
 ```swift
 public enum VideoTranscriptStyleResolver {
-    public static func resolve(
+    public static func resolveStyles(
         provider: (any VideoTranscriptStyleProvider)?,
         context: VideoTranscriptStyleContext
+    ) -> [ResolvedTranscriptStyle]
+
+    public static func resolveSelectedStyle(
+        availableStyles: [ResolvedTranscriptStyle],
+        selectedStyleIdentifier: String?
     ) -> ResolvedTranscriptStyle
 }
 ```
@@ -178,9 +201,10 @@ public enum VideoTranscriptStyleResolver {
 Responsabilidades:
 
 - chamar o provider quando existir.
-- converter `VideoTranscriptStyleModel` em `ResolvedTranscriptStyle`.
+- converter `[VideoTranscriptStyleModel]` em `[ResolvedTranscriptStyle]`.
 - aplicar normalizacao.
-- retornar fallback quando nao houver provider.
+- retornar fallback quando nao houver provider ou quando o catalogo vier vazio.
+- escolher o estilo selecionado com base em `selectedStyleIdentifier` persistido no documento ou no `defaultStyleIdentifier`.
 
 Essa camada deve ser coberta por testes sem tocar em SwiftUI nem AVFoundation.
 
@@ -189,8 +213,8 @@ Essa camada deve ser coberta por testes sem tocar em SwiftUI nem AVFoundation.
 Em `VideoEditorView+Runtime.bootstrapEditorContent(...)`:
 
 1. Ler `configuration.transcription?.styleProvider`.
-2. Resolver com `VideoTranscriptStyleResolver`.
-3. Passar para `EditorViewModel.configureTranscription(...)`.
+2. Resolver o catalogo com `VideoTranscriptStyleResolver`.
+3. Passar estilos resolvidos para `EditorViewModel.configureTranscription(...)`.
 
 Evoluir a assinatura de `EditorViewModel.configureTranscription`:
 
@@ -198,7 +222,8 @@ Evoluir a assinatura de `EditorViewModel.configureTranscription`:
 func configureTranscription(
     provider: (any VideoTranscriptionProvider)?,
     preferredLocale: String? = nil,
-    style: ResolvedTranscriptStyle = .defaultCaptionStyle
+    availableStyles: [ResolvedTranscriptStyle] = [.defaultCaptionStyle],
+    defaultStyleIdentifier: String? = nil
 )
 ```
 
@@ -206,9 +231,22 @@ Adicionar no `EditorViewModel`:
 
 ```swift
 var transcriptStyle: ResolvedTranscriptStyle = .defaultCaptionStyle
+var availableTranscriptStyles: [ResolvedTranscriptStyle] = [.defaultCaptionStyle]
 ```
 
-Usar esse valor para preview e export. Ele e runtime state, nao snapshot persistido.
+O `EditorViewModel` tambem precisa expor uma action para selecao:
+
+```swift
+func updateSelectedTranscriptStyle(_ identifier: String)
+```
+
+Esse metodo deve:
+
+- validar se o identificador existe no catalogo runtime
+- atualizar `transcriptDraftDocument?.selectedStyleIdentifier`
+- refletir a mudanca no preview imediatamente
+
+Os estilos continuam sendo runtime state. O que vai para o snapshot e apenas o identificador selecionado.
 
 ## Preview
 
@@ -219,6 +257,7 @@ Mudanca:
 - `HostedVideoEditorPlayerStageCoordinator.TranscriptOverlayContext` deve carregar `transcriptStyle`.
 - `PlayerHolderView.transcriptOverlay` deve passar o estilo resolvido.
 - `TranscriptOverlayPreview` deve trocar `TranscriptStyle?` por `ResolvedTranscriptStyle`.
+- o preview deve suportar fundo colorido para a palavra ativa quando configurado.
 
 O `TranscriptTextStyleResolver` deve aceitar `ResolvedTranscriptStyle` diretamente ou ter overloads:
 
@@ -234,6 +273,21 @@ public static func attributedString(
 ```
 
 Para reduzir risco, manter overloads existentes com `TranscriptStyle` durante a migracao.
+
+## Mudanca no `TranscriptDocument`
+
+Adicionar persistencia do estilo selecionado:
+
+```swift
+public var selectedStyleIdentifier: String?
+```
+
+Regras:
+
+- default `nil`, que significa usar o default do catalogo.
+- ao decodificar snapshots antigos, continuar ignorando `availableStyles`.
+- se houver `selectedStyleID` legado em UUID, converter para `uuidString` como fallback.
+- nao persistir a lista de estilos, apenas o identificador selecionado.
 
 ## Agrupamento de palavras
 
@@ -271,8 +325,39 @@ No preview:
 
 - se `highlightsActiveWord == false`, renderizar todas as palavras da janela com `textColor`.
 - se `highlightsActiveWord == true`, renderizar palavra ativa com `activeWordTextColor ?? textColor`.
+- se `activeWordBackgroundColor != nil`, renderizar uma capsula ou retangulo arredondado atras da palavra ativa.
 
 Evitar sincronizacao bidirecional com `@State`: o destaque deve ser derivado de `activeWordID`, `wordsPerCaption` e `ResolvedTranscriptStyle`.
+
+## Submenu de estilos na tela de transcricoes
+
+`TranscriptToolView` hoje ja tem uma secao `Layout` com `positionPicker` e `sizePicker`. A entrega deve ampliar essa secao com um submenu de estilos.
+
+API esperada para a view:
+
+```swift
+let availableStyles: [ResolvedTranscriptStyle]
+let onUpdateStyle: (String) -> Void
+```
+
+Comportamento:
+
+- abaixo de posicao e tamanho, exibir uma linha `Styles`.
+- ao tocar nessa linha, abrir um destino push ou submenu de lista.
+- a lista deve mostrar todos os estilos do host.
+- cada item deve exibir:
+  - nome do estilo
+  - preview visual com sample text
+  - estado selecionado
+- a acao da linha chama `onUpdateStyle(style.identifier)`.
+
+Sample recomendado para preview:
+
+- usar um texto curto fixo, por exemplo `"Hello brave world"`
+- usar a palavra central como ativa no preview do item
+- respeitar `wordsPerCaption`, highlight de texto e background highlight
+
+Se `availableStyles.count <= 1`, a UI pode esconder o submenu e manter apenas o estilo unico.
 
 ## Export
 
@@ -310,21 +395,24 @@ Em `resolvedTranscriptRenderUnits(...)`:
 - quando `wordsPerCaption == 1`, manter comportamento equivalente ao atual.
 - quando `wordsPerCaption > 1`, criar render units com texto composto por janela de palavras.
 - quando `highlightsActiveWord == true`, carregar metadados suficientes para pintar a palavra ativa dentro da janela, ou usar camadas separadas para base + palavra ativa.
+- quando `activeWordBackgroundColor != nil`, desenhar tambem a camada de fundo da palavra ativa.
 
 Decisao tecnica para menor risco:
 
 - Fase 3A: export com `wordsPerCaption` e sem cor diferente por subrange, mantendo a janela inteira na cor base quando `highlightsActiveWord == false`.
 - Fase 3B: adicionar destaque ativo no export usando composicao de camadas ou rasterizacao semelhante ao caminho de palavra ativa atual.
+- Fase 3C: adicionar background highlight no export com shape rasterizada ou `CALayer` dedicada.
 
 ## Persistencia
 
-Nao alterar `VideoEditingConfiguration` na primeira entrega.
+Alterar `VideoEditingConfiguration` apenas para persistir o identificador do estilo selecionado.
 
 Manter:
 
 - `TranscriptDocument.segments`
 - `TranscriptDocument.overlayPosition`
 - `TranscriptDocument.overlaySize`
+- `TranscriptDocument.selectedStyleIdentifier`
 
 Nao persistir:
 
@@ -346,7 +434,9 @@ Criar `VideoTranscriptStyleResolverTests`:
 - `resolveClampsWordsPerCaption`
 - `resolveDropsInvalidStrokeWidth`
 - `resolveUsesBaseTextColorWhenActiveWordColorIsNil`
+- `resolvePreservesActiveWordBackgroundColor`
 - `resolvePreservesCustomFontDescriptor`
+- `resolveFallsBackWhenSelectedIdentifierDoesNotExist`
 
 Criar `TranscriptWordWindowResolverTests`:
 
@@ -361,6 +451,14 @@ Atualizar `TranscriptOverlayLayoutResolverTests`:
 
 - garantir que `wordsPerCaption == 1` preserva layout atual.
 - garantir que `wordsPerCaption > 1` gera layout para uma janela de palavras.
+- garantir que a palavra ativa pode reservar fundo visual sem quebrar alinhamento.
+
+Criar `TranscriptToolViewTests`:
+
+- renderiza submenu de estilos quando ha mais de um estilo
+- esconde submenu quando ha um unico estilo
+- mostra preview por item
+- marca o item selecionado
 
 Atualizar testes de export helpers:
 
@@ -382,33 +480,44 @@ Atualizar teste de configuracao publica:
 2. Adicionar `ResolvedTranscriptStyle.defaultCaptionStyle`.
 3. Implementar `VideoTranscriptStyleResolver`.
 4. Evoluir `TranscriptionConfiguration`.
-5. Adicionar testes unitarios da API.
+5. Adicionar `selectedStyleIdentifier` em `TranscriptDocument`.
+6. Adicionar testes unitarios da API.
 
 ### Etapa 2: Runtime e preview
 
 1. Guardar `transcriptStyle` em `EditorViewModel`.
-2. Propagar estilo pelo bootstrap.
-3. Adicionar estilo ao `TranscriptOverlayContext`.
-4. Atualizar `PlayerHolderView`.
-5. Atualizar `TranscriptOverlayPreview`.
-6. Manter overloads legados para `TranscriptStyle`.
+2. Guardar `availableTranscriptStyles` em `EditorViewModel`.
+3. Propagar estilos pelo bootstrap.
+4. Adicionar estilo ao `TranscriptOverlayContext`.
+5. Atualizar `PlayerHolderView`.
+6. Atualizar `TranscriptOverlayPreview`.
+7. Manter overloads legados para `TranscriptStyle`.
 
 ### Etapa 3: Janela de palavras
 
 1. Criar `TranscriptWordWindowResolver`.
 2. Usar no preview.
 3. Ajustar `TranscriptOverlayLayoutResolver`.
-4. Adicionar testes de layout e resolver.
+4. Adicionar fundo da palavra ativa.
+5. Adicionar testes de layout e resolver.
 
-### Etapa 4: Export
+### Etapa 4: Tela de estilos
+
+1. Evoluir `TranscriptToolView`.
+2. Criar row de preview de estilo.
+3. Integrar selecao com `EditorViewModel.updateSelectedTranscriptStyle`.
+4. Cobrir submenu com testes da view.
+
+### Etapa 5: Export
 
 1. Adicionar `transcriptStyle` ao fluxo do exporter.
 2. Passar o estilo ate `VideoEditor.startRender`.
 3. Remover fallback fixo em `resolvedTranscriptStyle(for:)`.
 4. Usar janela de palavras na geracao de render units.
-5. Cobrir comportamento com testes de helpers.
+5. Adicionar background highlight no export.
+6. Cobrir comportamento com testes de helpers.
 
-### Etapa 5: Documentacao e validacao
+### Etapa 6: Documentacao e validacao
 
 1. Atualizar README com exemplos finais da API implementada.
 2. Atualizar DocC com os novos tipos publicos.
@@ -426,8 +535,14 @@ Atualizar teste de configuracao publica:
 - Risco: fonte customizada inexistente causar render inconsistente.
   Mitigacao: resolver fonte com fallback system em `TranscriptTextStyleResolver`.
 
+- Risco: submenu de estilos criar estado duplicado entre UI e snapshot.
+  Mitigacao: usar `selectedStyleIdentifier` em `TranscriptDocument` como unica fonte persistida.
+
 - Risco: highlight parcial no export ficar complexo.
   Mitigacao: entregar primeiro a janela de palavras e manter a cor base, depois adicionar destaque ativo por camada/rasterizacao com testes.
+
+- Risco: background highlight no export gerar geometria diferente do preview.
+  Mitigacao: compartilhar metrica base de texto/fundo entre preview e export sempre que possivel.
 
 - Risco: regressao em snapshots antigos.
   Mitigacao: manter decode legado de `TranscriptStyle` e nao reintroduzir campos obrigatorios em `TranscriptDocument`.
@@ -438,7 +553,10 @@ Atualizar teste de configuracao publica:
 - Sem provider, a transcricao continua igual ao comportamento atual.
 - `wordsPerCaption` controla a quantidade de palavras visiveis no preview.
 - `highlightsActiveWord` controla o destaque no preview.
+- `activeWordBackgroundColor` controla o fundo da palavra ativa no preview.
+- A tela de transcricoes exibe submenu de estilos com lista e preview.
+- O estilo selecionado fica salvo em `selectedStyleIdentifier`.
 - Export recebe o mesmo estilo resolvido do preview.
-- `VideoEditingConfiguration` continua codavel sem provider.
-- Testes de resolver, janela de palavras, preview layout e export helpers passam.
+- `VideoEditingConfiguration` continua codavel sem provider e sem catalogo persistido.
+- Testes de resolver, janela de palavras, preview layout, submenu de estilos e export helpers passam.
 - Validacao iOS Simulator passa com `scripts/test-ios.sh`.

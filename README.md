@@ -231,7 +231,7 @@ For the best editing and export experience, your provider should return:
 
 ## Special Section: Transcript Style Customization Plan
 
-Transcript style customization is planned as a host-provided, protocol-based API. It is not intended to be configured through a built-in `VideoEditorKit` UI.
+Transcript style customization is planned as a host-provided, protocol-based API. Styles are still authored by the host app, but the editor is expected to expose a selection submenu so users can pick among the host-provided styles inside the transcript layout flow.
 
 The current package fallback remains:
 
@@ -257,6 +257,7 @@ The model should be able to define:
 - how many words are shown at once
 - whether the active word is visually highlighted
 - the active-word text color when highlighting is enabled
+- the active-word background color when background highlighting is enabled
 
 ### Planned Style Model Example
 
@@ -279,10 +280,11 @@ struct BrandTranscriptStyle: VideoTranscriptStyleModel {
     let wordsPerCaption = 3
     let highlightsActiveWord = true
     let activeWordTextColor = RGBAColor(red: 1, green: 0.92, blue: 0.2, alpha: 1)
+    let activeWordBackgroundColor = RGBAColor(red: 0.12, green: 0.12, blue: 0.12, alpha: 0.82)
 }
 ```
 
-With this style, the editor would render up to three transcript words at a time and tint the currently spoken word with `activeWordTextColor`.
+With this style, the editor would render up to three transcript words at a time, tint the currently spoken word with `activeWordTextColor`, and paint a background highlight behind that active word.
 
 ### Planned Style Provider Example
 
@@ -290,15 +292,24 @@ With this style, the editor would render up to three transcript words at a time 
 import VideoEditorKit
 
 struct BrandTranscriptStyleProvider: VideoTranscriptStyleProvider {
-    func transcriptStyle(
+    func transcriptStyles(
         for context: VideoTranscriptStyleContext
-    ) -> any VideoTranscriptStyleModel {
-        BrandTranscriptStyle()
+    ) -> [any VideoTranscriptStyleModel] {
+        [
+            BrandTranscriptStyle(),
+            BrandCompactTranscriptStyle(),
+        ]
+    }
+
+    func defaultStyleIdentifier(
+        for context: VideoTranscriptStyleContext
+    ) -> String? {
+        BrandTranscriptStyle().identifier
     }
 }
 ```
 
-The provider is intentionally small. If your app has multiple brands, templates, or project types, use the context to return a different style model from your own app layer. `VideoEditorKit` should not present a style picker for this flow.
+The provider is intentionally small. If your app has multiple brands, templates, or project types, use the context to return a different style catalog from your own app layer. `VideoEditorKit` should not create or edit styles, but it should present a style-selection list inside the transcript layout UI.
 
 ### Planned Configuration Example
 
@@ -314,7 +325,7 @@ let editorConfiguration = VideoEditorConfiguration(
 )
 ```
 
-The style provider should be treated as runtime configuration, not as persisted document state. Your app should persist `VideoEditingConfiguration` as usual; the style provider should be supplied again when opening the editor.
+The style provider should be treated as runtime configuration, not as persisted document state. Your app should persist `VideoEditingConfiguration` as usual; the style provider should be supplied again when opening the editor, while the selected style identifier is expected to live inside the editing snapshot.
 
 ### Word Display Rules
 
@@ -330,6 +341,19 @@ The style provider should be treated as runtime configuration, not as persisted 
 - `false` renders every visible word with the base text style.
 - `true` keeps the visible word group on screen and applies the active-word override to the spoken word.
 - If `activeWordTextColor` is `nil`, the active word should use the base `textColor`.
+- If `activeWordBackgroundColor` is `nil`, no background highlight should be rendered for the active word.
+
+### Planned Layout Submenu
+
+Inside the transcript screen, the `Layout` section is expected to gain a `Styles` submenu.
+
+That submenu should:
+
+- list every host-provided style
+- show a visual example for each style
+- indicate the selected style
+- apply the new style immediately in the editor preview
+- persist only the selected style identifier in the editing snapshot
 
 ### Preview And Export Expectations
 

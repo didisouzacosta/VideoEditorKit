@@ -317,7 +317,9 @@ final class EditorViewModel {
         ) { [weak self] in
             guard let self else { return }
 
-            currentVideo?.removeTool(for: tool)
+            updateCurrentVideo { currentVideo in
+                currentVideo.removeTool(for: tool)
+            }
             markEditingConfigurationChanged()
         }
     }
@@ -1043,13 +1045,17 @@ final class EditorViewModel {
     private func syncCropToolState() {
         guard let currentVideo else { return }
 
-        if HostEditorCropEditingCoordinator.shouldApplyPresetTool(
+        let shouldApplyPresetTool = HostEditorCropEditingCoordinator.shouldApplyPresetTool(
             for: currentVideo,
             state: cropEditingState
-        ) {
-            self.currentVideo?.appliedTool(for: .presets)
-        } else {
-            self.currentVideo?.removeTool(for: .presets)
+        )
+
+        updateCurrentVideo { currentVideo in
+            if shouldApplyPresetTool {
+                currentVideo.appliedTool(for: .presets)
+            } else {
+                currentVideo.removeTool(for: .presets)
+            }
         }
     }
 
@@ -1092,8 +1098,10 @@ final class EditorViewModel {
     }
 
     private func resetToolPresets() {
-        currentVideo?.rotation = 0
-        currentVideo?.isMirror = false
+        updateCurrentVideo { currentVideo in
+            currentVideo.rotation = 0
+            currentVideo.isMirror = false
+        }
         applyCropEditingState(.initial)
     }
 
@@ -1105,7 +1113,9 @@ final class EditorViewModel {
             return
         }
 
-        currentVideo?.setVolume(1.0)
+        updateCurrentVideo { currentVideo in
+            currentVideo.setVolume(1.0)
+        }
         videoPlayer.setVolume(true, value: 1.0)
     }
 
@@ -1142,6 +1152,14 @@ final class EditorViewModel {
             trimRange: currentVideo.rangeDuration,
             playbackRate: currentVideo.rate
         )
+    }
+
+    private func updateCurrentVideo(
+        _ update: (inout Video) -> Void
+    ) {
+        guard var currentVideo else { return }
+        update(&currentVideo)
+        self.currentVideo = currentVideo
     }
 
     private func cancelActiveTranscription() {
