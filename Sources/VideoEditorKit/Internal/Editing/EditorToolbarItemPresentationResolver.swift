@@ -50,7 +50,12 @@ struct EditorToolbarItemPresentationResolver {
             return draftPresentation
         }
 
-        let isApplied = video?.isAppliedTool(for: tool) ?? false
+        let isApplied = committedAppliedState(
+            for: tool,
+            video: video,
+            cropPresentationSummary: cropPresentationSummary,
+            transcriptDocument: transcriptDocument
+        )
 
         return .init(
             title: tool.title,
@@ -221,11 +226,50 @@ struct EditorToolbarItemPresentationResolver {
         }
     }
 
+    private static func committedAppliedState(
+        for tool: ToolEnum,
+        video: Video?,
+        cropPresentationSummary: EditorCropPresentationSummary?,
+        transcriptDocument: TranscriptDocument?
+    ) -> Bool {
+        switch tool {
+        case .cut:
+            committedCutAppliedState(video)
+        case .speed:
+            committedSpeedAppliedState(video)
+        case .presets:
+            committedPresetsAppliedState(cropPresentationSummary)
+        case .audio:
+            committedAudioAppliedState(video)
+        case .adjusts:
+            committedAdjustsAppliedState(video)
+        case .transcript:
+            transcriptDocument != nil
+        }
+    }
+
     private static func speedSubtitle(
         _ video: Video?
     ) -> String? {
         guard let rate = video?.rate else { return nil }
         return VideoEditorStrings.toolbarSpeedSubtitle(rate)
+    }
+
+    private static func committedCutAppliedState(
+        _ video: Video?
+    ) -> Bool {
+        guard let video else { return false }
+
+        return
+            video.rangeDuration.lowerBound > 0
+            || abs(video.rangeDuration.upperBound - video.originalDuration) > 0.001
+    }
+
+    private static func committedSpeedAppliedState(
+        _ video: Video?
+    ) -> Bool {
+        guard let rate = video?.rate else { return false }
+        return abs(Double(rate) - 1.0) > 0.001
     }
 
     private static func presetsSubtitle(
@@ -238,6 +282,18 @@ struct EditorToolbarItemPresentationResolver {
         }
 
         return "\(cropPresentationSummary.badgeTitle) \(cropPresentationSummary.badgeDimension)"
+    }
+
+    private static func committedPresetsAppliedState(
+        _ cropPresentationSummary: EditorCropPresentationSummary?
+    ) -> Bool {
+        guard let cropPresentationSummary else { return false }
+
+        return
+            cropPresentationSummary.selectedPreset != .original
+            || cropPresentationSummary.shouldShowCropOverlay
+            || cropPresentationSummary.shouldShowCanvasResetButton
+            || cropPresentationSummary.socialVideoDestination != nil
     }
 
     private static func presetsDraftSubtitle(
@@ -274,6 +330,14 @@ struct EditorToolbarItemPresentationResolver {
         return percentageString(for: audioDraft.videoVolume)
     }
 
+    private static func committedAudioAppliedState(
+        _ video: Video?
+    ) -> Bool {
+        guard let video else { return false }
+
+        return video.audio != nil || abs(video.volume - 1.0) > 0.001
+    }
+
     private static func adjustsSubtitle(
         _ video: Video?
     ) -> String? {
@@ -283,6 +347,16 @@ struct EditorToolbarItemPresentationResolver {
 
         guard appliedAdjustmentsCount > 0 else { return nil }
         return VideoEditorStrings.toolbarAdjustmentsCount(appliedAdjustmentsCount)
+    }
+
+    private static func committedAdjustsAppliedState(
+        _ video: Video?
+    ) -> Bool {
+        guard let appliedAdjustmentsCount = video?.colorAdjusts.appliedAdjustmentsCount else {
+            return false
+        }
+
+        return appliedAdjustmentsCount > 0
     }
 
     private static func transcriptSubtitle(

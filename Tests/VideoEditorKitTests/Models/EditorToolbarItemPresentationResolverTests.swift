@@ -93,6 +93,58 @@ struct ToolbarItemPresentationTests {
     }
 
     @Test
+    func audioToolIgnoresAStaleAppliedFlagWhenTheAudioStateIsBackAtDefault() {
+        let presentation = EditorToolbarItemPresentationResolver.resolve(
+            for: .audio,
+            video: video(appliedTool: .audio),
+            cropPresentationSummary: nil,
+            transcriptDocument: nil
+        )
+
+        #expect(presentation.isApplied == false)
+        #expect(presentation.subtitle == nil)
+    }
+
+    @Test
+    func speedToolIgnoresAStaleAppliedFlagWhenPlaybackRateIsBackAtDefault() {
+        let presentation = EditorToolbarItemPresentationResolver.resolve(
+            for: .speed,
+            video: video(appliedTool: .speed),
+            cropPresentationSummary: nil,
+            transcriptDocument: nil
+        )
+
+        #expect(presentation.isApplied == false)
+        #expect(presentation.subtitle == nil)
+    }
+
+    @Test
+    func adjustsToolIgnoresAStaleAppliedFlagWhenAllAdjustmentsAreReset() {
+        let presentation = EditorToolbarItemPresentationResolver.resolve(
+            for: .adjusts,
+            video: video(appliedTool: .adjusts),
+            cropPresentationSummary: nil,
+            transcriptDocument: nil
+        )
+
+        #expect(presentation.isApplied == false)
+        #expect(presentation.subtitle == nil)
+    }
+
+    @Test
+    func presetsToolIgnoresAStaleAppliedFlagWhenTheCropSummaryIsOriginal() {
+        let presentation = EditorToolbarItemPresentationResolver.resolve(
+            for: .presets,
+            video: video(appliedTool: .presets),
+            cropPresentationSummary: originalCropPresentationSummary(),
+            transcriptDocument: nil
+        )
+
+        #expect(presentation.isApplied == false)
+        #expect(presentation.subtitle == nil)
+    }
+
+    @Test
     func adjustsToolReportsHowManyControlsAreChanged() {
         var video = video(appliedTool: .adjusts)
         video.colorAdjusts = .init(
@@ -262,6 +314,21 @@ struct ToolbarItemPresentationTests {
         Video(
             url: URL(fileURLWithPath: "/tmp/editor-toolbar-video.mp4"),
             rangeDuration: 0...12
+        )
+    }
+
+    private func originalCropPresentationSummary() -> EditorCropPresentationSummary {
+        .init(
+            selectedPreset: .original,
+            socialVideoDestination: nil,
+            shouldShowCropOverlay: false,
+            isCropOverlayInteractive: true,
+            shouldUseCropPresetSpotlight: false,
+            shouldShowCropPresetBadge: false,
+            shouldShowCanvasResetButton: false,
+            badgeTitle: "Original",
+            badgeDimension: "1920x1080",
+            badgeText: "Original • 1920x1080"
         )
     }
 

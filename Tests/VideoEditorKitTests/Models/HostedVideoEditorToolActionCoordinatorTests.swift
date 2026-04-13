@@ -83,6 +83,61 @@ struct HostedToolActionTests {
     }
 
     @Test
+    func resettingAudioAfterApplyingAVolumeChangeClearsTheToolbarPresentationImmediately() {
+        let editorViewModel = EditorViewModel(
+            .init(
+                loadVideo: { await Video.load(from: $0) },
+                makeThumbnails: { video, containerSize, displayScale in
+                    await video.makeThumbnails(
+                        containerSize: containerSize,
+                        displayScale: displayScale
+                    )
+                },
+                sleep: { _ in }
+            )
+        )
+        let videoPlayer = VideoPlayerManager()
+        editorViewModel.currentVideo = Video.mock
+        editorViewModel.presentationState.selectedTool = .audio
+        editorViewModel.presentationState.selectedAudioTrack = .video
+
+        var draftState = EditorToolDraftState()
+        draftState.audioDraft.videoVolume = 0.5
+
+        HostedVideoEditorToolActionCoordinator.apply(
+            .audio,
+            draftState: draftState,
+            editorViewModel: editorViewModel,
+            videoPlayer: videoPlayer
+        )
+
+        #expect(editorViewModel.currentVideo?.volume == 0.5)
+        #expect(editorViewModel.currentVideo?.isAppliedTool(for: .audio) == true)
+
+        editorViewModel.presentationState.selectedTool = .audio
+
+        _ = HostedVideoEditorToolActionCoordinator.reset(
+            .audio,
+            currentDraftState: draftState,
+            editorViewModel: editorViewModel,
+            videoPlayer: videoPlayer
+        )
+
+        #expect(editorViewModel.currentVideo?.volume == 1.0)
+        #expect(editorViewModel.currentVideo?.isAppliedTool(for: .audio) == false)
+
+        let presentation = EditorToolbarItemPresentationResolver.resolve(
+            for: .audio,
+            video: editorViewModel.currentVideo,
+            cropPresentationSummary: nil,
+            transcriptDocument: nil
+        )
+
+        #expect(presentation.isApplied == false)
+        #expect(presentation.subtitle == nil)
+    }
+
+    @Test
     func resettingTranscriptClearsDocumentsAndClosesTheSheet() {
         let editorViewModel = EditorViewModel()
         let document = TranscriptDocument(
