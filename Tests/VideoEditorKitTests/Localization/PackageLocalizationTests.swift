@@ -106,13 +106,42 @@ struct PackageLocalizationTests {
         )
     }
 
+    @Test
+    func localizationCatalogContainsTranslatedEntriesForEverySupportedLanguage() throws {
+        let expectedLocalizations = ["de", "en", "es", "fr", "ja", "pt-BR", "zh-Hans"]
+        let strings = try localizationCatalogStrings()
+        var missingEntries: [String] = []
+        var pendingEntries: [String] = []
+
+        for (key, entry) in strings {
+            guard let localizations = entry["localizations"] as? [String: Any] else {
+                missingEntries.append("\(key):<all>")
+                continue
+            }
+
+            for localization in expectedLocalizations {
+                guard let localizedEntry = localizations[localization] as? [String: Any] else {
+                    missingEntries.append("\(key):\(localization)")
+                    continue
+                }
+
+                let stringUnit = localizedEntry["stringUnit"] as? [String: Any]
+                let state = stringUnit?["state"] as? String
+
+                if state != "translated" {
+                    pendingEntries.append("\(key):\(localization):\(state ?? "missing-state")")
+                }
+            }
+        }
+
+        #expect(missingEntries.isEmpty)
+        #expect(pendingEntries.isEmpty)
+    }
+
     // MARK: - Private Methods
 
     private func moduleResourceBundle() throws -> Bundle {
-        let candidateBundles = Bundle.allBundles + Bundle.allFrameworks
-        let bundle = candidateBundles.first { bundle in
-            bundle.url(forResource: "preview", withExtension: "mp4") != nil
-        }
+        let bundle = VideoEditorKitModuleBundle.resourceBundle
 
         return try #require(bundle)
     }
@@ -125,6 +154,33 @@ struct PackageLocalizationTests {
         let localizedBundle = Bundle(path: path)
 
         return try #require(localizedBundle)
+    }
+
+    private func localizationCatalogStrings() throws -> [String: [String: Any]] {
+        let catalogURL = try repositoryRootURL()
+            .appending(path: "Sources/VideoEditorKit/Resources/Localizable.xcstrings")
+        let data = try Data(contentsOf: catalogURL)
+        let jsonObject = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let strings = try #require(jsonObject["strings"] as? [String: [String: Any]])
+
+        return strings
+    }
+
+    private func repositoryRootURL() throws -> URL {
+        var candidateURL = URL(filePath: #filePath)
+            .deletingLastPathComponent()
+
+        while candidateURL.path(percentEncoded: false) != "/" {
+            let packageURL = candidateURL.appending(path: "Package.swift")
+
+            if FileManager.default.fileExists(atPath: packageURL.path(percentEncoded: false)) {
+                return candidateURL
+            }
+
+            candidateURL.deleteLastPathComponent()
+        }
+
+        throw NSError(domain: "PackageLocalizationTests", code: 1)
     }
 
 }
