@@ -15,15 +15,13 @@ struct VideoExporterContainerView: View {
 
     @Environment(\.dismiss) private var dismiss
 
+    // MARK: - Bindings
+
+    @Binding private var lifecycleState: ExportLifecycleState
+
     // MARK: - States
 
     @State private var viewModel: ExporterViewModel
-
-    // MARK: - Private Properties
-
-    private let exportQualities: [ExportQualityAvailability]
-    private let onBlockedQualityTap: (VideoQuality) -> Void
-    private let onExported: (ExportedVideo) -> Void
 
     // MARK: - Body
 
@@ -41,17 +39,47 @@ struct VideoExporterContainerView: View {
             onCancelExport: viewModel.cancelExport,
             onClose: dismissView
         )
+        .onChange(of: lifecycleState) { _, newLifecycleState in
+            handleLifecycleStateChange(newLifecycleState)
+        }
+        .task(id: lifecycleState) {
+            handleLifecycleStateChange(lifecycleState)
+        }
+    }
+
+    // MARK: - Private Properties
+
+    private let exportQualities: [ExportQualityAvailability]
+    private let onBlockedQualityTap: (VideoQuality) -> Void
+    private let onExported: (ExportedVideo) -> Void
+
+    private var exportPresentationState: VideoExportPresentationState {
+        .init(
+            selectedQuality: viewModel.selectedQuality,
+            exportProgress: viewModel.exportProgress,
+            progressText: viewModel.progressText,
+            errorMessage: viewModel.errorMessage,
+            actionTitle: viewModel.exportActionTitle,
+            isInteractionDisabled: viewModel.isInteractionDisabled,
+            canExportVideo: viewModel.canExportVideo,
+            canCancelExport: viewModel.canCancelExport,
+            shouldShowLoadingView: viewModel.shouldShowLoadingView,
+            shouldShowFailureMessage: viewModel.shouldShowFailureMessage
+        )
     }
 
     // MARK: - Initializer
 
     init(
+        lifecycleState: Binding<ExportLifecycleState>,
         video: Video,
         editingConfiguration: VideoEditingConfiguration,
         exportQualities: [ExportQualityAvailability] = ExportQualityAvailability.allEnabled,
         onBlockedQualityTap: @escaping (VideoQuality) -> Void = { _ in },
         onExported: @escaping (ExportedVideo) -> Void
     ) {
+        _lifecycleState = lifecycleState
+
         _viewModel = State(
             initialValue: ExporterViewModel(
                 video,
@@ -71,23 +99,6 @@ struct VideoExporterContainerView: View {
         self.onExported = onExported
     }
 
-    // MARK: - Private Properties
-
-    private var exportPresentationState: VideoExportPresentationState {
-        .init(
-            selectedQuality: viewModel.selectedQuality,
-            exportProgress: viewModel.exportProgress,
-            progressText: viewModel.progressText,
-            errorMessage: viewModel.errorMessage,
-            actionTitle: viewModel.exportActionTitle,
-            isInteractionDisabled: viewModel.isInteractionDisabled,
-            canExportVideo: viewModel.canExportVideo,
-            canCancelExport: viewModel.canCancelExport,
-            shouldShowLoadingView: viewModel.shouldShowLoadingView,
-            shouldShowFailureMessage: viewModel.shouldShowFailureMessage
-        )
-    }
-
     // MARK: - Private Methods
 
     private func exportVideo() {
@@ -103,6 +114,10 @@ struct VideoExporterContainerView: View {
         dismiss()
     }
 
+    private func handleLifecycleStateChange(_ lifecycleState: ExportLifecycleState) {
+        viewModel.handleLifecycleStateChange(lifecycleState)
+    }
+
     private func handleExportedVideo(_ video: ExportedVideo) {
         dismiss()
         onExported(video)
@@ -113,6 +128,7 @@ struct VideoExporterContainerView: View {
 #Preview {
     NavigationStack {
         VideoExporterContainerView(
+            lifecycleState: .constant(.active),
             video: Video.mock,
             editingConfiguration: .initial
         ) { _ in }

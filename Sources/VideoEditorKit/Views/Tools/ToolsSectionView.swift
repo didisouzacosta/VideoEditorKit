@@ -5,12 +5,7 @@ struct ToolsSectionView: View {
     // MARK: - States
 
     @State private var draftState = EditorToolDraftState()
-
-    // MARK: - Private Properties
-
-    private let videoPlayer: VideoPlayerManager
-    private let editorViewModel: EditorViewModel
-    private let configuration: VideoEditorView.Configuration
+    @State private var draftPresentationTool: ToolEnum?
 
     // MARK: - Body
 
@@ -18,6 +13,13 @@ struct ToolsSectionView: View {
         let currentVideo = editorViewModel.currentVideo
         let cropPresentationSummary = editorViewModel.cropPresentationSummary
         let transcriptDocument = editorViewModel.transcriptDocument
+        let selectedTool = editorViewModel.presentationState.selectedTool
+        let draftPresentationState = EditorToolbarItemDraftPresentationState(
+            selectedTool: draftPresentationTool == selectedTool ? selectedTool : nil,
+            draftState: draftState,
+            selectedPreset: cropPresentationSummary.selectedPreset,
+            transcriptDraftDocument: editorViewModel.transcriptDraftDocument
+        )
 
         VideoEditorToolsTrayView(
             selectedTool: selectedToolBinding,
@@ -28,7 +30,8 @@ struct ToolsSectionView: View {
                     for: tool,
                     currentVideo: currentVideo,
                     cropPresentationSummary: cropPresentationSummary,
-                    transcriptDocument: transcriptDocument
+                    transcriptDocument: transcriptDocument,
+                    draftPresentationState: draftPresentationState
                 )
             } action: { toolAvailability in
                 handleToolTap(toolAvailability)
@@ -46,6 +49,12 @@ struct ToolsSectionView: View {
             )
         }
     }
+
+    // MARK: - Private Properties
+
+    private let videoPlayer: VideoPlayerManager
+    private let editorViewModel: EditorViewModel
+    private let configuration: VideoEditorView.Configuration
 
     // MARK: - Initializer
 
@@ -84,6 +93,7 @@ extension ToolsSectionView {
                     currentState: draftState,
                     editorViewModel: editorViewModel
                 )
+                draftPresentationTool = tool
             },
             content: {
                 if editorViewModel.currentVideo != nil {
@@ -135,17 +145,20 @@ extension ToolsSectionView {
         for tool: ToolEnum,
         currentVideo: Video?,
         cropPresentationSummary: EditorCropPresentationSummary,
-        transcriptDocument: TranscriptDocument?
+        transcriptDocument: TranscriptDocument?,
+        draftPresentationState: EditorToolbarItemDraftPresentationState
     ) -> EditorToolbarItemPresentation {
         EditorToolbarItemPresentationResolver.resolve(
             for: tool,
             video: currentVideo,
             cropPresentationSummary: cropPresentationSummary,
-            transcriptDocument: transcriptDocument
+            transcriptDocument: transcriptDocument,
+            draftPresentationState: draftPresentationState
         )
     }
 
     private func handleToolTap(_ toolAvailability: ToolAvailability) {
+        draftPresentationTool = nil
         HostedVideoEditorToolActionCoordinator.handleToolTap(
             toolAvailability,
             configuration: configuration,

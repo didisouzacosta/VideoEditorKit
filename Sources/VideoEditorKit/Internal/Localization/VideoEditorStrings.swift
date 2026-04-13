@@ -133,6 +133,14 @@ enum VideoEditorStrings {
         )
     }
 
+    static var exporterBackgroundInterruptionError: String {
+        localized(
+            "editor.export.error.background-interruption",
+            defaultValue:
+                "The export was cancelled because the app moved to the background. Please try again."
+        )
+    }
+
     static var exporterCannotCreateSessionError: String {
         localized(
             "editor.export.error.cannot-create-session",

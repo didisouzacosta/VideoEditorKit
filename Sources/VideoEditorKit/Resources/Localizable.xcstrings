@@ -7498,6 +7498,327 @@
           }
         }
       }
+<<<<<<< Updated upstream
+=======
+    },
+    "Export" : {
+
+    },
+    "Export in progress." : {
+
+    },
+    "Export Video" : {
+
+    },
+    "Exporting" : {
+
+    },
+    "Facebook Post" : {
+
+    },
+    "Failed to open video" : {
+
+    },
+    "Fast loading and small size, low quality" : {
+
+    },
+    "Free" : {
+
+    },
+    "Full HD - 1080p" : {
+
+    },
+    "Generate timed text from the current source video and edit it segment by segment." : {
+
+    },
+    "HD - 720p" : {
+
+    },
+    "Ideal for publishing on social networks" : {
+
+    },
+    "Importing video..." : {
+
+    },
+    "Instagram" : {
+
+    },
+    "Instagram Reels" : {
+
+    },
+    "Instagram Reels & Stories" : {
+
+    },
+    "Instagram Reels, TikTok, Shorts" : {
+
+    },
+    "Keeps important content inside the clearer viewing area for YouTube Shorts, away from top labels and lower playback overlays." : {
+
+    },
+    "Keeps important content inside TikTok's clearer viewing area, away from top chrome, right-side actions and lower captions." : {
+
+    },
+    "Keeps the imported framing" : {
+
+    },
+    "L" : {
+
+    },
+    "Landscape" : {
+
+    },
+    "Landscape players and embeds" : {
+
+    },
+    "Large" : {
+
+    },
+    "Layout" : {
+
+    },
+    "Locked" : {
+
+    },
+    "M" : {
+
+    },
+    "Medium" : {
+
+    },
+    "Missing resource: preview.mp4" : {
+
+    },
+    "No transcript yet" : {
+
+    },
+    "No transcription provider is configured for this editor session." : {
+
+    },
+    "Not selected" : {
+
+    },
+    "OK" : {
+
+    },
+    "Optimal size to quality ratio" : {
+
+    },
+    "Original" : {
+
+    },
+    "Original:" : {
+
+    },
+    "percent complete" : {
+
+    },
+    "Portrait" : {
+
+    },
+    "Portrait feed posts" : {
+
+    },
+    "Position" : {
+
+    },
+    "Premium" : {
+
+    },
+    "Presets" : {
+
+    },
+    "Preview video not found" : {
+
+    },
+    "qHD - 480" : {
+
+    },
+    "Ready" : {
+
+    },
+    "Recorded" : {
+
+    },
+    "Reset" : {
+
+    },
+    "Reset transform" : {
+
+    },
+    "Retry" : {
+
+    },
+    "Revert" : {
+
+    },
+    "Run the transcription provider to populate timed segments for this video." : {
+
+    },
+    "S" : {
+
+    },
+    "Saturation" : {
+
+    },
+    "Segment unavailable" : {
+
+    },
+    "Selected" : {
+
+    },
+    "Shorts" : {
+
+    },
+    "Size" : {
+
+    },
+    "Small" : {
+
+    },
+    "Social" : {
+
+    },
+    "Source" : {
+
+    },
+    "Speed" : {
+
+    },
+    "Square" : {
+
+    },
+    "Square posts and covers" : {
+
+    },
+    "Story" : {
+
+    },
+    "T" : {
+
+    },
+    "The audio file URL must reference a local file." : {
+
+    },
+    "The current video source could not be used for transcription." : {
+
+    },
+    "The editor will open as soon as the selected clip is ready." : {
+
+    },
+    "The export session could not be created for this video." : {
+
+    },
+    "The export was cancelled because the app moved to the background. Please try again." : {
+
+    },
+    "The export was cancelled before the final video was generated." : {
+
+    },
+    "The previous transcription request failed." : {
+
+    },
+    "The selected video does not contain an extractable audio track." : {
+
+    },
+    "The transcript will appear here as soon as the provider returns the timed segments." : {
+
+    },
+    "The transcription provider returned no timed segments." : {
+
+    },
+    "The transcription request was cancelled before it finished." : {
+
+    },
+    "The transcription service returned an empty response body." : {
+
+    },
+    "The transcription service returned an invalid response." : {
+
+    },
+    "The transcription service returned HTTP" : {
+
+    },
+    "The transcription source must be a local video file." : {
+
+    },
+    "The video could not be exported right now. Please try again." : {
+
+    },
+    "The video could not be exported. Please try again." : {
+
+    },
+    "This transcript segment is no longer available." : {
+
+    },
+    "TikTok" : {
+
+    },
+    "Top" : {
+
+    },
+    "Track" : {
+
+    },
+    "Transcribe" : {
+
+    },
+    "Transcribing audio..." : {
+
+    },
+    "Transcript" : {
+
+    },
+    "Transcript segment" : {
+
+    },
+    "Transcription" : {
+
+    },
+    "Transcription unavailable" : {
+
+    },
+    "Trim end" : {
+
+    },
+    "Trim start" : {
+
+    },
+    "Try again" : {
+
+    },
+    "Try Again" : {
+
+    },
+    "Unable to create an audio extraction export session." : {
+
+    },
+    "Unable to export video" : {
+
+    },
+    "Unable to open the selected video" : {
+
+    },
+    "Unable to transcribe" : {
+
+    },
+    "Unavailable" : {
+
+    },
+    "Universal Social Safe Zone" : {
+
+    },
+    "unknown" : {
+
+    },
+    "Use this guide when you want one 9:16 composition that stays safer across Instagram, TikTok and YouTube Shorts. Keep headlines, faces, logos and CTAs inside the highlighted center area." : {
+
+    },
+    "Video" : {
+
+    },
+    "YouTube Shorts" : {
+
+>>>>>>> Stashed changes
     }
   },
   "version": "1.0"

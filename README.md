@@ -229,6 +229,120 @@ For the best editing and export experience, your provider should return:
 - If the provider returns no timed segments, the transcript tool will not have usable caption content to edit or render.
 - If you use OpenAI in production, route the credential through your app configuration or backend strategy rather than hardcoding it in source files.
 
+## Special Section: Transcript Style Customization Plan
+
+Transcript style customization is planned as a host-provided, protocol-based API. It is not intended to be configured through a built-in `VideoEditorKit` UI.
+
+The current package fallback remains:
+
+- white text
+- black outline
+- centered alignment
+- one active word shown at a time
+
+The planned customization path is documented in [`Docs/transcript-style-customization-plan.md`](Docs/transcript-style-customization-plan.md), with implementation details in [`Docs/transcript-style-customization-technical-plan.md`](Docs/transcript-style-customization-technical-plan.md). The shape below is the intended integration model for host apps once the plan is implemented.
+
+### What The Host Will Own
+
+Your app will provide a style provider and a style model. The provider decides which style should be used for the current editor context, and the model describes the visual and word-display rules.
+
+The model should be able to define:
+
+- the font family or system font fallback
+- the font weight
+- the text color
+- the text alignment
+- whether the text has an outline
+- the outline color and width
+- how many words are shown at once
+- whether the active word is visually highlighted
+- the active-word text color when highlighting is enabled
+
+### Planned Style Model Example
+
+```swift
+import VideoEditorKit
+
+struct BrandTranscriptStyle: VideoTranscriptStyleModel {
+    let identifier = "brand.default"
+    let displayName = "Brand Default"
+    let font = VideoTranscriptFontDescriptor.custom(
+        name: "AvenirNext-Heavy",
+        fallbackWeight: .heavy
+    )
+    let textColor = RGBAColor(red: 1, green: 1, blue: 1, alpha: 1)
+    let textAlignment = TranscriptTextAlignment.center
+    let stroke = VideoTranscriptStroke(
+        color: RGBAColor(red: 0, green: 0, blue: 0, alpha: 1),
+        width: 4
+    )
+    let wordsPerCaption = 3
+    let highlightsActiveWord = true
+    let activeWordTextColor = RGBAColor(red: 1, green: 0.92, blue: 0.2, alpha: 1)
+}
+```
+
+With this style, the editor would render up to three transcript words at a time and tint the currently spoken word with `activeWordTextColor`.
+
+### Planned Style Provider Example
+
+```swift
+import VideoEditorKit
+
+struct BrandTranscriptStyleProvider: VideoTranscriptStyleProvider {
+    func transcriptStyle(
+        for context: VideoTranscriptStyleContext
+    ) -> any VideoTranscriptStyleModel {
+        BrandTranscriptStyle()
+    }
+}
+```
+
+The provider is intentionally small. If your app has multiple brands, templates, or project types, use the context to return a different style model from your own app layer. `VideoEditorKit` should not present a style picker for this flow.
+
+### Planned Configuration Example
+
+```swift
+let editorConfiguration = VideoEditorConfiguration(
+    tools: ToolAvailability.enabled(ToolEnum.all),
+    exportQualities: ExportQualityAvailability.allEnabled,
+    transcription: .init(
+        provider: MyTranscriptionProvider(),
+        preferredLocale: "pt-BR",
+        styleProvider: BrandTranscriptStyleProvider()
+    )
+)
+```
+
+The style provider should be treated as runtime configuration, not as persisted document state. Your app should persist `VideoEditingConfiguration` as usual; the style provider should be supplied again when opening the editor.
+
+### Word Display Rules
+
+`wordsPerCaption` controls how many words the overlay attempts to show at once:
+
+- `1` preserves the current one-word-at-a-time behavior.
+- Values greater than `1` should render a stable window of words around the active word.
+- Empty words should be ignored.
+- The package should clamp unsupported values to a safe range.
+
+`highlightsActiveWord` controls whether the current word receives a distinct style:
+
+- `false` renders every visible word with the base text style.
+- `true` keeps the visible word group on screen and applies the active-word override to the spoken word.
+- If `activeWordTextColor` is `nil`, the active word should use the base `textColor`.
+
+### Preview And Export Expectations
+
+The planned API must resolve the host protocol model into a concrete internal style before rendering. That keeps preview, layout, and export deterministic and avoids storing host-owned protocol values inside `VideoEditingConfiguration`.
+
+The same resolved style should drive:
+
+- `TranscriptOverlayPreview` in the editor player
+- `TranscriptOverlayLayoutResolver` for word layout
+- the Core Animation transcript stage during `.mp4` export
+
+This matters because preview/export parity is still being improved in the current architecture.
+
 ## Configuration Reference
 
 This section is the host-app configuration guide for `VideoEditorKit`. If you are deciding what to pass into `VideoEditorView`, start here.

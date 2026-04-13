@@ -103,6 +103,13 @@ final class ExporterViewModel {
 
     }
 
+    enum ExportCancellationReason {
+
+        case user
+        case backgroundInterruption
+
+    }
+
     // MARK: - Private Properties
 
     typealias RenderVideo =
@@ -116,8 +123,12 @@ final class ExporterViewModel {
     private let renderVideo: RenderVideo
     private let loadExportedVideo: @Sendable (URL) async -> ExportedVideo
     private let exportQualities: [ExportQualityAvailability]
+    private let lifecycleCoordinator: ExportLifecycleCoordinator
+    private let lifecycleNow: @Sendable () -> Date
 
     @ObservationIgnored private var exportTask: Task<Void, Never>?
+    @ObservationIgnored private var currentExportRunID = 0
+    @ObservationIgnored private var lifecycleInactiveStart: Date?
 
     // MARK: - Initializer
 
@@ -135,7 +146,9 @@ final class ExporterViewModel {
         },
         loadExportedVideo: @escaping @Sendable (URL) async -> ExportedVideo = { url in
             await ExportedVideo.load(from: url)
-        }
+        },
+        lifecycleCoordinator: ExportLifecycleCoordinator = .init(),
+        lifecycleNow: @escaping @Sendable () -> Date = Date.init
     ) {
         self.video = video
         self.editingConfiguration = editingConfiguration
@@ -143,37 +156,21 @@ final class ExporterViewModel {
         self.selectedQuality = Self.defaultSelectedQuality(for: exportQualities)
         self.renderVideo = renderVideo
         self.loadExportedVideo = loadExportedVideo
+        self.lifecycleCoordinator = lifecycleCoordinator
+        self.lifecycleNow = lifecycleNow
     }
 
     // MARK: - Public Methods
 
     func export() async -> ExportedVideo? {
-        renderState = .loading
+        let exportRunID = beginExportRun()
 
-        do {
-            let url = try await renderVideo(video, editingConfiguration, selectedQuality) { [weak self] progress in
-                await MainActor.run {
-                    self?.exportProgress = progress.clamped(to: 0...1)
-                }
-            }
-            try Task.checkCancellation()
-
-            let exportedVideo = await loadExportedVideo(url)
-            try Task.checkCancellation()
-
-            renderState = .loaded(exportedVideo)
-            return exportedVideo
-        } catch is CancellationError {
-            renderState = .unknown
-            return nil
-        } catch {
-            renderState = .failed(error)
-            return nil
-        }
+        return await export(runID: exportRunID)
     }
 
     func exportVideo(_ onExported: @escaping (ExportedVideo) -> Void) {
         exportTask?.cancel()
+        let exportRunID = beginExportRun()
         renderState = .loading
 
         exportTask = Task { [weak self] in
@@ -181,11 +178,12 @@ final class ExporterViewModel {
 
             defer {
                 Task { @MainActor [weak self] in
+                    guard self?.isCurrentExportRun(exportRunID) == true else { return }
                     self?.exportTask = nil
                 }
             }
 
-            guard let exportedVideo = await self.export(), !Task.isCancelled else { return }
+            guard let exportedVideo = await self.export(runID: exportRunID), !Task.isCancelled else { return }
             onExported(exportedVideo)
         }
     }
@@ -196,9 +194,45 @@ final class ExporterViewModel {
     }
 
     func cancelExport() {
+        cancelExport(reason: .user)
+    }
+
+    func cancelExport(reason: ExportCancellationReason) {
         exportTask?.cancel()
         exportTask = nil
-        renderState = .unknown
+
+        switch reason {
+        case .user:
+            renderState = .unknown
+        case .backgroundInterruption:
+            renderState = .failed(ExporterError.backgroundInterruption)
+        }
+    }
+
+    func handleLifecycleStateChange(_ lifecycleState: ExportLifecycleState) {
+        let isExporting = renderState == .loading
+        let lifecycleNow = lifecycleNow()
+
+        if lifecycleState == .inactive, isExporting, lifecycleInactiveStart == nil {
+            lifecycleInactiveStart = lifecycleNow
+        }
+
+        guard
+            let cancellationReason = lifecycleCoordinator.cancellationReason(
+                for: lifecycleState,
+                isExporting: isExporting,
+                inactiveStart: lifecycleInactiveStart,
+                now: lifecycleNow
+            )
+        else {
+            if !isExporting || lifecycleState != .inactive {
+                lifecycleInactiveStart = nil
+            }
+            return
+        }
+
+        lifecycleInactiveStart = nil
+        cancelExport(reason: cancellationReason)
     }
 
     func selectQuality(_ quality: VideoQuality) {
@@ -211,6 +245,36 @@ final class ExporterViewModel {
     }
 
     // MARK: - Private Methods
+
+    private func export(runID: Int) async -> ExportedVideo? {
+        renderState = .loading
+
+        do {
+            let url = try await renderVideo(video, editingConfiguration, selectedQuality) { [weak self] progress in
+                await MainActor.run {
+                    guard self?.isCurrentExportRun(runID) == true else { return }
+                    self?.exportProgress = progress.clamped(to: 0...1)
+                }
+            }
+            try Task.checkCancellation()
+
+            let exportedVideo = await loadExportedVideo(url)
+            try Task.checkCancellation()
+
+            guard isCurrentExportRun(runID) else { return nil }
+            renderState = .loaded(exportedVideo)
+            return exportedVideo
+        } catch is CancellationError {
+            if isCurrentExportRun(runID), renderState == .loading {
+                renderState = .unknown
+            }
+            return nil
+        } catch {
+            guard isCurrentExportRun(runID) else { return nil }
+            renderState = .failed(error)
+            return nil
+        }
+    }
 
     private func handleRenderStateChange(_ state: ExportState) {
         switch state {
@@ -244,6 +308,15 @@ final class ExporterViewModel {
         exportProgress = .zero
     }
 
+    private func beginExportRun() -> Int {
+        currentExportRunID += 1
+        return currentExportRunID
+    }
+
+    private func isCurrentExportRun(_ runID: Int) -> Bool {
+        runID == currentExportRunID
+    }
+
     private var selectedQualityAvailability: ExportQualityAvailability? {
         availability(for: selectedQuality)
     }
@@ -273,6 +346,51 @@ final class ExporterViewModel {
             }
 
             return $0.order < $1.order
+        }
+    }
+
+}
+
+enum ExportLifecycleState: Equatable, Sendable {
+
+    case active
+    case inactive
+    case background
+
+}
+
+struct ExportLifecycleCoordinator: Sendable {
+
+    // MARK: - Private Properties
+
+    private var inactiveGracePeriod: TimeInterval {
+        1
+    }
+
+    // MARK: - Public Methods
+
+    func cancellationReason(
+        for lifecycleState: ExportLifecycleState,
+        isExporting: Bool,
+        inactiveStart: Date? = nil,
+        now: Date = Date()
+    ) -> ExporterViewModel.ExportCancellationReason? {
+        guard isExporting else { return nil }
+
+        switch lifecycleState {
+        case .inactive:
+            return nil
+        case .active:
+            guard
+                let inactiveStart,
+                now.timeIntervalSince(inactiveStart) >= inactiveGracePeriod
+            else {
+                return nil
+            }
+
+            return .backgroundInterruption
+        case .background:
+            return .backgroundInterruption
         }
     }
 

@@ -2120,6 +2120,8 @@ enum ExporterError: Error, LocalizedError {
 
     case cancelled
 
+    case backgroundInterruption
+
     case cannotCreateExportSession
 
     case failed
@@ -2130,6 +2132,8 @@ enum ExporterError: Error, LocalizedError {
             return VideoEditorStrings.exporterUnexpectedError
         case .cancelled:
             return VideoEditorStrings.exporterCancelledError
+        case .backgroundInterruption:
+            return VideoEditorStrings.exporterBackgroundInterruptionError
         case .cannotCreateExportSession:
             return VideoEditorStrings.exporterCannotCreateSessionError
         case .failed:

@@ -18,6 +18,17 @@ struct EditorToolbarItemPresentation: Equatable, Sendable {
 
 }
 
+struct EditorToolbarItemDraftPresentationState: Equatable {
+
+    // MARK: - Public Properties
+
+    let selectedTool: ToolEnum?
+    let draftState: EditorToolDraftState
+    let selectedPreset: VideoCropFormatPreset
+    let transcriptDraftDocument: TranscriptDocument?
+
+}
+
 struct EditorToolbarItemPresentationResolver {
 
     // MARK: - Public Methods
@@ -26,8 +37,19 @@ struct EditorToolbarItemPresentationResolver {
         for tool: ToolEnum,
         video: Video?,
         cropPresentationSummary: EditorCropPresentationSummary?,
-        transcriptDocument: TranscriptDocument?
+        transcriptDocument: TranscriptDocument?,
+        draftPresentationState: EditorToolbarItemDraftPresentationState? = nil
     ) -> EditorToolbarItemPresentation {
+        if let draftPresentation = draftPresentation(
+            for: tool,
+            video: video,
+            cropPresentationSummary: cropPresentationSummary,
+            transcriptDocument: transcriptDocument,
+            draftPresentationState: draftPresentationState
+        ) {
+            return draftPresentation
+        }
+
         let isApplied = video?.isAppliedTool(for: tool) ?? false
 
         return .init(
@@ -46,6 +68,136 @@ struct EditorToolbarItemPresentationResolver {
     }
 
     // MARK: - Private Methods
+
+    private static func draftPresentation(
+        for tool: ToolEnum,
+        video: Video?,
+        cropPresentationSummary: EditorCropPresentationSummary?,
+        transcriptDocument: TranscriptDocument?,
+        draftPresentationState: EditorToolbarItemDraftPresentationState?
+    ) -> EditorToolbarItemPresentation? {
+        guard
+            let draftPresentationState,
+            draftPresentationState.selectedTool == tool
+        else {
+            return nil
+        }
+
+        switch tool {
+        case .speed:
+            return speedDraftPresentation(
+                draftPresentationState.draftState.speedDraft
+            )
+        case .presets:
+            return presetsDraftPresentation(
+                draftPresentationState,
+                cropPresentationSummary: cropPresentationSummary
+            )
+        case .audio:
+            return audioDraftPresentation(
+                draftPresentationState.draftState.audioDraft,
+                video: video
+            )
+        case .adjusts:
+            return adjustsDraftPresentation(
+                draftPresentationState.draftState.adjustsDraft
+            )
+        case .transcript:
+            return transcriptDraftPresentation(
+                draftPresentationState.transcriptDraftDocument,
+                transcriptDocument: transcriptDocument
+            )
+        case .cut:
+            return nil
+        }
+    }
+
+    private static func speedDraftPresentation(
+        _ speedDraft: Double
+    ) -> EditorToolbarItemPresentation {
+        let rate = Float(speedDraft)
+        let isApplied = abs(Double(rate) - 1.0) > 0.001
+
+        return .init(
+            title: ToolEnum.speed.title,
+            image: ToolEnum.speed.image,
+            subtitle: isApplied ? VideoEditorStrings.toolbarSpeedSubtitle(rate) : nil,
+            isApplied: isApplied
+        )
+    }
+
+    private static func presetsDraftPresentation(
+        _ draftPresentationState: EditorToolbarItemDraftPresentationState,
+        cropPresentationSummary: EditorCropPresentationSummary?
+    ) -> EditorToolbarItemPresentation? {
+        let presetDraft = draftPresentationState.draftState.presetDraft
+
+        guard presetDraft != draftPresentationState.selectedPreset else {
+            return nil
+        }
+
+        let isApplied = presetDraft != .original
+
+        return .init(
+            title: ToolEnum.presets.title,
+            image: ToolEnum.presets.image,
+            subtitle: isApplied
+                ? presetsDraftSubtitle(
+                    presetDraft,
+                    cropPresentationSummary: cropPresentationSummary
+                )
+                : nil,
+            isApplied: isApplied
+        )
+    }
+
+    private static func audioDraftPresentation(
+        _ audioDraft: AudioToolDraft,
+        video: Video?
+    ) -> EditorToolbarItemPresentation {
+        let hasRecordedAudio = video?.audio != nil
+        let isApplied =
+            hasRecordedAudio
+            || abs(audioDraft.videoVolume - 1.0) > 0.001
+            || (hasRecordedAudio && abs(audioDraft.recordedVolume - 1.0) > 0.001)
+
+        return .init(
+            title: ToolEnum.audio.title,
+            image: ToolEnum.audio.image,
+            subtitle: isApplied ? audioDraftSubtitle(audioDraft, hasRecordedAudio: hasRecordedAudio) : nil,
+            isApplied: isApplied
+        )
+    }
+
+    private static func adjustsDraftPresentation(
+        _ adjustsDraft: ColorAdjusts
+    ) -> EditorToolbarItemPresentation {
+        let appliedAdjustmentsCount = adjustsDraft.appliedAdjustmentsCount
+        let isApplied = appliedAdjustmentsCount > 0
+
+        return .init(
+            title: ToolEnum.adjusts.title,
+            image: ToolEnum.adjusts.image,
+            subtitle: isApplied
+                ? VideoEditorStrings.toolbarAdjustmentsCount(appliedAdjustmentsCount)
+                : nil,
+            isApplied: isApplied
+        )
+    }
+
+    private static func transcriptDraftPresentation(
+        _ draftDocument: TranscriptDocument?,
+        transcriptDocument: TranscriptDocument?
+    ) -> EditorToolbarItemPresentation? {
+        guard draftDocument != transcriptDocument else { return nil }
+
+        return .init(
+            title: ToolEnum.transcript.title,
+            image: ToolEnum.transcript.image,
+            subtitle: transcriptSubtitle(draftDocument),
+            isApplied: draftDocument != nil
+        )
+    }
 
     private static func subtitle(
         for tool: ToolEnum,
@@ -88,6 +240,17 @@ struct EditorToolbarItemPresentationResolver {
         return "\(cropPresentationSummary.badgeTitle) \(cropPresentationSummary.badgeDimension)"
     }
 
+    private static func presetsDraftSubtitle(
+        _ preset: VideoCropFormatPreset,
+        cropPresentationSummary: EditorCropPresentationSummary?
+    ) -> String {
+        if cropPresentationSummary?.selectedPreset == preset {
+            return presetsSubtitle(cropPresentationSummary) ?? "\(preset.title) \(preset.dimensionTitle)"
+        }
+
+        return "\(preset.title) \(preset.dimensionTitle)"
+    }
+
     private static func audioSubtitle(
         _ video: Video?
     ) -> String? {
@@ -98,6 +261,17 @@ struct EditorToolbarItemPresentationResolver {
         }
 
         return percentageString(for: video.volume)
+    }
+
+    private static func audioDraftSubtitle(
+        _ audioDraft: AudioToolDraft,
+        hasRecordedAudio: Bool
+    ) -> String {
+        if audioDraft.selectedTrack == .recorded, hasRecordedAudio {
+            return percentageString(for: audioDraft.recordedVolume)
+        }
+
+        return percentageString(for: audioDraft.videoVolume)
     }
 
     private static func adjustsSubtitle(

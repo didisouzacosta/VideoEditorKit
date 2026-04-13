@@ -145,7 +145,105 @@ struct ToolbarItemPresentationTests {
         #expect(presentation.subtitle == nil)
     }
 
+    @Test
+    func activeSpeedDraftUpdatesTheToolbarPresentationBeforeApply() {
+        var draftState = EditorToolDraftState()
+        draftState.speedDraft = 1.6
+
+        let presentation = EditorToolbarItemPresentationResolver.resolve(
+            for: .speed,
+            video: unappliedVideo(),
+            cropPresentationSummary: nil,
+            transcriptDocument: nil,
+            draftPresentationState: draftPresentationState(
+                selectedTool: .speed,
+                draftState: draftState
+            )
+        )
+
+        #expect(presentation.isApplied)
+        #expect(presentation.subtitle == VideoEditorStrings.toolbarSpeedSubtitle(1.6))
+    }
+
+    @Test
+    func activePresetDraftUpdatesTheToolbarPresentationBeforeApply() {
+        var draftState = EditorToolDraftState()
+        draftState.presetDraft = .portrait4x5
+
+        let presentation = EditorToolbarItemPresentationResolver.resolve(
+            for: .presets,
+            video: unappliedVideo(),
+            cropPresentationSummary: nil,
+            transcriptDocument: nil,
+            draftPresentationState: draftPresentationState(
+                selectedTool: .presets,
+                draftState: draftState
+            )
+        )
+
+        #expect(presentation.isApplied)
+        #expect(presentation.subtitle == "Portrait 4:5")
+    }
+
+    @Test
+    func activeAudioDraftUpdatesTheToolbarPresentationBeforeApply() {
+        var draftState = EditorToolDraftState()
+        draftState.audioDraft.videoVolume = 0.2
+
+        let presentation = EditorToolbarItemPresentationResolver.resolve(
+            for: .audio,
+            video: unappliedVideo(),
+            cropPresentationSummary: nil,
+            transcriptDocument: nil,
+            draftPresentationState: draftPresentationState(
+                selectedTool: .audio,
+                draftState: draftState
+            )
+        )
+
+        #expect(presentation.isApplied)
+        #expect(presentation.subtitle == "20%")
+    }
+
+    @Test
+    func activeAdjustsDraftUpdatesTheToolbarPresentationBeforeApply() {
+        var draftState = EditorToolDraftState()
+        draftState.adjustsDraft = .init(
+            brightness: 0.2,
+            contrast: -0.1,
+            saturation: 0
+        )
+
+        let presentation = EditorToolbarItemPresentationResolver.resolve(
+            for: .adjusts,
+            video: unappliedVideo(),
+            cropPresentationSummary: nil,
+            transcriptDocument: nil,
+            draftPresentationState: draftPresentationState(
+                selectedTool: .adjusts,
+                draftState: draftState
+            )
+        )
+
+        #expect(presentation.isApplied)
+        #expect(presentation.subtitle == "2 adjustments")
+    }
+
     // MARK: - Private Methods
+
+    private func draftPresentationState(
+        selectedTool: ToolEnum,
+        draftState: EditorToolDraftState,
+        selectedPreset: VideoCropFormatPreset = .original,
+        transcriptDraftDocument: TranscriptDocument? = nil
+    ) -> EditorToolbarItemDraftPresentationState {
+        .init(
+            selectedTool: selectedTool,
+            draftState: draftState,
+            selectedPreset: selectedPreset,
+            transcriptDraftDocument: transcriptDraftDocument
+        )
+    }
 
     private func video(
         appliedTool: ToolEnum,
@@ -158,6 +256,13 @@ struct ToolbarItemPresentationTests {
         )
         video.appliedTool(for: appliedTool)
         return video
+    }
+
+    private func unappliedVideo() -> Video {
+        Video(
+            url: URL(fileURLWithPath: "/tmp/editor-toolbar-video.mp4"),
+            rangeDuration: 0...12
+        )
     }
 
 }

@@ -274,6 +274,270 @@ struct ExporterViewModelTests {
     }
 
     @Test
+    func activeLifecycleStateKeepsAnActiveExportRunning() async {
+        let tracker = ExportRetryTracker()
+        let viewModel = ExporterViewModel(
+            Video.mock,
+            renderVideo: { _, _, _, _ in
+                _ = await tracker.recordRenderCall()
+
+                do {
+                    try await Task.sleep(for: .seconds(5))
+                    return URL(fileURLWithPath: "/tmp/background-short-export.mp4")
+                } catch {
+                    throw error
+                }
+            }
+        )
+
+        viewModel.exportVideo { exportedVideo in
+            Task {
+                await tracker.recordExportedVideo(exportedVideo)
+            }
+        }
+
+        for _ in 0..<20 where await tracker.renderCallCount == 0 {
+            await Task.yield()
+        }
+
+        viewModel.handleLifecycleStateChange(.active)
+
+        #expect(viewModel.renderState == .loading)
+        #expect(viewModel.showAlert == false)
+        #expect(await tracker.exportedVideo == nil)
+
+        viewModel.cancelExport()
+    }
+
+    @Test
+    func inactiveLifecycleStateKeepsAnActiveExportRunning() async {
+        let tracker = ExportRetryTracker()
+        let viewModel = ExporterViewModel(
+            Video.mock,
+            renderVideo: { _, _, _, _ in
+                _ = await tracker.recordRenderCall()
+
+                do {
+                    try await Task.sleep(for: .seconds(5))
+                    return URL(fileURLWithPath: "/tmp/background-expired-export.mp4")
+                } catch {
+                    throw error
+                }
+            }
+        )
+
+        viewModel.exportVideo { exportedVideo in
+            Task {
+                await tracker.recordExportedVideo(exportedVideo)
+            }
+        }
+
+        for _ in 0..<20 where await tracker.renderCallCount == 0 {
+            await Task.yield()
+        }
+
+        viewModel.handleLifecycleStateChange(.inactive)
+
+        #expect(viewModel.renderState == .loading)
+        #expect(viewModel.showAlert == false)
+        #expect(await tracker.exportedVideo == nil)
+
+        viewModel.cancelExport()
+    }
+
+    @Test
+    func shortInactiveInterruptionDoesNotCancelWhenReturningActive() async {
+        let tracker = ExportRetryTracker()
+        let dateProvider = LifecycleDateProvider(.init(timeIntervalSinceReferenceDate: 0))
+        let viewModel = ExporterViewModel(
+            Video.mock,
+            renderVideo: { _, _, _, _ in
+                _ = await tracker.recordRenderCall()
+
+                do {
+                    try await Task.sleep(for: .seconds(5))
+                    return URL(fileURLWithPath: "/tmp/short-inactive-export.mp4")
+                } catch {
+                    throw error
+                }
+            },
+            lifecycleNow: dateProvider.currentDate
+        )
+
+        viewModel.exportVideo { exportedVideo in
+            Task {
+                await tracker.recordExportedVideo(exportedVideo)
+            }
+        }
+
+        for _ in 0..<20 where await tracker.renderCallCount == 0 {
+            await Task.yield()
+        }
+
+        viewModel.handleLifecycleStateChange(.inactive)
+        dateProvider.advance(by: 0.5)
+        viewModel.handleLifecycleStateChange(.active)
+
+        #expect(viewModel.renderState == .loading)
+        #expect(viewModel.showAlert == false)
+        #expect(await tracker.exportedVideo == nil)
+
+        viewModel.cancelExport()
+    }
+
+    @Test
+    func longInactiveInterruptionCancelsWhenReturningActive() async {
+        let tracker = ExportRetryTracker()
+        let dateProvider = LifecycleDateProvider(.init(timeIntervalSinceReferenceDate: 0))
+        let viewModel = ExporterViewModel(
+            Video.mock,
+            renderVideo: { _, _, _, _ in
+                _ = await tracker.recordRenderCall()
+
+                do {
+                    try await Task.sleep(for: .seconds(5))
+                    return URL(fileURLWithPath: "/tmp/long-inactive-export.mp4")
+                } catch {
+                    throw error
+                }
+            },
+            lifecycleNow: dateProvider.currentDate
+        )
+
+        viewModel.exportVideo { exportedVideo in
+            Task {
+                await tracker.recordExportedVideo(exportedVideo)
+            }
+        }
+
+        for _ in 0..<20 where await tracker.renderCallCount == 0 {
+            await Task.yield()
+        }
+
+        viewModel.handleLifecycleStateChange(.inactive)
+        dateProvider.advance(by: 2)
+        viewModel.handleLifecycleStateChange(.active)
+
+        for _ in 0..<20 where viewModel.renderState == .loading {
+            await Task.yield()
+        }
+
+        #expect(viewModel.shouldShowFailureMessage)
+        #expect(viewModel.showAlert)
+        #expect(
+            viewModel.errorMessage
+                == "The export was cancelled because the app moved to the background. Please try again."
+        )
+        #expect(await tracker.exportedVideo == nil)
+    }
+
+    @Test
+    func backgroundLifecycleStateCancelsExportWithRecoverableFailure() async {
+        let tracker = ExportRetryTracker()
+        let viewModel = ExporterViewModel(
+            Video.mock,
+            renderVideo: { _, _, _, _ in
+                _ = await tracker.recordRenderCall()
+
+                do {
+                    try await Task.sleep(for: .seconds(5))
+                    return URL(fileURLWithPath: "/tmp/background-cancelled-export.mp4")
+                } catch {
+                    throw error
+                }
+            }
+        )
+
+        viewModel.exportVideo { exportedVideo in
+            Task {
+                await tracker.recordExportedVideo(exportedVideo)
+            }
+        }
+
+        for _ in 0..<20 where await tracker.renderCallCount == 0 {
+            await Task.yield()
+        }
+
+        viewModel.handleLifecycleStateChange(.background)
+
+        for _ in 0..<20 where viewModel.renderState == .loading {
+            await Task.yield()
+        }
+
+        #expect(viewModel.shouldShowFailureMessage)
+        #expect(viewModel.showAlert)
+        #expect(viewModel.canCancelExport == false)
+        #expect(
+            viewModel.errorMessage
+                == "The export was cancelled because the app moved to the background. Please try again."
+        )
+        #expect(await tracker.exportedVideo == nil)
+    }
+
+    @Test
+    func retryAfterBackgroundInterruptionStartsANewExport() async {
+        let expectedURL = URL(fileURLWithPath: "/tmp/retried-background-export.mp4")
+        let expectedVideo = ExportedVideo(
+            expectedURL,
+            width: 1280,
+            height: 720,
+            duration: 8,
+            fileSize: 256
+        )
+        let tracker = ExportRetryTracker()
+        let viewModel = ExporterViewModel(
+            Video.mock,
+            renderVideo: { _, _, _, _ in
+                let renderCallCount = await tracker.recordRenderCall()
+
+                if renderCallCount == 1 {
+                    do {
+                        try await Task.sleep(for: .seconds(5))
+                    } catch {
+                        throw error
+                    }
+                }
+
+                return expectedURL
+            },
+            loadExportedVideo: { _ in expectedVideo }
+        )
+
+        viewModel.exportVideo { exportedVideo in
+            Task {
+                await tracker.recordExportedVideo(exportedVideo)
+            }
+        }
+
+        for _ in 0..<20 where await tracker.renderCallCount == 0 {
+            await Task.yield()
+        }
+
+        viewModel.handleLifecycleStateChange(.background)
+
+        for _ in 0..<20 where viewModel.renderState == .loading {
+            await Task.yield()
+        }
+
+        #expect(viewModel.shouldShowFailureMessage)
+
+        viewModel.retryExport { exportedVideo in
+            Task {
+                await tracker.recordExportedVideo(exportedVideo)
+            }
+        }
+
+        for _ in 0..<20 where await tracker.exportedVideo != expectedVideo {
+            await Task.yield()
+        }
+
+        #expect(await tracker.renderCallCount == 2)
+        #expect(await tracker.exportedVideo == expectedVideo)
+        #expect(viewModel.renderState == .loaded(expectedVideo))
+        #expect(viewModel.exportProgress == 1)
+    }
+
+    @Test
     func exportPassesEditingConfigurationToRenderer() async {
         let expectedURL = URL(fileURLWithPath: "/tmp/crop-forwarded-export.mp4")
         let editingConfiguration = VideoEditingConfiguration(
@@ -344,6 +608,30 @@ private actor ExportConfigurationTracker {
 
     func record(_ configuration: VideoEditingConfiguration) {
         editingConfiguration = configuration
+    }
+
+}
+
+private final class LifecycleDateProvider: @unchecked Sendable {
+
+    // MARK: - Private Properties
+
+    private var date: Date
+
+    // MARK: - Initializer
+
+    init(_ date: Date) {
+        self.date = date
+    }
+
+    // MARK: - Public Methods
+
+    func currentDate() -> Date {
+        date
+    }
+
+    func advance(by timeInterval: TimeInterval) {
+        date = date.addingTimeInterval(timeInterval)
     }
 
 }

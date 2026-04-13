@@ -10,10 +10,12 @@ public struct VideoEditorView: View {
     // MARK: - Environments
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
 
     // MARK: - States
 
     @State private var editorViewModel = EditorViewModel()
+    @State private var exportLifecycleState: ExportLifecycleState = .active
     @State private var saveEmissionCoordinator = VideoEditorSaveEmissionCoordinator()
     @State private var videoPlayer = VideoPlayerManager()
 
@@ -72,6 +74,12 @@ public struct VideoEditorView: View {
             .safeAreaPadding(.top)
         }
         .onDisappear(perform: handleDisappear)
+        .onChange(of: scenePhase) { _, newScenePhase in
+            handleScenePhaseChange(newScenePhase)
+        }
+        .task(id: scenePhase) {
+            handleScenePhaseChange(scenePhase)
+        }
         .dynamicHeightSheet(
             isPresented: $bindablePresentationState.showVideoQualitySheet,
             initialHeight: 420
@@ -110,6 +118,7 @@ public struct VideoEditorView: View {
     private var exportSheetContent: some View {
         if let video = editorViewModel.currentVideo {
             VideoExporterContainerView(
+                lifecycleState: $exportLifecycleState,
                 video: video,
                 editingConfiguration: resolvedExportEditingConfiguration,
                 exportQualities: configuration.exportQualities,
@@ -256,6 +265,10 @@ public struct VideoEditorView: View {
                 )
             }
         )
+    }
+
+    private func handleScenePhaseChange(_ scenePhase: ScenePhase) {
+        exportLifecycleState = .init(scenePhase: scenePhase)
     }
 
     private func handleDisappear() {
