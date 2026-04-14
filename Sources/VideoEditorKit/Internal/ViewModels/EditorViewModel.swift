@@ -165,6 +165,7 @@ final class EditorViewModel {
                 displayScale: self.lastThumbnailDisplayScale
             )
             videoPlayer?.loadState = .loaded(url)
+            videoPlayer?.syncPlaybackState(with: video)
             markEditingConfigurationChanged()
         }
     }

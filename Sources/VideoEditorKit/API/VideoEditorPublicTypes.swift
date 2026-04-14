@@ -174,9 +174,7 @@ public struct VideoEditorConfiguration {
 
     /// A convenience configuration with every currently public tool and export quality enabled.
     public static var allToolsEnabled: Self {
-        Self(
-            transcription: .init()
-        )
+        Self()
     }
 
     /// Ordered tool availability definitions displayed by the editor.

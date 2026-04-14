@@ -1165,6 +1165,70 @@ struct EditorViewModelTests {
     }
 
     @Test
+    func setSourceVideoIfNeededKeepsTrimScrubbingInSyncBeforeTheFirstPlayback() async throws {
+        let thumbnailProbe = ThumbnailLoaderProbe()
+        let videoURL = try await TestFixtures.createTemporaryVideo(frameCount: 60)
+        defer { FileManager.default.removeIfExists(for: videoURL) }
+
+        let viewModel = EditorViewModel(
+            .init(
+                loadVideo: { url in
+                    var video = await Video.load(from: url)
+                    video.rangeDuration = 0.2...1.2
+                    return video
+                },
+                makeThumbnails: { _, _, _ in
+                    await thumbnailProbe.load()
+                },
+                sleep: { try await Task.sleep(for: $0) }
+            )
+        )
+        let videoPlayer = VideoPlayerManager()
+
+        viewModel.setSourceVideoIfNeeded(
+            videoURL,
+            availableSize: CGSize(width: 390, height: 844),
+            videoPlayer: videoPlayer
+        )
+
+        for _ in 0..<50 where viewModel.currentVideo == nil || videoPlayer.loadState != .loading {
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+
+        let currentVideo = try #require(viewModel.currentVideo)
+        viewModel.handleCurrentVideoChange(
+            currentVideo,
+            videoPlayer: videoPlayer
+        )
+
+        await thumbnailProbe.resumeNext(with: [])
+
+        for _ in 0..<50 where videoPlayer.loadState != .loaded(videoURL) {
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+
+        let scrubRange = try #require(viewModel.currentVideo?.outputRangeDuration)
+        let scrubbedTime = 0.8
+
+        videoPlayer.beginScrubbing(in: scrubRange)
+        videoPlayer.scrub(
+            to: scrubbedTime,
+            in: scrubRange
+        )
+
+        var resolvedPlayerTime = videoPlayer.videoPlayer.currentTime().seconds
+        for _ in 0..<50
+        where !resolvedPlayerTime.isFinite || abs(resolvedPlayerTime - scrubbedTime) > 0.05 {
+            try? await Task.sleep(for: .milliseconds(10))
+            resolvedPlayerTime = videoPlayer.videoPlayer.currentTime().seconds
+        }
+
+        #expect(abs(videoPlayer.currentTime - scrubbedTime) < 0.001)
+        #expect(resolvedPlayerTime.isFinite)
+        #expect(abs(resolvedPlayerTime - scrubbedTime) <= 0.05)
+    }
+
+    @Test
     func setMaximumVideoDurationClampsTheLoadedVideoRange() {
         let viewModel = EditorViewModel()
         var video = Video.mock

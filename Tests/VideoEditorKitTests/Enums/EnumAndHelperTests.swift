@@ -211,12 +211,12 @@ struct VideoEditorConfigurationTests {
     }
 
     @Test
-    func allToolsEnabledStaticPresetKeepsTranscriptVisible() {
+    func allToolsEnabledStaticPresetStartsWithNilTranscriptionConfiguration() {
         let preset = VideoEditorView.Configuration.allToolsEnabled
 
-        #expect(preset.tools.map(\.tool) == [.transcript, .presets, .audio, .adjusts, .speed])
+        #expect(preset.tools.map(\.tool) == [.presets, .audio, .adjusts, .speed])
         #expect(preset.exportQualities == VideoEditorView.Configuration().exportQualities)
-        #expect(preset.transcription != nil)
+        #expect(preset.transcription == nil)
     }
 
     @Test
