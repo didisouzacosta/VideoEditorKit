@@ -1,4 +1,13 @@
-# VideoEditorKit
+<div align="center">
+  <h1>VideoEditorKit</h1>
+  <p>
+    <a href="./LICENSE">
+      <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License: MIT" />
+    </a>
+    <img src="https://img.shields.io/badge/version-v1.0.7-blue.svg" alt="Version: v1.0.7" />
+    <img src="https://img.shields.io/badge/iOS-26.0%2B-black.svg" alt="iOS 26.0+" />
+  </p>
+</div>
 
 `VideoEditorKit` is a package-first iOS video editor framework built with SwiftUI, Observation, AVFoundation, and PhotosUI.
 
