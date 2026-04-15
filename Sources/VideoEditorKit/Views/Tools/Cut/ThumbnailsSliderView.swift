@@ -106,6 +106,11 @@ struct ThumbnailsSliderView: View {
     ) {
         _currentTime = currentTime
         _video = video
+        _rangeDuration = State(
+            initialValue: Self.resolvedVideoRange(
+                from: video.wrappedValue
+            )
+        )
 
         self.isPlaying = isPlaying
         self.isChangeState = isChangeState
@@ -191,7 +196,7 @@ extension ThumbnailsSliderView {
 
     private func setVideoRange() {
         if let video {
-            rangeDuration = video.rangeDuration
+            rangeDuration = Self.resolvedVideoRange(from: video)
         }
     }
 
@@ -254,6 +259,21 @@ extension ThumbnailsSliderView {
         .task(id: thumbnailRequestID(for: size)) {
             onRequestThumbnails(size)
         }
+    }
+
+    private static func resolvedVideoRange(
+        from video: Video?
+    ) -> ClosedRange<Double> {
+        guard let video else { return 0...1 }
+
+        let rangeDuration = video.rangeDuration
+        let hasValidTrimRange = rangeDuration.upperBound > rangeDuration.lowerBound
+
+        guard max(video.originalDuration, 0) > 0, !hasValidTrimRange else {
+            return rangeDuration
+        }
+
+        return 0...video.originalDuration
     }
 
     @ViewBuilder

@@ -1264,6 +1264,37 @@ struct EditorViewModelTests {
     }
 
     @Test
+    func setSourceVideoIfNeededRestoresTheFullRangeWhenTrimWasNotSaved() async throws {
+        let videoURL = try await TestFixtures.createTemporaryVideo(frameCount: 60)
+        defer { FileManager.default.removeIfExists(for: videoURL) }
+
+        let viewModel = EditorViewModel()
+        let videoPlayer = VideoPlayerManager()
+        let editingConfiguration = VideoEditingConfiguration(
+            playback: .init(currentTimelineTime: 0.5)
+        )
+
+        viewModel.setSourceVideoIfNeeded(
+            videoURL,
+            editingConfiguration: editingConfiguration,
+            availableSize: CGSize(width: 390, height: 844),
+            videoPlayer: videoPlayer
+        )
+
+        for _ in 0..<100
+        where viewModel.currentVideo == nil || videoPlayer.loadState != .loaded(videoURL) {
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+
+        let currentVideo = try #require(viewModel.currentVideo)
+
+        #expect(abs(currentVideo.rangeDuration.lowerBound) < 0.001)
+        #expect(abs(currentVideo.rangeDuration.upperBound - currentVideo.originalDuration) < 0.001)
+        #expect(currentVideo.isAppliedTool(for: .cut) == false)
+        #expect(abs(videoPlayer.currentTime - 0.5) < 0.05)
+    }
+
+    @Test
     func handleRecordedVideoKeepsThePlayerInLoadingUntilTheVideoFinishesBootstrapping() async {
         let loadVideoProbe = LoadedVideoURLProbe()
         let deferredVideoLoadProbe = DeferredVideoLoadProbe()

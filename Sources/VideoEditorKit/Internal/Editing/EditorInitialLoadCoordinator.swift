@@ -65,6 +65,10 @@ struct EditorInitialLoadCoordinator {
     ) {
         if let editingConfiguration {
             VideoEditingConfigurationMapper.apply(editingConfiguration, to: &video)
+            restoreFullTrimRangeIfNeeded(
+                from: editingConfiguration,
+                to: &video
+            )
         }
 
         EditorDurationLimitCoordinator.applyDurationLimit(
@@ -117,6 +121,22 @@ struct EditorInitialLoadCoordinator {
         }
 
         return .loaded
+    }
+
+    private static func restoreFullTrimRangeIfNeeded(
+        from editingConfiguration: VideoEditingConfiguration,
+        to video: inout Video
+    ) {
+        guard max(video.originalDuration, 0) > 0 else { return }
+
+        let trim = editingConfiguration.trim
+        let hasFiniteTrimBounds = trim.lowerBound.isFinite && trim.upperBound.isFinite
+        let hasExplicitTrimDuration = trim.upperBound > trim.lowerBound
+
+        guard hasFiniteTrimBounds, hasExplicitTrimDuration else {
+            video.resetRangeDuration()
+            return
+        }
     }
 
 }

@@ -101,6 +101,28 @@ struct EditorInitialLoadCoordinatorTests {
 
     @Test
     @MainActor
+    func applyPendingEditingConfigurationRestoresTheFullRangeWhenTrimIsNotPersisted() {
+        let configuration = VideoEditingConfiguration(
+            playback: .init(rate: 1.5, videoVolume: 0.6)
+        )
+        var video = Video.mock
+        video.rangeDuration = 40...120
+
+        EditorInitialLoadCoordinator.applyPendingEditingConfiguration(
+            configuration,
+            to: &video,
+            containerSize: CGSize(width: 320, height: 240)
+        ) { _, _ in
+            CGSize(width: 200, height: 120)
+        }
+
+        #expect(video.rangeDuration == 0...250)
+        #expect(abs(Double(video.rate) - 1.5) < 0.0001)
+        #expect(abs(Double(video.volume) - 0.6) < 0.0001)
+    }
+
+    @Test
+    @MainActor
     func applyPendingEditingConfigurationClampsTheTrimRangeToTheMaximumDuration() {
         let configuration = VideoEditingConfiguration(
             trim: .init(lowerBound: 30, upperBound: 120)
