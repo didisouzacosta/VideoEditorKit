@@ -3,7 +3,7 @@ import Testing
 @testable import VideoEditorKit
 
 @Suite("VideoEditorPlaybackFocusTransitionPolicyTests")
-struct VideoEditorPlaybackFocusTransitionPolicyTests {
+struct PlaybackFocusTransitionPolicyTests {
 
     // MARK: - Public Methods
 
