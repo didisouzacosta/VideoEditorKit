@@ -17,11 +17,11 @@ struct VideoPlayerManagerDependencies: Sendable {
 
     // MARK: - Public Properties
 
-    let makeVideoComposition: @Sendable (AVAsset, [CIFilter]) async throws -> AVVideoComposition
+    let makeVideoComposition: @Sendable (AVAsset, ColorAdjusts) async throws -> AVVideoComposition
 
     static let live = Self(
-        makeVideoComposition: { asset, filters in
-            try await asset.makeVideoComposition(applying: filters)
+        makeVideoComposition: { asset, colorAdjusts in
+            try await asset.makeVideoComposition(applying: colorAdjusts)
         }
     )
 
@@ -620,24 +620,17 @@ extension VideoPlayerManager {
             return
         }
 
-        let filters = Helpers.createColorAdjustsFilters(
-            colorAdjusts: previewColorAdjusts.isIdentity ? nil : previewColorAdjusts
-        )
-
-        guard !filters.isEmpty else {
-            currentItem.videoComposition = nil
-            refreshCurrentVideoFrame()
-            appliedAdjustsSignature = nil
-            appliedAdjustsItemID = currentItemID
-            return
-        }
+        let colorAdjusts = previewColorAdjusts
 
         pause()
 
         adjustsCompositionTask = Task { [weak self] in
             guard
                 let self,
-                let composition = try? await self.dependencies.makeVideoComposition(currentItem.asset, filters)
+                let composition = try? await self.dependencies.makeVideoComposition(
+                    currentItem.asset,
+                    colorAdjusts
+                )
             else {
                 return
             }
@@ -680,7 +673,21 @@ extension AVAsset {
 
     // MARK: - Public Methods
 
+    func makeVideoComposition(applying colorAdjusts: ColorAdjusts) async throws -> AVVideoComposition {
+        try await makeVideoComposition(
+            filterChain: Helpers.createColorAdjustsFilters(colorAdjusts: colorAdjusts)
+        )
+    }
+
     func makeVideoComposition(applying filters: [CIFilter]) async throws -> AVVideoComposition {
+        try await makeVideoComposition(filterChain: filters)
+    }
+
+    // MARK: - Private Methods
+
+    private func makeVideoComposition(
+        filterChain filters: [CIFilter]
+    ) async throws -> AVVideoComposition {
         try await withCheckedThrowingContinuation { continuation in
             AVVideoComposition.videoComposition(
                 with: self,

@@ -332,9 +332,9 @@ struct VideoPlayerManagerTests {
         let compositionRecorder = CompositionBuildRecorder()
         let manager = VideoPlayerManager(
             VideoPlayerManagerDependencies(
-                makeVideoComposition: { asset, filters in
+                makeVideoComposition: { asset, colorAdjusts in
                     await compositionRecorder.recordBuild()
-                    return try await asset.makeVideoComposition(applying: filters)
+                    return try await asset.makeVideoComposition(applying: colorAdjusts)
                 }
             )
         )
@@ -356,10 +356,10 @@ struct VideoPlayerManagerTests {
         let compositionContinuation = CompositionContinuation()
         let manager = VideoPlayerManager(
             VideoPlayerManagerDependencies(
-                makeVideoComposition: { asset, filters in
+                makeVideoComposition: { asset, colorAdjusts in
                     await compositionContinuation.markBuildStarted()
                     await compositionContinuation.waitForResume()
-                    return try await asset.makeVideoComposition(applying: filters)
+                    return try await asset.makeVideoComposition(applying: colorAdjusts)
                 }
             )
         )
