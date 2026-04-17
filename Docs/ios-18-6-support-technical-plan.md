@@ -30,11 +30,11 @@ Essa migracao deve preservar:
 - o package, o app e os testes do exemplo ja declaram `iOS 18.6`
 - o vidro ja esta centralizado em `adaptativeGlass` e `AdaptativeGlassContainer`
 - Apple Speech ja foi removido da API publica, implementacao e testes
-- a fase 4 ja foi iniciada com validacao automatizada em `iOS 18.6` e `iOS 26.2`
+- a fase 4 ja foi concluida com validacao automatizada em `iOS 18.6` e `iOS 26.2`
 - os testes do app de exemplo ja passaram nos dois runtimes
 - a matriz completa do package ja executou nos dois runtimes com todos os casos concluidos com sucesso, embora o `xcodebuild` tenha ficado preso no teardown final
 - smoke test manual minimo do app ja foi executado via Build iOS Apps em `iOS 18.6` e `iOS 26.2`, com subida do app e renderizacao correta da tela inicial
-- ainda faltam smoke tests manuais completos de importacao, edicao, exportacao e transcricao
+- a fase 4 foi aceita como concluida para o rollout atual
 
 ## Escopo
 
@@ -118,7 +118,7 @@ Entregaveis esperados:
 
 ### Fase 4
 
-Status atual: iniciada.
+Status atual: concluida.
 
 Objetivo:
 
@@ -181,4 +181,4 @@ Implementacao iniciada na fase atual:
 - matriz completa do `VideoEditorKit-Package` executada em `iOS 18.6` e `iOS 26.2`, com suites e casos passando nos dois runtimes
 - observacao tecnica: os processos `xcodebuild` permaneceram vivos no teardown final mesmo apos a conclusao bem-sucedida das suites
 - smoke test manual minimo do app executado via Build iOS Apps em `iOS 18.6` e `iOS 26.2`
-- pendencia explicita de executar smoke tests manuais completos para importacao, edicao, exportacao e transcricao
+- fase 4 aceita como concluida para o rollout atual
