@@ -135,6 +135,7 @@ struct EditorInitialLoadCoordinator {
 
         guard hasFiniteTrimBounds, hasExplicitTrimDuration else {
             video.resetRangeDuration()
+            video.removeTool(for: .cut)
             return
         }
     }

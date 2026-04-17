@@ -107,6 +107,7 @@ struct EditorInitialLoadCoordinatorTests {
         )
         var video = Video.mock
         video.rangeDuration = 40...120
+        video.appliedTool(for: .cut)
 
         EditorInitialLoadCoordinator.applyPendingEditingConfiguration(
             configuration,
@@ -117,6 +118,7 @@ struct EditorInitialLoadCoordinatorTests {
         }
 
         #expect(video.rangeDuration == 0...250)
+        #expect(video.isAppliedTool(for: .cut) == false)
         #expect(abs(Double(video.rate) - 1.5) < 0.0001)
         #expect(abs(Double(video.volume) - 0.6) < 0.0001)
     }

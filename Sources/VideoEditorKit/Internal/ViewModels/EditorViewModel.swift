@@ -164,7 +164,11 @@ final class EditorViewModel {
                 containerSize: containerSize,
                 displayScale: self.lastThumbnailDisplayScale
             )
+            let initialTimelineTime = videoPlayer?.currentTime
             videoPlayer?.loadState = .loaded(url)
+            if let initialTimelineTime {
+                videoPlayer?.currentTime = initialTimelineTime
+            }
             videoPlayer?.syncPlaybackState(with: video)
             markEditingConfigurationChanged()
         }

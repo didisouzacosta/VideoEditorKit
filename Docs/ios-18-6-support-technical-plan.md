@@ -32,7 +32,9 @@ Essa migracao deve preservar:
 - Apple Speech ja foi removido da API publica, implementacao e testes
 - a fase 4 ja foi iniciada com validacao automatizada em `iOS 18.6` e `iOS 26.2`
 - os testes do app de exemplo ja passaram nos dois runtimes
-- ainda faltam fechamento da matriz completa do package e smoke tests manuais
+- a matriz completa do package ja executou nos dois runtimes com todos os casos concluidos com sucesso, embora o `xcodebuild` tenha ficado preso no teardown final
+- smoke test manual minimo do app ja foi executado via Build iOS Apps em `iOS 18.6` e `iOS 26.2`, com subida do app e renderizacao correta da tela inicial
+- ainda faltam smoke tests manuais completos de importacao, edicao, exportacao e transcricao
 
 ## Escopo
 
@@ -175,4 +177,8 @@ Implementacao iniciada na fase atual:
 - validacao automatizada do app de exemplo em `iOS 18.6` e `iOS 26.2`
 - validacao direcionada do package nos dois runtimes para o fluxo de reset de audio
 - correcao do reset de audio para limpar o estado aplicado imediatamente quando o volume volta ao padrao sem trilha gravada
-- pendencia explicita de rerodar a matriz completa do package e executar smoke tests manuais
+- correcao do bootstrap inicial para preservar `currentTimelineTime` e limpar o estado de `.cut` quando o trim nao foi persistido
+- matriz completa do `VideoEditorKit-Package` executada em `iOS 18.6` e `iOS 26.2`, com suites e casos passando nos dois runtimes
+- observacao tecnica: os processos `xcodebuild` permaneceram vivos no teardown final mesmo apos a conclusao bem-sucedida das suites
+- smoke test manual minimo do app executado via Build iOS Apps em `iOS 18.6` e `iOS 26.2`
+- pendencia explicita de executar smoke tests manuais completos para importacao, edicao, exportacao e transcricao
