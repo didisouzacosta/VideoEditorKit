@@ -1264,7 +1264,7 @@ struct EditorViewModelTests {
     }
 
     @Test
-    func setSourceVideoIfNeededRestoresTheFullRangeWhenTrimWasNotSaved() async throws {
+    func setSourceVideoIfNeededStartsAtTheTrimmedBeginningWhenTrimWasNotSaved() async throws {
         let videoURL = try await TestFixtures.createTemporaryVideo(frameCount: 60)
         defer { FileManager.default.removeIfExists(for: videoURL) }
 
@@ -1291,7 +1291,7 @@ struct EditorViewModelTests {
         #expect(abs(currentVideo.rangeDuration.lowerBound) < 0.001)
         #expect(abs(currentVideo.rangeDuration.upperBound - currentVideo.originalDuration) < 0.001)
         #expect(currentVideo.isAppliedTool(for: .cut) == false)
-        #expect(abs(videoPlayer.currentTime - 0.5) < 0.05)
+        #expect(abs(videoPlayer.currentTime) < 0.05)
     }
 
     @Test
@@ -2081,7 +2081,9 @@ struct EditorViewModelTests {
     }
 
     @Test
-    func prepareEditingConfigurationForInitialLoadSeedsPlayerAndRestoresPresentationState() async throws {
+    func prepareEditingConfigurationForInitialLoadStartsPlaybackAtTrimBeginningAndRestoresPresentationState()
+        async throws
+    {
         let viewModel = EditorViewModel()
         let videoPlayer = VideoPlayerManager()
         let audioURL = try TestFixtures.createTemporaryAudio()
@@ -2158,9 +2160,13 @@ struct EditorViewModelTests {
             containerSize: CGSize(width: 320, height: 240)
         )
         viewModel.currentVideo = video
+        viewModel.handleCurrentVideoChange(
+            viewModel.currentVideo,
+            videoPlayer: videoPlayer
+        )
         await viewModel.restorePendingEditingPresentationState()
 
-        #expect(abs(videoPlayer.currentTime - 11) < 0.0001)
+        #expect(abs(videoPlayer.currentTime - (8.0 / 1.5)) < 0.0001)
         #expect(viewModel.currentVideo?.rangeDuration == 8...24)
         #expect(abs(Double(viewModel.currentVideo?.rate ?? 0) - 1.5) < 0.0001)
         #expect(abs(Double(viewModel.currentVideo?.volume ?? 0) - 0.55) < 0.0001)

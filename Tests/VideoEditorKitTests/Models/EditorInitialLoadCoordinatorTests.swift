@@ -10,7 +10,7 @@ struct EditorInitialLoadCoordinatorTests {
     // MARK: - Public Methods
 
     @Test
-    func prepareResetsPresentationStateAndPreservesTimelineTime() {
+    func prepareResetsPresentationStateAndDropsPersistedTimelineTime() {
         let configuration = VideoEditingConfiguration(
             playback: .init(currentTimelineTime: 12),
             presentation: .init(.adjusts)
@@ -22,7 +22,6 @@ struct EditorInitialLoadCoordinatorTests {
         #expect(preparedState.selectedAudioTrack == .video)
         #expect(preparedState.selectedTool == nil)
         #expect(preparedState.cropEditingState == .initial)
-        #expect(preparedState.initialTimelineTime == 12)
         #expect(preparedState.transcriptFeatureState == .idle)
         #expect(preparedState.transcriptDocument == nil)
     }

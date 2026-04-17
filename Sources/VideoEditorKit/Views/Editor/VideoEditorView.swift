@@ -134,9 +134,7 @@ public struct VideoEditorView: View {
     }
 
     private var resolvedExportEditingConfiguration: VideoEditingConfiguration {
-        editorViewModel.exportEditingConfiguration(
-            currentTimelineTime: videoPlayer.currentTime
-        ) ?? .initial
+        editorViewModel.exportEditingConfiguration() ?? .initial
     }
 
     // MARK: - Initializer
@@ -228,7 +226,6 @@ public struct VideoEditorView: View {
     private func dismissEditor() {
         Self.dismissEditor(
             editorViewModel: editorViewModel,
-            currentTimelineTime: videoPlayer.currentTime,
             fallbackEditingConfiguration: session.editingConfiguration,
             callbacks: callbacks,
             dismiss: dismiss.callAsFunction
@@ -253,7 +250,6 @@ public struct VideoEditorView: View {
     private func publishEditingConfigurationIfNeeded() {
         Self.scheduleSaveIfNeeded(
             editorViewModel: editorViewModel,
-            currentTimelineTime: videoPlayer.currentTime,
             fallbackSourceVideoURL: session.sourceVideoURL,
             saveEmissionCoordinator: saveEmissionCoordinator,
             onPublish: { publishedSave in

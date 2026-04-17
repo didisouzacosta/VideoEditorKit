@@ -22,12 +22,14 @@ struct FileManagerExtensionTests {
     func saveRetrieveAndDeleteImageRoundTripsOnDisk() throws {
         let identifier = UUID().uuidString
         let image = TestFixtures.makeSolidImage()
+        let imageURL = try #require(FileManager.default.createImagePath(with: identifier))
 
         defer { FileManager.default.deleteImage(with: identifier) }
 
         FileManager.default.saveImage(with: identifier, image: image)
         let retrieved = FileManager.default.retrieveImage(with: identifier)
 
+        #expect(FileManager.default.fileExists(atPath: imageURL.path()))
         #expect(retrieved != nil)
         #expect(abs((retrieved?.size.width ?? 0) - image.size.width) < 0.0001)
         #expect(abs((retrieved?.size.height ?? 0) - image.size.height) < 0.0001)

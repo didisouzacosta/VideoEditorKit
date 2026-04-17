@@ -109,7 +109,7 @@ private struct AdaptativeGlassModifier: ViewModifier {
 
     // MARK: - Initializer
 
-    init(
+    nonisolated init(
         shape: AdaptativeGlassShape,
         prominent: Bool,
         tint: Color?,

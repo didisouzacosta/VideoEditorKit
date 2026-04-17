@@ -33,6 +33,8 @@ struct EditorSessionControllerTests {
             trim: .init(lowerBound: 2, upperBound: 8),
             playback: .init(rate: 1.4, videoVolume: 0.7, currentTimelineTime: 5)
         )
+        var expectedEditingConfiguration = editingConfiguration
+        expectedEditingConfiguration.playback.currentTimelineTime = nil
         let project = makeProject(
             originalVideoFileName: sourceURL.lastPathComponent,
             editingConfiguration: editingConfiguration
@@ -43,13 +45,13 @@ struct EditorSessionControllerTests {
         #expect(controller.currentSourceVideoURL == project.originalVideoURL)
         #expect(
             controller.latestSaveState
-                == .init(editingConfiguration: editingConfiguration)
+                == .init(editingConfiguration: expectedEditingConfiguration)
         )
         #expect(
             controller.session
                 == .init(
                     sourceVideoURL: project.originalVideoURL,
-                    editingConfiguration: editingConfiguration
+                    editingConfiguration: expectedEditingConfiguration
                 )
         )
     }

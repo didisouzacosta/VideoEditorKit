@@ -13,7 +13,19 @@ extension FileManager {
     // MARK: - Private Properties
 
     private var documentsDirectory: URL? {
-        urls(for: .documentDirectory, in: .userDomainMask).first
+        do {
+            let url = try url(
+                for: .documentDirectory,
+                in: .userDomainMask,
+                appropriateFor: nil,
+                create: true
+            )
+            try ensureDirectoryExists(at: url)
+            return url
+        } catch {
+            assertionFailure("Failed to resolve documents directory: \(error.localizedDescription)")
+            return nil
+        }
     }
 
     // MARK: - Public Methods
@@ -43,7 +55,8 @@ extension FileManager {
         else { return }
 
         do {
-            try data.write(to: url)
+            try ensureDirectoryExists(at: url.deletingLastPathComponent())
+            try data.write(to: url, options: .atomic)
         } catch {
             assertionFailure("Failed to save image at \(url.lastPathComponent): \(error.localizedDescription)")
         }
@@ -67,6 +80,13 @@ extension FileManager {
         } catch {
             assertionFailure("Failed to remove item at \(url.lastPathComponent): \(error.localizedDescription)")
         }
+    }
+
+    // MARK: - Private Methods
+
+    private func ensureDirectoryExists(at url: URL) throws {
+        guard fileExists(atPath: url.path) == false else { return }
+        try createDirectory(at: url, withIntermediateDirectories: true)
     }
 
 }

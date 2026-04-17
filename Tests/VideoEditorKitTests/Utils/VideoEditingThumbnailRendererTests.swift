@@ -49,7 +49,7 @@ struct VideoEditingThumbnailRendererTests {
     }
 
     @Test
-    func makeThumbnailDataUsesTheCurrentTimelineFrameWhenAvailable() async throws {
+    func makeThumbnailDataIgnoresTheCurrentTimelineFrameWhenGeneratingSourceThumbnails() async throws {
         let videoURL = try await TestFixtures.createTemporaryVideo(
             size: CGSize(width: 80, height: 40),
             frameCount: 60,
@@ -86,12 +86,12 @@ struct VideoEditingThumbnailRendererTests {
             )
         )
 
-        #expect(sampledColor.blueComponent > 0.55)
-        #expect(sampledColor.redComponent < 0.45)
+        #expect(sampledColor.redComponent > 0.55)
+        #expect(sampledColor.blueComponent < 0.45)
     }
 
     @Test
-    func makeThumbnailDataConvertsTimelineTimeIntoSourceTimeWhenPlaybackRateChanges() async throws {
+    func makeThumbnailDataStillUsesTheTrimStartWhenPlaybackRateChanges() async throws {
         let videoURL = try await TestFixtures.createTemporaryVideo(
             size: CGSize(width: 80, height: 40),
             frameCount: 60,
@@ -128,8 +128,8 @@ struct VideoEditingThumbnailRendererTests {
             )
         )
 
-        #expect(sampledColor.blueComponent > 0.55)
-        #expect(sampledColor.redComponent < 0.45)
+        #expect(sampledColor.redComponent > 0.55)
+        #expect(sampledColor.blueComponent < 0.45)
     }
 
     @Test

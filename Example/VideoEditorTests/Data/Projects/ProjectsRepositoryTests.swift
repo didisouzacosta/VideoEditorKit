@@ -50,12 +50,14 @@ struct ProjectsRepositoryTests {
         #expect(project.duration > 0)
         #expect(project.fileSize > 0)
         #expect(project.editingConfiguration?.trim == saveState.editingConfiguration.trim)
+        #expect(project.editingConfiguration?.playback.currentTimelineTime == nil)
         #expect(project.editingConfiguration?.audio.selectedTrack == .recorded)
         #expect(
             project.editingConfiguration?.audio.recordedClip?.url.lastPathComponent.hasPrefix(
                 "recorded-audio."
             ) == true
         )
+        #expect(persistedState.saveState.editingConfiguration.playback.currentTimelineTime == nil)
         #expect(
             persistedState.saveState.editingConfiguration.audio.recordedClip?.url.lastPathComponent.hasPrefix(
                 "recorded-audio."
@@ -178,7 +180,7 @@ struct ProjectsRepositoryTests {
     }
 
     @Test
-    func saveExportedVideoUsesTheCurrentTimelineFrameForThePersistedThumbnail() async throws {
+    func saveExportedVideoUsesTheExportStartFrameForThePersistedThumbnail() async throws {
         let container = try makeContainer()
         let store = ProjectsRepository(modelContext: container.mainContext)
         let originalVideoURL = try await TestFixtures.createTemporaryVideo(color: .systemBlue)
@@ -223,8 +225,8 @@ struct ProjectsRepositoryTests {
             )
         )
 
-        #expect(sampledColor.blueComponent > 0.55)
-        #expect(sampledColor.redComponent < 0.45)
+        #expect(sampledColor.redComponent > 0.55)
+        #expect(sampledColor.blueComponent < 0.45)
     }
 
     @Test
@@ -260,7 +262,7 @@ struct ProjectsRepositoryTests {
     }
 
     @Test
-    func thumbnailTimestampUsesTheCurrentTimelineFrameRelativeToTheExportedClip() {
+    func thumbnailTimestampStartsAtTheBeginningOfTheExportedClip() {
         let editingConfiguration = VideoEditingConfiguration(
             trim: .init(lowerBound: 10, upperBound: 20),
             playback: .init(
@@ -271,12 +273,10 @@ struct ProjectsRepositoryTests {
         )
 
         #expect(
-            abs(
-                ProjectsRepository.resolvedThumbnailTimestamp(
-                    for: 10,
-                    editingConfiguration: editingConfiguration
-                ) - 1
-            ) < 0.0001
+            ProjectsRepository.resolvedThumbnailTimestamp(
+                for: 10,
+                editingConfiguration: editingConfiguration
+            ) == 0
         )
     }
 

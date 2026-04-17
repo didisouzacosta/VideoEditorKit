@@ -42,10 +42,17 @@ final class EditedVideoProject {
     }
 
     var editingConfiguration: VideoEditingConfiguration? {
-        try? JSONDecoder().decode(
-            VideoEditingConfiguration.self,
-            from: editingConfigurationData
-        )
+        guard
+            var editingConfiguration = try? JSONDecoder().decode(
+                VideoEditingConfiguration.self,
+                from: editingConfigurationData
+            )
+        else {
+            return nil
+        }
+
+        editingConfiguration.playback.currentTimelineTime = nil
+        return editingConfiguration
     }
 
     var hasOriginalVideo: Bool {

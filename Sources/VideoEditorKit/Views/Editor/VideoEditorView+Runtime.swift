@@ -53,26 +53,18 @@ extension VideoEditorView {
 
     static func dismissedEditingConfiguration(
         editorViewModel: EditorViewModel,
-        currentTimelineTime: Double,
         fallbackEditingConfiguration: VideoEditingConfiguration?
     ) -> VideoEditingConfiguration? {
-        editorViewModel.currentEditingConfiguration(
-            currentTimelineTime: currentTimelineTime
-        ) ?? fallbackEditingConfiguration
+        editorViewModel.currentEditingConfiguration() ?? fallbackEditingConfiguration
     }
 
     static func scheduleSaveIfNeeded(
         editorViewModel: EditorViewModel,
-        currentTimelineTime: Double,
         fallbackSourceVideoURL: URL?,
         saveEmissionCoordinator: VideoEditorSaveEmissionCoordinator,
         onPublish: @escaping @MainActor (VideoEditorSaveEmissionCoordinator.PublishedSave) -> Void
     ) {
-        guard
-            let currentEditingConfiguration = editorViewModel.currentEditingConfiguration(
-                currentTimelineTime: currentTimelineTime
-            )
-        else {
+        guard let currentEditingConfiguration = editorViewModel.currentEditingConfiguration() else {
             return
         }
 
@@ -99,7 +91,6 @@ extension VideoEditorView {
 
     static func dismissEditor(
         editorViewModel: EditorViewModel,
-        currentTimelineTime: Double,
         fallbackEditingConfiguration: VideoEditingConfiguration?,
         callbacks: Callbacks,
         dismiss: () -> Void
@@ -107,7 +98,6 @@ extension VideoEditorView {
         callbacks.onDismissed(
             dismissedEditingConfiguration(
                 editorViewModel: editorViewModel,
-                currentTimelineTime: currentTimelineTime,
                 fallbackEditingConfiguration: fallbackEditingConfiguration
             )
         )

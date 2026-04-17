@@ -901,7 +901,7 @@ final class EditorViewModel {
 
     func prepareEditingConfigurationForInitialLoad(
         _ editingConfiguration: VideoEditingConfiguration?,
-        videoPlayer: VideoPlayerManager
+        videoPlayer _: VideoPlayerManager
     ) {
         let preparedState = EditorInitialLoadCoordinator.prepare(
             editingConfiguration
@@ -915,10 +915,6 @@ final class EditorViewModel {
         transcriptDocument = preparedState.transcriptDocument
         transcriptDraftDocument = preparedState.transcriptDocument
         syncTranscriptRuntimeState()
-
-        if let currentTimelineTime = preparedState.initialTimelineTime {
-            videoPlayer.currentTime = currentTimelineTime
-        }
     }
 
     func setTranscriptDocument(

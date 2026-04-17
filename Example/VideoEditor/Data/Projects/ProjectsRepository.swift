@@ -191,8 +191,11 @@ struct ProjectsRepository {
             from: originalVideoURL,
             to: projectDirectoryURL
         )
+        let sanitizedEditingConfiguration = sanitizedEditingConfiguration(
+            editingConfiguration
+        )
         let persistedEditingConfiguration = try mediaStore.persistRecordedAudioIfNeeded(
-            editingConfiguration,
+            sanitizedEditingConfiguration,
             in: projectDirectoryURL
         )
 
@@ -213,6 +216,14 @@ struct ProjectsRepository {
         preparedSave.project.originalVideoFileName = preparedSave.persistedOriginalURL.lastPathComponent
         preparedSave.project.editingConfigurationData =
             (try? JSONEncoder().encode(preparedSave.persistedEditingConfiguration)) ?? Data()
+    }
+
+    private func sanitizedEditingConfiguration(
+        _ editingConfiguration: VideoEditingConfiguration
+    ) -> VideoEditingConfiguration {
+        var sanitizedEditingConfiguration = editingConfiguration
+        sanitizedEditingConfiguration.playback.currentTimelineTime = nil
+        return sanitizedEditingConfiguration
     }
 
     private func applyVideoMetadata(

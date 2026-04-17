@@ -42,7 +42,6 @@ struct VideoEditorViewRuntimeTests {
         #expect(
             VideoEditorView.dismissedEditingConfiguration(
                 editorViewModel: editorViewModel,
-                currentTimelineTime: 2,
                 fallbackEditingConfiguration: fallbackConfiguration
             ) == fallbackConfiguration
         )
@@ -70,7 +69,6 @@ struct VideoEditorViewRuntimeTests {
 
         VideoEditorView.scheduleSaveIfNeeded(
             editorViewModel: editorViewModel,
-            currentTimelineTime: 3,
             fallbackSourceVideoURL: fallbackSourceVideoURL,
             saveEmissionCoordinator: saveEmissionCoordinator
         ) { publishedSave in
@@ -112,7 +110,6 @@ struct VideoEditorViewRuntimeTests {
 
         VideoEditorView.dismissEditor(
             editorViewModel: editorViewModel,
-            currentTimelineTime: 3,
             fallbackEditingConfiguration: nil,
             callbacks: .init(
                 onDismissed: { configuration in
@@ -125,6 +122,7 @@ struct VideoEditorViewRuntimeTests {
         )
 
         #expect(configurationRecorder.value != nil)
+        #expect(configurationRecorder.value?.playback.currentTimelineTime == nil)
         #expect(dismissalRecorder.count == 1)
     }
 
@@ -191,7 +189,6 @@ struct VideoEditorViewRuntimeTests {
 
         VideoEditorView.scheduleSaveIfNeeded(
             editorViewModel: editorViewModel,
-            currentTimelineTime: 2,
             fallbackSourceVideoURL: sourceVideoURL,
             saveEmissionCoordinator: saveEmissionCoordinator
         ) { publishedSave in
@@ -208,6 +205,7 @@ struct VideoEditorViewRuntimeTests {
         let saveState = await saveStateRecorder.waitForFirstValue()
 
         #expect(saveState.editingConfiguration.trim.lowerBound == 0)
+        #expect(saveState.editingConfiguration.playback.currentTimelineTime == nil)
         #expect(saveState.thumbnailData == nil)
     }
 
