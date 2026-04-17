@@ -5,13 +5,13 @@
       <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License: MIT" />
     </a>
     <img src="https://img.shields.io/badge/version-v1.0.7-blue.svg" alt="Version: v1.0.7" />
-    <img src="https://img.shields.io/badge/iOS-26.0%2B-black.svg" alt="iOS 26.0+" />
+    <img src="https://img.shields.io/badge/iOS-18.6%2B-black.svg" alt="iOS 18.6+" />
   </p>
 </div>
 
 `VideoEditorKit` is a package-first iOS video editor framework built with SwiftUI, Observation, AVFoundation, and PhotosUI.
 
-It currently supports iOS 26 on iPhone only. iPad support is planned and coming soon.
+It currently supports iOS 18.6+ on iPhone only. iPad support is planned and coming soon.
 
 It ships a full-screen editor that already includes trimming, playback speed changes, crop presets, audio recording and mixing, color adjustments, transcript overlays, frame/background styling, and `.mp4` export.
 
@@ -23,7 +23,7 @@ The repository is structured around a Swift Package at the root and an example i
 - A serializable editing snapshot through `VideoEditingConfiguration`
 - Host-controlled feature gating for tools and export qualities
 - Continuous save callbacks so your app can persist work-in-progress state
-- Optional transcript generation through Apple Speech, OpenAI Whisper, or a custom `VideoTranscriptionProvider`
+- Optional transcript generation through OpenAI Whisper or a custom `VideoTranscriptionProvider`
 - Reusable public canvas, export, transcript, and layout utilities for advanced integrations
 
 ## Screenshots
@@ -38,7 +38,7 @@ The repository is structured around a Swift Package at the root and an example i
 
 ## Requirements
 
-- iOS 26.0+ on iPhone
+- iOS 18.6+ on iPhone
 - iPad support coming soon
 - Swift 6
 - Xcode with Swift Package Manager support

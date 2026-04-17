@@ -96,7 +96,7 @@ public struct VideoExporterView: View {
 
     private var navigationContent: some View {
         content
-            .safeAreaBar(edge: .bottom) {
+            .safeAreaInset(edge: .bottom) {
                 footer
             }
             .navigationTitle(VideoEditorStrings.exportVideoTitle)

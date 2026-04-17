@@ -6,7 +6,7 @@ let package = Package(
     name: "VideoEditorKit",
     defaultLocalization: "en",
     platforms: [
-        .iOS(.v26)
+        .iOS(.v18)
     ],
     products: [
         .library(

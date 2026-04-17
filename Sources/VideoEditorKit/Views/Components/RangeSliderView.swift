@@ -70,9 +70,9 @@ struct RangedSliderView: View {
     private var resolvedSliderFeedback: SensoryFeedback? {
         switch sliderFeedbackEvent {
         case .dragStarted:
-            .press(.slider)
+            .selection
         case .dragCommitted:
-            .release(.slider)
+            .success
         case nil:
             nil
         }

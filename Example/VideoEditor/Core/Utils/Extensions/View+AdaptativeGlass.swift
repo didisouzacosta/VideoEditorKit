@@ -1,6 +1,6 @@
 import SwiftUI
 
-private enum AdaptativeGlassShape {
+enum AdaptativeGlassShape {
 
     // MARK: - Public Properties
 
@@ -68,6 +68,7 @@ private struct AdaptativeGlassModifier: ViewModifier {
 
     // MARK: - Private Methods
 
+    @available(iOS 26, *)
     @ViewBuilder
     private func glassContent(_ content: Content) -> some View {
         switch shape {

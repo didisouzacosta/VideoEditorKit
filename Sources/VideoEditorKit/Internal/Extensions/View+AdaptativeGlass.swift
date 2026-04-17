@@ -73,9 +73,7 @@ struct AdaptativeGlassContainer<Content: View>: View {
     @ViewBuilder
     var body: some View {
         if #available(iOS 26, *) {
-            GlassEffectContainer(spacing: spacing) {
-                content()
-            }
+            glassContainerContent
         } else {
             content()
         }
@@ -89,6 +87,15 @@ struct AdaptativeGlassContainer<Content: View>: View {
     ) {
         self.spacing = spacing
         self.content = content
+    }
+
+    // MARK: - Private Properties
+
+    @available(iOS 26, *)
+    private var glassContainerContent: some View {
+        GlassEffectContainer(spacing: spacing) {
+            content()
+        }
     }
 
 }
@@ -130,6 +137,7 @@ private struct AdaptativeGlassModifier: ViewModifier {
 
     // MARK: - Private Methods
 
+    @available(iOS 26, *)
     @ViewBuilder
     private func glassContent(_ content: Content) -> some View {
         switch style.shape {

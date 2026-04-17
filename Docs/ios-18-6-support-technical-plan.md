@@ -27,11 +27,10 @@ Essa migracao deve preservar:
 
 ## Estado atual relevante
 
-- o package declara `iOS 26` em `Package.swift`
-- o app e os testes do exemplo tambem declaram `iOS 26`
-- o vidro esta parcialmente centralizado em extensoes de `View`, mas ainda existe uso direto de `GlassEffectContainer`
-- a documentacao ainda assume `iOS 26+`
-- existe codigo e testes de Apple Speech que precisam sair do caminho antes de a compatibilidade com `iOS 18.6` ser declarada como concluida
+- o package, o app e os testes do exemplo ja declaram `iOS 18.6`
+- o vidro ja esta centralizado em `adaptativeGlass` e `AdaptativeGlassContainer`
+- Apple Speech ja foi removido da API publica, implementacao e testes
+- a validacao final ainda precisa confirmar paridade funcional em runtimes compativeis com `iOS 18.6` e `iOS 26`
 
 ## Escopo
 
@@ -96,7 +95,7 @@ Entregaveis esperados:
 
 ### Fase 3
 
-Status atual: pronta para iniciar.
+Status atual: concluida.
 
 Objetivo:
 
@@ -160,3 +159,9 @@ Implementacao concluida na fase seguinte:
 - remocao da factory publica `appleSpeech`
 - remocao dos componentes e testes baseados em Apple Speech
 - alinhamento do README e da documentacao DocC para Whisper + provider customizado
+
+Implementacao concluida nesta fase:
+
+- reducao do deployment target para `iOS 18.6` no package, app e testes
+- remocao do `NSSpeechRecognitionUsageDescription` do app de exemplo
+- alinhamento das instrucoes do repositorio e do README com o novo minimo suportado

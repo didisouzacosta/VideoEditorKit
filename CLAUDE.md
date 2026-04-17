@@ -27,8 +27,8 @@ O código ainda não segue a arquitetura alvo descrita em `AGENTS.md` e no `CLAU
 
 Build settings atuais:
 
-- app target: iOS 26.0
-- tests target: iOS 26.0
+- app target: iOS 18.6
+- tests target: iOS 18.6
 - app em Swift 6
 - tests em Swift 6
 
@@ -395,7 +395,7 @@ Para mudanças futuras neste repositório, usar o padrão abaixo como baseline:
 - só introduzir `@State` local para edição quando ele representar estado transitório real de UI, desacoplado da fonte persistida ou do preview, como fluxos explícitos de aplicar/cancelar
 - quando um draft local for inevitável, documentar claramente a fronteira de commit desse estado e cobrir com testes a ausência de propagação duplicada ou reentrância
 - ao editar Swift, rodar formatação do projeto antes de finalizar
-- não introduzir `@available(iOS ...)` ou checagens `#available(iOS ...)` para versões abaixo ou iguais ao deployment target atual; o projeto roda apenas em iOS 26+, então esse tipo de anotação é ruído e só faz sentido ao isolar APIs realmente futuras acima de iOS 26 ou código genuinamente multiplataforma
+- não introduzir `@available(iOS ...)` ou checagens `#available(iOS ...)` para versões abaixo ou iguais ao deployment target atual; o projeto roda apenas em iOS 18.6+, então esse tipo de anotação é ruído e só faz sentido ao isolar APIs realmente futuras acima de iOS 18.6 ou código genuinamente multiplataforma
 - não marcar `View`, subviews ou extensões de `View` com `@MainActor` por padrão; preferir isolamento em `ViewModel`, `Manager` e APIs específicas, e só usar `@MainActor` em views quando houver necessidade técnica concreta que não possa ser resolvida com isolamento mais estreito
 - novos testes e refactors de testes devem usar `Swift Testing`; não introduzir novos casos em `XCTestCase`
 - em testes, preferir `@Suite` + `@Test` + `#expect`/`#require` e só usar `@MainActor` quando o cenário realmente tocar estado de UI ou tipos main-thread-bound

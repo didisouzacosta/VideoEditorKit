@@ -14,7 +14,7 @@ public struct VideoEditorToolSheetView<Content: View, Footer: View>: View {
             VStack(spacing: 16) {
                 content()
             }
-            .safeAreaBar(edge: .bottom) {
+            .safeAreaInset(edge: .bottom) {
                 footer()
                     .frame(maxWidth: .infinity, alignment: .leading)
             }

@@ -43,7 +43,7 @@ public struct VideoEditorView: View {
             onBootstrapStateChanged: syncPlayerLoadState
         ) {
             if editorViewModel.currentVideo != nil {
-                Button(role: .confirm, action: presentExporter) {
+                Button(action: presentExporter) {
                     Text(VideoEditorStrings.export)
                 }
             }

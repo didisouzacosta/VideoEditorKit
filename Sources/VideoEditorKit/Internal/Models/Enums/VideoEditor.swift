@@ -142,17 +142,15 @@ enum VideoEditor {
             let exportMapping = mappingActor.makeExportMapping(
                 request: renderRequest
             )
-            var layerInstructionConfiguration = AVVideoCompositionLayerInstruction.Configuration(
+            outputSize = exportMapping.renderSize
+            let mutableLayerInstruction = AVMutableVideoCompositionLayerInstruction(
                 assetTrack: videoTrack
             )
-            layerInstructionConfiguration.setTransform(
+            mutableLayerInstruction.setTransform(
                 exportMapping.contentTransform,
                 at: .zero
             )
-            outputSize = exportMapping.renderSize
-            layerInstruction = AVVideoCompositionLayerInstruction(
-                configuration: layerInstructionConfiguration
-            )
+            layerInstruction = mutableLayerInstruction
         } else {
             outputSize = exportProfile.renderSize
 
@@ -167,22 +165,16 @@ enum VideoEditor {
         }
 
         let animationTool = createAnimationTool(video.videoFrames, video: video, size: outputSize)
-        let instruction = AVVideoCompositionInstruction(
-            configuration: .init(
-                layerInstructions: [layerInstruction],
-                timeRange: timeRange
-            )
-        )
+        let instruction = AVMutableVideoCompositionInstruction()
+        instruction.layerInstructions = [layerInstruction]
+        instruction.timeRange = timeRange
 
-        var configuration = AVVideoComposition.Configuration(
-            animationTool: animationTool,
-            frameDuration: exportProfile.frameDuration,
-            instructions: [instruction],
-            renderSize: outputSize
-        )
-        configuration.renderScale = 1
-
-        let videoComposition = AVVideoComposition(configuration: configuration)
+        let videoComposition = AVMutableVideoComposition()
+        videoComposition.animationTool = animationTool
+        videoComposition.frameDuration = exportProfile.frameDuration
+        videoComposition.instructions = [instruction]
+        videoComposition.renderSize = outputSize
+        videoComposition.renderScale = 1
         let outputURL = createTempPath()
         let session = try exportSession(
             composition: composition,
@@ -297,23 +289,17 @@ enum VideoEditor {
                 )
             }
         }
-        let videoInstruction = AVVideoCompositionInstruction(
-            configuration: .init(
-                layerInstructions: [
-                    animationContext.overlayInstruction,
-                    instruction,
-                ],
-                timeRange: trackTimeRange
-            )
-        )
-        let videoComposition = AVVideoComposition(
-            configuration: .init(
-                animationTool: animationContext.animationTool,
-                frameDuration: exportProfile.frameDuration,
-                instructions: [videoInstruction],
-                renderSize: presentationSize
-            )
-        )
+        let videoInstruction = AVMutableVideoCompositionInstruction()
+        videoInstruction.layerInstructions = [
+            animationContext.overlayInstruction,
+            instruction,
+        ]
+        videoInstruction.timeRange = trackTimeRange
+        let videoComposition = AVMutableVideoComposition()
+        videoComposition.animationTool = animationContext.animationTool
+        videoComposition.frameDuration = exportProfile.frameDuration
+        videoComposition.instructions = [videoInstruction]
+        videoComposition.renderSize = presentationSize
         let outputURL = createTempPath()
 
         guard
@@ -1060,10 +1046,8 @@ extension VideoEditor {
         outputLayer.addSublayer(videoLayer)
 
         return AVVideoCompositionCoreAnimationTool(
-            configuration: .init(
-                postProcessingAsVideoLayer: videoLayer,
-                containingLayer: outputLayer
-            )
+            postProcessingAsVideoLayer: videoLayer,
+            in: outputLayer
         )
     }
 
@@ -1119,19 +1103,15 @@ extension VideoEditor {
             outputLayer.addSublayer(activeWordLayer)
         }
 
-        var overlayInstructionConfiguration = AVVideoCompositionLayerInstruction.Configuration(
-            trackID: transcriptOverlayTrackID
-        )
-        overlayInstructionConfiguration.trackID = transcriptOverlayTrackID
+        let overlayInstruction = AVMutableVideoCompositionLayerInstruction()
+        overlayInstruction.trackID = transcriptOverlayTrackID
 
         return TranscriptAnimationContext(
             animationTool: AVVideoCompositionCoreAnimationTool(
                 additionalLayer: outputLayer,
                 asTrackID: transcriptOverlayTrackID
             ),
-            overlayInstruction: AVVideoCompositionLayerInstruction(
-                configuration: overlayInstructionConfiguration
-            )
+            overlayInstruction: overlayInstruction
         )
     }
 
@@ -1695,7 +1675,7 @@ extension VideoEditor {
         track: AVAssetTrack,
         isMirror: Bool
     ) -> AVVideoCompositionLayerInstruction {
-        var configuration = AVVideoCompositionLayerInstruction.Configuration(assetTrack: track)
+        let instruction = AVMutableVideoCompositionLayerInstruction(assetTrack: track)
         let transformedBounds = CGRect(origin: .zero, size: naturalSize)
             .applying(preferredTransform)
             .standardized
@@ -1728,9 +1708,9 @@ extension VideoEditor {
             finalTransform = finalTransform.concatenating(mirrorTransform)
         }
 
-        configuration.setTransform(finalTransform, at: .zero)
+        instruction.setTransform(finalTransform, at: .zero)
 
-        return AVVideoCompositionLayerInstruction(configuration: configuration)
+        return instruction
     }
 
     private static func resolvedBaseRenderLayout(
