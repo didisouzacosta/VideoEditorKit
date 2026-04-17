@@ -54,7 +54,7 @@ Essa migracao deve preservar:
 
 ### Fase 1
 
-Status atual: em andamento.
+Status atual: concluida.
 
 Objetivo:
 
@@ -76,6 +76,8 @@ Entregaveis esperados:
 
 ### Fase 2
 
+Status atual: concluida.
+
 Objetivo:
 
 - remover a dependencia funcional de Apple Speech e alinhar a API publica com a decisao de produto
@@ -93,6 +95,8 @@ Entregaveis esperados:
 - eliminacao de um dos principais riscos de disponibilidade para `iOS 18.6`
 
 ### Fase 3
+
+Status atual: pronta para iniciar.
 
 Objetivo:
 
@@ -150,3 +154,9 @@ Implementacao iniciada nesta entrega:
 - introducao da camada `adaptativeGlass`
 - introducao do wrapper de container de glass
 - migracao inicial dos helpers visuais para a nova abstracao
+
+Implementacao concluida na fase seguinte:
+
+- remocao da factory publica `appleSpeech`
+- remocao dos componentes e testes baseados em Apple Speech
+- alinhamento do README e da documentacao DocC para Whisper + provider customizado

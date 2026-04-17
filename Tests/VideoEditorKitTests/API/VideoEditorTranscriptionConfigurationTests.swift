@@ -9,21 +9,23 @@ struct EditorTranscriptionConfigTests {
 
     @MainActor
     @Test
-    func appleSpeechKeepsThePreferredLocaleAndCreatesAStatefulProvider() {
-        let configuration = VideoEditorView.Configuration.TranscriptionConfiguration.appleSpeech(
+    func explicitProviderKeepsThePreferredLocaleAndConfiguredState() {
+        let configuration = VideoEditorView.Configuration.TranscriptionConfiguration(
+            provider: ConfigurationProbeTranscriptionProvider(),
             preferredLocale: "pt-BR"
         )
 
         #expect(configuration.preferredLocale == "pt-BR")
         #expect(configuration.provider != nil)
-        #expect((configuration.provider as? any VideoTranscriptionComponentProtocol) != nil)
         #expect(configuration.isConfigured)
     }
 
     @MainActor
     @Test
-    func appleSpeechCreatesAProviderWithoutAPreferredLocale() {
-        let configuration = VideoEditorView.Configuration.TranscriptionConfiguration.appleSpeech()
+    func explicitProviderCanBeCreatedWithoutAPreferredLocale() {
+        let configuration = VideoEditorView.Configuration.TranscriptionConfiguration(
+            provider: ConfigurationProbeTranscriptionProvider()
+        )
 
         #expect(configuration.preferredLocale == nil)
         #expect(configuration.provider != nil)
@@ -52,6 +54,16 @@ struct EditorTranscriptionConfigTests {
         #expect(configuration.preferredLocale == "en-US")
         #expect(configuration.provider != nil)
         #expect(configuration.isConfigured)
+    }
+
+}
+
+private actor ConfigurationProbeTranscriptionProvider: VideoTranscriptionProvider {
+
+    // MARK: - Public Methods
+
+    func transcribeVideo(input _: VideoTranscriptionInput) async throws -> VideoTranscriptionResult {
+        .init()
     }
 
 }
