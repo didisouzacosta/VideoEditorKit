@@ -1116,6 +1116,7 @@ final class EditorViewModel {
 
         updateCurrentVideo { currentVideo in
             currentVideo.setVolume(1.0)
+            currentVideo.removeTool(for: .audio)
         }
         videoPlayer.setVolume(true, value: 1.0)
     }

@@ -30,7 +30,9 @@ Essa migracao deve preservar:
 - o package, o app e os testes do exemplo ja declaram `iOS 18.6`
 - o vidro ja esta centralizado em `adaptativeGlass` e `AdaptativeGlassContainer`
 - Apple Speech ja foi removido da API publica, implementacao e testes
-- a validacao final ainda precisa confirmar paridade funcional em runtimes compativeis com `iOS 18.6` e `iOS 26`
+- a fase 4 ja foi iniciada com validacao automatizada em `iOS 18.6` e `iOS 26.2`
+- os testes do app de exemplo ja passaram nos dois runtimes
+- ainda faltam fechamento da matriz completa do package e smoke tests manuais
 
 ## Escopo
 
@@ -114,6 +116,8 @@ Entregaveis esperados:
 
 ### Fase 4
 
+Status atual: iniciada.
+
 Objetivo:
 
 - validar paridade funcional nos dois ambientes relevantes
@@ -165,3 +169,10 @@ Implementacao concluida nesta fase:
 - reducao do deployment target para `iOS 18.6` no package, app e testes
 - remocao do `NSSpeechRecognitionUsageDescription` do app de exemplo
 - alinhamento das instrucoes do repositorio e do README com o novo minimo suportado
+
+Implementacao iniciada na fase atual:
+
+- validacao automatizada do app de exemplo em `iOS 18.6` e `iOS 26.2`
+- validacao direcionada do package nos dois runtimes para o fluxo de reset de audio
+- correcao do reset de audio para limpar o estado aplicado imediatamente quando o volume volta ao padrao sem trilha gravada
+- pendencia explicita de rerodar a matriz completa do package e executar smoke tests manuais
