@@ -10,21 +10,11 @@ extension View {
         prominent: Bool = false,
         tint: Color? = nil
     ) -> some View {
-        if #available(iOS 26, *) {
-            if let tint {
-                self.glassEffect(
-                    .regular.tint(tint.opacity(prominent ? 0.30 : 0.18)),
-                    in: .rect(cornerRadius: cornerRadius)
-                )
-            } else {
-                self.glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
-            }
-        } else {
-            self.background(
-                .ultraThinMaterial,
-                in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-            )
-        }
+        adaptativeGlass(
+            .roundedRectangle(cornerRadius: cornerRadius),
+            prominent: prominent,
+            tint: tint
+        )
     }
 
     @ViewBuilder
@@ -32,18 +22,12 @@ extension View {
         prominent: Bool = false,
         tint: Color? = nil
     ) -> some View {
-        if #available(iOS 26, *) {
-            if let tint {
-                self.glassEffect(
-                    .regular.tint(tint.opacity(prominent ? 0.30 : 0.18)).interactive(),
-                    in: .circle
-                )
-            } else {
-                self.glassEffect(.regular.interactive(), in: .circle)
-            }
-        } else {
-            self.background(.ultraThinMaterial, in: Circle())
-        }
+        adaptativeGlass(
+            .circle,
+            prominent: prominent,
+            tint: tint,
+            isInteractive: true
+        )
     }
 
 }

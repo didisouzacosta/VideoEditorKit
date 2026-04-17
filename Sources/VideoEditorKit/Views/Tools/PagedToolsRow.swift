@@ -40,7 +40,7 @@ struct PagedToolsRow: View {
                     )
 
                 ScrollView(.horizontal) {
-                    GlassEffectContainer(spacing: metrics.itemSpacing) {
+                    AdaptativeGlassContainer(spacing: metrics.itemSpacing) {
                         LazyHStack(spacing: metrics.pageSpacing) {
                             ForEach(Array(resolvedToolPages.enumerated()), id: \.offset) { index, page in
                                 HStack(spacing: metrics.itemSpacing) {

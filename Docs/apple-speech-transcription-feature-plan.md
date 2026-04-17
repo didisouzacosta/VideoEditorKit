@@ -1,5 +1,10 @@
 # Plano de Integracao de Transcricao com Apple Speech
 
+> Status atualizado
+> Este plano esta obsoleto para a estrategia atual do produto.
+> A migracao para suporte a `iOS 18.6` nao deve seguir com Apple Speech baseado em `SpeechAnalyzer`.
+> Consultar `docs/ios-18-6-support-technical-plan.md` como fonte de verdade para a decisao atual.
+
 > Nota
 > Este documento define o plano de implementacao de um provider nativo baseado em Apple Speech.
 > Ele deve coexistir com a integracao atual de OpenAI Whisper em `Sources/VideoEditorKit/Transcription/`.
