@@ -147,6 +147,99 @@ enum HostedVideoEditorToolActionCoordinator {
         }
     }
 
+    static func selectSpeed(
+        _ rate: Double,
+        currentDraftState: EditorToolDraftState,
+        editorViewModel: EditorViewModel,
+        videoPlayer: VideoPlayerManager
+    ) -> EditorToolDraftState {
+        var updatedDraftState = currentDraftState
+        updatedDraftState.speedDraft = rate
+
+        editorViewModel.handleRateChange(
+            Float(rate),
+            videoPlayer: videoPlayer
+        )
+        editorViewModel.closeSelectedTool()
+
+        return updatedDraftState
+    }
+
+    static func selectPreset(
+        _ preset: VideoCropFormatPreset,
+        currentDraftState: EditorToolDraftState,
+        editorViewModel: EditorViewModel
+    ) -> EditorToolDraftState {
+        var updatedDraftState = currentDraftState
+        updatedDraftState.presetDraft = preset
+
+        withAnimation(Constants.settleAnimation) {
+            editorViewModel.selectCropFormat(preset)
+        }
+
+        return updatedDraftState
+    }
+
+    static func selectAudioTrack(
+        _ track: VideoEditingConfiguration.SelectedTrack,
+        currentDraftState: EditorToolDraftState,
+        editorViewModel: EditorViewModel
+    ) -> EditorToolDraftState {
+        var updatedDraftState = currentDraftState
+
+        editorViewModel.selectAudioTrack(track)
+        updatedDraftState.audioDraft.selectedTrack = editorViewModel.presentationState.selectedAudioTrack
+
+        return updatedDraftState
+    }
+
+    static func updateAudioVolume(
+        _ value: Float,
+        currentDraftState: EditorToolDraftState,
+        editorViewModel: EditorViewModel,
+        videoPlayer: VideoPlayerManager
+    ) -> EditorToolDraftState {
+        var updatedDraftState = currentDraftState
+
+        editorViewModel.selectAudioTrack(updatedDraftState.audioDraft.selectedTrack)
+        updatedDraftState.audioDraft.selectedTrack = editorViewModel.presentationState.selectedAudioTrack
+
+        editorViewModel.updateSelectedTrackVolume(
+            value,
+            videoPlayer: videoPlayer
+        )
+
+        switch updatedDraftState.audioDraft.selectedTrack {
+        case .video:
+            updatedDraftState.audioDraft.videoVolume = editorViewModel.currentVideo?.volume ?? value
+        case .recorded:
+            updatedDraftState.audioDraft.recordedVolume = editorViewModel.currentVideo?.audio?.volume ?? value
+        }
+
+        return updatedDraftState
+    }
+
+    static func finishAudioEditing(
+        editorViewModel: EditorViewModel
+    ) {
+        editorViewModel.closeSelectedTool()
+    }
+
+    static func updateAdjusts(
+        _ adjusts: ColorAdjusts,
+        currentDraftState: EditorToolDraftState,
+        editorViewModel: EditorViewModel,
+        videoPlayer: VideoPlayerManager
+    ) -> EditorToolDraftState {
+        var updatedDraftState = currentDraftState
+        updatedDraftState.adjustsDraft = adjusts
+
+        editorViewModel.setAdjusts(adjusts)
+        videoPlayer.setColorAdjusts(adjusts)
+
+        return updatedDraftState
+    }
+
     // MARK: - Private Methods
 
     private static func commitAudioVolumeIfNeeded(

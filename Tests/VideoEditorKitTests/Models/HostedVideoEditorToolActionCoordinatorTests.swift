@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 import Testing
 
@@ -80,6 +81,111 @@ struct HostedToolActionTests {
         #expect(editorViewModel.currentVideo?.audio?.volume == 0.7)
         #expect(editorViewModel.presentationState.selectedAudioTrack == .recorded)
         #expect(editorViewModel.presentationState.selectedTool == nil)
+    }
+
+    @Test
+    func selectingPresetAppliesImmediatelyAndClosesTheSheet() {
+        let editorViewModel = EditorViewModel()
+        var video = Video.mock
+        video.presentationSize = CGSize(width: 1920, height: 1080)
+        editorViewModel.currentVideo = video
+        editorViewModel.presentationState.selectedTool = .presets
+
+        let draftState = HostedVideoEditorToolActionCoordinator.selectPreset(
+            .portrait4x5,
+            currentDraftState: .init(),
+            editorViewModel: editorViewModel
+        )
+
+        #expect(draftState.presetDraft == .portrait4x5)
+        #expect(editorViewModel.cropPresentationSummary.selectedPreset == .portrait4x5)
+        #expect(editorViewModel.presentationState.selectedTool == nil)
+    }
+
+    @Test
+    func selectingSpeedAppliesImmediatelyAndClosesTheSheet() {
+        let editorViewModel = EditorViewModel()
+        let videoPlayer = VideoPlayerManager()
+        editorViewModel.currentVideo = Video.mock
+        editorViewModel.presentationState.selectedTool = .speed
+
+        let draftState = HostedVideoEditorToolActionCoordinator.selectSpeed(
+            3,
+            currentDraftState: .init(),
+            editorViewModel: editorViewModel,
+            videoPlayer: videoPlayer
+        )
+
+        #expect(draftState.speedDraft == 3)
+        #expect(editorViewModel.currentVideo?.rate == 3)
+        #expect(editorViewModel.presentationState.selectedTool == nil)
+    }
+
+    @Test
+    func updatingAudioVolumeAppliesImmediatelyAndOnlyClosesWhenFinishingInteraction() {
+        let editorViewModel = EditorViewModel()
+        let videoPlayer = VideoPlayerManager()
+        var video = Video.mock
+        video.audio = Audio(
+            url: URL(fileURLWithPath: "/tmp/audio-immediate.m4a"),
+            duration: 6,
+            volume: 0.4
+        )
+        editorViewModel.currentVideo = video
+        editorViewModel.presentationState.selectedTool = .audio
+
+        var draftState = EditorToolDraftState()
+        draftState.audioDraft = AudioToolDraft(
+            selectedTrack: .recorded,
+            videoVolume: 1,
+            recordedVolume: 0.4
+        )
+
+        draftState = HostedVideoEditorToolActionCoordinator.selectAudioTrack(
+            .recorded,
+            currentDraftState: draftState,
+            editorViewModel: editorViewModel
+        )
+        draftState = HostedVideoEditorToolActionCoordinator.updateAudioVolume(
+            0.7,
+            currentDraftState: draftState,
+            editorViewModel: editorViewModel,
+            videoPlayer: videoPlayer
+        )
+
+        #expect(draftState.audioDraft.recordedVolume == 0.7)
+        #expect(editorViewModel.currentVideo?.audio?.volume == 0.7)
+        #expect(editorViewModel.presentationState.selectedTool == .audio)
+
+        HostedVideoEditorToolActionCoordinator.finishAudioEditing(
+            editorViewModel: editorViewModel
+        )
+
+        #expect(editorViewModel.presentationState.selectedTool == nil)
+    }
+
+    @Test
+    func updatingAdjustsAppliesImmediatelyWithoutClosingTheSheet() {
+        let editorViewModel = EditorViewModel()
+        let videoPlayer = VideoPlayerManager()
+        editorViewModel.currentVideo = Video.mock
+        editorViewModel.presentationState.selectedTool = .adjusts
+
+        let adjusts = ColorAdjusts(
+            brightness: 0.2,
+            contrast: -0.1,
+            saturation: 0.3
+        )
+        let draftState = HostedVideoEditorToolActionCoordinator.updateAdjusts(
+            adjusts,
+            currentDraftState: .init(),
+            editorViewModel: editorViewModel,
+            videoPlayer: videoPlayer
+        )
+
+        #expect(draftState.adjustsDraft == adjusts)
+        #expect(editorViewModel.currentVideo?.colorAdjusts == adjusts)
+        #expect(editorViewModel.presentationState.selectedTool == .adjusts)
     }
 
     @Test

@@ -9,9 +9,10 @@ import SwiftUI
 
 struct VideoAdjustsToolView: View {
 
-    // MARK: - Bindings
+    // MARK: - Public Properties
 
-    @Binding private var adjusts: ColorAdjusts
+    let adjusts: ColorAdjusts
+    private let onChangeAdjusts: (ColorAdjusts) -> Void
 
     // MARK: - Body
 
@@ -20,17 +21,23 @@ struct VideoAdjustsToolView: View {
             adjustSlider(
                 title: ColorAdjustType.brightness.title,
                 systemImage: "sun.max",
-                value: $adjusts.brightness
+                value: binding(
+                    for: \.brightness
+                )
             )
             adjustSlider(
                 title: ColorAdjustType.contrast.title,
                 systemImage: "circle.lefthalf.filled",
-                value: $adjusts.contrast
+                value: binding(
+                    for: \.contrast
+                )
             )
             adjustSlider(
                 title: ColorAdjustType.saturation.title,
                 systemImage: "drop",
-                value: $adjusts.saturation
+                value: binding(
+                    for: \.saturation
+                )
             )
         }
         .safeAreaPadding()
@@ -38,13 +45,32 @@ struct VideoAdjustsToolView: View {
 
     // MARK: - Initializer
 
-    init(_ adjusts: Binding<ColorAdjusts>) {
-        _adjusts = adjusts
+    init(
+        adjusts: ColorAdjusts,
+        onChangeAdjusts: @escaping (ColorAdjusts) -> Void
+    ) {
+        self.adjusts = adjusts
+        self.onChangeAdjusts = onChangeAdjusts
     }
 
 }
 
 extension VideoAdjustsToolView {
+
+    // MARK: - Private Properties
+
+    private func binding(
+        for keyPath: WritableKeyPath<ColorAdjusts, Double>
+    ) -> Binding<Double> {
+        Binding(
+            get: { adjusts[keyPath: keyPath] },
+            set: { newValue in
+                var updatedAdjusts = adjusts
+                updatedAdjusts[keyPath: keyPath] = newValue
+                onChangeAdjusts(updatedAdjusts)
+            }
+        )
+    }
 
     // MARK: - Private Methods
 
@@ -67,5 +93,8 @@ extension VideoAdjustsToolView {
 }
 
 #Preview {
-    VideoAdjustsToolView(.constant(Video.mock.colorAdjusts))
+    VideoAdjustsToolView(
+        adjusts: Video.mock.colorAdjusts,
+        onChangeAdjusts: { _ in }
+    )
 }

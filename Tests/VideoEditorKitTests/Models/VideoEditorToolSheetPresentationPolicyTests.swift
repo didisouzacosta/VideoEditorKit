@@ -14,9 +14,13 @@ struct ToolSheetPolicyTests {
     }
 
     @Test
-    func cutToolDoesNotRequireAnExplicitApplyAction() {
+    func onlyTranscriptStillRequiresAnExplicitApplyAction() {
         #expect(!VideoEditorToolSheetPresentationPolicy.requiresExplicitApply(.cut))
-        #expect(VideoEditorToolSheetPresentationPolicy.requiresExplicitApply(.adjusts))
+        #expect(!VideoEditorToolSheetPresentationPolicy.requiresExplicitApply(.adjusts))
+        #expect(!VideoEditorToolSheetPresentationPolicy.requiresExplicitApply(.audio))
+        #expect(!VideoEditorToolSheetPresentationPolicy.requiresExplicitApply(.presets))
+        #expect(!VideoEditorToolSheetPresentationPolicy.requiresExplicitApply(.speed))
+        #expect(VideoEditorToolSheetPresentationPolicy.requiresExplicitApply(.transcript))
     }
 
 }

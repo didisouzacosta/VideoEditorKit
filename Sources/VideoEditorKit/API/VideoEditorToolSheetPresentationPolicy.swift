@@ -31,9 +31,9 @@ public enum VideoEditorToolSheetPresentationPolicy {
 
     public static func requiresExplicitApply(_ tool: ToolEnum) -> Bool {
         switch tool {
-        case .speed, .presets, .audio, .adjusts, .transcript:
+        case .transcript:
             true
-        case .cut:
+        case .cut, .speed, .presets, .audio, .adjusts:
             false
         }
     }

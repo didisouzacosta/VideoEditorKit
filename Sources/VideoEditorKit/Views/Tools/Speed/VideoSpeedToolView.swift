@@ -9,37 +9,71 @@ import SwiftUI
 
 struct VideoSpeedToolView: View {
 
-    // MARK: - Bindings
+    private enum SpeedOption: Double, CaseIterable, Identifiable {
+        case x1 = 1
+        case x2 = 2
+        case x3 = 3
 
-    @Binding private var value: Double
+        // MARK: - Public Properties
+
+        var id: Double { rawValue }
+
+        var title: String {
+            "\(Int(rawValue))x"
+        }
+
+        // MARK: - Public Methods
+
+        static func closest(to rate: Double) -> Self {
+            allCases.min { lhs, rhs in
+                abs(lhs.rawValue - rate) < abs(rhs.rawValue - rate)
+            } ?? .x1
+        }
+    }
 
     // MARK: - Public Properties
+
+    let selectedRate: Double
+    private let onSelectRate: (Double) -> Void
 
     // MARK: - Body
 
     var body: some View {
-        HStack {
-            Image(systemName: "speedometer")
-            Slider(value: $value, in: rateRange, step: 0.2)
-            Text("\(value, format: .number.precision(.fractionLength(1)))x")
-                .monospacedDigit()
+        Picker(VideoEditorStrings.toolSpeed, selection: selectedOptionBinding) {
+            ForEach(SpeedOption.allCases) { option in
+                Text(option.title).tag(option)
+            }
         }
-        .font(.caption)
+        .pickerStyle(.segmented)
         .safeAreaPadding()
     }
 
     // MARK: - Private Properties
 
-    private let rateRange = 0.1...8
+    private var selectedOptionBinding: Binding<SpeedOption> {
+        Binding(
+            get: { SpeedOption.closest(to: selectedRate) },
+            set: { option in
+                onSelectRate(option.rawValue)
+            }
+        )
+    }
 
     // MARK: - Initializer
 
-    init(_ value: Binding<Double>) {
-        _value = value
+    init(
+        selectedRate: Double,
+        onSelectRate: @escaping (Double) -> Void
+    ) {
+        self.selectedRate = selectedRate
+        self.onSelectRate = onSelectRate
     }
 
 }
 
 #Preview {
-    VideoSpeedToolView(.constant(1))
+    VideoSpeedToolView(
+        selectedRate: 1,
+        onSelectRate: { _ in }
+    )
 }

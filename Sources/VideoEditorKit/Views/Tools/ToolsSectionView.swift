@@ -100,7 +100,8 @@ extension ToolsSectionView {
                     VideoEditorToolContentView(
                         tool: tool,
                         draftState: $draftState,
-                        editorViewModel: editorViewModel
+                        editorViewModel: editorViewModel,
+                        videoPlayer: videoPlayer
                     )
                 } else {
                     EmptyView()
@@ -191,10 +192,8 @@ extension ToolsSectionView {
         switch tool {
         case .transcript:
             transcriptFooter
-        case .cut:
+        case .cut, .speed, .presets, .audio, .adjusts:
             EmptyView()
-        case .speed, .presets, .audio, .adjusts:
-            applyFooter(tool)
         }
     }
 

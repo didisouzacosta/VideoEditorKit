@@ -17,25 +17,66 @@ struct VideoEditorToolContentView: View {
 
     let tool: ToolEnum
     let editorViewModel: EditorViewModel
+    let videoPlayer: VideoPlayerManager
 
     // MARK: - Body
 
     var body: some View {
         switch tool {
         case .speed:
-            VideoSpeedToolView($draftState.speedDraft)
+            VideoSpeedToolView(selectedRate: draftState.speedDraft) { rate in
+                draftState = HostedVideoEditorToolActionCoordinator.selectSpeed(
+                    rate,
+                    currentDraftState: draftState,
+                    editorViewModel: editorViewModel,
+                    videoPlayer: videoPlayer
+                )
+            }
         case .presets:
             PresentToolView(
-                selectedPreset: $draftState.presetDraft,
-                onSelect: { draftState.presetDraft = $0 }
+                selectedPreset: draftState.presetDraft,
+                onSelect: { preset in
+                    draftState = HostedVideoEditorToolActionCoordinator.selectPreset(
+                        preset,
+                        currentDraftState: draftState,
+                        editorViewModel: editorViewModel
+                    )
+                }
             )
         case .audio:
             VideoAudioToolView(
-                draft: $draftState.audioDraft,
-                hasRecordedAudioTrack: editorViewModel.hasRecordedAudioTrack
+                draft: draftState.audioDraft,
+                hasRecordedAudioTrack: editorViewModel.hasRecordedAudioTrack,
+                onSelectTrack: { track in
+                    draftState = HostedVideoEditorToolActionCoordinator.selectAudioTrack(
+                        track,
+                        currentDraftState: draftState,
+                        editorViewModel: editorViewModel
+                    )
+                },
+                onChangeVolume: { value in
+                    draftState = HostedVideoEditorToolActionCoordinator.updateAudioVolume(
+                        value,
+                        currentDraftState: draftState,
+                        editorViewModel: editorViewModel,
+                        videoPlayer: videoPlayer
+                    )
+                },
+                onFinishVolumeChange: {
+                    HostedVideoEditorToolActionCoordinator.finishAudioEditing(
+                        editorViewModel: editorViewModel
+                    )
+                }
             )
         case .adjusts:
-            VideoAdjustsToolView($draftState.adjustsDraft)
+            VideoAdjustsToolView(adjusts: draftState.adjustsDraft) { adjusts in
+                draftState = HostedVideoEditorToolActionCoordinator.updateAdjusts(
+                    adjusts,
+                    currentDraftState: draftState,
+                    editorViewModel: editorViewModel,
+                    videoPlayer: videoPlayer
+                )
+            }
         case .transcript:
             TranscriptToolView(
                 isTranscriptionAvailable: editorViewModel.isTranscriptionAvailable,
@@ -70,12 +111,14 @@ struct VideoEditorToolContentView: View {
     init(
         tool: ToolEnum,
         draftState: Binding<EditorToolDraftState>,
-        editorViewModel: EditorViewModel
+        editorViewModel: EditorViewModel,
+        videoPlayer: VideoPlayerManager
     ) {
         self.tool = tool
         _draftState = draftState
 
         self.editorViewModel = editorViewModel
+        self.videoPlayer = videoPlayer
     }
 
 }
@@ -86,7 +129,8 @@ struct VideoEditorToolContentView: View {
         VideoEditorToolContentView(
             tool: .speed,
             draftState: $draftState,
-            editorViewModel: EditorViewModel()
+            editorViewModel: EditorViewModel(),
+            videoPlayer: VideoPlayerManager()
         )
     }
 }

@@ -11,8 +11,7 @@ struct PresentToolView: View {
 
     // MARK: - Public Properties
 
-    @Binding private var selectedPreset: VideoCropFormatPreset
-
+    let selectedPreset: VideoCropFormatPreset
     private let onSelect: (VideoCropFormatPreset) -> Void
 
     // MARK: - Body
@@ -24,10 +23,10 @@ struct PresentToolView: View {
     // MARK: - Initializer
 
     init(
-        selectedPreset: Binding<VideoCropFormatPreset>,
+        selectedPreset: VideoCropFormatPreset,
         onSelect: @escaping (VideoCropFormatPreset) -> Void
     ) {
-        _selectedPreset = selectedPreset
+        self.selectedPreset = selectedPreset
         self.onSelect = onSelect
     }
 
@@ -130,7 +129,7 @@ extension PresentToolView {
 
 #Preview {
     PresentToolView(
-        selectedPreset: .constant(.original),
+        selectedPreset: .original,
         onSelect: { _ in }
     )
     .padding()

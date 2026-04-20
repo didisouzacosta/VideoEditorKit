@@ -61,13 +61,13 @@ struct AudioToolDraft: Equatable {
 
 struct VideoAudioToolView: View {
 
-    // MARK: - Bindings
-
-    @Binding private var draft: AudioToolDraft
-
     // MARK: - Public Properties
 
+    let draft: AudioToolDraft
     private let hasRecordedAudioTrack: Bool
+    private let onSelectTrack: (VideoEditingConfiguration.SelectedTrack) -> Void
+    private let onChangeVolume: (Float) -> Void
+    private let onFinishVolumeChange: () -> Void
 
     // MARK: - Body
 
@@ -76,7 +76,7 @@ struct VideoAudioToolView: View {
 
         VStack(alignment: .leading, spacing: 16) {
             if hasRecordedAudioTrack {
-                Picker(VideoEditorStrings.audioTrack, selection: $draft.selectedTrack) {
+                Picker(VideoEditorStrings.audioTrack, selection: selectedTrackBinding) {
                     ForEach(VideoEditingConfiguration.SelectedTrack.allCases) { track in
                         Text(track.title).tag(track)
                     }
@@ -86,8 +86,12 @@ struct VideoAudioToolView: View {
 
             HStack {
                 Image(systemName: currentVolume > 0 ? "speaker.wave.2.fill" : "speaker.slash.fill")
-                Slider(value: $draft.selectedTrackVolume, in: 0...1) { _ in }
-                    .tint(Theme.accent)
+                Slider(
+                    value: selectedTrackVolumeBinding,
+                    in: 0...1,
+                    onEditingChanged: handleVolumeEditingChanged
+                )
+                .tint(Theme.accent)
                 Text("\(Int(currentVolume * 100))")
             }
             .font(.caption)
@@ -95,27 +99,64 @@ struct VideoAudioToolView: View {
         .safeAreaPadding()
     }
 
+    // MARK: - Private Properties
+
+    private var selectedTrackBinding: Binding<VideoEditingConfiguration.SelectedTrack> {
+        Binding(
+            get: { draft.selectedTrack },
+            set: onSelectTrack
+        )
+    }
+
+    private var selectedTrackVolumeBinding: Binding<Double> {
+        Binding(
+            get: { Double(draft.selectedTrackVolume) },
+            set: { newValue in
+                onChangeVolume(Float(newValue))
+            }
+        )
+    }
+
     // MARK: - Initializer
 
     init(
-        draft: Binding<AudioToolDraft>,
-        hasRecordedAudioTrack: Bool
+        draft: AudioToolDraft,
+        hasRecordedAudioTrack: Bool,
+        onSelectTrack: @escaping (VideoEditingConfiguration.SelectedTrack) -> Void,
+        onChangeVolume: @escaping (Float) -> Void,
+        onFinishVolumeChange: @escaping () -> Void
     ) {
-        _draft = draft
+        self.draft = draft
         self.hasRecordedAudioTrack = hasRecordedAudioTrack
+        self.onSelectTrack = onSelectTrack
+        self.onChangeVolume = onChangeVolume
+        self.onFinishVolumeChange = onFinishVolumeChange
+    }
+
+}
+
+extension VideoAudioToolView {
+
+    // MARK: - Private Methods
+
+    private func handleVolumeEditingChanged(_ isEditing: Bool) {
+        guard !isEditing else { return }
+        onFinishVolumeChange()
     }
 
 }
 
 #Preview {
     VideoAudioToolView(
-        draft: .constant(
+        draft:
             .init(
                 selectedTrack: .recorded,
                 videoVolume: 1,
                 recordedVolume: 0.35
-            )
-        ),
-        hasRecordedAudioTrack: true
+            ),
+        hasRecordedAudioTrack: true,
+        onSelectTrack: { _ in },
+        onChangeVolume: { _ in },
+        onFinishVolumeChange: {}
     )
 }
