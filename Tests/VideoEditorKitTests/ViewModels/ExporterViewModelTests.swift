@@ -115,6 +115,54 @@ struct ExporterViewModelTests {
     }
 
     @Test
+    func exportUsesSelectedQualityAndPublishesTheRenderedVideo() async {
+        let sourceURL = URL(fileURLWithPath: "/tmp/source-for-selected-quality.mp4")
+        let expectedURL = URL(fileURLWithPath: "/tmp/selected-quality-export.mp4")
+        let expectedVideo = ExportedVideo(
+            expectedURL,
+            width: 1280,
+            height: 720,
+            duration: 8,
+            fileSize: 256
+        )
+        let editingConfiguration = VideoEditingConfiguration(
+            trim: .init(lowerBound: 1, upperBound: 7)
+        )
+        let tracker = ExportRenderCallTracker()
+        var video = Video.mock
+        video.url = sourceURL
+        let viewModel = ExporterViewModel(
+            video,
+            editingConfiguration: editingConfiguration,
+            renderVideo: { video, configuration, quality, _ in
+                await tracker.record(
+                    sourceURL: video.url,
+                    editingConfiguration: configuration,
+                    quality: quality
+                )
+                return expectedURL
+            },
+            loadExportedVideo: { _ in expectedVideo }
+        )
+
+        viewModel.selectQuality(.medium)
+
+        viewModel.exportVideo { exportedVideo in
+            Task {
+                await tracker.recordExportedVideo(exportedVideo)
+            }
+        }
+
+        await tracker.waitUntilExportedVideoIsRecorded()
+
+        #expect(await tracker.sourceURLs == [sourceURL])
+        #expect(await tracker.editingConfigurations == [editingConfiguration])
+        #expect(await tracker.qualities == [.medium])
+        #expect(await tracker.exportedVideo == expectedVideo)
+        #expect(viewModel.renderState == .loaded(expectedVideo))
+    }
+
+    @Test
     func failedExportCanBeRetriedWithoutRecreatingTheViewModel() async {
         let expectedURL = URL(fileURLWithPath: "/tmp/retried-export.mp4")
         let expectedVideo = ExportedVideo(
@@ -608,6 +656,39 @@ private actor ExportConfigurationTracker {
 
     func record(_ configuration: VideoEditingConfiguration) {
         editingConfiguration = configuration
+    }
+
+}
+
+private actor ExportRenderCallTracker {
+
+    // MARK: - Private Properties
+
+    private(set) var sourceURLs = [URL]()
+    private(set) var editingConfigurations = [VideoEditingConfiguration]()
+    private(set) var qualities = [VideoQuality]()
+    private(set) var exportedVideo: ExportedVideo?
+
+    // MARK: - Public Methods
+
+    func record(
+        sourceURL: URL,
+        editingConfiguration: VideoEditingConfiguration,
+        quality: VideoQuality
+    ) {
+        sourceURLs.append(sourceURL)
+        editingConfigurations.append(editingConfiguration)
+        qualities.append(quality)
+    }
+
+    func recordExportedVideo(_ video: ExportedVideo) {
+        exportedVideo = video
+    }
+
+    func waitUntilExportedVideoIsRecorded() async {
+        while exportedVideo == nil {
+            try? await Task.sleep(for: .milliseconds(10))
+        }
     }
 
 }

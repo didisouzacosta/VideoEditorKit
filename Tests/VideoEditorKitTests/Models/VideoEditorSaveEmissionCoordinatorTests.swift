@@ -10,6 +10,51 @@ struct VideoEditorSaveEmissionCoordinatorTests {
     // MARK: - Public Methods
 
     @Test
+    func scheduleSavePublishesDistinctMeaningfulConfigurationsWithoutManualSaveGate() async {
+        let recorder = SaveEmissionRecorder()
+        let coordinator = VideoEditorSaveEmissionCoordinator(
+            .init(
+                sleep: { _ in },
+                makeThumbnailData: { _, _ in nil }
+            )
+        )
+        let initialConfiguration = VideoEditingConfiguration(
+            trim: .init(lowerBound: 0, upperBound: 8)
+        )
+        let editedConfiguration = VideoEditingConfiguration(
+            trim: .init(lowerBound: 2, upperBound: 6)
+        )
+
+        coordinator.scheduleSave(
+            editingConfiguration: initialConfiguration,
+            sourceVideoURL: nil
+        ) { publishedSave in
+            Task {
+                await recorder.record(publishedSave)
+            }
+        }
+        await recorder.waitUntilCount(is: 1)
+
+        coordinator.scheduleSave(
+            editingConfiguration: editedConfiguration,
+            sourceVideoURL: nil
+        ) { publishedSave in
+            Task {
+                await recorder.record(publishedSave)
+            }
+        }
+        await recorder.waitUntilCount(is: 2)
+
+        #expect(
+            await recorder.saves.map(\.editingConfiguration)
+                == [
+                    initialConfiguration,
+                    editedConfiguration,
+                ]
+        )
+    }
+
+    @Test
     func scheduleSavePublishesOnlyTheLatestMeaningfulConfiguration() async {
         let sleepProbe = SaveEmissionSleepProbe()
         let recorder = SaveEmissionRecorder()
@@ -180,24 +225,26 @@ private actor SaveEmissionSleepProbe {
 
     // MARK: - Private Properties
 
+    private var sleepCount = 0
     private var continuations = [CheckedContinuation<Void, Never>]()
 
     // MARK: - Public Properties
 
     var count: Int {
-        continuations.count
+        sleepCount
     }
 
     // MARK: - Public Methods
 
     func sleep() async {
+        sleepCount += 1
         await withCheckedContinuation { continuation in
             continuations.append(continuation)
         }
     }
 
     func waitUntilCount(is expectedCount: Int) async {
-        while continuations.count < expectedCount {
+        while sleepCount < expectedCount {
             try? await Task.sleep(for: .milliseconds(10))
         }
     }
