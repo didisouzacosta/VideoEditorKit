@@ -5,7 +5,7 @@ import Testing
 @testable import VideoEditorKit
 
 @MainActor
-@Suite("HostedVideoEditorToolActionCoordinatorTests")
+@Suite("HostedVideoEditorToolActionCoordinatorTests", .serialized)
 struct HostedToolActionTests {
 
     // MARK: - Public Methods

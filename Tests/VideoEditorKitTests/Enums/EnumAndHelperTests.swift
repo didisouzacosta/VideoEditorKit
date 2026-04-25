@@ -241,7 +241,6 @@ struct VideoEditorConfigurationTests {
         #expect(inputs.first?.preferredLocale == "pt-BR")
     }
 
-    @MainActor
     @Test
     func transcriptionConfigurationDefaultsToAnUnconfiguredState() {
         let configuration = VideoEditorView.Configuration.TranscriptionConfiguration()
@@ -251,7 +250,6 @@ struct VideoEditorConfigurationTests {
         #expect(configuration.preferredLocale == nil)
     }
 
-    @MainActor
     @Test
     func transcriptionConfigurationKeepsTheProvidedLocale() {
         let configuration = VideoEditorView.Configuration.TranscriptionConfiguration(

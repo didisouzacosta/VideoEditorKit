@@ -4,7 +4,7 @@ import Testing
 @testable import VideoEditorKit
 
 @MainActor
-@Suite("VideoEditorLayoutResolverTests")
+@Suite("VideoEditorLayoutResolverTests", .serialized)
 struct VideoEditorLayoutResolverTests {
 
     // MARK: - Public Methods

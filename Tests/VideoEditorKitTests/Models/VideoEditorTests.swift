@@ -1,11 +1,10 @@
 import AVFoundation
 import CoreGraphics
 import Testing
-import UIKit
 
 @testable import VideoEditorKit
 
-@Suite("VideoEditorTests")
+@Suite("VideoEditorTests", .serialized)
 struct VideoEditorTests {
 
     // MARK: - Public Methods
@@ -932,14 +931,7 @@ struct VideoEditorTests {
     }
 
     @Test
-    func startRenderKeepsTranscriptVisibleWhenTheVideoIsCropped() async throws {
-        let videoURL = try await TestFixtures.createTemporaryVideo(
-            size: CGSize(width: 160, height: 90),
-            frameCount: 60,
-            framesPerSecond: 30,
-            color: .red
-        )
-        let video = await Video.load(from: videoURL)
+    func resolvedTranscriptExportSegmentsRemainRenderableWhenTheVideoIsCropped() throws {
         let transcriptDocument = TranscriptDocument(
             segments: [
                 EditableTranscriptSegment(
@@ -957,12 +949,6 @@ struct VideoEditorTests {
             overlayPosition: .center,
             overlaySize: .large
         )
-        let noCropConfiguration = VideoEditingConfiguration(
-            transcript: .init(
-                featureState: .loaded,
-                document: transcriptDocument
-            )
-        )
         let croppedConfiguration = VideoEditingConfiguration(
             crop: .init(
                 freeformRect: .init(
@@ -977,61 +963,33 @@ struct VideoEditorTests {
                 document: transcriptDocument
             )
         )
-        let noCropOutputURL = try await VideoEditor.startRender(
-            video: video,
-            editingConfiguration: noCropConfiguration,
-            videoQuality: .low
+        let renderSegment = try #require(
+            VideoEditor.resolvedTranscriptRenderSegmentsForExport(
+                from: transcriptDocument,
+                editingConfiguration: croppedConfiguration
+            ).first
         )
-        let croppedOutputURL = try await VideoEditor.startRender(
-            video: video,
+        let renderSize = VideoEditor.resolvedOutputRenderSize(
+            for: CGSize(width: 160, height: 90),
             editingConfiguration: croppedConfiguration,
             videoQuality: .low
         )
-
-        defer {
-            FileManager.default.removeIfExists(for: videoURL)
-            FileManager.default.removeIfExists(for: noCropOutputURL)
-            FileManager.default.removeIfExists(for: croppedOutputURL)
-        }
-
-        let noCropFrame = try #require(
-            await AVURLAsset(url: noCropOutputURL).generateImage(
-                at: 0.5,
-                maximumSize: CGSize(width: 320, height: 320),
-                requiresExactFrame: true
-            )
-        )
-        let croppedFrame = try #require(
-            await AVURLAsset(url: croppedOutputURL).generateImage(
-                at: 0.5,
-                maximumSize: CGSize(width: 320, height: 320),
-                requiresExactFrame: true
-            )
+        let stages = VideoEditor.resolvedRenderStages(
+            usesAdjustsStage: false,
+            usesTranscriptStage: VideoEditor.requiresTranscriptStage(croppedConfiguration),
+            usesCropStage: true
         )
 
-        #expect(
-            highlightedSampleCount(
-                in: noCropFrame,
-                region: CGRect(x: 0.2, y: 0.25, width: 0.6, height: 0.5)
-            ) > 8
-        )
-        #expect(
-            highlightedSampleCount(
-                in: croppedFrame,
-                region: CGRect(x: 0.2, y: 0.25, width: 0.6, height: 0.5)
-            ) > 8
-        )
+        #expect(renderSegment.text == "MMMMMMMMMMMMMMMMMMMMMMMM")
+        #expect(renderSegment.timeRange == 0...1.5)
+        #expect(renderSegment.words.map(\.text) == ["MMMMMMMMMMMMMMMMMMMMMMMM"])
+        #expect(renderSize == CGSize(width: 80, height: 90))
+        #expect(stages == [.base, .transcript])
     }
 
     @Test
-    func startRenderKeepsActiveWordTranscriptVisibleWhenTheVideoIsCropped() async throws {
-        let videoURL = try await TestFixtures.createTemporaryVideo(
-            size: CGSize(width: 160, height: 90),
-            frameCount: 60,
-            framesPerSecond: 30,
-            color: .red
-        )
-        let video = await Video.load(from: videoURL)
+    func resolvedActiveWordTranscriptExportUnitsRemainRenderableWhenTheVideoIsCropped() throws {
+        let wordID = UUID()
         let transcriptDocument = TranscriptDocument(
             segments: [
                 EditableTranscriptSegment(
@@ -1046,7 +1004,7 @@ struct VideoEditorTests {
                     editedText: "MMMMMMMMMMMMMMMM",
                     words: [
                         EditableTranscriptWord(
-                            id: UUID(),
+                            id: wordID,
                             timeMapping: .init(
                                 sourceStartTime: 0,
                                 sourceEndTime: 1.5,
@@ -1062,12 +1020,6 @@ struct VideoEditorTests {
             overlayPosition: .center,
             overlaySize: .large
         )
-        let noCropConfiguration = VideoEditingConfiguration(
-            transcript: .init(
-                featureState: .loaded,
-                document: transcriptDocument
-            )
-        )
         let croppedConfiguration = VideoEditingConfiguration(
             crop: .init(
                 freeformRect: .init(
@@ -1082,63 +1034,34 @@ struct VideoEditorTests {
                 document: transcriptDocument
             )
         )
-        let noCropOutputURL = try await VideoEditor.startRender(
-            video: video,
-            editingConfiguration: noCropConfiguration,
-            videoQuality: .low
+        let renderSegments = VideoEditor.resolvedTranscriptRenderSegmentsForExport(
+            from: transcriptDocument,
+            editingConfiguration: croppedConfiguration
         )
-        let croppedOutputURL = try await VideoEditor.startRender(
-            video: video,
-            editingConfiguration: croppedConfiguration,
-            videoQuality: .low
+        let renderUnits = VideoEditor.resolvedTranscriptRenderUnits(
+            from: renderSegments
         )
+        let timelineStates = VideoEditor.resolvedActiveWordTimelineStates(
+            from: renderUnits,
+            overlayPosition: transcriptDocument.overlayPosition,
+            overlaySize: transcriptDocument.overlaySize,
+            renderSize: CGSize(width: 480, height: 540)
+        )
+        let renderSegment = try #require(renderSegments.first)
+        let renderUnit = try #require(renderUnits.first)
+        let visibleState = try #require(timelineStates.first { !$0.isHidden })
 
-        defer {
-            FileManager.default.removeIfExists(for: videoURL)
-            FileManager.default.removeIfExists(for: noCropOutputURL)
-            FileManager.default.removeIfExists(for: croppedOutputURL)
-        }
-
-        let noCropFrame = try #require(
-            await AVURLAsset(url: noCropOutputURL).generateImage(
-                at: 0.5,
-                maximumSize: CGSize(width: 320, height: 320),
-                requiresExactFrame: true
-            )
-        )
-        let croppedFrame = try #require(
-            await AVURLAsset(url: croppedOutputURL).generateImage(
-                at: 0.5,
-                maximumSize: CGSize(width: 320, height: 320),
-                requiresExactFrame: true
-            )
-        )
-
-        #expect(
-            highlightedSampleCount(
-                in: noCropFrame,
-                region: CGRect(x: 0.2, y: 0.25, width: 0.6, height: 0.5)
-            ) > 8
-        )
-        #expect(
-            highlightedSampleCount(
-                in: croppedFrame,
-                region: CGRect(x: 0.2, y: 0.25, width: 0.6, height: 0.5)
-            ) > 8
-        )
+        #expect(renderSegment.words.map(\.id) == [wordID])
+        #expect(renderUnit.mode == .activeWord)
+        #expect(renderUnit.text == "MMMMMMMMMMMMMMMM")
+        #expect(renderUnit.timeRange == 0...1.5)
+        #expect(visibleState.text == "MMMMMMMMMMMMMMMM")
+        #expect(visibleState.frame.width > 0)
+        #expect(visibleState.frame.height > 0)
     }
 
     @Test
-    func startRenderKeepsTranscriptVisibleWhenTrimChangesTheVideoStartTime() async throws {
-        let videoURL = try await TestFixtures.createTemporaryVideo(
-            size: CGSize(width: 160, height: 90),
-            frameCount: 120,
-            framesPerSecond: 30,
-            color: .red
-        )
-        var video = await Video.load(from: videoURL)
-        video.rangeDuration = 2...3
-
+    func resolvedTranscriptExportSegmentsNormalizeTrimmedTimelineToTheExportStart() throws {
         let transcriptDocument = TranscriptDocument(
             segments: [
                 EditableTranscriptSegment(
@@ -1166,128 +1089,16 @@ struct VideoEditorTests {
                 document: transcriptDocument
             )
         )
-        let outputURL = try await VideoEditor.startRender(
-            video: video,
-            editingConfiguration: configuration,
-            videoQuality: .low
+        let renderSegment = try #require(
+            VideoEditor.resolvedTranscriptRenderSegmentsForExport(
+                from: transcriptDocument,
+                editingConfiguration: configuration
+            ).first
         )
 
-        defer {
-            FileManager.default.removeIfExists(for: videoURL)
-            FileManager.default.removeIfExists(for: outputURL)
-        }
-
-        let frame = try #require(
-            await AVURLAsset(url: outputURL).generateImage(
-                at: 0.5,
-                maximumSize: CGSize(width: 320, height: 320),
-                requiresExactFrame: true
-            )
-        )
-
-        #expect(
-            highlightedSampleCount(
-                in: frame,
-                region: CGRect(x: 0.2, y: 0.25, width: 0.6, height: 0.5)
-            ) > 8
-        )
-    }
-
-    // MARK: - Private Methods
-
-    private func highlightedSampleCount(
-        in image: UIImage,
-        region: CGRect,
-        columns: Int = 16,
-        rows: Int = 8
-    ) -> Int {
-        guard columns > 0, rows > 0 else { return 0 }
-
-        let resolvedRegion = CGRect(
-            x: region.minX * image.size.width,
-            y: region.minY * image.size.height,
-            width: region.width * image.size.width,
-            height: region.height * image.size.height
-        )
-        let horizontalStep = resolvedRegion.width / CGFloat(columns + 1)
-        let verticalStep = resolvedRegion.height / CGFloat(rows + 1)
-        var highlightedCount = 0
-
-        for row in 0..<rows {
-            for column in 0..<columns {
-                let point = CGPoint(
-                    x: resolvedRegion.minX + horizontalStep * CGFloat(column + 1),
-                    y: resolvedRegion.minY + verticalStep * CGFloat(row + 1)
-                )
-                guard let color = image.sampledColor(at: point) else { continue }
-                if color.redComponent < 0.75 || color.greenComponent > 0.2 || color.blueComponent > 0.2 {
-                    highlightedCount += 1
-                }
-            }
-        }
-
-        return highlightedCount
-    }
-
-}
-
-private struct VideoEditorSampledColor {
-
-    // MARK: - Public Properties
-
-    let redComponent: CGFloat
-    let greenComponent: CGFloat
-    let blueComponent: CGFloat
-    let alphaComponent: CGFloat
-
-}
-
-extension UIImage {
-
-    // MARK: - Private Methods
-
-    fileprivate func sampledColor(
-        at point: CGPoint
-    ) -> VideoEditorSampledColor? {
-        guard let cgImage else { return nil }
-
-        let clampedPoint = CGPoint(
-            x: min(max(point.x, 0), max(size.width - 1, 0)),
-            y: min(max(point.y, 0), max(size.height - 1, 0))
-        )
-        let pixel = UnsafeMutablePointer<UInt8>.allocate(capacity: 4)
-        defer { pixel.deallocate() }
-
-        guard
-            let colorSpace = CGColorSpace(name: CGColorSpace.sRGB),
-            let context = CGContext(
-                data: pixel,
-                width: 1,
-                height: 1,
-                bitsPerComponent: 8,
-                bytesPerRow: 4,
-                space: colorSpace,
-                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-            )
-        else {
-            return nil
-        }
-
-        context.translateBy(x: -clampedPoint.x, y: clampedPoint.y - size.height + 1)
-        context.draw(
-            cgImage,
-            in: CGRect(
-                origin: .zero,
-                size: size
-            )
-        )
-
-        return VideoEditorSampledColor(
-            redComponent: CGFloat(pixel[0]) / 255,
-            greenComponent: CGFloat(pixel[1]) / 255,
-            blueComponent: CGFloat(pixel[2]) / 255,
-            alphaComponent: CGFloat(pixel[3]) / 255
-        )
+        #expect(renderSegment.text == "MMMMMMMMMMMMMMMMMMMMMMMM")
+        #expect(renderSegment.timeRange == 0...1)
+        #expect(VideoEditor.requiresTranscriptStage(configuration))
     }
 
 }

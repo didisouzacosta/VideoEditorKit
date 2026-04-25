@@ -2,7 +2,7 @@ import Testing
 
 @testable import VideoEditorKit
 
-@Suite("VideoEditorTranscriptionConfigurationTests")
+@Suite("VideoEditorTranscriptionConfigurationTests", .serialized)
 struct EditorTranscriptionConfigTests {
 
     // MARK: - Public Methods
