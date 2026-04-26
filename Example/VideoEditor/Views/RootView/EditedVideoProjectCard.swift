@@ -15,6 +15,8 @@ struct EditedVideoProjectCard: View {
 
     let project: EditedVideoProject
     let onOpenProject: () -> Void
+    let onPreviewSavedVideo: () -> Void
+    let onShareSavedVideo: () -> Void
     let onDelete: () -> Void
 
     // MARK: - Body
@@ -84,6 +86,16 @@ struct EditedVideoProjectCard: View {
             Button(action: onOpenProject) {
                 Label(ExampleStrings.projectEdit, systemImage: "pencil")
             }
+
+            Button(action: onPreviewSavedVideo) {
+                Label(ExampleStrings.projectPreview, systemImage: "play.rectangle")
+            }
+            .disabled(project.canPreviewSavedVideo == false)
+
+            Button(action: onShareSavedVideo) {
+                Label(ExampleStrings.projectShare, systemImage: "square.and.arrow.up")
+            }
+            .disabled(project.canShareSavedVideo == false)
 
             Button(role: .destructive, action: onDelete) {
                 Label(ExampleStrings.projectDelete, systemImage: "trash")
@@ -168,6 +180,8 @@ private enum EditedVideoProjectCardPreviewFixture {
     EditedVideoProjectCard(
         project: EditedVideoProjectCardPreviewFixture.project,
         onOpenProject: {},
+        onPreviewSavedVideo: {},
+        onShareSavedVideo: {},
         onDelete: {}
     )
     .frame(width: 120, height: 120)

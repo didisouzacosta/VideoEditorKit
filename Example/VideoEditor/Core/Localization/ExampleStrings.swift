@@ -9,6 +9,10 @@ enum ExampleStrings {
         localized("common.ok", defaultValue: "OK")
     }
 
+    static var close: String {
+        localized("common.close", defaultValue: "Close")
+    }
+
     static var editorTitle: String {
         localized("example.editor.title", defaultValue: "Editor")
     }
@@ -38,6 +42,13 @@ enum ExampleStrings {
         )
     }
 
+    static var missingSavedVideo: String {
+        localized(
+            "example.error.persistence.saved-video-missing",
+            defaultValue: "The saved video for this project is no longer available."
+        )
+    }
+
     static var unableToLoadSelectedVideo: String {
         localized(
             "example.import.error.unable-to-load-selected-video",
@@ -51,6 +62,14 @@ enum ExampleStrings {
 
     static var projectEdit: String {
         localized("example.project.action.edit", defaultValue: "Edit")
+    }
+
+    static var projectPreview: String {
+        localized("example.project.action.preview", defaultValue: "Preview")
+    }
+
+    static var projectShare: String {
+        localized("example.project.action.share", defaultValue: "Share")
     }
 
     static var projectDelete: String {

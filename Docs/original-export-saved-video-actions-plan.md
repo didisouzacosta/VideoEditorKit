@@ -252,7 +252,7 @@ git commit -m "Show original quality in export sheet"
 
 ### Task 4: Add Saved Video Menu Actions in the Example App
 
-- [ ] Add model helpers for saved playback/share URL.
+- [x] Add model helpers for saved playback/share URL.
 
 Update `Example/VideoEditor/AppShell/Persistence/EditedVideoProject.swift`:
 
@@ -278,11 +278,11 @@ var canShareSavedVideo: Bool {
 }
 ```
 
-- [ ] Add repository tests for saved-video URL helpers using persisted saved and exported files.
+- [x] Add repository tests for saved-video URL helpers using persisted saved and exported files.
 
 Update `Example/VideoEditorTests/Data/Projects/ProjectsRepositoryTests.swift` to create a saved edited file and assert `savedPlaybackVideoURL == savedEditedVideoURL`. Add a compatibility assertion for exported-only projects.
 
-- [ ] Create `SavedVideoPreviewScreen`.
+- [x] Create `SavedVideoPreviewScreen`.
 
 Create `Example/VideoEditor/Features/Home/SavedVideoPreviewScreen.swift`:
 
@@ -313,7 +313,7 @@ struct SavedVideoPreviewScreen: View {
 
 Add `ExampleStrings.close`, `projectPreview`, `projectShare`, and `missingSavedVideo`.
 
-- [ ] Extend card/menu callbacks.
+- [x] Extend card/menu callbacks.
 
 Update `EditedVideoProjectCard` public properties:
 
@@ -338,7 +338,7 @@ Button(action: onShareSavedVideo) {
 
 Keep edit and delete actions.
 
-- [ ] Wire actions through `HomeScreen` and `RootView`.
+- [x] Wire actions through `HomeScreen` and `RootView`.
 
 Add callbacks to `HomeScreen` and `ProjectsGridSection`:
 
@@ -387,7 +387,7 @@ private func shareSavedVideo(_ project: EditedVideoProject) {
 }
 ```
 
-- [ ] Run example app tests.
+- [x] Run example app tests.
 
 Run:
 
@@ -395,7 +395,7 @@ Run:
 xcodebuild -workspace Example/VideoEditor.xcworkspace -scheme VideoEditor -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17' -only-testing:VideoEditorTests/ProjectsRepositoryTests -only-testing:VideoEditorTests/EditorSessionControllerTests test
 ```
 
-- [ ] Commit.
+- [x] Commit.
 
 ```bash
 git add Example/VideoEditor/AppShell/Persistence/EditedVideoProject.swift Example/VideoEditor/Core/Localization/ExampleStrings.swift Example/VideoEditor/Views/RootView/EditedVideoProjectCard.swift Example/VideoEditor/Features/Home/HomeScreen.swift Example/VideoEditor/Views/RootView/RootView.swift Example/VideoEditor/Features/Home/SavedVideoPreviewScreen.swift Example/VideoEditorTests/Data/Projects/ProjectsRepositoryTests.swift Example/VideoEditorTests/Features/EditorHost/EditorSessionControllerTests.swift

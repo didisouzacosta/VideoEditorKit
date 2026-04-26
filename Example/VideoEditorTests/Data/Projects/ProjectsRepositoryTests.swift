@@ -45,6 +45,9 @@ struct ProjectsRepositoryTests {
         #expect(project.hasOriginalVideo)
         #expect(project.hasSavedEditedVideo)
         #expect(project.hasExportedVideo == false)
+        #expect(project.savedPlaybackVideoURL == project.savedEditedVideoURL)
+        #expect(project.canPreviewSavedVideo)
+        #expect(project.canShareSavedVideo)
         #expect(project.originalVideoURL.lastPathComponent.hasPrefix("original."))
         #expect(project.savedEditedVideoURL.lastPathComponent.hasPrefix("edited."))
         #expect(project.savedEditedVideoURL != project.exportedVideoURL)
@@ -92,6 +95,9 @@ struct ProjectsRepositoryTests {
 
         #expect(exportedProject.hasSavedEditedVideo)
         #expect(exportedProject.hasExportedVideo)
+        #expect(exportedProject.savedPlaybackVideoURL == exportedProject.savedEditedVideoURL)
+        #expect(exportedProject.canPreviewSavedVideo)
+        #expect(exportedProject.canShareSavedVideo)
         #expect(exportedProject.savedEditedVideoURL.lastPathComponent.hasPrefix("edited."))
         #expect(exportedProject.exportedVideoURL.lastPathComponent.hasPrefix("exported."))
         #expect(exportedProject.savedEditedVideoURL != exportedProject.exportedVideoURL)
@@ -405,6 +411,31 @@ struct ProjectsRepositoryTests {
         )
 
         #expect(project.hasExportedVideo == false)
+    }
+
+    @Test
+    func savedPlaybackVideoURLFallsBackToExportedVideoForLegacyProjects() async throws {
+        let container = try makeContainer()
+        let store = ProjectsRepository(modelContext: container.mainContext)
+        let originalVideoURL = try await TestFixtures.createTemporaryVideo(color: .systemBlue)
+        let exportedVideoURL = try await TestFixtures.createTemporaryVideo(color: .systemGreen)
+        let exportedVideo = await ExportedVideo.load(from: exportedVideoURL)
+
+        defer { FileManager.default.removeIfExists(for: originalVideoURL) }
+        defer { FileManager.default.removeIfExists(for: exportedVideoURL) }
+
+        let project = try await store.saveExportedVideo(
+            projectID: nil,
+            originalVideoURL: originalVideoURL,
+            exportedVideo: exportedVideo,
+            editingConfiguration: .initial
+        )
+
+        #expect(project.hasSavedEditedVideo == false)
+        #expect(project.hasExportedVideo)
+        #expect(project.savedPlaybackVideoURL == project.exportedVideoURL)
+        #expect(project.canPreviewSavedVideo)
+        #expect(project.canShareSavedVideo)
     }
 
     // MARK: - Private Methods

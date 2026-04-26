@@ -21,6 +21,8 @@ struct RootView: View {
     @State private var selectedItem: PhotosPickerItem?
     @State private var editorDraft: EditorSessionDraft?
     @State private var persistenceAlert: RootAlertPresentation?
+    @State private var previewedVideo: ProjectVideoAction?
+    @State private var sharedVideo: ProjectVideoAction?
 
     // MARK: - Private Properties
 
@@ -36,6 +38,8 @@ struct RootView: View {
                 projects: availableProjects,
                 usesCompactGridLayout: horizontalSizeClass == .compact,
                 onOpenProject: openProject,
+                onPreviewSavedVideo: previewSavedVideo,
+                onShareSavedVideo: shareSavedVideo,
                 onDeleteProject: deleteProject
             )
             .onChange(of: selectedItem) { _, newItem in
@@ -61,6 +65,12 @@ struct RootView: View {
                     repository: projectsRepository
                 )
             }
+            .fullScreenCover(item: $previewedVideo) { videoAction in
+                SavedVideoPreviewScreen(url: videoAction.url)
+            }
+            .sheet(item: $sharedVideo) { videoAction in
+                VideoShareSheet(activityItems: [videoAction.url])
+            }
         }
     }
 
@@ -78,6 +88,15 @@ extension RootView {
         var id: String {
             "\(title)-\(message)"
         }
+
+    }
+
+    private struct ProjectVideoAction: Identifiable {
+
+        // MARK: - Public Properties
+
+        let id: UUID
+        let url: URL
 
     }
 
@@ -100,6 +119,24 @@ extension RootView {
         }
 
         editorDraft = .project(project)
+    }
+
+    private func previewSavedVideo(_ project: EditedVideoProject) {
+        guard let url = project.savedPlaybackVideoURL else {
+            showPersistenceError(ExampleStrings.missingSavedVideo)
+            return
+        }
+
+        previewedVideo = .init(id: project.id, url: url)
+    }
+
+    private func shareSavedVideo(_ project: EditedVideoProject) {
+        guard let url = project.savedPlaybackVideoURL else {
+            showPersistenceError(ExampleStrings.missingSavedVideo)
+            return
+        }
+
+        sharedVideo = .init(id: project.id, url: url)
     }
 
     private func deleteProject(_ project: EditedVideoProject) {

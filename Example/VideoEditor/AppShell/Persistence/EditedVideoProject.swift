@@ -90,6 +90,26 @@ final class EditedVideoProject {
         hasOriginalVideo && (hasSavedEditedVideo || hasExportedVideo)
     }
 
+    var savedPlaybackVideoURL: URL? {
+        if hasSavedEditedVideo {
+            return savedEditedVideoURL
+        }
+
+        if hasExportedVideo {
+            return exportedVideoURL
+        }
+
+        return nil
+    }
+
+    var canPreviewSavedVideo: Bool {
+        savedPlaybackVideoURL != nil
+    }
+
+    var canShareSavedVideo: Bool {
+        savedPlaybackVideoURL != nil
+    }
+
     // MARK: - Private Properties
 
     private var directoryURL: URL {
