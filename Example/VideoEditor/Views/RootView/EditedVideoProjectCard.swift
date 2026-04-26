@@ -25,13 +25,6 @@ struct EditedVideoProjectCard: View {
         Button(action: onOpenProject) {
             thumbnailContent
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .overlay(alignment: .bottomLeading) {
-                    if project.hasExportedVideo == false {
-                        draftBadge
-                            .padding(6)
-                            .allowsHitTesting(false)
-                    }
-                }
                 .overlay(alignment: .bottomTrailing) {
                     if project.duration > 0 {
                         durationBadge
@@ -70,15 +63,6 @@ struct EditedVideoProjectCard: View {
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
             .background(.black.opacity(0.78), in: Capsule())
-    }
-
-    private var draftBadge: some View {
-        Text(ExampleStrings.projectDraft)
-            .font(.caption2.weight(.bold))
-            .foregroundStyle(.white)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(Theme.accent.opacity(0.9), in: Capsule())
     }
 
     private var menuButton: some View {

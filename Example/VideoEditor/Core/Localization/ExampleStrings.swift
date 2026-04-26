@@ -56,10 +56,6 @@ enum ExampleStrings {
         )
     }
 
-    static var projectDraft: String {
-        localized("example.project.badge.draft", defaultValue: "Draft")
-    }
-
     static var projectEdit: String {
         localized("example.project.action.edit", defaultValue: "Edit")
     }
@@ -95,7 +91,7 @@ enum ExampleStrings {
         localized(
             "example.home.hero.footnote",
             defaultValue:
-                "The example app stays intentionally small: import a clip, edit it, and reopen the saved draft or exported video later."
+                "The example app stays intentionally small: import a clip, edit it, and reopen the saved video later."
         )
     }
 

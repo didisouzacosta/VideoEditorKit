@@ -404,17 +404,17 @@ git commit -m "Add saved video preview and sharing actions"
 
 ### Task 5: Remove Draft Badge and User-Facing Draft Copy
 
-- [ ] Remove the Draft badge from `EditedVideoProjectCard`.
+- [x] Remove the Draft badge from `EditedVideoProjectCard`.
 
 Delete `draftBadge` and the overlay that shows it when `project.hasExportedVideo == false`.
 
-- [ ] Update user-facing strings.
+- [x] Update user-facing strings.
 
 Remove `ExampleStrings.projectDraft` if unused. Update home copy that says "saved draft" to "saved video" or "saved edit".
 
 Keep `EditorSessionDraft`, `editorDraft`, test names, and internal plan history unless the text is visible to users or public docs. Those names still describe transient editor state and changing them is unrelated risk.
 
-- [ ] Run a stale-string search.
+- [x] Run a stale-string search.
 
 Run:
 
@@ -424,7 +424,7 @@ rg "projectDraft|badge\\.draft|Draft|saved draft|draft or exported" Example/Vide
 
 Expected: no user-facing home/card draft badge string remains. Internal `EditorSessionDraft` references may remain.
 
-- [ ] Run focused build/tests.
+- [x] Run focused build/tests.
 
 Run:
 
@@ -432,7 +432,7 @@ Run:
 xcodebuild -workspace Example/VideoEditor.xcworkspace -scheme VideoEditor -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17' -only-testing:VideoEditorTests test
 ```
 
-- [ ] Commit.
+- [x] Commit.
 
 ```bash
 git add Example/VideoEditor/Core/Localization/ExampleStrings.swift Example/VideoEditor/Views/RootView/EditedVideoProjectCard.swift Example/VideoEditor/Features/Home/HomeScreen.swift
@@ -483,7 +483,7 @@ git commit -m "Document original export and saved video actions"
 - [ ] `Original` remains enabled when the host omits it or passes it as blocked.
 - [ ] `Original` export preserves source resolution and frame rate while applying current edits.
 - [ ] Existing low, medium, and high raw values remain stable.
-- [ ] Saved project cards no longer show a Draft badge.
+- [x] Saved project cards no longer show a Draft badge.
 - [ ] Saved project menu includes Edit, Preview, Share, and Delete.
 - [ ] Preview opens the saved edited video when present.
 - [ ] Share presents `UIActivityViewController` for the saved edited video when present.
