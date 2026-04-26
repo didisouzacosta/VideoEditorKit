@@ -198,13 +198,14 @@ Scope:
 
 ### Phase 11
 
-Publish editing configuration drafts while the editor is still open.
+Publish saved editing configuration while the editor is still open.
 
 Scope:
 
-- Add a host callback for configuration changes during editing.
-- Keep publication deduplicated so the host only receives meaningful snapshot changes.
-- Update the sample host flow to store the latest draft configuration continuously, not only on export or dismiss.
+- Superseded by the manual save/export refactor.
+- Do not persist on every configuration change during editing.
+- Publish the saved editing configuration through manual save callbacks, primarily `onSavedVideo`.
+- Update host flows to store the manually saved edited copy and original video separately.
 
 ### Phase 12
 

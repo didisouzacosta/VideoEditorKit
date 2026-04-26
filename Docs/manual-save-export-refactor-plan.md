@@ -2,7 +2,7 @@
 
 ## Context
 
-The current editor emits continuous save snapshots while the user edits, and export is the first flow that produces a rendered video file for sharing or persistence. The next iteration moves save/export into explicit user actions:
+Before this refactor, the editor emitted continuous save snapshots while the user edited, and export was the first flow that produced a rendered video file for sharing or persistence. The new flow moves save/export into explicit user actions:
 
 - save becomes manual and visible in the editor toolbar
 - unsaved changes are tracked by an internal diff
@@ -58,7 +58,7 @@ The existing export callback remains distinct:
 public let onExportedVideoURL: (URL) -> Void
 ```
 
-The current continuous save callback should no longer be called after every edit. If compatibility requires keeping `onSaveStateChanged`, document it as legacy or reserve it for explicitly requested save-state publication instead of autosave.
+`onSaveStateChanged` should no longer be called after every edit. It remains available as save-state publication after explicit manual save, while `onSavedVideo` is the primary persistence callback for the rendered edited copy.
 
 ## Editor State Changes
 
@@ -228,3 +228,9 @@ When package-only validation is needed, use the shared `VideoEditorKit-Package` 
 8. Update example app persistence and sharing.
 9. Update documentation.
 10. Run formatting and iOS Simulator validation.
+
+## Current Implementation Status
+
+- Phases 1 through 8 are implemented.
+- Phase 9 updated integration and repository documentation to describe explicit manual save, unsaved-change tracking, cancel confirmation, the `SavedVideo` callback, and export's save-first behavior.
+- Phase 10 remains the final validation pass for the completed refactor.

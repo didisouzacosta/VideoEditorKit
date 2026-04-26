@@ -5,30 +5,35 @@
 This rollout separates the host integration into two independent callbacks:
 
 - one callback dedicated to the exported video URL
-- one callback dedicated to the latest editable state whenever the user changes the video
+- one callback dedicated to the rendered edited copy produced by manual save
 
-The long-term goal is to let the host save editing state continuously, while keeping export as an explicit user action.
+The current goal is to keep both save and export explicit: save renders an edited copy for normal reuse, and export first saves pending edits before rendering the selected export resolution.
 
 ## Product Requirements
 
 1. The editor must expose two handlers instead of one combined export callback.
-2. Any edit that changes the video state must trigger the save handler.
-3. The save handler must return both:
+2. Ordinary edit interactions must not persist automatically.
+3. The editor must track unsaved changes internally and enable the save action only when the current snapshot differs from the saved baseline.
+4. Manual save must return:
+   - a rendered edited copy
+   - the preserved original video URL
    - the latest `VideoEditingConfiguration`
-   - a thumbnail derived from the first frame visible at the current crop
+   - a thumbnail derived from the saved edit when available
+5. Export must call save first when there are pending edits, then render the selected export resolution.
 
 ## Current State
 
-- `VideoEditorView` already publishes editing revisions through `editingConfigurationRevision`.
-- `RootView` currently ignores those revisions and persists only on export.
-- `EditedVideoProjectsStore` is still export-first and requires `ExportedVideo` to save.
-- Project thumbnails are generated only from the exported file, always at timestamp `0`.
+- `VideoEditorView` tracks unsaved changes with `VideoEditorManualSaveCoordinator`.
+- Manual save renders through `VideoEditorManualSaveRenderer` and emits `onSavedVideo`.
+- `onSaveStateChanged` now accompanies manual save with the saved snapshot and thumbnail; it is not an autosave stream for every edit.
+- The example app persists the edited copy through `ProjectsRepository.saveEditedVideo(...)`.
+- The example app keeps original, saved edited copy, and exported output as separate project files.
 
 ## Constraints
 
 - The app is still an app-shell architecture, not a modular SDK with separate engines.
-- The current persistence model assumes an exported file exists.
-- Crop and canvas geometry already live in `VideoEditingConfiguration`, but thumbnail generation does not consume that state yet.
+- Existing hosts that treated `onSaveStateChanged` as an autosave stream must move persistence to `onSavedVideo`.
+- Crop and canvas geometry already live in `VideoEditingConfiguration`, and save/export thumbnail generation should continue consuming that saved snapshot.
 
 ## Target API Shape
 
@@ -40,7 +45,10 @@ VideoEditorView(
     configuration: configuration,
     callbacks: .init(
         onSaveStateChanged: { saveState in
-            // Called after each meaningful edit.
+            // Called after manual save publishes the saved snapshot.
+        },
+        onSavedVideo: { savedVideo in
+            // Called after manual save renders the edited copy.
         },
         onDismissed: { latestConfiguration in
             // Optional lifecycle callback.
@@ -61,7 +69,7 @@ struct SaveState: Equatable, Sendable {
 }
 ```
 
-`thumbnailData` stays optional during the rollout so the API can be adopted before the thumbnail pipeline is fully wired.
+Manual save also emits `SavedVideo`, which carries the edited-copy URL, original video URL, editing configuration, thumbnail data, and metadata. `thumbnailData` remains optional because frame generation can fail for invalid or unavailable media.
 
 ## Rollout
 
@@ -74,13 +82,13 @@ Deliverables:
 - rename the host callbacks so export and save are independent
 - make `VideoEditorView` publish `SaveState` instead of only raw `VideoEditingConfiguration`
 - make `RootView` consume:
-  - the latest save payload continuously
+  - the latest saved payload
   - the exported video URL separately
 - keep export persistence working by resolving `ExportedVideo` from the exported URL and using the latest saved editing configuration
 
 Notes:
 
-- Phase 1 does not yet persist drafts on every edit
+- Phase 1 originally introduced save-state publication before the later manual-save refactor
 - Phase 1 does not yet generate the cropped thumbnail
 - `thumbnailData` is expected to be `nil` until phase 3
 
@@ -90,20 +98,20 @@ Goal: support persistence of editing state before the first export.
 
 Deliverables:
 
-- split `EditedVideoProjectsStore` into:
-  - `saveEditingState(...)`
+- split project persistence into:
+  - `saveEditedVideo(...)`
   - `saveExportedVideo(...)`
 - allow a project record to exist without an exported file
 - tighten `hasExportedVideo` and related project availability checks
-- persist recorded audio together with the editing configuration during draft saves
+- persist recorded audio together with the editing configuration during manual saves
 
 Status:
 
 - implemented
-- `RootView` now persists edit state continuously
-- `EditedVideoProjectsStore` now separates `saveEditingState(...)` and `saveExportedVideo(...)`
-- draft projects can exist before export and remain editable from the home screen
-- transient audio is copied into the project directory during draft saves without deleting the live editing copy
+- the example host now persists edit state only after `onSavedVideo`
+- `ProjectsRepository` now separates `saveEditedVideo(...)` and `saveExportedVideo(...)`
+- projects can exist before export with original media plus a saved edited copy
+- transient audio is copied into the project directory during manual saves without deleting the live editing copy
 
 ### Phase 3
 
@@ -117,7 +125,7 @@ Deliverables:
   - crop state
   - canvas state when relevant
 - render the first visible frame at the current crop
-- return `thumbnailData` through `onSaveStateChanged`
+- return `thumbnailData` through manual save callbacks
 - store the same thumbnail in `EditedVideoProject`
 
 Open question:
@@ -131,14 +139,14 @@ Recommended interpretation: use `trim.lowerBound`, because it matches the edited
 Status:
 
 - implemented
-- `VideoEditorView` now generates thumbnail data before publishing `onSaveStateChanged`
+- `VideoEditorView` now generates thumbnail data before publishing manual save callbacks
 - thumbnail generation uses the first frame at `trim.lowerBound`
 - thumbnail rendering respects crop-derived canvas geometry and current color adjustments
-- saved draft state now receives non-`nil` thumbnail data when the frame can be rendered
+- saved edit state now receives non-`nil` thumbnail data when the frame can be rendered
 
 ### Phase 4
 
-Goal: make continuous save robust under rapid editing interactions.
+Goal: keep save-state publication robust under rapid editing interactions.
 
 Deliverables:
 
@@ -147,28 +155,28 @@ Deliverables:
 - avoid redundant persistence when only transient presentation state changes
 - add regression coverage for:
   - save callback emission
-  - draft persistence without export
-  - export update after draft save
+  - saved-edit persistence without export
+  - export update after manual save
   - thumbnail generation using crop
 
 Status:
 
 - implemented
-- `VideoEditorView` now debounces save publication and skips callback emission when only transient UI state changes
-- `RootView` now debounces disk persistence and keeps the latest pending save request
-- `RootViewModel` now tracks pending and persisted save fingerprints to avoid redundant draft writes
-- continuous-save dedupe ignores transient playback/tooling state while still preserving meaningful edit changes
+- superseded by manual save
+- the editor now tracks unsaved changes internally instead of publishing continuous save callbacks after edit actions
+- transient playback/tooling state is still ignored by the save fingerprint used for manual save availability
 
 ## Current Status
 
 Implemented in this cycle:
 
 - callback split between save-state and export URL
-- host shell now stores the latest editor save payload
-- host shell now persists editing drafts before export
-- export persistence now derives `ExportedVideo` from the exported URL and uses the latest saved configuration
-- the store now supports separate draft-save and export-save flows
-- draft projects can exist without an exported file and still be reopened from the home screen
+- manual save now emits `SavedVideo` through `onSavedVideo`
+- host shell persists only after manual save
+- export saves pending edits before rendering the selected quality
+- export persistence derives `ExportedVideo` from the exported URL and uses the latest saved configuration
+- the store now supports separate edited-copy save and export-save flows
+- projects can exist with original media and a saved edited copy before export
 - save callbacks now include thumbnail data rendered from the visible first frame of the edit
 
 ### Phase 5
@@ -191,4 +199,4 @@ Status:
 
 ## Remaining Work
 
-- run full simulator test execution once the environment is available, since this cycle validated `build` and `build-for-testing`
+- keep integration documentation aligned with the explicit manual save process

@@ -1,16 +1,16 @@
 import Foundation
 
-/// The payload emitted by continuous-save callbacks while the user edits a video.
+/// The save-state payload emitted after an explicit manual save.
 public struct VideoEditorSaveState: Equatable, Sendable {
 
     // MARK: - Public Properties
 
-    /// The latest serializable editing snapshot.
+    /// The serializable editing snapshot that was saved.
     public let editingConfiguration: VideoEditingConfiguration
-    /// An optional thumbnail image generated for the current project state.
+    /// An optional thumbnail image generated for the saved project state.
     public let thumbnailData: Data?
 
-    /// A normalized version of the save payload suitable for change detection during autosave.
+    /// A normalized version of the save payload suitable for unsaved-change detection.
     public var continuousSaveFingerprint: VideoEditingConfiguration {
         editingConfiguration.continuousSaveFingerprint
     }
@@ -110,7 +110,7 @@ public struct VideoEditorCallbacks {
 
     // MARK: - Public Properties
 
-    /// Called whenever the editor emits a new continuous-save snapshot.
+    /// Called after an explicit manual save publishes the saved editing snapshot.
     public let onSaveStateChanged: (VideoEditorSaveState) -> Void
     /// Called after an explicit manual save renders an edited video copy.
     public let onSavedVideo: (SavedVideo) -> Void

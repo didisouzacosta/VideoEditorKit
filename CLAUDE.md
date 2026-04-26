@@ -106,17 +106,23 @@ O package agora é a superfície principal do repositório. O app em `Example/` 
 
 ### 5. Persistência
 
-- Ao sair do editor ou quando a cena vai para `background`/`inactive`, `editorVM.updateProject()` salva o estado atual.
+- O editor não salva automaticamente a cada ação de edição.
+- `VideoEditorView` rastreia alterações não salvas por diff interno baseado no snapshot de edição.
+- O botão `Save` dispara o save manual e renderiza uma cópia editada sem alterar resolução nem FPS da fonte quando o asset fornece timing confiável.
+- O app de exemplo persiste somente após o callback `onSavedVideo`, mantendo vídeo original, cópia editada salva e export final como arquivos separados.
 - Ao apagar um projeto, o app remove:
   - thumbnail `.jpg`
-  - vídeo copiado em `Documents`
-  - registro do Core Data
+  - vídeo original copiado em `Documents`
+  - cópia editada salva
+  - export final, quando existir
+  - registro persistido do projeto
 
 ### 6. Exportação
 
-- `VideoExporterBottomSheetView` escolhe qualidade e dispara `ExporterViewModel`.
-- `ExporterViewModel` chama `VideoEditor.startRender(video:videoQuality:)`.
-- O arquivo final pode ser salvo na biblioteca de fotos ou compartilhado.
+- O botão de export usa ícone de compartilhamento e abre o fluxo de escolha de qualidade.
+- Export chama o processo de save manual primeiro quando existem alterações pendentes.
+- Depois do save, o export renderiza a qualidade escolhida e chama `onExportedVideoURL`.
+- O app de exemplo apresenta o share sheet usando o arquivo exportado, não a cópia editada salva.
 
 ---
 
@@ -232,6 +238,8 @@ Persistência é feita via `CoreDataContainer.xcdatamodeld`.
 Salva:
 
 - nome do arquivo de vídeo em `Documents`
+- nome da cópia editada salva
+- nome do arquivo exportado, quando existir
 - data de criação
 - `lowerBound` / `upperBound`
 - velocidade
@@ -253,6 +261,14 @@ Salva:
 ### Thumbnail de projeto
 
 - a capa do projeto é salva separadamente como `.jpg` em `Documents`
+
+### Save manual vs export
+
+- O vídeo original sempre deve ser preservado.
+- O save manual gera uma cópia editada pronta para uso e chama `onSavedVideo`.
+- A cópia editada salva mantém resolução e FPS da fonte quando possível.
+- O export é um artefato separado: primeiro garante save da edição atual, depois transforma para a resolução escolhida e chama `onExportedVideoURL`.
+- `onSaveStateChanged` não deve ser tratado como autosave contínuo; ele acompanha o save manual com o snapshot salvo e thumbnail.
 
 ---
 

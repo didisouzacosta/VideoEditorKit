@@ -22,7 +22,7 @@ The repository is structured around a Swift Package at the root and an example i
 - A ready-to-embed SwiftUI editor surface through `VideoEditorView`
 - A serializable editing snapshot through `VideoEditingConfiguration`
 - Host-controlled feature gating for tools and export qualities
-- Continuous save callbacks so your app can persist work-in-progress state
+- Manual save callbacks that render an edited copy while preserving the original video
 - Optional transcript generation through OpenAI Whisper or a custom `VideoTranscriptionProvider`
 - Reusable public canvas, export, transcript, and layout utilities for advanced integrations
 
@@ -85,6 +85,8 @@ import VideoEditorKit
 struct EditorHostView: View {
 
     @State private var savedConfiguration = VideoEditingConfiguration.initial
+    @State private var savedEditedVideoURL: URL?
+    @State private var exportedVideoURL: URL?
 
     let sourceVideoURL: URL
 
@@ -100,13 +102,18 @@ struct EditorHostView: View {
             onSaveStateChanged: { saveState in
                 savedConfiguration = saveState.editingConfiguration
             },
+            onSavedVideo: { savedVideo in
+                savedConfiguration = savedVideo.editingConfiguration
+                savedEditedVideoURL = savedVideo.url
+            },
             onDismissed: { latestConfiguration in
                 if let latestConfiguration {
                     savedConfiguration = latestConfiguration
                 }
             },
-            onExportedVideoURL: { exportedVideoURL in
-                print("Exported video:", exportedVideoURL)
+            onExportedVideoURL: { url in
+                exportedVideoURL = url
+                print("Exported video:", url)
             }
         )
     }
@@ -389,7 +396,8 @@ Use this when your app imports from cloud storage, a document picker, a temporar
 
 `VideoEditorCallbacks` groups the host lifecycle closures:
 
-- `onSaveStateChanged`: emitted during editing with the latest `VideoEditorSaveState`.
+- `onSaveStateChanged`: emitted after manual save with the latest `VideoEditorSaveState`.
+- `onSavedVideo`: called after manual save renders an edited copy at the source resolution and frame rate.
 - `onSourceVideoResolved`: called when an async source finishes resolving into a local URL.
 - `onDismissed`: called when the editor closes, returning the latest available editing snapshot.
 - `onExportedVideoURL`: called after a successful export.
@@ -398,19 +406,33 @@ You can pass callbacks through the convenience `VideoEditorView` initializer or 
 
 ### `VideoEditorSaveState`
 
-This is the autosave payload emitted by `onSaveStateChanged`.
+This is the save-state payload emitted by `onSaveStateChanged` after an explicit manual save. It is no longer an autosave stream for every edit action.
 
 Its fields are:
 
-- `editingConfiguration`: the current serializable editor snapshot.
-- `thumbnailData`: optional thumbnail data representing the latest project state.
-- `continuousSaveFingerprint`: normalized snapshot intended for host-side change detection.
+- `editingConfiguration`: the serializable editor snapshot that was saved.
+- `thumbnailData`: optional thumbnail data representing the saved project state.
+- `continuousSaveFingerprint`: normalized snapshot used by the editor to ignore transient UI/playback state when tracking unsaved changes.
 
-If your app persists drafts, this is the payload to store.
+For most integrations, persist the richer `SavedVideo` payload from `onSavedVideo` and use this value when you only need the latest saved configuration or thumbnail.
+
+### `SavedVideo`
+
+This is the manual save payload emitted by `onSavedVideo`.
+
+Its fields are:
+
+- `url`: file URL of the rendered edited copy.
+- `originalVideoURL`: file URL of the original source video that should remain preserved by the host.
+- `editingConfiguration`: the saved editing snapshot applied to the edited copy.
+- `thumbnailData`: optional thumbnail data for the saved edit.
+- `metadata`: size, duration, and file metadata for the saved edited copy.
+
+Manual save renders the current edit without changing the source resolution or source frame rate when that frame timing is available. The host should store the original video and saved edited copy separately.
 
 ### `VideoEditingConfiguration`
 
-`VideoEditingConfiguration` is the package's persisted editing snapshot. It is the main value you save when the user edits and the main value you pass back when resuming later.
+`VideoEditingConfiguration` is the package's persisted editing snapshot. It is the main value you save after explicit manual save and the main value you pass back when resuming later.
 
 Use it for:
 
@@ -437,7 +459,7 @@ Use a `VideoEditorSession` when you want the host app to control:
 
 ### `VideoEditingConfiguration`
 
-This is the package's persistent editing snapshot. Save it in your app whenever `onSaveStateChanged` fires, and pass it back into the editor later to resume an existing project.
+This is the package's persistent editing snapshot. Save it in your app when manual save succeeds through `onSavedVideo` or `onSaveStateChanged`, and pass it back into the editor later to resume an existing project.
 
 ### `VideoEditorConfiguration`
 
@@ -453,7 +475,8 @@ This is the host-facing runtime configuration for:
 
 The callback bundle allows the host app to react to:
 
-- continuous save state updates
+- manual save-state publication
+- saved edited video publication
 - asynchronous source resolution completion
 - editor dismissal
 - successful export completion
@@ -467,13 +490,14 @@ The easiest path is:
 1. Add the package in Xcode first.
 2. Make sure your app target links the `VideoEditorKit` product.
 3. Ask your coding assistant to import `VideoEditorKit` and present `VideoEditorView`.
-4. Persist `VideoEditingConfiguration` in your app state or storage layer so edits can resume cleanly.
-5. Wire `onExportedVideoURL` into your share, save-to-library, or upload flow.
+4. Persist `SavedVideo` from `onSavedVideo`, keeping the original video and edited copy as separate files.
+5. Store `VideoEditingConfiguration` from the saved payload so edits can resume cleanly.
+6. Wire `onExportedVideoURL` into your share, save-to-library, or upload flow.
 
 For AI-generated host apps, this prompt usually works well:
 
 ```text
-Add VideoEditorKit through Swift Package Manager, import VideoEditorKit, present VideoEditorView for a local video URL, persist VideoEditingConfiguration on save callbacks, and keep the exported video URL in host state so the app can share it later.
+Add VideoEditorKit through Swift Package Manager, import VideoEditorKit, present VideoEditorView for a local video URL, persist the SavedVideo payload from onSavedVideo as the manually saved edited copy, keep the original video separately, and keep the exported video URL in host state so the app can share it later.
 ```
 
 If your generated app already has a media picker, map its result into one of these session sources:
@@ -504,6 +528,8 @@ For a full grouped reference of the public API that ships in the module, see [`S
 - Record one extra audio track and mix it with the source track
 - Adjust brightness, contrast, and saturation
 - Add a colored frame/background treatment
+- Track unsaved changes internally and require an explicit manual save
+- Save an edited copy while preserving the original video, source resolution, and source frame rate when available
 - Export asynchronously to `.mp4`
 
 ## Repository Layout
@@ -560,7 +586,7 @@ That means:
 
 - preview and export are conceptually aligned, but not guaranteed by one shared engine
 - freeform crop is not fully exported today
-- export still works directly from live `Video` state rather than a detached immutable export snapshot
+- export first saves pending edits and then renders the selected export quality, but the renderer is still not a fully detached export-job engine
 - advanced features such as multi-track audio, multi-layer video composition, or normalized subtitle coordinates are not part of the current public contract
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)

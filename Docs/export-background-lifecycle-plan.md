@@ -6,6 +6,7 @@ Resolver o congelamento do processo de exportacao quando o editor vai para segun
 
 O comportamento alvo deve ser previsivel para o usuario:
 
+- export garante o save manual das alteracoes pendentes antes de renderizar a resolucao escolhida
 - se o app continuar ativo ou apenas ficar temporariamente inativo, o export pode continuar
 - se o app for para background, o export deve ser cancelado de forma explicita
 - ao voltar, a UI deve sair do estado congelado e permitir tentar novamente
@@ -48,6 +49,7 @@ Esse custo nao e proporcional ao problema imediato. O melhor primeiro passo e to
 ## Estado atual
 
 - `VideoExporterContainerView` cria e mantem um `ExporterViewModel` em `@State`.
+- Antes de abrir a sheet de qualidade, o editor salva alteracoes pendentes e publica `onSavedVideo`.
 - `ExporterViewModel` guarda uma unica `exportTask`.
 - `cancelExport()` ja cancela a task e retorna a UI para `.unknown`.
 - `VideoEditor.export(...)` ja usa `withTaskCancellationHandler` e chama `AVAssetExportSession.cancelExport()` no cancelamento.
@@ -60,16 +62,18 @@ Esse custo nao e proporcional ao problema imediato. O melhor primeiro passo e to
 ### Active ou inactive
 
 1. Usuario inicia export.
-2. App permanece `.active` ou passa brevemente por `.inactive`.
-3. Export continua e, se concluir, chama `onExported`.
+2. Se houver alteracoes pendentes, o editor executa save manual primeiro.
+3. App permanece `.active` ou passa brevemente por `.inactive`.
+4. Export continua e, se concluir, chama `onExported`.
 
 ### Background
 
 1. Usuario inicia export.
-2. App vai para background.
-3. O export e cancelado explicitamente.
-4. `AVAssetExportSession.cancelExport()` e chamado pelo caminho de cancelamento ja existente.
-5. Ao voltar, a UI mostra falha recuperavel com acao de retry.
+2. Se houver alteracoes pendentes, o editor executa save manual primeiro.
+3. App vai para background.
+4. O export e cancelado explicitamente.
+5. `AVAssetExportSession.cancelExport()` e chamado pelo caminho de cancelamento ja existente.
+6. Ao voltar, a UI mostra falha recuperavel com acao de retry.
 
 ### Cancelamento manual
 
@@ -188,6 +192,7 @@ Essa mensagem deve ser distinta do erro generico de exportacao, porque o usuario
 - Nao usar UIKit para pedir tempo extra de background nesse fluxo.
 - Nao cancelar em `.inactive`.
 - Nao disparar `onExported` se a task foi cancelada depois que o arquivo ficou pronto, mas antes do callback.
+- Nao apagar a copia editada salva quando um export posterior e cancelado por lifecycle.
 - Limpar arquivos intermediarios no caminho de erro, preservando o comportamento atual de `VideoEditor.startRender(...)`.
 - Nao adicionar `UIBackgroundModes` para video export; isso nao e o mesmo caso de audio/background processing continuo e pode criar uma expectativa falsa de execucao indefinida.
 

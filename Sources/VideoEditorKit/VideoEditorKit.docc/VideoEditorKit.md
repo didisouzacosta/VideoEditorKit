@@ -14,7 +14,8 @@ These are the symbols most host apps start with:
 - `VideoEditorImportedFileSource`: async file resolver used by `VideoEditorSessionSource.importedFile`
 - `VideoEditorCallbacks`: host callbacks for save, dismiss, source resolution, and export
 - `VideoEditorConfiguration`: runtime tool, export, optional transcription, and duration configuration
-- `VideoEditorSaveState`: continuous-save payload emitted by the editor
+- `VideoEditorSaveState`: saved editing snapshot emitted after manual save
+- `SavedVideo`: rendered edited-copy payload emitted after manual save
 - `VideoEditingConfiguration`: serializable editing snapshot used to restore a session later
 - `VideoEditorKitPackage`: lightweight package metadata namespace
 
@@ -116,10 +117,12 @@ If your host app resolves videos asynchronously, these helpers are the public br
 For most host apps:
 
 1. Create a `VideoEditorSession` from a local file or imported-file resolver.
-2. Persist `VideoEditingConfiguration` whenever save callbacks fire.
+2. Persist `SavedVideo` when `onSavedVideo` fires, keeping the original source and saved edited copy separately.
 3. Configure visible tools and export qualities through `VideoEditorConfiguration`.
 4. Present `VideoEditorView`.
 5. Handle `onExportedVideoURL` in your own share, upload, or save flow.
+
+Manual save is explicit. The editor tracks unsaved changes internally, enables the localized `Save` action only when the current editing snapshot differs from the last saved baseline, and prompts before canceling with pending changes. Export saves pending edits first, then renders the selected export resolution and calls the export callback.
 
 For custom caption workflows:
 
