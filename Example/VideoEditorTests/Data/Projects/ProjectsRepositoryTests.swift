@@ -12,6 +12,92 @@ struct ProjectsRepositoryTests {
     // MARK: - Public Methods
 
     @Test
+    func saveEditedVideoPersistsOriginalVideoAndEditedCopyBeforeExport() async throws {
+        let container = try makeContainer()
+        let store = ProjectsRepository(modelContext: container.mainContext)
+        let originalVideoURL = try await TestFixtures.createTemporaryVideo(color: .systemBlue)
+        let editedVideoURL = try await TestFixtures.createTemporaryVideo(color: .systemPurple)
+        let editedVideoMetadata = await ExportedVideo.load(from: editedVideoURL)
+        let savedVideo = SavedVideo(
+            editedVideoURL,
+            originalVideoURL: originalVideoURL,
+            editingConfiguration: .init(
+                trim: .init(lowerBound: 1, upperBound: 4),
+                playback: .init(
+                    rate: 1,
+                    videoVolume: 1,
+                    currentTimelineTime: 2
+                )
+            ),
+            thumbnailData: Data([0x01, 0x02, 0x03]),
+            metadata: editedVideoMetadata
+        )
+
+        defer { FileManager.default.removeIfExists(for: originalVideoURL) }
+        defer { FileManager.default.removeIfExists(for: editedVideoURL) }
+
+        let persistedSave = try await store.saveEditedVideo(
+            projectID: nil,
+            savedVideo: savedVideo
+        )
+        let project = persistedSave.project
+
+        #expect(project.hasOriginalVideo)
+        #expect(project.hasSavedEditedVideo)
+        #expect(project.hasExportedVideo == false)
+        #expect(project.originalVideoURL.lastPathComponent.hasPrefix("original."))
+        #expect(project.savedEditedVideoURL.lastPathComponent.hasPrefix("edited."))
+        #expect(project.savedEditedVideoURL != project.exportedVideoURL)
+        #expect(project.thumbnailData == savedVideo.thumbnailData)
+        #expect(project.duration == editedVideoMetadata.duration)
+        #expect(project.fileSize == editedVideoMetadata.fileSize)
+        #expect(project.editingConfiguration?.trim == savedVideo.editingConfiguration.trim)
+        #expect(project.editingConfiguration?.playback.currentTimelineTime == nil)
+        #expect(persistedSave.savedVideo.url == project.savedEditedVideoURL)
+        #expect(persistedSave.savedVideo.originalVideoURL == project.originalVideoURL)
+        #expect(persistedSave.savedVideo.editingConfiguration.playback.currentTimelineTime == nil)
+    }
+
+    @Test
+    func saveExportedVideoKeepsTheSavedEditedCopySeparateFromShareOutput() async throws {
+        let container = try makeContainer()
+        let store = ProjectsRepository(modelContext: container.mainContext)
+        let originalVideoURL = try await TestFixtures.createTemporaryVideo(color: .systemBlue)
+        let editedVideoURL = try await TestFixtures.createTemporaryVideo(color: .systemPurple)
+        let exportedVideoURL = try await TestFixtures.createTemporaryVideo(color: .systemGreen)
+        let savedVideo = SavedVideo(
+            editedVideoURL,
+            originalVideoURL: originalVideoURL,
+            editingConfiguration: .init(
+                trim: .init(lowerBound: 1, upperBound: 3)
+            ),
+            metadata: await ExportedVideo.load(from: editedVideoURL)
+        )
+        let exportedVideo = await ExportedVideo.load(from: exportedVideoURL)
+
+        defer { FileManager.default.removeIfExists(for: originalVideoURL) }
+        defer { FileManager.default.removeIfExists(for: editedVideoURL) }
+        defer { FileManager.default.removeIfExists(for: exportedVideoURL) }
+
+        let persistedSave = try await store.saveEditedVideo(
+            projectID: nil,
+            savedVideo: savedVideo
+        )
+        let exportedProject = try await store.saveExportedVideo(
+            projectID: persistedSave.project.id,
+            originalVideoURL: persistedSave.project.originalVideoURL,
+            exportedVideo: exportedVideo,
+            editingConfiguration: persistedSave.savedVideo.editingConfiguration
+        )
+
+        #expect(exportedProject.hasSavedEditedVideo)
+        #expect(exportedProject.hasExportedVideo)
+        #expect(exportedProject.savedEditedVideoURL.lastPathComponent.hasPrefix("edited."))
+        #expect(exportedProject.exportedVideoURL.lastPathComponent.hasPrefix("exported."))
+        #expect(exportedProject.savedEditedVideoURL != exportedProject.exportedVideoURL)
+    }
+
+    @Test
     func saveEditingStatePersistsOriginalVideoAndEditingConfigurationBeforeExport() async throws {
         let container = try makeContainer()
         let store = ProjectsRepository(modelContext: container.mainContext)

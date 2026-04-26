@@ -57,7 +57,7 @@ struct EditorSessionControllerTests {
     }
 
     @Test
-    func registerSaveStateChangeStoresTheLatestPayloadAndRequestsPersistence() {
+    func handleSaveStateChangedStoresTheLatestPayload() {
         let controller = EditorSessionController(
             .imported(.fileURL(URL(fileURLWithPath: "/tmp/controller.mp4")))
         )
@@ -68,14 +68,13 @@ struct EditorSessionControllerTests {
             thumbnailData: Data([0x01, 0x02, 0x03])
         )
 
-        let shouldPersist = controller.registerSaveStateChange(saveState)
+        controller.handleSaveStateChanged(saveState)
 
         #expect(controller.latestSaveState == saveState)
-        #expect(shouldPersist)
     }
 
     @Test
-    func registerSaveStateChangeSkipsTransientOnlyChanges() {
+    func handleSaveStateChangedKeepsTransientPayloadAsLatestState() {
         let controller = EditorSessionController(
             .imported(.fileURL(URL(fileURLWithPath: "/tmp/controller.mp4")))
         )
@@ -129,42 +128,56 @@ struct EditorSessionControllerTests {
             )
         )
 
-        let firstShouldPersist = controller.registerSaveStateChange(
+        controller.handleSaveStateChanged(
             .init(editingConfiguration: baseConfiguration)
         )
-        let secondShouldPersist = controller.registerSaveStateChange(
+        controller.handleSaveStateChanged(
             .init(editingConfiguration: transientOnlyChange)
         )
 
-        #expect(firstShouldPersist)
-        #expect(secondShouldPersist == false)
         #expect(controller.latestSaveState?.editingConfiguration == transientOnlyChange)
     }
 
     @Test
-    func handlePersistedEditingStateSaveUpdatesTheCurrentContext() throws {
+    func handlePersistedSavedVideoUpdatesTheCurrentContext() throws {
         let persistedOriginalURL = try TestFixtures.createTemporaryFile(fileExtension: "mp4")
+        let persistedEditedURL = try TestFixtures.createTemporaryFile(fileExtension: "mp4")
         let project = makeProject(
-            originalVideoFileName: persistedOriginalURL.lastPathComponent
+            originalVideoFileName: persistedOriginalURL.lastPathComponent,
+            savedEditedVideoFileName: persistedEditedURL.lastPathComponent
         )
-        let saveState = VideoEditorView.SaveState(
+        let savedVideo = SavedVideo(
+            persistedEditedURL,
+            originalVideoURL: persistedOriginalURL,
             editingConfiguration: .init(
                 trim: .init(lowerBound: 1, upperBound: 4)
             ),
-            thumbnailData: Data([0x0A, 0x0B])
+            thumbnailData: Data([0x0A, 0x0B]),
+            metadata: .init(
+                persistedEditedURL,
+                width: 1920,
+                height: 1080,
+                duration: 4,
+                fileSize: 32
+            )
         )
         let controller = EditorSessionController(
             .imported(.fileURL(URL(fileURLWithPath: "/tmp/controller.mp4")))
         )
 
-        controller.handlePersistedEditingStateSave(
-            .init(project: project, saveState: saveState)
+        controller.handlePersistedSavedVideo(
+            .init(project: project, savedVideo: savedVideo)
         )
 
         #expect(controller.currentProjectID == project.id)
         #expect(controller.currentSourceVideoURL == project.originalVideoURL)
-        #expect(controller.latestSaveState == saveState)
-        #expect(controller.registerSaveStateChange(saveState) == false)
+        #expect(
+            controller.latestSaveState
+                == .init(
+                    editingConfiguration: savedVideo.editingConfiguration,
+                    thumbnailData: savedVideo.thumbnailData
+                )
+        )
     }
 
     @Test
@@ -197,6 +210,7 @@ struct EditorSessionControllerTests {
 
     private func makeProject(
         originalVideoFileName: String = "original.mp4",
+        savedEditedVideoFileName: String = "",
         exportedVideoFileName: String = "",
         editingConfiguration: VideoEditingConfiguration? = nil
     ) -> EditedVideoProject {
@@ -208,6 +222,7 @@ struct EditorSessionControllerTests {
             updatedAt: .now,
             displayName: "Project",
             originalVideoFileName: originalVideoFileName,
+            savedEditedVideoFileName: savedEditedVideoFileName,
             exportedVideoFileName: exportedVideoFileName,
             editingConfigurationData: configurationData,
             thumbnailData: nil,

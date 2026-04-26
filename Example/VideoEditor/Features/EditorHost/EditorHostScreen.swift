@@ -3,10 +3,6 @@ import VideoEditorKit
 
 struct EditorHostScreen: View {
 
-    private enum Constants {
-        static let editingStateSaveDebounceInNanoseconds: UInt64 = 250_000_000
-    }
-
     private struct PersistenceAlertPresentation: Identifiable {
 
         // MARK: - Public Properties
@@ -23,7 +19,6 @@ struct EditorHostScreen: View {
     // MARK: - States
 
     @State private var sessionController: EditorSessionController
-    @State private var saveStateTask: Task<Void, Never>?
     @State private var persistenceAlert: PersistenceAlertPresentation?
 
     // MARK: - Body
@@ -61,8 +56,11 @@ struct EditorHostScreen: View {
     private var editorCallbacks: VideoEditorView.Callbacks {
         .init(
             onSaveStateChanged: { saveState in
-                if sessionController.registerSaveStateChange(saveState) {
-                    scheduleEditingStateSave(saveState)
+                sessionController.handleSaveStateChanged(saveState)
+            },
+            onSavedVideo: { savedVideo in
+                Task {
+                    await persistSavedVideo(savedVideo)
                 }
             },
             onSourceVideoResolved: { sourceVideoURL in
@@ -90,54 +88,18 @@ struct EditorHostScreen: View {
     // MARK: - Private Methods
 
     private func handleDisappear() {
-        saveStateTask?.cancel()
-        saveStateTask = nil
         sessionController.dismissShareDestination()
     }
 
-    private func scheduleEditingStateSave(
-        _ saveState: VideoEditorView.SaveState
-    ) {
-        saveStateTask?.cancel()
-        saveStateTask = Task {
-            try? await Task.sleep(nanoseconds: Constants.editingStateSaveDebounceInNanoseconds)
-            guard Task.isCancelled == false else {
-                sessionController.clearPendingEditingStateSave(for: saveState)
-                return
-            }
-
-            await persistEditingState(saveState)
-        }
-    }
-
-    private func persistEditingState(
-        _ saveState: VideoEditorView.SaveState
-    ) async {
-        guard let originalVideoURL = sessionController.currentSourceVideoURL else {
-            presentPersistenceError(ExampleStrings.missingSessionOriginalVideo)
-            return
-        }
-
+    private func persistSavedVideo(_ savedVideo: SavedVideo) async {
         do {
-            let persistedState = try await repository.saveEditingState(
+            let persistedSave = try await repository.saveEditedVideo(
                 projectID: sessionController.currentProjectID,
-                originalVideoURL: originalVideoURL,
-                saveState: saveState
+                savedVideo: savedVideo
             )
 
-            guard Task.isCancelled == false else {
-                sessionController.clearPendingEditingStateSave(for: saveState)
-                return
-            }
-
-            sessionController.handlePersistedEditingStateSave(persistedState)
+            sessionController.handlePersistedSavedVideo(persistedSave)
         } catch {
-            guard Task.isCancelled == false else {
-                sessionController.clearPendingEditingStateSave(for: saveState)
-                return
-            }
-
-            sessionController.clearPendingEditingStateSave(for: saveState)
             presentPersistenceError(error.localizedDescription)
         }
     }
@@ -145,9 +107,6 @@ struct EditorHostScreen: View {
     private func persistExportedVideo(
         at exportedVideoURL: URL
     ) async {
-        saveStateTask?.cancel()
-        saveStateTask = nil
-
         guard let originalVideoURL = sessionController.currentSourceVideoURL else {
             presentPersistenceError(ExampleStrings.missingSessionOriginalVideo)
             return

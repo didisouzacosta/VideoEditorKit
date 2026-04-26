@@ -60,6 +60,20 @@ struct ProjectMediaStore {
         )
     }
 
+    func persistEditedVideo(
+        from sourceURL: URL,
+        to projectDirectoryURL: URL
+    ) throws -> URL {
+        try persistFile(
+            from: sourceURL,
+            to: resolvedMediaDestinationURL(
+                in: projectDirectoryURL,
+                prefix: "edited",
+                sourceURL: sourceURL
+            )
+        )
+    }
+
     func persistRecordedAudioIfNeeded(
         _ editingConfiguration: VideoEditingConfiguration,
         in projectDirectoryURL: URL

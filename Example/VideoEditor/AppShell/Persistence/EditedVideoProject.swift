@@ -22,6 +22,7 @@ final class EditedVideoProject {
     var updatedAt: Date
     var displayName: String
     var originalVideoFileName: String
+    var savedEditedVideoFileName: String = ""
     var exportedVideoFileName: String
     var duration: Double
     var width: Double
@@ -34,6 +35,10 @@ final class EditedVideoProject {
 
     var exportedVideoURL: URL {
         directoryURL.appending(path: exportedVideoFileName)
+    }
+
+    var savedEditedVideoURL: URL {
+        directoryURL.appending(path: savedEditedVideoFileName)
     }
 
     var aspectRatio: Double {
@@ -70,8 +75,19 @@ final class EditedVideoProject {
         return fileExists && isDirectory.boolValue == false
     }
 
+    var hasSavedEditedVideo: Bool {
+        guard savedEditedVideoFileName.isEmpty == false else { return false }
+
+        var isDirectory: ObjCBool = false
+        let fileExists = FileManager.default.fileExists(
+            atPath: savedEditedVideoURL.path(),
+            isDirectory: &isDirectory
+        )
+        return fileExists && isDirectory.boolValue == false
+    }
+
     var hasRequiredMedia: Bool {
-        hasOriginalVideo && hasExportedVideo
+        hasOriginalVideo && (hasSavedEditedVideo || hasExportedVideo)
     }
 
     // MARK: - Private Properties
@@ -88,6 +104,7 @@ final class EditedVideoProject {
         updatedAt: Date,
         displayName: String,
         originalVideoFileName: String,
+        savedEditedVideoFileName: String = "",
         exportedVideoFileName: String,
         editingConfigurationData: Data,
         thumbnailData: Data?,
@@ -101,6 +118,7 @@ final class EditedVideoProject {
         self.updatedAt = updatedAt
         self.displayName = displayName
         self.originalVideoFileName = originalVideoFileName
+        self.savedEditedVideoFileName = savedEditedVideoFileName
         self.exportedVideoFileName = exportedVideoFileName
         self.editingConfigurationData = editingConfigurationData
         self.thumbnailData = thumbnailData

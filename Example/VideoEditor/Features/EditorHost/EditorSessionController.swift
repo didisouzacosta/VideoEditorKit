@@ -28,11 +28,6 @@ final class EditorSessionController {
     private(set) var currentSourceVideoURL: URL?
     private(set) var latestSaveState: VideoEditorView.SaveState?
 
-    // MARK: - Private Properties
-
-    private var lastPersistedSaveFingerprint: VideoEditingConfiguration?
-    private var pendingSaveFingerprint: VideoEditingConfiguration?
-
     // MARK: - Initializer
 
     init(_ draft: EditorSessionDraft) {
@@ -40,45 +35,29 @@ final class EditorSessionController {
         currentProjectID = draft.projectID
         currentSourceVideoURL = draft.sourceVideoURL
         latestSaveState = draft.latestSaveState
-        lastPersistedSaveFingerprint = draft.latestSaveState?.continuousSaveFingerprint
     }
 
     // MARK: - Public Methods
 
-    func registerSaveStateChange(
+    func handleSaveStateChanged(
         _ saveState: VideoEditorView.SaveState
-    ) -> Bool {
+    ) {
         latestSaveState = saveState
-
-        let fingerprint = saveState.continuousSaveFingerprint
-        guard
-            fingerprint != lastPersistedSaveFingerprint,
-            fingerprint != pendingSaveFingerprint
-        else {
-            return false
-        }
-
-        pendingSaveFingerprint = fingerprint
-        return true
     }
 
     func handleSourceVideoResolved(_ url: URL) {
         currentSourceVideoURL = url
     }
 
-    func handlePersistedEditingStateSave(
-        _ persistedState: ProjectsRepository.PersistedEditingState
+    func handlePersistedSavedVideo(
+        _ persistedSave: ProjectsRepository.PersistedSavedVideo
     ) {
-        currentProjectID = persistedState.project.id
-        currentSourceVideoURL = persistedState.project.originalVideoURL
-        latestSaveState = persistedState.saveState
-
-        let fingerprint = persistedState.saveState.continuousSaveFingerprint
-        lastPersistedSaveFingerprint = fingerprint
-
-        if pendingSaveFingerprint == fingerprint {
-            pendingSaveFingerprint = nil
-        }
+        currentProjectID = persistedSave.project.id
+        currentSourceVideoURL = persistedSave.project.originalVideoURL
+        latestSaveState = .init(
+            editingConfiguration: persistedSave.savedVideo.editingConfiguration,
+            thumbnailData: persistedSave.savedVideo.thumbnailData
+        )
     }
 
     func handlePersistedExport(
@@ -86,23 +65,7 @@ final class EditorSessionController {
     ) {
         currentProjectID = project.id
         currentSourceVideoURL = project.originalVideoURL
-
-        if let latestSaveState {
-            lastPersistedSaveFingerprint = latestSaveState.continuousSaveFingerprint
-        }
-
-        pendingSaveFingerprint = nil
         shareDestination = .init(videoURL: project.exportedVideoURL)
-    }
-
-    func clearPendingEditingStateSave(
-        for saveState: VideoEditorView.SaveState
-    ) {
-        let fingerprint = saveState.continuousSaveFingerprint
-
-        if pendingSaveFingerprint == fingerprint {
-            pendingSaveFingerprint = nil
-        }
     }
 
     func dismissShareDestination() {

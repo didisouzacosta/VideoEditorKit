@@ -14,6 +14,15 @@ struct ProjectsRepository {
 
     }
 
+    struct PersistedSavedVideo {
+
+        // MARK: - Public Properties
+
+        let project: EditedVideoProject
+        let savedVideo: SavedVideo
+
+    }
+
     enum StoreError: LocalizedError {
         case missingOriginalVideo
 
@@ -85,6 +94,76 @@ struct ProjectsRepository {
             saveState: .init(
                 editingConfiguration: preparedSave.persistedEditingConfiguration,
                 thumbnailData: preparedSave.project.thumbnailData
+            )
+        )
+    }
+
+    func saveEditedVideo(
+        projectID: UUID?,
+        savedVideo: SavedVideo
+    ) async throws -> PersistedSavedVideo {
+        let preparedSave = try prepareProjectSave(
+            projectID: projectID,
+            originalVideoURL: savedVideo.originalVideoURL,
+            editingConfiguration: savedVideo.editingConfiguration
+        )
+        let projectDirectoryURL = try mediaStore.ensureProjectDirectory(for: preparedSave.project.id)
+        let persistedEditedURL = try mediaStore.persistEditedVideo(
+            from: savedVideo.url,
+            to: projectDirectoryURL
+        )
+        let persistedMetadata = ExportedVideo(
+            persistedEditedURL,
+            width: savedVideo.metadata.width,
+            height: savedVideo.metadata.height,
+            duration: savedVideo.metadata.duration,
+            fileSize: savedVideo.metadata.fileSize
+        )
+        let generatedThumbnailData: Data?
+
+        if savedVideo.thumbnailData == nil {
+            generatedThumbnailData = await ProjectMediaStore.makeThumbnailData(
+                fromExportedVideoAt: persistedEditedURL,
+                editingConfiguration: preparedSave.persistedEditingConfiguration
+            )
+        } else {
+            generatedThumbnailData = nil
+        }
+
+        let thumbnailData = savedVideo.thumbnailData ?? generatedThumbnailData
+
+        applyCommonProjectFields(
+            preparedSave,
+            displayName: savedVideo.originalVideoURL.deletingPathExtension().lastPathComponent
+        )
+
+        preparedSave.project.savedEditedVideoFileName = persistedEditedURL.lastPathComponent
+        preparedSave.project.thumbnailData = thumbnailData ?? preparedSave.project.thumbnailData
+        applyVideoMetadata(persistedMetadata, to: preparedSave.project)
+
+        try modelContext.save()
+
+        mediaStore.cleanupTransientMediaIfNeeded(
+            savedVideo.originalVideoURL,
+            protectedURL: preparedSave.persistedOriginalURL
+        )
+        mediaStore.cleanupTransientMediaIfNeeded(
+            savedVideo.url,
+            protectedURL: persistedEditedURL
+        )
+        mediaStore.cleanupTransientAudioIfNeeded(
+            originalConfiguration: savedVideo.editingConfiguration,
+            persistedConfiguration: preparedSave.persistedEditingConfiguration
+        )
+
+        return PersistedSavedVideo(
+            project: preparedSave.project,
+            savedVideo: .init(
+                persistedEditedURL,
+                originalVideoURL: preparedSave.persistedOriginalURL,
+                editingConfiguration: preparedSave.persistedEditingConfiguration,
+                thumbnailData: preparedSave.project.thumbnailData,
+                metadata: persistedMetadata
             )
         )
     }
@@ -173,6 +252,7 @@ struct ProjectsRepository {
                 updatedAt: now,
                 displayName: originalVideoURL.deletingPathExtension().lastPathComponent,
                 originalVideoFileName: "",
+                savedEditedVideoFileName: "",
                 exportedVideoFileName: "",
                 editingConfigurationData: Data(),
                 thumbnailData: nil,
