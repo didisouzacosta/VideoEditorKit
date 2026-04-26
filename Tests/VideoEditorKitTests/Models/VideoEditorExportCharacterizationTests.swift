@@ -23,6 +23,20 @@ struct VideoEditorExportCharacterizationTests {
     }
 
     @Test
+    func originalExportUsesSourceRenderSizeAndNativeFrameDurationFallback() {
+        let sourceSize = CGSize(width: 720, height: 1280)
+        let profile = VideoEditor.resolvedRenderProfile(
+            for: sourceSize,
+            editingConfiguration: .initial,
+            intent: .export(.original),
+            isSimulatorEnvironment: true
+        )
+
+        #expect(profile.renderSize == sourceSize)
+        #expect(profile.frameDuration.seconds == 1.0 / 30.0)
+    }
+
+    @Test
     func resolvedExportProfileScalesCanvasPresetExportsAcrossQualities() {
         let video = makeVideo()
         let editingConfiguration = VideoEditingConfiguration(

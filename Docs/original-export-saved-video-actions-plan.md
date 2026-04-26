@@ -157,7 +157,7 @@ git commit -m "Add original export quality"
 
 ### Task 2: Route Original Export Through Native Source Quality
 
-- [ ] Add tests for original render intent.
+- [x] Add tests for original render intent.
 
 Update `Tests/VideoEditorKitTests/Models/VideoEditorExportCharacterizationTests.swift` with a test proving `.export(.original)` resolves like `.saveNative(sourceFrameRate:)`:
 
@@ -179,7 +179,7 @@ func originalExportUsesSourceRenderSizeAndFrameRate() {
 
 If the existing helper needs the true source frame rate, adjust the test to call the internal intent resolver indirectly through `startRender` injection tests in `ExporterViewModelTests`.
 
-- [ ] Run the characterization test and confirm it fails before implementation.
+- [x] Run the characterization test and confirm it fails before implementation.
 
 Run:
 
@@ -187,13 +187,13 @@ Run:
 xcodebuild -workspace Example/VideoEditor.xcworkspace -scheme VideoEditorKit-Package -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17' -only-testing:VideoEditorKitTests/VideoEditorExportCharacterizationTests test
 ```
 
-- [ ] Map `.export(.original)` to native rendering.
+- [x] Map `.export(.original)` to native rendering.
 
 Update `Sources/VideoEditorKit/Internal/Models/Enums/VideoEditor.swift` so `resolvedRenderIntent(_:asset:)` converts `.export(.original)` to `.saveNative(sourceFrameRate:)`, reusing `resolvedSourceFrameRate(for:)`.
 
 Update `resolvedRenderProfile` so `.export(.original)` also takes the same branch as `.saveNative` when called directly in tests.
 
-- [ ] Keep `ExporterViewModel` selection behavior consistent.
+- [x] Keep `ExporterViewModel` selection behavior consistent.
 
 Because original sorts first and is enabled, `ExporterViewModel.defaultSelectedQuality(for:)` should now select `.original` for the default package configuration. Update `Tests/VideoEditorKitTests/ViewModels/ExporterViewModelTests.swift`:
 
@@ -208,7 +208,7 @@ Add a test that blocked premium config still defaults to original, not low:
 #expect(viewModel.canExportVideo)
 ```
 
-- [ ] Run focused exporter tests.
+- [x] Run focused exporter tests.
 
 Run:
 
@@ -216,7 +216,7 @@ Run:
 xcodebuild -workspace Example/VideoEditor.xcworkspace -scheme VideoEditorKit-Package -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17' -only-testing:VideoEditorKitTests/ExporterViewModelTests -only-testing:VideoEditorKitTests/VideoEditorExportCharacterizationTests test
 ```
 
-- [ ] Commit.
+- [x] Commit.
 
 ```bash
 git add Sources/VideoEditorKit/Internal/Models/Enums/VideoEditor.swift Sources/VideoEditorKit/Internal/ViewModels/ExporterViewModel.swift Tests/VideoEditorKitTests/ViewModels/ExporterViewModelTests.swift Tests/VideoEditorKitTests/Models/VideoEditorExportCharacterizationTests.swift

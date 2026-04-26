@@ -152,8 +152,9 @@ final class ExporterViewModel {
     ) {
         self.video = video
         self.editingConfiguration = editingConfiguration
-        self.exportQualities = Self.sortedExportQualities(exportQualities)
-        self.selectedQuality = Self.defaultSelectedQuality(for: exportQualities)
+        let normalizedExportQualities = Self.normalizedExportQualities(exportQualities)
+        self.exportQualities = Self.sortedExportQualities(normalizedExportQualities)
+        self.selectedQuality = Self.defaultSelectedQuality(for: normalizedExportQualities)
         self.renderVideo = renderVideo
         self.loadExportedVideo = loadExportedVideo
         self.lifecycleCoordinator = lifecycleCoordinator
@@ -335,6 +336,15 @@ final class ExporterViewModel {
         }
 
         return sortedQualities.first?.quality ?? .low
+    }
+
+    private static func normalizedExportQualities(
+        _ exportQualities: [ExportQualityAvailability]
+    ) -> [ExportQualityAvailability] {
+        let original = ExportQualityAvailability.enabled(.original)
+        let nonOriginalQualities = exportQualities.filter { $0.quality != .original }
+
+        return [original] + nonOriginalQualities
     }
 
     private static func sortedExportQualities(

@@ -653,6 +653,10 @@ extension VideoEditor {
             renderSize = evenPixelSize(for: sourceSize)
             resolvedFrameDuration = frameDuration(forSourceFrameRate: sourceFrameRate)
             presetNames = resolvedNativeSavePresetNames(isSimulatorEnvironment: isSimulatorEnvironment)
+        case .export(let videoQuality) where videoQuality.isOriginal:
+            renderSize = evenPixelSize(for: sourceSize)
+            resolvedFrameDuration = frameDuration(forSourceFrameRate: nil)
+            presetNames = resolvedNativeSavePresetNames(isSimulatorEnvironment: isSimulatorEnvironment)
         case .export(let videoQuality):
             renderSize = resolvedOutputRenderSize(
                 for: sourceSize,
@@ -1169,6 +1173,10 @@ extension VideoEditor {
     ) async -> VideoRenderIntent {
         switch renderIntent {
         case .saveNative(.none):
+            return .saveNative(
+                sourceFrameRate: await resolvedSourceFrameRate(for: asset)
+            )
+        case .export(let videoQuality) where videoQuality.isOriginal:
             return .saveNative(
                 sourceFrameRate: await resolvedSourceFrameRate(for: asset)
             )
