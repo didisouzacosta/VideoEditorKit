@@ -207,10 +207,12 @@ public struct VideoEditorView: View {
                     if presentation == .loading {
                         ProgressView()
                             .controlSize(.small)
+                            .tint(.white)
                     }
 
                     Text(VideoEditorStrings.save)
                 }
+                .foregroundStyle(.white)
             }
             .videoEditorToolbarActionButtonStyle(VideoEditorToolbarActionLayout.saveButtonStyle)
             .disabled(presentation != .enabled)
