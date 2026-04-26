@@ -20,10 +20,11 @@
 
 ## Summary
 
-The resumable editing contract should stay simple:
+The resumable editing contract started simple and is now centered on explicit manual save:
 
 - host input: `sourceVideoURL + VideoEditingConfiguration`
-- editor output on export: `ExportedVideo + VideoEditingConfiguration`
+- editor output on manual save: `SavedVideo + VideoEditingConfiguration`
+- editor output on export: exported file URL after pending edits have been saved
 
 The editor should not own persistence of the original asset. The integrator is responsible for reopening the editor later with:
 
@@ -34,13 +35,15 @@ That keeps the editor focused on three jobs only:
 
 1. load a source video
 2. apply a serializable editing configuration
-3. return the updated configuration only together with `onExported`
+3. return the saved configuration and rendered edited copy through manual save callbacks
+4. return exported output through the export callback
 
 ## Why This Boundary
 
 - It avoids a heavier `session` abstraction for V1.
 - It avoids coupling editor persistence to host persistence strategy.
 - It keeps the exported file separate from the source-of-truth editing state.
+- It keeps manual save and export as distinct host lifecycle events.
 - It allows the host to save configuration wherever it wants: Core Data, database, file, cloud, or memory.
 
 ## Source Of Truth
@@ -48,7 +51,8 @@ That keeps the editor focused on three jobs only:
 For resume flows, the source of truth must be:
 
 - original video
-- latest `VideoEditingConfiguration`
+- latest manually saved `VideoEditingConfiguration`
+- saved edited copy when the host needs ready-to-use preview/share without re-exporting
 
 The exported file is an output artifact, not the source of truth for reopening the editor.
 
@@ -206,6 +210,8 @@ Scope:
 - Do not persist on every configuration change during editing.
 - Publish the saved editing configuration through manual save callbacks, primarily `onSavedVideo`.
 - Update host flows to store the manually saved edited copy and original video separately.
+- Successful manual save closes the editor, while cancel during a running save cancels the save instead of showing the unsaved-changes prompt.
+- The example app persists project thumbnails from the first frame of the saved edited copy.
 
 ### Phase 12
 

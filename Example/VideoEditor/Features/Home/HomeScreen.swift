@@ -12,7 +12,6 @@ struct HomeScreen: View {
     let projects: [EditedVideoProject]
     let usesCompactGridLayout: Bool
     let onOpenProject: (EditedVideoProject) -> Void
-    let onPreviewSavedVideo: (EditedVideoProject) -> Void
     let onShareSavedVideo: (EditedVideoProject) -> Void
     let onDeleteProject: (EditedVideoProject) -> Void
 
@@ -32,7 +31,6 @@ struct HomeScreen: View {
                         columns: gridColumns,
                         spacing: gridSpacing,
                         onOpenProject: onOpenProject,
-                        onPreviewSavedVideo: onPreviewSavedVideo,
                         onShareSavedVideo: onShareSavedVideo,
                         onDeleteProject: onDeleteProject
                     )
@@ -63,7 +61,6 @@ struct HomeScreen: View {
         projects: [EditedVideoProject],
         usesCompactGridLayout: Bool,
         onOpenProject: @escaping (EditedVideoProject) -> Void,
-        onPreviewSavedVideo: @escaping (EditedVideoProject) -> Void,
         onShareSavedVideo: @escaping (EditedVideoProject) -> Void,
         onDeleteProject: @escaping (EditedVideoProject) -> Void
     ) {
@@ -72,7 +69,6 @@ struct HomeScreen: View {
         self.projects = projects
         self.usesCompactGridLayout = usesCompactGridLayout
         self.onOpenProject = onOpenProject
-        self.onPreviewSavedVideo = onPreviewSavedVideo
         self.onShareSavedVideo = onShareSavedVideo
         self.onDeleteProject = onDeleteProject
     }
@@ -154,7 +150,6 @@ private struct ProjectsGridSection: View {
     let columns: [GridItem]
     let spacing: CGFloat
     let onOpenProject: (EditedVideoProject) -> Void
-    let onPreviewSavedVideo: (EditedVideoProject) -> Void
     let onShareSavedVideo: (EditedVideoProject) -> Void
     let onDeleteProject: (EditedVideoProject) -> Void
 
@@ -179,9 +174,6 @@ private struct ProjectsGridSection: View {
                             project: project,
                             onOpenProject: {
                                 onOpenProject(project)
-                            },
-                            onPreviewSavedVideo: {
-                                onPreviewSavedVideo(project)
                             },
                             onShareSavedVideo: {
                                 onShareSavedVideo(project)

@@ -51,7 +51,8 @@ struct ProjectsRepositoryTests {
         #expect(project.originalVideoURL.lastPathComponent.hasPrefix("original."))
         #expect(project.savedEditedVideoURL.lastPathComponent.hasPrefix("edited."))
         #expect(project.savedEditedVideoURL != project.exportedVideoURL)
-        #expect(project.thumbnailData == savedVideo.thumbnailData)
+        #expect(project.thumbnailData != savedVideo.thumbnailData)
+        #expect(project.thumbnailData.flatMap(UIImage.init(data:)) != nil)
         #expect(project.duration == editedVideoMetadata.duration)
         #expect(project.fileSize == editedVideoMetadata.fileSize)
         #expect(project.editingConfiguration?.trim == savedVideo.editingConfiguration.trim)
@@ -59,6 +60,97 @@ struct ProjectsRepositoryTests {
         #expect(persistedSave.savedVideo.url == project.savedEditedVideoURL)
         #expect(persistedSave.savedVideo.originalVideoURL == project.originalVideoURL)
         #expect(persistedSave.savedVideo.editingConfiguration.playback.currentTimelineTime == nil)
+    }
+
+    @Test
+    func saveEditedVideoRefreshesTheSavedPlaybackURLWhenUpdatingAnExistingProject() async throws {
+        let container = try makeContainer()
+        let store = ProjectsRepository(modelContext: container.mainContext)
+        let originalVideoURL = try await TestFixtures.createTemporaryVideo(color: .systemBlue)
+        let firstEditedVideoURL = try await TestFixtures.createTemporaryVideo(color: .systemPurple)
+        let secondEditedVideoURL = try await TestFixtures.createTemporaryVideo(color: .systemGreen)
+
+        defer { FileManager.default.removeIfExists(for: originalVideoURL) }
+        defer { FileManager.default.removeIfExists(for: firstEditedVideoURL) }
+        defer { FileManager.default.removeIfExists(for: secondEditedVideoURL) }
+
+        let firstSave = try await store.saveEditedVideo(
+            projectID: nil,
+            savedVideo: SavedVideo(
+                firstEditedVideoURL,
+                originalVideoURL: originalVideoURL,
+                editingConfiguration: .initial,
+                metadata: await ExportedVideo.load(from: firstEditedVideoURL)
+            )
+        )
+        let firstPlaybackURL = try #require(firstSave.project.savedPlaybackVideoURL)
+
+        let secondSave = try await store.saveEditedVideo(
+            projectID: firstSave.project.id,
+            savedVideo: SavedVideo(
+                secondEditedVideoURL,
+                originalVideoURL: firstSave.project.originalVideoURL,
+                editingConfiguration: .init(playback: .init(rate: 2)),
+                metadata: await ExportedVideo.load(from: secondEditedVideoURL)
+            )
+        )
+        let secondPlaybackURL = try #require(secondSave.project.savedPlaybackVideoURL)
+
+        #expect(secondPlaybackURL != firstPlaybackURL)
+        #expect(FileManager.default.fileExists(atPath: secondPlaybackURL.path()))
+        #expect(FileManager.default.fileExists(atPath: firstPlaybackURL.path()) == false)
+    }
+
+    @Test
+    func saveEditedVideoUsesTheFirstEditedVideoFrameForThePersistedThumbnail() async throws {
+        let container = try makeContainer()
+        let store = ProjectsRepository(modelContext: container.mainContext)
+        let originalVideoURL = try await TestFixtures.createTemporaryVideo(color: .systemBlue)
+        let editedVideoURL = try await TestFixtures.createTemporaryVideo(
+            size: CGSize(width: 80, height: 40),
+            frameCount: 30,
+            framesPerSecond: 30,
+            drawFrame: { context, size, frameIndex in
+                let color = frameIndex == 0 ? UIColor.systemRed : UIColor.systemBlue
+                context.setFillColor(color.cgColor)
+                context.fill(CGRect(origin: .zero, size: size))
+            }
+        )
+        let savedVideo = SavedVideo(
+            editedVideoURL,
+            originalVideoURL: originalVideoURL,
+            editingConfiguration: .init(
+                playback: .init(
+                    rate: 1,
+                    videoVolume: 1,
+                    currentTimelineTime: 0.8
+                )
+            ),
+            thumbnailData: Data([0x01, 0x02, 0x03]),
+            metadata: await ExportedVideo.load(from: editedVideoURL)
+        )
+
+        defer { FileManager.default.removeIfExists(for: originalVideoURL) }
+        defer { FileManager.default.removeIfExists(for: editedVideoURL) }
+
+        let persistedSave = try await store.saveEditedVideo(
+            projectID: nil,
+            savedVideo: savedVideo
+        )
+        let thumbnailImage = try #require(
+            persistedSave.project.thumbnailData.flatMap(UIImage.init(data:))
+        )
+        let sampledColor = try #require(
+            thumbnailImage.persistedProjectSampledColor(
+                at: CGPoint(
+                    x: thumbnailImage.size.width / 2,
+                    y: thumbnailImage.size.height / 2
+                )
+            )
+        )
+
+        #expect(sampledColor.redComponent > 0.55)
+        #expect(sampledColor.blueComponent < 0.45)
     }
 
     @Test

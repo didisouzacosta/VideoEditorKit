@@ -18,6 +18,8 @@ public struct VideoEditorView: View {
     @State private var exportLifecycleState: ExportLifecycleState = .active
     @State private var cancelConfirmationState: VideoEditorCancelConfirmationState?
     @State private var manualSaveCoordinator = VideoEditorManualSaveCoordinator()
+    @State private var lastSavedVideo: SavedVideo?
+    @State private var manualSaveTask: Task<Void, Never>?
     @State private var videoPlayer = VideoPlayerManager()
 
     // MARK: - Public Properties
@@ -43,10 +45,14 @@ public struct VideoEditorView: View {
             session: session,
             callbacks: callbacks,
             onCancel: requestEditorDismissal,
-            onBootstrapStateChanged: syncPlayerLoadState
-        ) {
-            editorToolbarActions
-        } loadedContent: { availableSize, resolvedSourceVideoURL in
+            onBootstrapStateChanged: syncPlayerLoadState,
+            secondaryAction: {
+                exportToolbarAction
+            },
+            primaryAction: {
+                saveToolbarAction
+            }
+        ) { availableSize, resolvedSourceVideoURL in
             VideoEditorLoadedView(
                 availableSize: availableSize,
                 resolvedSourceVideoURL: resolvedSourceVideoURL,
@@ -71,6 +77,7 @@ public struct VideoEditorView: View {
             }
             .safeAreaPadding(.horizontal)
             .safeAreaPadding(.top)
+            .disabled(manualSaveCoordinator.isSaving)
         }
         .onDisappear(perform: handleDisappear)
         .onChange(of: scenePhase) { _, newScenePhase in
@@ -138,14 +145,17 @@ public struct VideoEditorView: View {
                 video: video,
                 editingConfiguration: resolvedExportEditingConfiguration,
                 exportQualities: configuration.exportQualities,
-                onBlockedQualityTap: configuration.notifyBlockedExportQualityTap(for:)
-            ) { exportedVideo in
-                Self.handleExportedVideo(
-                    exportedVideo,
-                    videoPlayer: videoPlayer,
-                    callbacks: callbacks
-                )
-            }
+                prepareForExport: prepareCurrentExport,
+                shouldShowSavingBeforeExport: { _ in manualSaveCoordinator.hasUnsavedChanges },
+                onBlockedQualityTap: configuration.notifyBlockedExportQualityTap(for:),
+                onExported: { exportedVideo in
+                    Self.handleExportedVideo(
+                        exportedVideo,
+                        videoPlayer: videoPlayer,
+                        callbacks: callbacks
+                    )
+                }
+            )
         }
     }
 
@@ -172,21 +182,38 @@ public struct VideoEditorView: View {
     }
 
     @ViewBuilder
-    private var editorToolbarActions: some View {
+    private var exportToolbarAction: some View {
         if editorViewModel.currentVideo != nil {
-            HStack(spacing: 12) {
-                Button(action: presentExporter) {
-                    Image(systemName: "square.and.arrow.up")
-                }
-                .accessibilityLabel(VideoEditorStrings.export)
-                .disabled(manualSaveCoordinator.isSaving)
+            Button(action: presentExporter) {
+                Image(systemName: "square.and.arrow.up")
+            }
+            .accessibilityLabel(VideoEditorStrings.export)
+            .videoEditorToolbarActionButtonStyle(VideoEditorToolbarActionLayout.exportButtonStyle)
+            .disabled(manualSaveCoordinator.isSaving)
+        }
+    }
 
-                Button(action: saveCurrentEdit) {
+    @ViewBuilder
+    private var saveToolbarAction: some View {
+        let presentation = Self.manualSaveActionPresentation(
+            hasLoadedVideo: editorViewModel.currentVideo != nil,
+            hasUnsavedChanges: manualSaveCoordinator.hasUnsavedChanges,
+            isSaving: manualSaveCoordinator.isSaving
+        )
+
+        if presentation != .hidden {
+            Button(action: saveCurrentEdit) {
+                HStack(spacing: 6) {
+                    if presentation == .loading {
+                        ProgressView()
+                            .controlSize(.small)
+                    }
+
                     Text(VideoEditorStrings.save)
                 }
-                .buttonStyle(.primary)
-                .disabled(!canSaveCurrentEdit)
             }
+            .videoEditorToolbarActionButtonStyle(VideoEditorToolbarActionLayout.saveButtonStyle)
+            .disabled(presentation != .enabled)
         }
     }
 
@@ -283,6 +310,8 @@ public struct VideoEditorView: View {
     private func requestEditorDismissal() {
         Self.handleCancelRequest(
             hasUnsavedChanges: manualSaveCoordinator.hasUnsavedChanges,
+            isSaving: manualSaveCoordinator.isSaving,
+            cancelSave: cancelCurrentManualSave,
             presentConfirmation: { state in
                 cancelConfirmationState = state
             },
@@ -300,6 +329,8 @@ public struct VideoEditorView: View {
     }
 
     private func presentExporter() {
+        guard manualSaveTask == nil else { return }
+
         Task {
             await Self.prepareExporterPresentation(
                 editorViewModel: editorViewModel,
@@ -312,18 +343,41 @@ public struct VideoEditorView: View {
     }
 
     private func saveCurrentEdit() {
-        Task {
-            await performCurrentManualSave()
+        startManualSaveTask { savedVideo in
+            Self.completeManualSaveInteraction(
+                savedVideo,
+                dismiss: dismissEditorImmediately
+            )
         }
     }
 
     @discardableResult
     private func performCurrentManualSave() async -> SavedVideo? {
-        await Self.performManualSave(
+        let savedVideo = await Self.performManualSave(
             editorViewModel: editorViewModel,
             fallbackSourceVideoURL: session.sourceVideoURL,
             manualSaveCoordinator: manualSaveCoordinator,
             callbacks: callbacks
+        )
+
+        if savedVideo != nil {
+            lastSavedVideo = savedVideo
+        }
+
+        return savedVideo
+    }
+
+    private func prepareCurrentExport(
+        _ selectedQuality: VideoQuality
+    ) async -> ExporterViewModel.ExportPreparationResult {
+        await Self.exportPreparationResult(
+            selectedQuality: selectedQuality,
+            hasUnsavedChanges: manualSaveCoordinator.hasUnsavedChanges,
+            currentEditingConfiguration: editorViewModel.currentEditingConfiguration(),
+            lastSavedVideo: lastSavedVideo,
+            preparedOriginalExportVideo: session.preparedOriginalExportVideo,
+            loadedOriginalVideo: loadedOriginalExportVideo,
+            saveCurrentEdit: performCurrentManualSave
         )
     }
 
@@ -336,9 +390,11 @@ public struct VideoEditorView: View {
 
     private func saveChangesAndDismiss() {
         cancelConfirmationState = nil
-        Task {
-            guard await performCurrentManualSave() != nil else { return }
-            dismissEditorImmediately()
+        startManualSaveTask { savedVideo in
+            Self.completeManualSaveInteraction(
+                savedVideo,
+                dismiss: dismissEditorImmediately
+            )
         }
     }
 
@@ -350,6 +406,7 @@ public struct VideoEditorView: View {
 
     private func handleRecordedVideo(_ url: URL) {
         manualSaveCoordinator.reset()
+        lastSavedVideo = nil
         Self.handleRecordedVideo(
             url,
             editorViewModel: editorViewModel,
@@ -362,7 +419,33 @@ public struct VideoEditorView: View {
     }
 
     private func handleDisappear() {
+        manualSaveTask?.cancel()
         Self.handleDisappear(editorViewModel: editorViewModel)
+    }
+
+    private func startManualSaveTask(
+        onSuccess: @escaping (SavedVideo) -> Void
+    ) {
+        guard manualSaveTask == nil else { return }
+
+        manualSaveTask = Task {
+            defer {
+                manualSaveTask = nil
+            }
+
+            guard let savedVideo = await performCurrentManualSave() else { return }
+            guard Task.isCancelled == false else { return }
+
+            onSuccess(savedVideo)
+        }
+    }
+
+    private func cancelCurrentManualSave() {
+        manualSaveTask?.cancel()
+        manualSaveTask = nil
+        manualSaveCoordinator.failSaving(
+            currentEditingConfiguration: editorViewModel.currentEditingConfiguration()
+        )
     }
 
     private func syncPlayerLoadState(
@@ -376,6 +459,32 @@ public struct VideoEditorView: View {
             for: bootstrapState,
             currentVideoURL: editorViewModel.currentVideo?.url
         )
+    }
+
+}
+
+extension VideoEditorView {
+
+    // MARK: - Private Properties
+
+    private var loadedOriginalExportVideo: ExportedVideo? {
+        guard let video = editorViewModel.currentVideo else { return nil }
+
+        return ExportedVideo(
+            video.url,
+            width: max(video.presentationSize.width, 0),
+            height: max(video.presentationSize.height, 0),
+            duration: max(video.originalDuration, 0),
+            fileSize: resolvedFileSize(for: video.url)
+        )
+    }
+
+    // MARK: - Private Methods
+
+    private func resolvedFileSize(for url: URL) -> Int64 {
+        let attributes = try? FileManager.default.attributesOfItem(atPath: url.path())
+        let sizeValue = attributes?[.size] as? NSNumber
+        return max(sizeValue?.int64Value ?? 0, 0)
     }
 
 }

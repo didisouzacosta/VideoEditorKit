@@ -149,11 +149,15 @@ extension VideoEditorView {
         }
 
         do {
+            try Task.checkCancellation()
+
             let savedVideo = try await manualSaveRenderer.save(
                 video: video,
                 editingConfiguration: currentEditingConfiguration,
                 originalVideoURL: originalVideoURL
             )
+
+            try Task.checkCancellation()
 
             manualSaveCoordinator.finishSaving(currentEditingConfiguration)
             callbacks.onSaveStateChanged(
@@ -177,20 +181,93 @@ extension VideoEditorView {
         hasUnsavedChanges: Bool,
         isSaving: Bool = false
     ) -> Bool {
-        hasLoadedVideo && hasUnsavedChanges && isSaving == false
+        manualSaveActionPresentation(
+            hasLoadedVideo: hasLoadedVideo,
+            hasUnsavedChanges: hasUnsavedChanges,
+            isSaving: isSaving
+        ) == .enabled
+    }
+
+    static func manualSaveActionPresentation(
+        hasLoadedVideo: Bool,
+        hasUnsavedChanges: Bool,
+        isSaving: Bool
+    ) -> VideoEditorManualSaveActionPresentation {
+        guard hasLoadedVideo else { return .hidden }
+        guard isSaving == false else { return .loading }
+        return hasUnsavedChanges ? .enabled : .disabled
     }
 
     static func handleCancelRequest(
         hasUnsavedChanges: Bool,
+        isSaving: Bool = false,
+        cancelSave: () -> Void = {},
         presentConfirmation: (VideoEditorCancelConfirmationState) -> Void,
         dismiss: () -> Void
     ) {
+        guard isSaving == false else {
+            cancelSave()
+            return
+        }
+
         guard hasUnsavedChanges else {
             dismiss()
             return
         }
 
         presentConfirmation(.unsavedChanges)
+    }
+
+    @discardableResult
+    static func completeManualSaveInteraction(
+        _ savedVideo: SavedVideo?,
+        dismiss: () -> Void
+    ) -> Bool {
+        guard savedVideo != nil else { return false }
+
+        dismiss()
+        return true
+    }
+
+    static func exportPreparationResult(
+        selectedQuality: VideoQuality,
+        hasUnsavedChanges: Bool,
+        currentEditingConfiguration: VideoEditingConfiguration?,
+        lastSavedVideo: SavedVideo?,
+        preparedOriginalExportVideo: ExportedVideo?,
+        loadedOriginalVideo: ExportedVideo?,
+        saveCurrentEdit: () async -> SavedVideo?
+    ) async -> ExporterViewModel.ExportPreparationResult {
+        if selectedQuality == .original,
+            hasUnsavedChanges == false,
+            let lastSavedVideo,
+            lastSavedVideo.editingConfiguration.continuousSaveFingerprint
+                == currentEditingConfiguration?.continuousSaveFingerprint
+        {
+            return .usePreparedVideo(lastSavedVideo.metadata)
+        }
+
+        if selectedQuality == .original,
+            hasUnsavedChanges == false,
+            let preparedOriginalExportVideo
+        {
+            return .usePreparedVideo(preparedOriginalExportVideo)
+        }
+
+        if selectedQuality == .original,
+            hasUnsavedChanges == false,
+            currentEditingConfiguration?.continuousSaveFingerprint
+                == VideoEditingConfiguration.initial.continuousSaveFingerprint,
+            let loadedOriginalVideo
+        {
+            return .usePreparedVideo(loadedOriginalVideo)
+        }
+
+        guard hasUnsavedChanges else { return .render }
+        guard let savedVideo = await saveCurrentEdit() else { return .cancelled }
+
+        guard selectedQuality == .original else { return .render }
+        return .usePreparedVideo(savedVideo.metadata)
     }
 
     static func handleMaximumVideoDurationChange(
@@ -235,19 +312,10 @@ extension VideoEditorView {
         videoPlayer: VideoPlayerManager,
         callbacks: Callbacks
     ) async {
-        if manualSaveCoordinator.hasUnsavedChanges {
-            guard
-                await performManualSave(
-                    editorViewModel: editorViewModel,
-                    fallbackSourceVideoURL: fallbackSourceVideoURL,
-                    manualSaveCoordinator: manualSaveCoordinator,
-                    manualSaveRenderer: manualSaveRenderer,
-                    callbacks: callbacks
-                ) != nil
-            else {
-                return
-            }
-        }
+        _ = fallbackSourceVideoURL
+        _ = manualSaveCoordinator
+        _ = manualSaveRenderer
+        _ = callbacks
 
         presentExporter(
             editorViewModel: editorViewModel,

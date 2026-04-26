@@ -102,6 +102,26 @@ final class EditedVideoProject {
         return nil
     }
 
+    var savedPlaybackPreviewIdentity: String {
+        [
+            savedPlaybackVideoURL?.lastPathComponent ?? "empty",
+            updatedAt.timeIntervalSinceReferenceDate.description,
+            fileSize.description,
+        ].joined(separator: "-")
+    }
+
+    var preparedOriginalExportVideo: ExportedVideo? {
+        guard let savedPlaybackVideoURL else { return nil }
+
+        return ExportedVideo(
+            savedPlaybackVideoURL,
+            width: width,
+            height: height,
+            duration: duration,
+            fileSize: fileSize
+        )
+    }
+
     var canPreviewSavedVideo: Bool {
         savedPlaybackVideoURL != nil
     }

@@ -22,7 +22,7 @@ struct ExporterViewModelTests {
         #expect(viewModel.exportProgress == 0)
         #expect(viewModel.progressText == "0%")
         #expect(viewModel.exportActionTitle == "Export")
-        #expect(viewModel.selectedQuality == .original)
+        #expect(viewModel.selectedQuality == .high)
     }
 
     @Test
@@ -72,7 +72,7 @@ struct ExporterViewModelTests {
     }
 
     @Test
-    func blockedPremiumExportDefaultsToOriginalQuality() {
+    func blockedPremiumExportDefaultsToTheFirstEnabledResolutionQuality() {
         let viewModel = ExporterViewModel(
             Video.mock,
             exportQualities: [
@@ -82,12 +82,12 @@ struct ExporterViewModelTests {
             ]
         )
 
-        #expect(viewModel.selectedQuality == .original)
+        #expect(viewModel.selectedQuality == .low)
         #expect(viewModel.canExportVideo)
     }
 
     @Test
-    func blockedQualitySelectionDoesNotOverrideOriginalQuality() {
+    func blockedQualitySelectionDoesNotOverrideTheCurrentEnabledQuality() {
         let viewModel = ExporterViewModel(
             Video.mock,
             exportQualities: [
@@ -97,12 +97,12 @@ struct ExporterViewModelTests {
             ]
         )
 
-        #expect(viewModel.selectedQuality == .original)
+        #expect(viewModel.selectedQuality == .medium)
 
         viewModel.selectQuality(.high)
 
-        #expect(viewModel.selectedQuality == .original)
-        #expect(viewModel.isSelectedQuality(.original))
+        #expect(viewModel.selectedQuality == .medium)
+        #expect(viewModel.isSelectedQuality(.medium))
     }
 
     @Test
@@ -163,6 +163,163 @@ struct ExporterViewModelTests {
     }
 
     @Test
+    func exportVideoRunsPreparationBeforeRenderingAndKeepsOneLoadingState() async {
+        let expectedURL = URL(fileURLWithPath: "/tmp/prepared-export.mp4")
+        let expectedVideo = ExportedVideo(
+            expectedURL,
+            width: 1280,
+            height: 720,
+            duration: 8,
+            fileSize: 256
+        )
+        let preparationProbe = ExportPreparationProbe()
+        let tracker = ExportRetryTracker()
+        let viewModel = ExporterViewModel(
+            Video.mock,
+            renderVideo: { _, _, _, _ in
+                _ = await tracker.recordRenderCall()
+                return expectedURL
+            },
+            loadExportedVideo: { _ in expectedVideo }
+        )
+
+        viewModel.exportVideo(
+            showsSavingBeforeExport: true,
+            preparingExport: { _ in
+                await preparationProbe.prepare()
+            },
+            onExported: { exportedVideo in
+                Task {
+                    await tracker.recordExportedVideo(exportedVideo)
+                }
+            }
+        )
+
+        await preparationProbe.waitUntilPrepareStarted()
+
+        #expect(viewModel.renderState == .loading)
+        #expect(viewModel.shouldShowLoadingView)
+        #expect(viewModel.isSavingBeforeExport)
+        #expect(await tracker.renderCallCount == 0)
+
+        await preparationProbe.resumePreparation(result: true)
+        await tracker.waitUntilExportedVideoIsRecorded()
+
+        #expect(await preparationProbe.prepareCallCount == 1)
+        #expect(await tracker.renderCallCount == 1)
+        #expect(await tracker.exportedVideo == expectedVideo)
+        #expect(viewModel.isSavingBeforeExport == false)
+        #expect(viewModel.renderState == .loaded(expectedVideo))
+    }
+
+    @Test
+    func exportVideoStopsBeforeRenderingWhenPreparationFails() async {
+        let preparationProbe = ExportPreparationProbe()
+        let tracker = ExportRetryTracker()
+        let viewModel = ExporterViewModel(
+            Video.mock,
+            renderVideo: { _, _, _, _ in
+                _ = await tracker.recordRenderCall()
+                return URL(fileURLWithPath: "/tmp/should-not-render.mp4")
+            }
+        )
+
+        viewModel.exportVideo(
+            preparingExport: { _ in
+                await preparationProbe.prepare()
+            },
+            onExported: { exportedVideo in
+                Task {
+                    await tracker.recordExportedVideo(exportedVideo)
+                }
+            }
+        )
+
+        await preparationProbe.waitUntilPrepareStarted()
+        await preparationProbe.resumePreparation(result: false)
+
+        for _ in 0..<20 where viewModel.renderState == .loading {
+            await Task.yield()
+        }
+
+        #expect(await preparationProbe.prepareCallCount == 1)
+        #expect(await tracker.renderCallCount == 0)
+        #expect(await tracker.exportedVideo == nil)
+        #expect(viewModel.isSavingBeforeExport == false)
+        #expect(viewModel.renderState == .unknown)
+    }
+
+    @Test
+    func exportVideoDoesNotShowSavingTitleWhenPreparationDoesNotRequireSave() async {
+        let preparationProbe = ExportPreparationProbe()
+        let viewModel = ExporterViewModel(
+            Video.mock,
+            renderVideo: { _, _, _, _ in
+                URL(fileURLWithPath: "/tmp/export.mp4")
+            }
+        )
+
+        viewModel.exportVideo(
+            showsSavingBeforeExport: false,
+            preparingExport: { _ in
+                await preparationProbe.prepare()
+            },
+            onExported: { _ in }
+        )
+
+        await preparationProbe.waitUntilPrepareStarted()
+
+        #expect(viewModel.renderState == .loading)
+        #expect(viewModel.isSavingBeforeExport == false)
+
+        viewModel.cancelExport()
+        await preparationProbe.resumePreparation(result: false)
+    }
+
+    @Test
+    func originalQualityUsesPreparedSavedVideoWithoutRenderingAgain() async {
+        let savedURL = URL(fileURLWithPath: "/tmp/prepared-original-export.mp4")
+        let savedVideo = ExportedVideo(
+            savedURL,
+            width: 1920,
+            height: 1080,
+            duration: 8,
+            fileSize: 512
+        )
+        let tracker = ExportRetryTracker()
+        let preparationProbe = ExportOriginalPreparationProbe(savedVideo)
+        let viewModel = ExporterViewModel(
+            Video.mock,
+            renderVideo: { _, _, _, _ in
+                _ = await tracker.recordRenderCall()
+                return URL(fileURLWithPath: "/tmp/should-not-render-original.mp4")
+            }
+        )
+
+        viewModel.selectQuality(.original)
+        viewModel.exportVideo(
+            showsSavingBeforeExport: true,
+            preparingExport: { quality in
+                await preparationProbe.prepare(for: quality)
+            },
+            onExported: { exportedVideo in
+                Task {
+                    await tracker.recordExportedVideo(exportedVideo)
+                }
+            }
+        )
+
+        await tracker.waitUntilExportedVideoIsRecorded()
+
+        #expect(await preparationProbe.qualities == [.original])
+        #expect(await tracker.renderCallCount == 0)
+        #expect(await tracker.exportedVideo == savedVideo)
+        #expect(viewModel.isSavingBeforeExport == false)
+        #expect(viewModel.renderState == .loaded(savedVideo))
+        #expect(viewModel.exportProgress == 1)
+    }
+
+    @Test
     func failedExportCanBeRetriedWithoutRecreatingTheViewModel() async {
         let expectedURL = URL(fileURLWithPath: "/tmp/retried-export.mp4")
         let expectedVideo = ExportedVideo(
@@ -202,9 +359,7 @@ struct ExporterViewModelTests {
             }
         }
 
-        for _ in 0..<20 where await tracker.exportedVideo != expectedVideo {
-            await Task.yield()
-        }
+        await tracker.waitUntilExportedVideoIsRecorded()
 
         #expect(await tracker.renderCallCount == 2)
         #expect(await tracker.exportedVideo == expectedVideo)
@@ -642,6 +797,69 @@ private actor ExportRetryTracker {
 
     func recordExportedVideo(_ video: ExportedVideo) {
         exportedVideo = video
+    }
+
+    func waitUntilExportedVideoIsRecorded() async {
+        while exportedVideo == nil {
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+    }
+
+}
+
+private actor ExportPreparationProbe {
+
+    // MARK: - Private Properties
+
+    private var prepareCount = 0
+    private var continuations = [CheckedContinuation<ExporterViewModel.ExportPreparationResult, Never>]()
+
+    // MARK: - Public Properties
+
+    var prepareCallCount: Int {
+        prepareCount
+    }
+
+    // MARK: - Public Methods
+
+    func prepare() async -> ExporterViewModel.ExportPreparationResult {
+        prepareCount += 1
+        return await withCheckedContinuation { continuation in
+            continuations.append(continuation)
+        }
+    }
+
+    func waitUntilPrepareStarted() async {
+        while prepareCount == 0 {
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+    }
+
+    func resumePreparation(result: Bool) {
+        guard continuations.isEmpty == false else { return }
+        continuations.removeFirst().resume(returning: result ? .render : .cancelled)
+    }
+
+}
+
+private actor ExportOriginalPreparationProbe {
+
+    // MARK: - Private Properties
+
+    private let preparedVideo: ExportedVideo
+    private(set) var qualities = [VideoQuality]()
+
+    // MARK: - Initializer
+
+    init(_ preparedVideo: ExportedVideo) {
+        self.preparedVideo = preparedVideo
+    }
+
+    // MARK: - Public Methods
+
+    func prepare(for quality: VideoQuality) -> ExporterViewModel.ExportPreparationResult {
+        qualities.append(quality)
+        return .usePreparedVideo(preparedVideo)
     }
 
 }

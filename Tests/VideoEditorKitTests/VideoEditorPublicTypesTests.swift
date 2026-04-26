@@ -43,13 +43,22 @@ struct VideoEditorPublicTypesTests {
     @Test
     func sessionResolvesTheExpectedConvenienceValues() {
         let url = URL(fileURLWithPath: "/tmp/video.mp4")
+        let preparedOriginalExportVideo = ExportedVideo(
+            URL(fileURLWithPath: "/tmp/saved.mp4"),
+            width: 1920,
+            height: 1080,
+            duration: 10,
+            fileSize: 2048
+        )
         let session = VideoEditorSession(
             source: .fileURL(url),
-            editingConfiguration: .initial
+            editingConfiguration: .initial,
+            preparedOriginalExportVideo: preparedOriginalExportVideo
         )
 
         #expect(session.sourceVideoURL == url)
         #expect(session.bootstrapTaskIdentifier == "file:\(url.absoluteString)")
+        #expect(session.preparedOriginalExportVideo == preparedOriginalExportVideo)
     }
 
     @Test
@@ -68,11 +77,11 @@ struct VideoEditorPublicTypesTests {
         )
 
         #expect(configuration.tools.map(\.tool) == [.presets, .audio, .speed])
-        #expect(configuration.exportQualities.map(\.quality) == [.original, .high, .medium, .low])
+        #expect(configuration.exportQualities.map(\.quality) == [.high, .medium, .low, .original])
     }
 
     @Test
-    func exportQualitiesAlwaysIncludeEnabledOriginalFirst() {
+    func exportQualitiesAlwaysIncludeEnabledOriginalLast() {
         let configuration = VideoEditorConfiguration(
             exportQualities: [
                 .blocked(.original),
@@ -81,7 +90,7 @@ struct VideoEditorPublicTypesTests {
             ]
         )
 
-        #expect(configuration.exportQualities.first?.quality == .original)
+        #expect(configuration.exportQualities.last?.quality == .original)
         #expect(configuration.isEnabled(.original))
         #expect(configuration.isBlocked(.original) == false)
     }

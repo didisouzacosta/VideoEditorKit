@@ -1,3 +1,4 @@
+import AVFoundation
 import SwiftUI
 import Testing
 import UIKit
@@ -33,6 +34,21 @@ struct ViewModifierSmokeTests {
         assertRenders(
             VideoShareSheet(activityItems: [videoURL])
         )
+    }
+
+    @Test
+    func savedVideoContextPreviewUsesAspectFillPlayback() {
+        #expect(SavedVideoContextPreviewPresentation.videoGravity == .resizeAspectFill)
+    }
+
+    @Test
+    func savedVideoContextMenuShowsOpenBeforeShareAndDelete() {
+        let actions = SavedVideoContextMenuActionPresentation.allCases
+
+        #expect(actions == [.open, .share, .delete])
+        #expect(actions.map(\.title) == ["Open", "Share", "Delete"])
+        #expect(actions.map(\.systemImage) == ["rectangle.portrait.and.arrow.right", "square.and.arrow.up", "trash"])
+        #expect(actions.map(\.role) == [nil, nil, .destructive])
     }
 
     @Test

@@ -5,10 +5,20 @@
 //  Created by Codex on 09.04.2026.
 //
 
+import CoreGraphics
 import Foundation
 
 @MainActor
 enum HostedVideoEditorPlayerStageCoordinator {
+
+    struct LoadingPlaceholderPresentation: Equatable, Sendable {
+
+        // MARK: - Public Properties
+
+        let aspectRatio: CGFloat
+        let usesKnownVideoDimensions: Bool
+
+    }
 
     struct TranscriptOverlayContext: Equatable {
 
@@ -26,16 +36,51 @@ enum HostedVideoEditorPlayerStageCoordinator {
     static func presentationState(
         for loadState: LoadState
     ) -> VideoEditorPlayerStageState {
+        presentationState(
+            for: loadState,
+            isPreviewReadyForDisplay: true
+        )
+    }
+
+    static func presentationState(
+        for loadState: LoadState,
+        isPreviewReadyForDisplay: Bool
+    ) -> VideoEditorPlayerStageState {
         switch loadState {
         case .unknown:
             .unknown
         case .loading:
             .loading
         case .loaded:
-            .loaded
+            isPreviewReadyForDisplay ? .loaded : .loading
         case .failed:
             .failed
         }
+    }
+
+    static func loadingPlaceholderPresentation(
+        source: VideoCanvasSourceDescriptor?
+    ) -> LoadingPlaceholderPresentation {
+        guard let source else {
+            return .init(
+                aspectRatio: fallbackLoadingPlaceholderAspectRatio,
+                usesKnownVideoDimensions: false
+            )
+        }
+
+        let presentationSize = source.resolvedPresentationSize
+
+        guard presentationSize.width > 0, presentationSize.height > 0 else {
+            return .init(
+                aspectRatio: fallbackLoadingPlaceholderAspectRatio,
+                usesKnownVideoDimensions: false
+            )
+        }
+
+        return .init(
+            aspectRatio: presentationSize.width / presentationSize.height,
+            usesKnownVideoDimensions: true
+        )
     }
 
     static func canvasEditorState(
@@ -127,6 +172,10 @@ enum HostedVideoEditorPlayerStageCoordinator {
     }
 
     // MARK: - Private Methods
+
+    private static var fallbackLoadingPlaceholderAspectRatio: CGFloat {
+        16.0 / 9.0
+    }
 
     private static func transcriptOverlayLayoutID(
         transcriptDocument: TranscriptDocument,

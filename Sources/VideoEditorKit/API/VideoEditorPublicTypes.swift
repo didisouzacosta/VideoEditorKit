@@ -73,6 +73,8 @@ public struct VideoEditorSession: Equatable, Sendable {
     public let source: Source?
     /// An optional editing snapshot used to resume an existing project.
     public let editingConfiguration: VideoEditingConfiguration?
+    /// A ready-to-use video that can satisfy an `Original` export without rendering again.
+    public let preparedOriginalExportVideo: ExportedVideo?
 
     /// A convenient accessor when the source is already available as a local file URL.
     public var sourceVideoURL: URL? {
@@ -88,19 +90,23 @@ public struct VideoEditorSession: Equatable, Sendable {
 
     public init(
         source: Source? = nil,
-        editingConfiguration: VideoEditingConfiguration? = nil
+        editingConfiguration: VideoEditingConfiguration? = nil,
+        preparedOriginalExportVideo: ExportedVideo? = nil
     ) {
         self.source = source
         self.editingConfiguration = editingConfiguration
+        self.preparedOriginalExportVideo = preparedOriginalExportVideo
     }
 
     public init(
         sourceVideoURL: URL? = nil,
-        editingConfiguration: VideoEditingConfiguration? = nil
+        editingConfiguration: VideoEditingConfiguration? = nil,
+        preparedOriginalExportVideo: ExportedVideo? = nil
     ) {
         self.init(
             source: sourceVideoURL.map { .fileURL($0) },
-            editingConfiguration: editingConfiguration
+            editingConfiguration: editingConfiguration,
+            preparedOriginalExportVideo: preparedOriginalExportVideo
         )
     }
 }
@@ -324,7 +330,7 @@ public struct VideoEditorConfiguration {
         let original = ExportQualityAvailability.enabled(.original)
         let nonOriginalQualities = exportQualities.filter { $0.quality != .original }
 
-        return [original] + nonOriginalQualities
+        return nonOriginalQualities + [original]
     }
 
     private static func normalizedTools(

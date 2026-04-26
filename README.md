@@ -309,10 +309,10 @@ Each entry contains:
 
 Useful convenience presets:
 
-- `ExportQualityAvailability.allEnabled`: original, low, medium, and high enabled.
-- `ExportQualityAvailability.premiumLocked`: original and low enabled, medium and high blocked.
+- `ExportQualityAvailability.allEnabled`: high, medium, low, and original enabled.
+- `ExportQualityAvailability.premiumLocked`: low and original enabled, medium and high blocked.
 
-The package always normalizes `.original` into the first enabled export option, even if the host omits it or accidentally configures it as blocked.
+The package always normalizes `.original` into the last enabled export option, even if the host omits it or accidentally configures it as blocked.
 
 ### `VideoQuality`
 
@@ -365,6 +365,7 @@ Its fields are:
 
 - `source`: where the video comes from.
 - `editingConfiguration`: the previously saved `VideoEditingConfiguration` used to resume work.
+- `preparedOriginalExportVideo`: optional already-rendered edited video that can satisfy an `Original` export without rendering again when there are no pending changes.
 
 Use a session when the host wants to restore an existing project or resolve the source asynchronously.
 
@@ -401,7 +402,7 @@ Use this when your app imports from cloud storage, a document picker, a temporar
 `VideoEditorCallbacks` groups the host lifecycle closures:
 
 - `onSaveStateChanged`: emitted after manual save with the latest `VideoEditorSaveState`.
-- `onSavedVideo`: called after manual save renders an edited copy at the source resolution and frame rate.
+- `onSavedVideo`: called after manual save renders an edited copy at the source resolution and frame rate. A successful toolbar or unsaved-changes save closes the editor after this callback path completes.
 - `onSourceVideoResolved`: called when an async source finishes resolving into a local URL.
 - `onDismissed`: called when the editor closes, returning the latest available editing snapshot.
 - `onExportedVideoURL`: called after a successful export.
@@ -422,7 +423,7 @@ For most integrations, persist the richer `SavedVideo` payload from `onSavedVide
 
 ### `SavedVideo`
 
-This is the manual save payload emitted by `onSavedVideo`.
+This is the manual save payload emitted by `onSavedVideo`. Manual save is a render operation, so the editor shows loading in the localized `Save` action while it runs and temporarily blocks the editing surface. The `Cancel` action remains available and cancels the in-flight save instead of showing an unsaved-changes alert.
 
 Its fields are:
 
@@ -433,6 +434,8 @@ Its fields are:
 - `metadata`: size, duration, and file metadata for the saved edited copy.
 
 Manual save renders the current edit without changing the source resolution or source frame rate when that frame timing is available. The host should store the original video and saved edited copy separately.
+
+When the save succeeds from the editor toolbar or from the unsaved-changes alert, the editor dismisses. The saved baseline is updated before dismissal, so tapping cancel immediately after a completed save should not produce an unsaved-changes prompt.
 
 ### `VideoEditingConfiguration`
 
@@ -489,25 +492,52 @@ The callback bundle allows the host app to react to:
 
 If your app was scaffolded by an AI coding tool, installation is still the normal Swift Package Manager flow.
 
-The easiest path is:
+The safest path is:
 
 1. Add the package in Xcode first.
 2. Make sure your app target links the `VideoEditorKit` product.
 3. Ask your coding assistant to import `VideoEditorKit` and present `VideoEditorView`.
 4. Persist `SavedVideo` from `onSavedVideo`, keeping the original video and edited copy as separate files.
 5. Store `VideoEditingConfiguration` from the saved payload so edits can resume cleanly.
-6. Wire `onExportedVideoURL` into your share, save-to-library, or upload flow.
+6. Pass the saved edited copy back as `preparedOriginalExportVideo` when reopening a saved project.
+7. Wire `onExportedVideoURL` into your share, save-to-library, or upload flow.
 
-For AI-generated host apps, this prompt usually works well:
+Tell the assistant to avoid these common mistakes:
+
+- do not treat `onSaveStateChanged` as autosave on every edit; save is explicit
+- do not overwrite the original video with the edited copy
+- do not expect export to be the only persistence path; manual save produces the reusable edited video
+- do not pass a remote/cloud URL directly to the editor; resolve it to a local file first
+- do not block `.original` export quality; the package always keeps it available
+
+For a basic integration, this prompt usually works well:
 
 ```text
-Add VideoEditorKit through Swift Package Manager, import VideoEditorKit, present VideoEditorView for a local video URL, persist the SavedVideo payload from onSavedVideo as the manually saved edited copy, keep the original video separately, and keep the exported video URL in host state so the app can share it later.
+Add VideoEditorKit through Swift Package Manager, import VideoEditorKit, present VideoEditorView for a local video URL, persist the SavedVideo payload from onSavedVideo as the manually saved edited copy, keep the original video separately, store savedVideo.editingConfiguration for resume, and keep the exported video URL from onExportedVideoURL in host state so the app can share it later.
 ```
 
 If your generated app already has a media picker, map its result into one of these session sources:
 
 - `VideoEditorSessionSource.fileURL` when you already have a local file
 - `VideoEditorSessionSource.importedFile` when the file must be resolved asynchronously
+
+For an app that already has a saved-project database, use a more specific prompt:
+
+```text
+Integrate VideoEditorKit into the existing saved-project flow. For each project, store the original local video URL or copied file name, the saved edited video URL from SavedVideo.url, SavedVideo.metadata, and SavedVideo.editingConfiguration. When reopening a project, create VideoEditorSession(source: .fileURL(originalURL), editingConfiguration: savedConfiguration, preparedOriginalExportVideo: exportedMetadataForSavedEditedVideo). Present VideoEditorView with this session. Use onSavedVideo to replace the saved edited copy and update the stored configuration. Use onExportedVideoURL only for explicit export/share output.
+```
+
+For a Photos or document-import flow, this prompt gives the assistant the right boundaries:
+
+```text
+When the user picks a video, copy or resolve it to a local file URL before presenting VideoEditorKit. Use VideoEditorSessionSource.importedFile only if the copy happens asynchronously. Do not pass Photos asset identifiers, cloud URLs, or security-scoped document URLs directly into VideoEditorView unless they have been resolved to a local playable file. Persist the original copied file separately from any SavedVideo.url returned by manual save.
+```
+
+For transcript support, use this prompt:
+
+```text
+Enable VideoEditorKit transcription by adding VideoEditorConfiguration.TranscriptionConfiguration. If using OpenAI Whisper, read the API key from the host app's secure configuration and pass .openAIWhisper(apiKey:preferredLocale:). If using an existing backend, implement VideoTranscriptionProvider and return ordered TranscriptionSegment values with word timings whenever available. Persist VideoEditingConfiguration after save so transcript edits resume later.
+```
 
 ## Public API Guide
 
@@ -534,6 +564,8 @@ For a full grouped reference of the public API that ships in the module, see [`S
 - Add a colored frame/background treatment
 - Track unsaved changes internally and require an explicit manual save
 - Save an edited copy while preserving the original video, source resolution, and source frame rate when available
+- Show loading during manual save, block editing interactions while the save is running, and allow `Cancel` to cancel that save
+- Close the editor after a successful manual save from the toolbar or unsaved-changes alert
 - Export asynchronously to `.mp4`, including an always-available original-quality option that preserves source resolution and frame rate
 
 ## Repository Layout
@@ -591,6 +623,7 @@ That means:
 - preview and export are conceptually aligned, but not guaranteed by one shared engine
 - freeform crop is not fully exported today
 - export first saves pending edits and then renders the selected export quality, but the renderer is still not a fully detached export-job engine
+- the example app persists the project cover thumbnail from the first frame of the saved edited video copy
 - advanced features such as multi-track audio, multi-layer video composition, or normalized subtitle coordinates are not part of the current public contract
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)

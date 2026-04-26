@@ -16,6 +16,10 @@ public enum VideoEditorPlayerStageState: Equatable, Sendable {
 @MainActor
 public struct VideoEditorPlayerStageView<Content: View, Overlay: View, TrailingControls: View>: View {
 
+    // MARK: - States
+
+    @State private var isLoadingBorderHighlighted = false
+
     // MARK: - Public Properties
 
     public let presentationState: VideoEditorPlayerStageState
@@ -31,7 +35,7 @@ public struct VideoEditorPlayerStageView<Content: View, Overlay: View, TrailingC
             ZStack(alignment: .bottom) {
                 switch presentationState {
                 case .loading:
-                    ProgressView()
+                    loadingStageView
                 case .unknown:
                     statusView(VideoEditorStrings.playerUnknownState)
                 case .failed:
@@ -88,6 +92,39 @@ public struct VideoEditorPlayerStageView<Content: View, Overlay: View, TrailingC
     }
 
     // MARK: - Private Methods
+
+    private var loadingStageView: some View {
+        GeometryReader { proxy in
+            let presentation =
+                HostedVideoEditorPlayerStageCoordinator
+                .loadingPlaceholderPresentation(source: source)
+
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(.black.opacity(0.08))
+                .overlay {
+                    ProgressView()
+                        .controlSize(.regular)
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .strokeBorder(
+                            .primary.opacity(isLoadingBorderHighlighted ? 0.45 : 0.16),
+                            lineWidth: 2
+                        )
+                }
+                .aspectRatio(presentation.aspectRatio, contentMode: .fit)
+                .frame(maxWidth: proxy.size.width, maxHeight: proxy.size.height)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .task {
+                    withAnimation(
+                        .easeInOut(duration: 0.9)
+                            .repeatForever(autoreverses: true)
+                    ) {
+                        isLoadingBorderHighlighted = true
+                    }
+                }
+        }
+    }
 
     @ViewBuilder
     private var loadedStageView: some View {

@@ -14,6 +14,7 @@ public struct VideoExportPresentationState: Equatable, Sendable {
     public let canCancelExport: Bool
     public let shouldShowLoadingView: Bool
     public let shouldShowFailureMessage: Bool
+    public let isSavingBeforeExport: Bool
 
     public var isExporting: Bool {
         shouldShowLoadingView
@@ -24,7 +25,11 @@ public struct VideoExportPresentationState: Equatable, Sendable {
     }
 
     public var exportButtonTitle: String {
-        isExporting ? VideoEditorStrings.exportButtonTitle(progressText: progressText) : actionTitle
+        if isExporting && isSavingBeforeExport {
+            return VideoEditorStrings.savingVideoExportButtonTitle
+        }
+
+        return isExporting ? VideoEditorStrings.exportButtonTitle(progressText: progressText) : actionTitle
     }
 
     public var exportButtonProgress: Double {
@@ -43,7 +48,8 @@ public struct VideoExportPresentationState: Equatable, Sendable {
         canExportVideo: Bool,
         canCancelExport: Bool,
         shouldShowLoadingView: Bool,
-        shouldShowFailureMessage: Bool
+        shouldShowFailureMessage: Bool,
+        isSavingBeforeExport: Bool = false
     ) {
         self.selectedQuality = selectedQuality
         self.exportProgress = exportProgress
@@ -55,6 +61,7 @@ public struct VideoExportPresentationState: Equatable, Sendable {
         self.canCancelExport = canCancelExport
         self.shouldShowLoadingView = shouldShowLoadingView
         self.shouldShowFailureMessage = shouldShowFailureMessage
+        self.isSavingBeforeExport = isSavingBeforeExport
     }
 
 }
@@ -125,7 +132,7 @@ enum ExportQualityPresentationResolver {
         let original = ExportQualityAvailability.enabled(.original)
         let nonOriginalQualities = qualities.filter { $0.quality != .original }
 
-        return ([original] + nonOriginalQualities).sorted {
+        return (nonOriginalQualities + [original]).sorted {
             if $0.order == $1.order {
                 return $0.quality.rawValue < $1.quality.rawValue
             }

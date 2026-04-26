@@ -6,6 +6,14 @@
 
 **Architecture:** Keep the package export API centered on `VideoQuality`, adding an `original` option that maps to the existing native save render intent so edited output preserves source resolution and frame rate. Keep example-app media actions in the home/root layer, using `EditedVideoProject` as the source of persisted saved-video URLs and `VideoShareSheet` for sharing. Remove only the user-facing Draft badge and copy; preserve `EditorSessionDraft` where it still describes transient editor presentation state.
 
+Latest refinements:
+
+- export and save are separate toolbar items in the editor
+- save displays loading and blocks the editor content while rendering the saved edited copy
+- cancel remains available during save and cancels the in-flight save task
+- a successful save closes the editor after the saved-video callbacks complete
+- the example app persists the saved-project thumbnail from the first frame of the saved edited video copy
+
 **Tech Stack:** Swift 6, SwiftUI, Observation, SwiftData, AVFoundation/AVKit, Swift Testing, iOS Simulator validation through `xcodebuild` or `Scripts/test-ios.sh`.
 
 ---
@@ -16,6 +24,7 @@
 - "Original" must appear in the export resolution list even when the host supplies custom export-quality availability.
 - "Original" must never be blocked, including when a host accidentally passes `.blocked(.original)`.
 - Saved-video menu actions should target the manual-save artifact (`savedEditedVideoURL`) first. If an older persisted project only has `exportedVideoURL`, the app may use that as a compatibility fallback for preview/share.
+- Project thumbnails for manual saves should be generated from the persisted saved edited copy, using frame `0` of that ready-to-use video.
 - Remove the visible "Draft" badge and related user-facing strings, not every internal use of the word `draft` where it represents a transient editing session.
 
 ## Files
@@ -46,13 +55,13 @@
 
 ### Task 1: Add Original as a Public Export Quality
 
-- [x] Add characterization tests proving the package exposes original first and never blocked.
+- [x] Add characterization tests proving the package exposes original last and never blocked.
 
 Update `Tests/VideoEditorKitTests/VideoEditorPublicTypesTests.swift` with cases covering:
 
 ```swift
 @Test
-func exportQualitiesAlwaysIncludeEnabledOriginalFirst() {
+func exportQualitiesAlwaysIncludeEnabledOriginalLast() {
     let configuration = VideoEditorConfiguration(
         exportQualities: [
             .blocked(.original),
@@ -97,7 +106,7 @@ public enum VideoQuality: Int, CaseIterable, Sendable {
 }
 ```
 
-Set `order` so `.original` sorts first, add `title`, `subtitle`, and a helper:
+Set `order` so `.original` sorts last, add `title`, `subtitle`, and a helper:
 
 ```swift
 public var isOriginal: Bool {
@@ -109,7 +118,7 @@ For source-independent properties such as `size`, `portraitSize`, and `frameRate
 
 - [x] Normalize export-quality availability so original is always enabled and present.
 
-Update `ExportQualityAvailability.allEnabled` and `premiumLocked` to include `.enabled(.original)` first. In `ExportQualityAvailability.init`, force `access` to `.enabled` when `quality == .original`.
+Update `ExportQualityAvailability.allEnabled` and `premiumLocked` to include `.enabled(.original)` last. In `ExportQualityAvailability.init`, force `access` to `.enabled` when `quality == .original`.
 
 Add `VideoEditorConfiguration.normalizedExportQualities(_:)` in `Sources/VideoEditorKit/API/VideoEditorPublicTypes.swift`:
 
@@ -478,8 +487,8 @@ git commit -m "Document original export and saved video actions"
 
 ## Acceptance Checklist
 
-- [x] Export sheet shows `Original` as the first quality option.
-- [x] `Original` is selected by default for the default export configuration.
+- [x] Export sheet shows `Original` as the last quality option.
+- [x] The first enabled resolution quality is selected by default for the default export configuration.
 - [x] `Original` remains enabled when the host omits it or passes it as blocked.
 - [x] `Original` export preserves source resolution and frame rate while applying current edits.
 - [x] Existing low, medium, and high raw values remain stable.
@@ -489,4 +498,5 @@ git commit -m "Document original export and saved video actions"
 - [x] Share presents `UIActivityViewController` for the saved edited video when present.
 - [x] Delete still removes the project directory and SwiftData record.
 - [x] Documentation reflects original export and saved-video actions.
+- [x] Documentation reflects save/export toolbar separation, save loading/cancel behavior, successful-save dismissal, and saved-video first-frame thumbnails.
 - [x] iOS Simulator validation passes.

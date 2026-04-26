@@ -50,6 +50,7 @@ Esse custo nao e proporcional ao problema imediato. O melhor primeiro passo e to
 
 - `VideoExporterContainerView` cria e mantem um `ExporterViewModel` em `@State`.
 - Antes de abrir a sheet de qualidade, o editor salva alteracoes pendentes e publica `onSavedVideo`.
+- O save manual anterior ao export mostra loading no botao `Save`, bloqueia a superficie de edicao e pode ser cancelado pelo botao `Cancel`.
 - `ExporterViewModel` guarda uma unica `exportTask`.
 - `cancelExport()` ja cancela a task e retorna a UI para `.unknown`.
 - `VideoEditor.export(...)` ja usa `withTaskCancellationHandler` e chama `AVAssetExportSession.cancelExport()` no cancelamento.
@@ -62,7 +63,7 @@ Esse custo nao e proporcional ao problema imediato. O melhor primeiro passo e to
 ### Active ou inactive
 
 1. Usuario inicia export.
-2. Se houver alteracoes pendentes, o editor executa save manual primeiro.
+2. Se houver alteracoes pendentes, o editor executa save manual primeiro; durante esse save, a UI de edicao fica bloqueada e `Cancel` cancela o save.
 3. App permanece `.active` ou passa brevemente por `.inactive`.
 4. Export continua e, se concluir, chama `onExported`.
 
@@ -191,6 +192,7 @@ Essa mensagem deve ser distinta do erro generico de exportacao, porque o usuario
 
 - Nao usar UIKit para pedir tempo extra de background nesse fluxo.
 - Nao cancelar em `.inactive`.
+- Nao mostrar alerta de alteracoes nao salvas quando o usuario toca em `Cancel` durante um save manual; nesse caso, cancelar o save em andamento.
 - Nao disparar `onExported` se a task foi cancelada depois que o arquivo ficou pronto, mas antes do callback.
 - Nao apagar a copia editada salva quando um export posterior e cancelado por lifecycle.
 - Limpar arquivos intermediarios no caminho de erro, preservando o comportamento atual de `VideoEditor.startRender(...)`.

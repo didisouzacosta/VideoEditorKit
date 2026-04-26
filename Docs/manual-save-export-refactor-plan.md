@@ -8,13 +8,15 @@ Before this refactor, the editor emitted continuous save snapshots while the use
 - unsaved changes are tracked by an internal diff
 - cancel with pending changes requires confirmation
 - save renders an edited copy while preserving the original video, source resolution, and source FPS
+- save is a long-running operation with explicit loading, editing-surface blocking, and cancel support
+- successful save from the toolbar or unsaved-changes alert dismisses the editor
 - export first saves the current edit, then renders the selected export resolution
 
 This plan follows the current package-first architecture: `VideoEditorKit` owns the editor runtime and callbacks, while the example app owns project persistence and sharing.
 
 ## Goals
 
-1. Add a primary manual save button to the editor toolbar, positioned to the right of the export button and labeled with localized "Save" text.
+1. Add a primary manual save button to the editor toolbar, separated from the export toolbar item, positioned to the right of export, and labeled with localized "Save" text.
 2. Stop saving after every edit action.
 3. Track pending changes inside the editor and enable save only when the current editing configuration differs from the last saved baseline.
 4. Warn the user when canceling with unsaved changes.
@@ -78,8 +80,11 @@ Update `VideoEditorView` toolbar actions:
 
 - keep the export action as an icon-only share-style button
 - add a primary localized `Save` text button to the right of export
+- render export and save as separate toolbar items, not as one grouped `HStack`
 - disable save while there are no unsaved changes
+- show progress in the save button while the native save render is running
 - disable relevant actions while save/export work is in progress
+- block the editor content while save is in progress, but leave `Cancel` active
 - keep effectful work outside `body` in small private methods
 
 Use a native SF Symbol share-style icon for export, such as `square.and.arrow.up`. The save action should be text-forward and localized in every supported package language.
@@ -89,8 +94,9 @@ Use a native SF Symbol share-style icon for export, such as `square.and.arrow.up
 When the user taps cancel:
 
 1. If there are no unsaved changes, dismiss normally.
-2. If there are unsaved changes, show a confirmation alert.
-3. Alert actions:
+2. If a manual save is in progress, cancel that save and remain in the editor.
+3. If there are unsaved changes, show a confirmation alert.
+4. Alert actions:
    - Save: run the manual save flow; on success, dismiss.
    - Discard: dismiss without saving.
    - Cancel: stay in the editor.
@@ -109,8 +115,11 @@ Manual save should:
 6. Generate thumbnail data for the saved edit.
 7. Update the internal saved baseline.
 8. Call `onSavedVideo`.
+9. Dismiss the editor when the save was started from the toolbar or from the unsaved-changes alert.
 
 The original video remains stored separately and unchanged.
+
+In the example app, the persisted project thumbnail is generated from the first frame of the saved edited video copy so the saved project cover reflects the ready-to-use edited artifact.
 
 ## Export Rendering Flow
 
@@ -177,8 +186,11 @@ Documentation must state that:
 - edits are no longer saved automatically
 - the editor tracks unsaved changes internally
 - cancel with pending changes prompts the user
+- cancel during an in-flight save cancels that save instead of showing the unsaved-changes prompt
+- save shows loading, blocks editing interactions, and closes the editor on success
 - save renders an edited copy while preserving source resolution and FPS
 - the original video is always preserved
+- the example app uses the first frame of the saved edited copy as the project thumbnail
 - export performs save first, then renders the selected export resolution
 - save and export are distinct host callbacks
 - integration examples should use the manual save callback instead of autosave
@@ -198,8 +210,11 @@ Add behavior tests during the refactor:
 - diff starts clean after initial load
 - editing a tool enables save
 - save success clears unsaved changes
+- save success dismisses the editor
 - save is disabled when there are no unsaved changes
+- save shows a loading state and blocks editor content while rendering
 - cancel without changes dismisses immediately
+- cancel during save cancels the current save task
 - cancel with changes presents confirmation
 - discard closes without save callback
 - save from alert calls the save callback and dismisses
@@ -233,4 +248,5 @@ When package-only validation is needed, use the shared `VideoEditorKit-Package` 
 
 - Phases 1 through 8 are implemented.
 - Phase 9 updated integration and repository documentation to describe explicit manual save, unsaved-change tracking, cancel confirmation, the `SavedVideo` callback, and export's save-first behavior.
-- Phase 10 remains the final validation pass for the completed refactor.
+- Phase 10 completed the focused validation pass for the manual-save runtime behavior.
+- Follow-up refinements are implemented and documented: export/save toolbar separation, loading and cancelable manual save, successful-save dismissal, and first-frame persisted thumbnails in the example app.

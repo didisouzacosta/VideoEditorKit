@@ -19,6 +19,7 @@ final class ExporterViewModel {
 
     var showAlert = false
     var exportProgress: Double = .zero
+    var isSavingBeforeExport = false
     var selectedQuality: VideoQuality
 
     var renderState: ExportState = .unknown {
@@ -110,6 +111,14 @@ final class ExporterViewModel {
 
     }
 
+    enum ExportPreparationResult: Equatable, Sendable {
+
+        case render
+        case usePreparedVideo(ExportedVideo)
+        case cancelled
+
+    }
+
     // MARK: - Private Properties
 
     typealias RenderVideo =
@@ -119,6 +128,7 @@ final class ExporterViewModel {
             _ quality: VideoQuality,
             _ onProgress: VideoEditor.ProgressHandler?
         ) async throws -> URL
+    typealias PrepareExport = (VideoQuality) async -> ExportPreparationResult
 
     private let renderVideo: RenderVideo
     private let loadExportedVideo: @Sendable (URL) async -> ExportedVideo
@@ -169,9 +179,14 @@ final class ExporterViewModel {
         return await export(runID: exportRunID)
     }
 
-    func exportVideo(_ onExported: @escaping (ExportedVideo) -> Void) {
+    func exportVideo(
+        showsSavingBeforeExport: Bool = false,
+        preparingExport: @escaping PrepareExport = { _ in .render },
+        onExported: @escaping (ExportedVideo) -> Void
+    ) {
         exportTask?.cancel()
         let exportRunID = beginExportRun()
+        isSavingBeforeExport = showsSavingBeforeExport
         renderState = .loading
 
         exportTask = Task { [weak self] in
@@ -184,14 +199,42 @@ final class ExporterViewModel {
                 }
             }
 
+            let preparationResult = await preparingExport(self.selectedQuality)
+
+            guard !Task.isCancelled else {
+                await self.finishCancelledPreparation(runID: exportRunID)
+                return
+            }
+
+            switch preparationResult {
+            case .cancelled:
+                await self.finishCancelledPreparation(runID: exportRunID)
+                return
+            case .usePreparedVideo(let exportedVideo):
+                await self.finishPreparedExport(exportedVideo, runID: exportRunID)
+                guard !Task.isCancelled else { return }
+                onExported(exportedVideo)
+                return
+            case .render:
+                await self.finishPreparingExport(runID: exportRunID)
+            }
+
             guard let exportedVideo = await self.export(runID: exportRunID), !Task.isCancelled else { return }
             onExported(exportedVideo)
         }
     }
 
-    func retryExport(_ onExported: @escaping (ExportedVideo) -> Void) {
+    func retryExport(
+        showsSavingBeforeExport: Bool = false,
+        preparingExport: @escaping PrepareExport = { _ in .render },
+        onExported: @escaping (ExportedVideo) -> Void
+    ) {
         showAlert = false
-        exportVideo(onExported)
+        exportVideo(
+            showsSavingBeforeExport: showsSavingBeforeExport,
+            preparingExport: preparingExport,
+            onExported: onExported
+        )
     }
 
     func cancelExport() {
@@ -201,6 +244,7 @@ final class ExporterViewModel {
     func cancelExport(reason: ExportCancellationReason) {
         exportTask?.cancel()
         exportTask = nil
+        isSavingBeforeExport = false
 
         switch reason {
         case .user:
@@ -309,6 +353,23 @@ final class ExporterViewModel {
         exportProgress = .zero
     }
 
+    private func finishPreparingExport(runID: Int) {
+        guard isCurrentExportRun(runID) else { return }
+        isSavingBeforeExport = false
+    }
+
+    private func finishCancelledPreparation(runID: Int) {
+        guard isCurrentExportRun(runID), renderState == .loading else { return }
+        isSavingBeforeExport = false
+        renderState = .unknown
+    }
+
+    private func finishPreparedExport(_ exportedVideo: ExportedVideo, runID: Int) {
+        guard isCurrentExportRun(runID), renderState == .loading else { return }
+        isSavingBeforeExport = false
+        renderState = .loaded(exportedVideo)
+    }
+
     private func beginExportRun() -> Int {
         currentExportRunID += 1
         return currentExportRunID
@@ -344,7 +405,7 @@ final class ExporterViewModel {
         let original = ExportQualityAvailability.enabled(.original)
         let nonOriginalQualities = exportQualities.filter { $0.quality != .original }
 
-        return [original] + nonOriginalQualities
+        return nonOriginalQualities + [original]
     }
 
     private static func sortedExportQualities(

@@ -48,6 +48,28 @@ struct VideoExportPresentationStateTests {
     }
 
     @Test
+    func savingBeforeExportShowsSavingTitleInTheExportButton() {
+        let state = VideoExportPresentationState(
+            selectedQuality: .high,
+            exportProgress: 0,
+            progressText: "0%",
+            errorMessage: "",
+            actionTitle: "Export",
+            isInteractionDisabled: true,
+            canExportVideo: false,
+            canCancelExport: true,
+            shouldShowLoadingView: true,
+            shouldShowFailureMessage: false,
+            isSavingBeforeExport: true
+        )
+
+        #expect(state.isExporting)
+        #expect(state.exportButtonTitle == "Saving video...")
+        #expect(state.exportButtonProgress == 0)
+        #expect(state.shouldShowCancelAction)
+    }
+
+    @Test
     func exportButtonProgressIsClampedToTheExpectedRange() {
         let overComplete = VideoExportPresentationState(
             selectedQuality: .low,
@@ -79,7 +101,7 @@ struct VideoExportPresentationStateTests {
     }
 
     @Test
-    func qualityPresentationAlwaysShowsOriginalFirstAndAvailable() {
+    func qualityPresentationAlwaysShowsOriginalLastAndAvailable() {
         let options = ExportQualityPresentationResolver.optionPresentations(
             for: [
                 .blocked(.high),
@@ -88,9 +110,9 @@ struct VideoExportPresentationStateTests {
             selectedQuality: .original
         )
 
-        let original = options.first
+        let original = options.last
 
-        #expect(options.map(\.quality) == [.original, .high, .low])
+        #expect(options.map(\.quality) == [.high, .low, .original])
         #expect(original?.quality == .original)
         #expect(original?.isSelected == true)
         #expect(original?.isBlocked == false)

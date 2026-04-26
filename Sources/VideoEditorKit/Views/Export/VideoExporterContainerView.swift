@@ -50,6 +50,8 @@ struct VideoExporterContainerView: View {
     // MARK: - Private Properties
 
     private let exportQualities: [ExportQualityAvailability]
+    private let prepareForExport: (VideoQuality) async -> ExporterViewModel.ExportPreparationResult
+    private let shouldShowSavingBeforeExport: (VideoQuality) -> Bool
     private let onBlockedQualityTap: (VideoQuality) -> Void
     private let onExported: (ExportedVideo) -> Void
 
@@ -64,7 +66,8 @@ struct VideoExporterContainerView: View {
             canExportVideo: viewModel.canExportVideo,
             canCancelExport: viewModel.canCancelExport,
             shouldShowLoadingView: viewModel.shouldShowLoadingView,
-            shouldShowFailureMessage: viewModel.shouldShowFailureMessage
+            shouldShowFailureMessage: viewModel.shouldShowFailureMessage,
+            isSavingBeforeExport: viewModel.isSavingBeforeExport
         )
     }
 
@@ -75,6 +78,9 @@ struct VideoExporterContainerView: View {
         video: Video,
         editingConfiguration: VideoEditingConfiguration,
         exportQualities: [ExportQualityAvailability] = ExportQualityAvailability.allEnabled,
+        prepareForExport: @escaping (VideoQuality) async -> ExporterViewModel.ExportPreparationResult = { _ in .render
+        },
+        shouldShowSavingBeforeExport: @escaping (VideoQuality) -> Bool = { _ in false },
         onBlockedQualityTap: @escaping (VideoQuality) -> Void = { _ in },
         onExported: @escaping (ExportedVideo) -> Void
     ) {
@@ -89,6 +95,8 @@ struct VideoExporterContainerView: View {
         )
 
         self.exportQualities = ExportQualityPresentationResolver.normalizedQualities(exportQualities)
+        self.prepareForExport = prepareForExport
+        self.shouldShowSavingBeforeExport = shouldShowSavingBeforeExport
         self.onBlockedQualityTap = onBlockedQualityTap
         self.onExported = onExported
     }
@@ -96,11 +104,19 @@ struct VideoExporterContainerView: View {
     // MARK: - Private Methods
 
     private func exportVideo() {
-        viewModel.exportVideo(handleExportedVideo)
+        viewModel.exportVideo(
+            showsSavingBeforeExport: shouldShowSavingBeforeExport(viewModel.selectedQuality),
+            preparingExport: prepareForExport,
+            onExported: handleExportedVideo
+        )
     }
 
     private func retryExport() {
-        viewModel.retryExport(handleExportedVideo)
+        viewModel.retryExport(
+            showsSavingBeforeExport: shouldShowSavingBeforeExport(viewModel.selectedQuality),
+            preparingExport: prepareForExport,
+            onExported: handleExportedVideo
+        )
     }
 
     private func dismissView() {

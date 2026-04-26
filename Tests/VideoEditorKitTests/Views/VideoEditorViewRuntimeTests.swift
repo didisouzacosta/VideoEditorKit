@@ -180,6 +180,17 @@ struct VideoEditorViewRuntimeTests {
     }
 
     @Test
+    func manualSaveActionPresentationShowsProgressWhileSaving() {
+        #expect(
+            VideoEditorView.manualSaveActionPresentation(
+                hasLoadedVideo: true,
+                hasUnsavedChanges: true,
+                isSaving: true
+            ) == .loading
+        )
+    }
+
+    @Test
     func cancelRequestDismissesImmediatelyWhenThereAreNoUnsavedChanges() {
         let dismissalRecorder = DismissalRecorder()
         var confirmationState: VideoEditorCancelConfirmationState?
@@ -197,6 +208,29 @@ struct VideoEditorViewRuntimeTests {
     }
 
     @Test
+    func cancelRequestCancelsTheCurrentSaveInsteadOfPresentingUnsavedChanges() {
+        let dismissalRecorder = DismissalRecorder()
+        var confirmationState: VideoEditorCancelConfirmationState?
+        var didCancelSave = false
+
+        VideoEditorView.handleCancelRequest(
+            hasUnsavedChanges: true,
+            isSaving: true,
+            cancelSave: {
+                didCancelSave = true
+            },
+            presentConfirmation: { confirmationState = $0 },
+            dismiss: {
+                dismissalRecorder.record()
+            }
+        )
+
+        #expect(didCancelSave)
+        #expect(confirmationState == nil)
+        #expect(dismissalRecorder.isEmpty)
+    }
+
+    @Test
     func cancelRequestPresentsConfirmationWhenThereAreUnsavedChanges() {
         let dismissalRecorder = DismissalRecorder()
         var confirmationState: VideoEditorCancelConfirmationState?
@@ -210,7 +244,51 @@ struct VideoEditorViewRuntimeTests {
         )
 
         #expect(confirmationState == .unsavedChanges)
-        #expect(dismissalRecorder.count == 0)
+        #expect(dismissalRecorder.isEmpty)
+    }
+
+    @Test
+    func completedManualSaveDismissesTheEditor() {
+        let savedVideoURL = URL(filePath: "/tmp/saved.mp4")
+        let originalVideoURL = URL(filePath: "/tmp/original.mp4")
+        let dismissalRecorder = DismissalRecorder()
+        let savedVideo = SavedVideo(
+            savedVideoURL,
+            originalVideoURL: originalVideoURL,
+            editingConfiguration: .init(),
+            metadata: .init(
+                savedVideoURL,
+                width: 1920,
+                height: 1080,
+                duration: 10,
+                fileSize: 1024
+            )
+        )
+
+        let didComplete = VideoEditorView.completeManualSaveInteraction(
+            savedVideo,
+            dismiss: {
+                dismissalRecorder.record()
+            }
+        )
+
+        #expect(didComplete)
+        #expect(dismissalRecorder.count == 1)
+    }
+
+    @Test
+    func failedManualSaveDoesNotDismissTheEditor() {
+        let dismissalRecorder = DismissalRecorder()
+
+        let didComplete = VideoEditorView.completeManualSaveInteraction(
+            nil,
+            dismiss: {
+                dismissalRecorder.record()
+            }
+        )
+
+        #expect(didComplete == false)
+        #expect(dismissalRecorder.isEmpty)
     }
 
     @Test
@@ -407,6 +485,153 @@ struct VideoEditorViewRuntimeTests {
     }
 
     @Test
+    func originalExportWithUnsavedChangesUsesTheSavedEditedVideoAsExportOutput() async {
+        let savedVideoURL = URL(filePath: "/tmp/saved-original-export.mp4")
+        let originalVideoURL = URL(filePath: "/tmp/original-export-source.mp4")
+        let expectedSavedVideo = SavedVideo(
+            savedVideoURL,
+            originalVideoURL: originalVideoURL,
+            editingConfiguration: .init(trim: .init(lowerBound: 2, upperBound: 7)),
+            metadata: .init(
+                savedVideoURL,
+                width: 1920,
+                height: 1080,
+                duration: 5,
+                fileSize: 1024
+            )
+        )
+
+        let result = await VideoEditorView.exportPreparationResult(
+            selectedQuality: .original,
+            hasUnsavedChanges: true,
+            currentEditingConfiguration: expectedSavedVideo.editingConfiguration,
+            lastSavedVideo: nil,
+            preparedOriginalExportVideo: nil,
+            loadedOriginalVideo: nil,
+            saveCurrentEdit: {
+                expectedSavedVideo
+            }
+        )
+
+        #expect(result == .usePreparedVideo(expectedSavedVideo.metadata))
+    }
+
+    @Test
+    func originalExportReusesTheLastSavedVideoWhenThereAreNoPendingChanges() async {
+        let savedVideoURL = URL(filePath: "/tmp/current-saved-original-export.mp4")
+        let editingConfiguration = VideoEditingConfiguration(
+            trim: .init(lowerBound: 1, upperBound: 6)
+        )
+        let lastSavedVideo = SavedVideo(
+            savedVideoURL,
+            originalVideoURL: URL(filePath: "/tmp/original.mp4"),
+            editingConfiguration: editingConfiguration,
+            metadata: .init(
+                savedVideoURL,
+                width: 1080,
+                height: 1920,
+                duration: 5,
+                fileSize: 2048
+            )
+        )
+
+        let result = await VideoEditorView.exportPreparationResult(
+            selectedQuality: .original,
+            hasUnsavedChanges: false,
+            currentEditingConfiguration: editingConfiguration,
+            lastSavedVideo: lastSavedVideo,
+            preparedOriginalExportVideo: nil,
+            loadedOriginalVideo: nil,
+            saveCurrentEdit: {
+                nil
+            }
+        )
+
+        #expect(result == .usePreparedVideo(lastSavedVideo.metadata))
+    }
+
+    @Test
+    func originalExportReusesSessionPreparedVideoWhenThereAreNoPendingChanges() async {
+        let preparedOriginalExportVideo = ExportedVideo(
+            URL(filePath: "/tmp/session-prepared-original-export.mp4"),
+            width: 1920,
+            height: 1080,
+            duration: 10,
+            fileSize: 4096
+        )
+
+        let result = await VideoEditorView.exportPreparationResult(
+            selectedQuality: .original,
+            hasUnsavedChanges: false,
+            currentEditingConfiguration: .init(trim: .init(lowerBound: 1, upperBound: 6)),
+            lastSavedVideo: nil,
+            preparedOriginalExportVideo: preparedOriginalExportVideo,
+            loadedOriginalVideo: nil,
+            saveCurrentEdit: {
+                nil
+            }
+        )
+
+        #expect(result == .usePreparedVideo(preparedOriginalExportVideo))
+    }
+
+    @Test
+    func originalExportUsesLoadedVideoWhenThereAreNoChangesAndNoPreparedSave() async {
+        let loadedOriginalVideo = ExportedVideo(
+            URL(filePath: "/tmp/loaded-original-export.mp4"),
+            width: 1080,
+            height: 1920,
+            duration: 8,
+            fileSize: 2048
+        )
+
+        let result = await VideoEditorView.exportPreparationResult(
+            selectedQuality: .original,
+            hasUnsavedChanges: false,
+            currentEditingConfiguration: .initial,
+            lastSavedVideo: nil,
+            preparedOriginalExportVideo: nil,
+            loadedOriginalVideo: loadedOriginalVideo,
+            saveCurrentEdit: {
+                nil
+            }
+        )
+
+        #expect(result == .usePreparedVideo(loadedOriginalVideo))
+    }
+
+    @Test
+    func scaledExportStillSavesFirstAndThenRendersTheSelectedResolution() async {
+        let savedVideoURL = URL(filePath: "/tmp/saved-before-scaled-export.mp4")
+        let savedVideo = SavedVideo(
+            savedVideoURL,
+            originalVideoURL: URL(filePath: "/tmp/original.mp4"),
+            editingConfiguration: .init(),
+            metadata: .init(
+                savedVideoURL,
+                width: 1920,
+                height: 1080,
+                duration: 5,
+                fileSize: 1024
+            )
+        )
+
+        let result = await VideoEditorView.exportPreparationResult(
+            selectedQuality: .medium,
+            hasUnsavedChanges: true,
+            currentEditingConfiguration: savedVideo.editingConfiguration,
+            lastSavedVideo: nil,
+            preparedOriginalExportVideo: nil,
+            loadedOriginalVideo: nil,
+            saveCurrentEdit: {
+                savedVideo
+            }
+        )
+
+        #expect(result == .render)
+    }
+
+    @Test
     func handleDisappearKeepsExplicitManualSaveEmissionAlive() async throws {
         let sourceVideoURL = try TestFixtures.createTemporaryFile(fileExtension: "mp4")
         let sleepProbe = ManualSaveSleepProbe()
@@ -467,11 +692,10 @@ struct VideoEditorViewRuntimeTests {
     }
 
     @Test
-    func prepareExporterPresentationSavesPendingChangesBeforeOpeningQualitySheet() async throws {
+    func prepareExporterPresentationOpensQualitySheetBeforeSavingPendingChanges() async throws {
         let sourceVideoURL = try TestFixtures.createTemporaryFile(fileExtension: "mp4")
         let savedVideoURL = try TestFixtures.createTemporaryFile(fileExtension: "mp4")
         let renderProbe = ManualSaveRenderProbe()
-        let savedVideoRecorder = SavedVideoRecorder()
         let manualSaveRenderer = VideoEditorManualSaveRenderer(
             .init(
                 renderEditedVideo: { video, editingConfiguration, _ in
@@ -514,36 +738,21 @@ struct VideoEditorViewRuntimeTests {
             manualSaveCoordinator: manualSaveCoordinator
         )
 
-        let presentationTask = Task {
-            await VideoEditorView.prepareExporterPresentation(
-                editorViewModel: editorViewModel,
-                fallbackSourceVideoURL: sourceVideoURL,
-                manualSaveCoordinator: manualSaveCoordinator,
-                manualSaveRenderer: manualSaveRenderer,
-                videoPlayer: videoPlayer,
-                callbacks: .init(
-                    onSavedVideo: { savedVideo in
-                        Task {
-                            await savedVideoRecorder.record(savedVideo)
-                        }
-                    }
-                )
-            )
-        }
-        await renderProbe.waitUntilCount(is: 1)
-
-        #expect(manualSaveCoordinator.isSaving)
-        #expect(editorViewModel.presentationState.showVideoQualitySheet == false)
-
-        await renderProbe.resumeNext()
-        await presentationTask.value
+        await VideoEditorView.prepareExporterPresentation(
+            editorViewModel: editorViewModel,
+            fallbackSourceVideoURL: sourceVideoURL,
+            manualSaveCoordinator: manualSaveCoordinator,
+            manualSaveRenderer: manualSaveRenderer,
+            videoPlayer: videoPlayer,
+            callbacks: .init()
+        )
 
         for _ in 0..<40 where editorViewModel.presentationState.showVideoQualitySheet == false {
             try await Task.sleep(for: .milliseconds(10))
         }
 
-        #expect(await savedVideoRecorder.waitForFirstValue().url == savedVideoURL)
-        #expect(manualSaveCoordinator.hasUnsavedChanges == false)
+        #expect(await renderProbe.renderCallCount == 0)
+        #expect(manualSaveCoordinator.hasUnsavedChanges)
         #expect(videoPlayer.isPlaybackFocusActive == false)
         #expect(editorViewModel.presentationState.showVideoQualitySheet)
     }
@@ -593,10 +802,16 @@ private final class DismissalRecorder {
     // MARK: - Private Properties
 
     private(set) var count = 0
+    private var didRecord = false
+
+    var isEmpty: Bool {
+        didRecord == false
+    }
 
     // MARK: - Public Methods
 
     func record() {
+        didRecord = true
         count += 1
     }
 
@@ -676,6 +891,12 @@ private actor ManualSaveRenderProbe {
 
     private var renderCount = 0
     private var continuations = [CheckedContinuation<Void, Never>]()
+
+    // MARK: - Public Properties
+
+    var renderCallCount: Int {
+        renderCount
+    }
 
     // MARK: - Public Methods
 

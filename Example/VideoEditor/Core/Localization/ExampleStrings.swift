@@ -64,6 +64,10 @@ enum ExampleStrings {
         localized("example.project.action.preview", defaultValue: "Preview")
     }
 
+    static var projectOpen: String {
+        localized("example.project.action.open", defaultValue: "Open")
+    }
+
     static var projectShare: String {
         localized("example.project.action.share", defaultValue: "Share")
     }

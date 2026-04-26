@@ -46,7 +46,8 @@ struct EditorSessionDraft: Identifiable, Equatable {
         return .init(
             session: .init(
                 sourceVideoURL: project.originalVideoURL,
-                editingConfiguration: editingConfiguration
+                editingConfiguration: editingConfiguration,
+                preparedOriginalExportVideo: project.preparedOriginalExportVideo
             ),
             projectID: project.id,
             sourceVideoURL: project.originalVideoURL,

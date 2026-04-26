@@ -34,6 +34,49 @@ struct HostedPlayerStageTests {
     }
 
     @Test
+    func loadedPlayerStateKeepsLoadingUntilTheFirstFrameIsReady() {
+        let url = URL(fileURLWithPath: "/tmp/video.mp4")
+
+        #expect(
+            HostedVideoEditorPlayerStageCoordinator.presentationState(
+                for: .loaded(url),
+                isPreviewReadyForDisplay: false
+            ) == .loading
+        )
+        #expect(
+            HostedVideoEditorPlayerStageCoordinator.presentationState(
+                for: .loaded(url),
+                isPreviewReadyForDisplay: true
+            ) == .loaded
+        )
+    }
+
+    @Test
+    func loadingPlaceholderUsesKnownSourceAspectRatioWhenAvailable() {
+        let presentation = HostedVideoEditorPlayerStageCoordinator.loadingPlaceholderPresentation(
+            source: .init(
+                naturalSize: CGSize(width: 1080, height: 1920),
+                preferredTransform: .identity,
+                userRotationDegrees: 0,
+                isMirrored: false
+            )
+        )
+
+        #expect(presentation.usesKnownVideoDimensions)
+        #expect(abs(presentation.aspectRatio - 0.5625) < 0.0001)
+    }
+
+    @Test
+    func loadingPlaceholderFallsBackToWidescreenWhenDimensionsAreUnavailable() {
+        let presentation = HostedVideoEditorPlayerStageCoordinator.loadingPlaceholderPresentation(
+            source: nil
+        )
+
+        #expect(presentation.usesKnownVideoDimensions == false)
+        #expect(abs(presentation.aspectRatio - (16.0 / 9.0)) < 0.0001)
+    }
+
+    @Test
     func playerLayoutIDUsesTheCurrentVideoAndCanvasState() {
         let editorViewModel = EditorViewModel()
         var video = Video.mock

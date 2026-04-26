@@ -108,6 +108,10 @@ struct ProjectsRepository {
             editingConfiguration: savedVideo.editingConfiguration
         )
         let projectDirectoryURL = try mediaStore.ensureProjectDirectory(for: preparedSave.project.id)
+        let previousEditedURL =
+            preparedSave.project.hasSavedEditedVideo
+            ? preparedSave.project.savedEditedVideoURL
+            : nil
         let persistedEditedURL = try mediaStore.persistEditedVideo(
             from: savedVideo.url,
             to: projectDirectoryURL
@@ -119,18 +123,9 @@ struct ProjectsRepository {
             duration: savedVideo.metadata.duration,
             fileSize: savedVideo.metadata.fileSize
         )
-        let generatedThumbnailData: Data?
-
-        if savedVideo.thumbnailData == nil {
-            generatedThumbnailData = await ProjectMediaStore.makeThumbnailData(
-                fromExportedVideoAt: persistedEditedURL,
-                editingConfiguration: preparedSave.persistedEditingConfiguration
-            )
-        } else {
-            generatedThumbnailData = nil
-        }
-
-        let thumbnailData = savedVideo.thumbnailData ?? generatedThumbnailData
+        let thumbnailData = await ProjectMediaStore.makeFirstFrameThumbnailData(
+            fromVideoAt: persistedEditedURL
+        )
 
         applyCommonProjectFields(
             preparedSave,
@@ -143,6 +138,7 @@ struct ProjectsRepository {
 
         try modelContext.save()
 
+        mediaStore.deleteStoredMediaIfNeeded(previousEditedURL)
         mediaStore.cleanupTransientMediaIfNeeded(
             savedVideo.originalVideoURL,
             protectedURL: preparedSave.persistedOriginalURL
@@ -180,6 +176,10 @@ struct ProjectsRepository {
             editingConfiguration: editingConfiguration
         )
         let projectDirectoryURL = try mediaStore.ensureProjectDirectory(for: preparedSave.project.id)
+        let previousExportedURL =
+            preparedSave.project.hasExportedVideo
+            ? preparedSave.project.exportedVideoURL
+            : nil
         let persistedExportedURL = try mediaStore.persistExportedVideo(
             from: exportedVideo.url,
             to: projectDirectoryURL
@@ -200,6 +200,7 @@ struct ProjectsRepository {
 
         try modelContext.save()
 
+        mediaStore.deleteStoredMediaIfNeeded(previousExportedURL)
         mediaStore.cleanupTransientMediaIfNeeded(
             originalVideoURL,
             protectedURL: preparedSave.persistedOriginalURL

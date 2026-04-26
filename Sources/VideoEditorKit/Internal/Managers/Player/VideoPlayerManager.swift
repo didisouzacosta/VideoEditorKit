@@ -43,6 +43,7 @@ final class VideoPlayerManager {
 
     private(set) var isPlaying = false
     private(set) var isPlaybackFocusActive = false
+    private(set) var isPreviewReadyForDisplay = false
 
     var loadState: LoadState = .unknown {
         didSet {
@@ -60,6 +61,9 @@ final class VideoPlayerManager {
 
     @ObservationIgnored
     private var statusCancellable: AnyCancellable?
+
+    @ObservationIgnored
+    private var itemStatusCancellable: AnyCancellable?
 
     @ObservationIgnored
     private var timeObserver: Any?
@@ -304,6 +308,7 @@ final class VideoPlayerManager {
     private func handleLoadStateChange(_ loadState: LoadState) {
         switch loadState {
         case .loaded(let url):
+            isPreviewReadyForDisplay = false
             pause()
             cleanupObservers()
             currentDurationRange = nil
@@ -324,7 +329,7 @@ final class VideoPlayerManager {
             appliedAdjustsItemID = nil
             applyCurrentColorAdjustsComposition()
         case .failed, .loading, .unknown:
-            break
+            isPreviewReadyForDisplay = false
         }
     }
 
@@ -347,6 +352,14 @@ final class VideoPlayerManager {
                     break
                 }
             }
+
+        itemStatusCancellable?.cancel()
+        itemStatusCancellable = videoPlayer.currentItem?.publisher(for: \.status)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] status in
+                self?.isPreviewReadyForDisplay = status == .readyToPlay
+            }
+        isPreviewReadyForDisplay = videoPlayer.currentItem?.status == .readyToPlay
     }
 
     private func play() {
@@ -518,6 +531,8 @@ final class VideoPlayerManager {
         removeEndPlaybackObserver()
         statusCancellable?.cancel()
         statusCancellable = nil
+        itemStatusCancellable?.cancel()
+        itemStatusCancellable = nil
         adjustsCompositionTask?.cancel()
         adjustsCompositionTask = nil
     }

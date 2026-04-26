@@ -19,7 +19,22 @@ struct VideoEditorShellView: View {
                             Button(VideoEditorStrings.cancel, action: onCancel)
                         }
 
-                        ToolbarItem(placement: .primaryAction) {
+                        ToolbarItem(
+                            placement: VideoEditorToolbarActionLayout.exportPlacement.toolbarItemPlacement
+                        ) {
+                            secondaryAction()
+                        }
+
+                        if #available(iOS 26.0, *) {
+                            ToolbarSpacer(
+                                .fixed,
+                                placement: VideoEditorToolbarActionLayout.separatorPlacement.toolbarItemPlacement
+                            )
+                        }
+
+                        ToolbarItem(
+                            placement: VideoEditorToolbarActionLayout.savePlacement.toolbarItemPlacement
+                        ) {
                             primaryAction()
                         }
                     }
@@ -38,6 +53,7 @@ struct VideoEditorShellView: View {
     private let callbacks: VideoEditorCallbacks
     private let onCancel: () -> Void
     private let onBootstrapStateChanged: (VideoEditorSessionBootstrapCoordinator.BootstrapState) -> Void
+    private let secondaryAction: () -> AnyView
     private let primaryAction: () -> AnyView
     private let loadedContent: (CGSize, URL) -> AnyView
 
@@ -47,13 +63,14 @@ struct VideoEditorShellView: View {
 
     // MARK: - Initializer
 
-    init<PrimaryAction: View, LoadedContent: View>(
+    init<SecondaryAction: View, PrimaryAction: View, LoadedContent: View>(
         _ title: String? = nil,
         session: VideoEditorSession,
         callbacks: VideoEditorCallbacks = .init(),
         onCancel: @escaping () -> Void,
         onBootstrapStateChanged: @escaping (VideoEditorSessionBootstrapCoordinator.BootstrapState) -> Void = { _ in
         },
+        @ViewBuilder secondaryAction: @escaping () -> SecondaryAction = { EmptyView() },
         @ViewBuilder primaryAction: @escaping () -> PrimaryAction = { EmptyView() },
         @ViewBuilder loadedContent:
             @escaping (_ availableSize: CGSize, _ resolvedSourceVideoURL: URL) -> LoadedContent
@@ -63,6 +80,9 @@ struct VideoEditorShellView: View {
         self.callbacks = callbacks
         self.onCancel = onCancel
         self.onBootstrapStateChanged = onBootstrapStateChanged
+        self.secondaryAction = {
+            AnyView(secondaryAction())
+        }
         self.primaryAction = {
             AnyView(primaryAction())
         }

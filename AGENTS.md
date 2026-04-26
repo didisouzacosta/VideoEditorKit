@@ -108,12 +108,16 @@ O package agora é a superfície principal do repositório. O app em `Example/` 
 
 - O editor não salva automaticamente a cada ação de edição.
 - `VideoEditorView` rastreia alterações não salvas por diff interno baseado no snapshot de edição.
-- O botão `Save` dispara o save manual e renderiza uma cópia editada sem alterar resolução nem FPS da fonte quando o asset fornece timing confiável.
+- O botão `Save` fica separado do botão de export, aparece como ação primária textual localizada e dispara o save manual.
+- Durante o save manual, o botão `Save` exibe loading, a superfície de edição fica bloqueada e o botão `Cancel` permanece ativo para cancelar o save em andamento.
+- Quando o save manual termina com sucesso pelo toolbar ou pelo alerta de alterações não salvas, o editor atualiza o baseline salvo e fecha.
+- O save manual renderiza uma cópia editada sem alterar resolução nem FPS da fonte quando o asset fornece timing confiável.
 - O app de exemplo persiste somente após o callback `onSavedVideo`, mantendo vídeo original, cópia editada salva e export final como arquivos separados.
+- Ao persistir um save manual, o app de exemplo gera a thumbnail do projeto a partir do primeiro frame da cópia editada salva.
 - Projetos salvos no app de exemplo expõem menu com editar, preview da cópia salva, compartilhar a cópia salva e apagar.
 - Preview/share usam primeiro `savedEditedVideoURL`; projetos legados sem cópia salva podem usar `exportedVideoURL` como fallback.
 - Ao apagar um projeto, o app remove:
-  - thumbnail `.jpg`
+  - dados de thumbnail persistidos no projeto
   - vídeo original copiado em `Documents`
   - cópia editada salva
   - export final, quando existir
@@ -122,6 +126,7 @@ O package agora é a superfície principal do repositório. O app em `Example/` 
 ### 6. Exportação
 
 - O botão de export usa ícone de compartilhamento e abre o fluxo de escolha de qualidade.
+- O botão de export fica em um `ToolbarItem` separado do botão `Save`.
 - A primeira qualidade exibida é sempre `Original`, habilitada e não bloqueável.
 - `Original` exporta com a configuração de edição atual preservando resolução e FPS nativos da fonte quando possível.
 - Export chama o processo de save manual primeiro quando existem alterações pendentes.
@@ -265,13 +270,16 @@ Salva:
 
 ### Thumbnail de projeto
 
-- a capa do projeto é salva separadamente como `.jpg` em `Documents`
+- a capa do projeto é persistida como dados externos do projeto
+- saves manuais no app de exemplo usam o primeiro frame da cópia editada salva como thumbnail
 
 ### Save manual vs export
 
 - O vídeo original sempre deve ser preservado.
 - O save manual gera uma cópia editada pronta para uso e chama `onSavedVideo`.
 - A cópia editada salva mantém resolução e FPS da fonte quando possível.
+- Save manual bem-sucedido fecha o editor e limpa o estado de alterações pendentes antes do dismiss.
+- Cancel durante um save manual cancela o save em andamento; cancel fora de save só mostra alerta quando ainda existem alterações pendentes.
 - O export é um artefato separado: primeiro garante save da edição atual, depois transforma para a resolução escolhida e chama `onExportedVideoURL`.
 - `onSaveStateChanged` não deve ser tratado como autosave contínuo; ele acompanha o save manual com o snapshot salvo e thumbnail.
 

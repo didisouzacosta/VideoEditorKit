@@ -66,7 +66,8 @@ extension PlayerHolderView {
 
     private var presentationState: VideoEditorPlayerStageState {
         HostedVideoEditorPlayerStageCoordinator.presentationState(
-            for: videoPlayer.loadState
+            for: videoPlayer.loadState,
+            isPreviewReadyForDisplay: videoPlayer.isPreviewReadyForDisplay
         )
     }
 

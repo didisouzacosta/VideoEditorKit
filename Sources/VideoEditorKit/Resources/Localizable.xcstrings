@@ -2301,6 +2301,9 @@
         }
       }
     },
+    "Discard" : {
+
+    },
     "Double-tap to export the video." : {
       "localizations" : {
         "de" : {
@@ -4555,6 +4558,52 @@
         }
       }
     },
+    "editor.export.button.saving-video" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Video wird gespeichert..."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saving video..."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guardando video..."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistrement de la vidéo..."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ビデオを保存中..."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salvando vídeo..."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在保存视频..."
+          }
+        }
+      }
+    },
     "editor.export.error.cancelled" : {
       "localizations" : {
         "de" : {
@@ -5613,98 +5662,6 @@
         }
       }
     },
-    "editor.quality.original.subtitle" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bewahrt die Quellauflösung und Bildrate"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Preserves the source resolution and frame rate"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Conserva la resolución y la frecuencia de fotogramas originales"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Conserve la résolution et la fréquence d’images sources"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ソースの解像度とフレームレートを保持"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Preserva a resolução e a taxa de quadros originais"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "保留源分辨率和帧率"
-          }
-        }
-      }
-    },
-    "editor.quality.original.title" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Original"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Original"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Original"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Original"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "オリジナル"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Original"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "原始"
-          }
-        }
-      }
-    },
     "editor.quality.low.subtitle" : {
       "localizations" : {
         "de" : {
@@ -5885,6 +5842,98 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "HD - 720p"
+          }
+        }
+      }
+    },
+    "editor.quality.original.subtitle" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bewahrt die Quellauflösung und Bildrate"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preserves the source resolution and frame rate"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conserva la resolución y la frecuencia de fotogramas originales"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conserve la résolution et la fréquence d’images sources"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ソースの解像度とフレームレートを保持"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preserva a resolução e a taxa de quadros originais"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保留源分辨率和帧率"
+          }
+        }
+      }
+    },
+    "editor.quality.original.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Original"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Original"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Original"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Original"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オリジナル"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Original"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "原始"
           }
         }
       }
@@ -10305,6 +10354,9 @@
         }
       }
     },
+    "Preserves the source resolution and frame rate" : {
+
+    },
     "Presets" : {
       "localizations" : {
         "de" : {
@@ -10856,6 +10908,12 @@
           }
         }
       }
+    },
+    "Save" : {
+
+    },
+    "Saving video..." : {
+
     },
     "Segment unavailable" : {
       "localizations" : {
@@ -12191,6 +12249,9 @@
         }
       }
     },
+    "There are changes that have not been saved yet. Would you like to save them?" : {
+
+    },
     "This transcript segment is no longer available." : {
       "localizations" : {
         "de" : {
@@ -13156,6 +13217,9 @@
           }
         }
       }
+    },
+    "Unsaved Changes" : {
+
     },
     "Use this guide when you want one 9:16 composition that stays safer across Instagram, TikTok and YouTube Shorts. Keep headlines, faces, logos and CTAs inside the highlighted center area." : {
       "localizations" : {

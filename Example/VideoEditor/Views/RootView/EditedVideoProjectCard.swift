@@ -5,8 +5,10 @@
 //  Created by Codex on 28.03.2026.
 //
 
+import AVKit
 import ImageIO
 import SwiftUI
+import UIKit
 import VideoEditorKit
 
 struct EditedVideoProjectCard: View {
@@ -15,7 +17,6 @@ struct EditedVideoProjectCard: View {
 
     let project: EditedVideoProject
     let onOpenProject: () -> Void
-    let onPreviewSavedVideo: () -> Void
     let onShareSavedVideo: () -> Void
     let onDelete: () -> Void
 
@@ -37,15 +38,36 @@ struct EditedVideoProjectCard: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(.black)
         .clipShape(cardShape)
-        .overlay(alignment: .topTrailing) {
-            menuButton
-                .padding(6)
-        }
         .overlay {
             cardShape
                 .stroke(Theme.outline, lineWidth: 1)
         }
         .contentShape(cardShape)
+        .contextMenu {
+            Button(action: onOpenProject) {
+                Label(
+                    SavedVideoContextMenuActionPresentation.open.title,
+                    systemImage: SavedVideoContextMenuActionPresentation.open.systemImage
+                )
+            }
+
+            Button(action: onShareSavedVideo) {
+                Label(
+                    SavedVideoContextMenuActionPresentation.share.title,
+                    systemImage: SavedVideoContextMenuActionPresentation.share.systemImage
+                )
+            }
+            .disabled(project.canShareSavedVideo == false)
+
+            Button(role: SavedVideoContextMenuActionPresentation.delete.role, action: onDelete) {
+                Label(
+                    SavedVideoContextMenuActionPresentation.delete.title,
+                    systemImage: SavedVideoContextMenuActionPresentation.delete.systemImage
+                )
+            }
+        } preview: {
+            projectPreview
+        }
     }
 
     // MARK: - Private Properties
@@ -63,36 +85,6 @@ struct EditedVideoProjectCard: View {
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
             .background(.black.opacity(0.78), in: Capsule())
-    }
-
-    private var menuButton: some View {
-        Menu {
-            Button(action: onOpenProject) {
-                Label(ExampleStrings.projectEdit, systemImage: "pencil")
-            }
-
-            Button(action: onPreviewSavedVideo) {
-                Label(ExampleStrings.projectPreview, systemImage: "play.rectangle")
-            }
-            .disabled(project.canPreviewSavedVideo == false)
-
-            Button(action: onShareSavedVideo) {
-                Label(ExampleStrings.projectShare, systemImage: "square.and.arrow.up")
-            }
-            .disabled(project.canShareSavedVideo == false)
-
-            Button(role: .destructive, action: onDelete) {
-                Label(ExampleStrings.projectDelete, systemImage: "trash")
-            }
-        } label: {
-            Image(systemName: "ellipsis")
-                .font(.caption.weight(.bold))
-                .foregroundStyle(Theme.primary)
-                .frame(width: 28, height: 28)
-                .background(.regularMaterial, in: Circle())
-        }
-        .frame(width: 40, height: 40)
-        .contentShape(Rectangle())
     }
 
     @ViewBuilder
@@ -132,6 +124,154 @@ struct EditedVideoProjectCard: View {
         return CGImageSourceCreateImageAtIndex(imageSource, 0, nil)
     }
 
+    @ViewBuilder
+    private var projectPreview: some View {
+        if let url = project.savedPlaybackVideoURL {
+            SavedVideoContextPreview(url: url)
+                .id(project.savedPlaybackPreviewIdentity)
+        } else {
+            thumbnailContent
+                .frame(width: 260, height: 260)
+        }
+    }
+
+}
+
+enum SavedVideoContextMenuActionPresentation: CaseIterable, Equatable {
+
+    // MARK: - Public Properties
+
+    case open
+    case share
+    case delete
+
+    var title: String {
+        switch self {
+        case .open:
+            ExampleStrings.projectOpen
+        case .share:
+            ExampleStrings.projectShare
+        case .delete:
+            ExampleStrings.projectDelete
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .open:
+            "rectangle.portrait.and.arrow.right"
+        case .share:
+            "square.and.arrow.up"
+        case .delete:
+            "trash"
+        }
+    }
+
+    var role: ButtonRole? {
+        switch self {
+        case .open, .share:
+            nil
+        case .delete:
+            .destructive
+        }
+    }
+
+}
+
+private struct SavedVideoContextPreview: View {
+
+    // MARK: - States
+
+    @State private var player: AVPlayer
+
+    // MARK: - Public Properties
+
+    let url: URL
+
+    // MARK: - Body
+
+    var body: some View {
+        AspectFillVideoPlayer(player: player)
+            .frame(
+                width: SavedVideoContextPreviewPresentation.previewSize.width,
+                height: SavedVideoContextPreviewPresentation.previewSize.height
+            )
+            .clipped()
+            .task {
+                player.isMuted = true
+                player.seek(to: .zero)
+                player.play()
+            }
+            .onDisappear {
+                player.pause()
+            }
+    }
+
+    // MARK: - Initializer
+
+    init(url: URL) {
+        self.url = url
+
+        _player = State(initialValue: AVPlayer(url: url))
+    }
+
+}
+
+enum SavedVideoContextPreviewPresentation {
+
+    // MARK: - Public Properties
+
+    static let previewSize = CGSize(width: 260, height: 320)
+    static let videoGravity: AVLayerVideoGravity = .resizeAspectFill
+
+}
+
+private struct AspectFillVideoPlayer: UIViewRepresentable {
+
+    // MARK: - Public Properties
+
+    let player: AVPlayer
+
+    // MARK: - Public Methods
+
+    func makeUIView(context: Context) -> AspectFillPlayerView {
+        let view = AspectFillPlayerView()
+        view.player = player
+        return view
+    }
+
+    func updateUIView(_ uiView: AspectFillPlayerView, context: Context) {
+        uiView.player = player
+    }
+
+}
+
+private final class AspectFillPlayerView: UIView {
+
+    // MARK: - Public Properties
+
+    override static var layerClass: AnyClass {
+        AVPlayerLayer.self
+    }
+
+    var player: AVPlayer? {
+        get {
+            playerLayer?.player
+        }
+        set {
+            guard let playerLayer else { return }
+
+            playerLayer.player = newValue
+            playerLayer.videoGravity = SavedVideoContextPreviewPresentation.videoGravity
+        }
+    }
+
+    // MARK: - Private Properties
+
+    private var playerLayer: AVPlayerLayer? {
+        layer as? AVPlayerLayer
+    }
+
 }
 
 @MainActor
@@ -164,7 +304,6 @@ private enum EditedVideoProjectCardPreviewFixture {
     EditedVideoProjectCard(
         project: EditedVideoProjectCardPreviewFixture.project,
         onOpenProject: {},
-        onPreviewSavedVideo: {},
         onShareSavedVideo: {},
         onDelete: {}
     )

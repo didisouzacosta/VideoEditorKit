@@ -9,6 +9,14 @@ This rollout separates the host integration into two independent callbacks:
 
 The current goal is to keep both save and export explicit: save renders an edited copy for normal reuse, and export first saves pending edits before rendering the selected export resolution.
 
+Latest behavior:
+
+- the toolbar `Save` action is separate from the export/share action
+- `Save` shows progress while rendering and blocks the editor surface, while `Cancel` remains available
+- tapping `Cancel` during save cancels the in-flight save
+- a successful toolbar or alert-driven save closes the editor after callbacks complete
+- the example app stores the project thumbnail from the first frame of the persisted saved edited video
+
 ## Product Requirements
 
 1. The editor must expose two handlers instead of one combined export callback.
@@ -20,14 +28,19 @@ The current goal is to keep both save and export explicit: save renders an edite
    - the latest `VideoEditingConfiguration`
    - a thumbnail derived from the saved edit when available
 5. Export must call save first when there are pending edits, then render the selected export resolution.
+6. Manual save must expose loading and cancellation so long native renders do not look frozen.
+7. Manual save from the primary toolbar action must dismiss the editor after a successful save.
 
 ## Current State
 
 - `VideoEditorView` tracks unsaved changes with `VideoEditorManualSaveCoordinator`.
 - Manual save renders through `VideoEditorManualSaveRenderer` and emits `onSavedVideo`.
 - `onSaveStateChanged` now accompanies manual save with the saved snapshot and thumbnail; it is not an autosave stream for every edit.
+- The save button uses `VideoEditorManualSaveActionPresentation` to move between hidden, disabled, enabled, and loading states.
+- `VideoEditorView` keeps a cancellable manual-save task so `Cancel` can stop an in-flight save while the editing surface is disabled.
 - The example app persists the edited copy through `ProjectsRepository.saveEditedVideo(...)`.
 - The example app keeps original, saved edited copy, and exported output as separate project files.
+- `ProjectsRepository.saveEditedVideo(...)` generates the project thumbnail from the first frame of the persisted edited copy.
 
 ## Constraints
 
@@ -70,6 +83,8 @@ struct SaveState: Equatable, Sendable {
 ```
 
 Manual save also emits `SavedVideo`, which carries the edited-copy URL, original video URL, editing configuration, thumbnail data, and metadata. `thumbnailData` remains optional because frame generation can fail for invalid or unavailable media.
+
+In the example app, project cover persistence does not trust transient callback thumbnail bytes. It regenerates thumbnail data from frame `0` of the saved edited-copy file after that file is copied into the project directory.
 
 ## Rollout
 
@@ -126,15 +141,12 @@ Deliverables:
   - canvas state when relevant
 - render the first visible frame at the current crop
 - return `thumbnailData` through manual save callbacks
-- store the same thumbnail in `EditedVideoProject`
+- store the project cover thumbnail in `EditedVideoProject`
 
-Open question:
+Resolved thumbnail policy:
 
-- confirm whether “first frame” means:
-  - first frame of the original asset at time `0`
-  - first frame of the active trimmed segment at `trim.lowerBound`
-
-Recommended interpretation: use `trim.lowerBound`, because it matches the edited result more closely.
+- package callback thumbnails are generated from the saved edit snapshot and use the first visible frame of the edit
+- example-app project cover thumbnails are generated from frame `0` of the persisted saved edited copy, because that file is already the ready-to-use edited artifact
 
 Status:
 
@@ -143,6 +155,7 @@ Status:
 - thumbnail generation uses the first frame at `trim.lowerBound`
 - thumbnail rendering respects crop-derived canvas geometry and current color adjustments
 - saved edit state now receives non-`nil` thumbnail data when the frame can be rendered
+- the example app now persists the project thumbnail from the first frame of the saved edited video copy
 
 ### Phase 4
 
@@ -178,6 +191,8 @@ Implemented in this cycle:
 - the store now supports separate edited-copy save and export-save flows
 - projects can exist with original media and a saved edited copy before export
 - save callbacks now include thumbnail data rendered from the visible first frame of the edit
+- project persistence regenerates its cover thumbnail from the first frame of the saved edited copy
+- manual save shows progress, blocks editing interactions, supports cancel through the toolbar cancel action, and dismisses the editor on success
 
 ### Phase 5
 
@@ -199,4 +214,4 @@ Status:
 
 ## Remaining Work
 
-- keep integration documentation aligned with the explicit manual save process
+- keep integration documentation aligned with the explicit manual save process as future save/export behavior changes

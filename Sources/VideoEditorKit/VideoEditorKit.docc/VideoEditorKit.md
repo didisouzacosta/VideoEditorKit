@@ -19,6 +19,8 @@ These are the symbols most host apps start with:
 - `VideoEditingConfiguration`: serializable editing snapshot used to restore a session later
 - `VideoEditorKitPackage`: lightweight package metadata namespace
 
+For saved-project integrations, pass the preserved original video as the session source, pass the stored `VideoEditingConfiguration` as the resume snapshot, and pass the saved edited copy as `preparedOriginalExportVideo` when it is available. That lets original-quality export reuse the already saved edited video when there are no pending changes.
+
 ## Tool And Export Availability
 
 Use these types when your host app needs feature gating, premium locks, or custom ordering:
@@ -29,7 +31,7 @@ Use these types when your host app needs feature gating, premium locks, or custo
 - `ExportQualityAvailability`
 - `ExportedVideo`
 
-`VideoQuality.original` is the first export option and is always enabled after configuration normalization. It applies the current editing configuration while preserving the source video's native resolution and source frame rate when available. The fixed low, medium, and high qualities continue to render at `854x480`, `1280x720`, and `1920x1080`.
+`VideoQuality.original` is the last export option and is always enabled after configuration normalization. It applies the current editing configuration while preserving the source video's native resolution and source frame rate when available. The fixed high, medium, and low qualities continue to render at `1920x1080`, `1280x720`, and `854x480`.
 
 ## Canvas, Crop, And Layout
 
@@ -124,9 +126,19 @@ For most host apps:
 4. Present `VideoEditorView`.
 5. Handle `onExportedVideoURL` in your own share, upload, or save flow.
 
-Manual save is explicit. The editor tracks unsaved changes internally, enables the localized `Save` action only when the current editing snapshot differs from the last saved baseline, and prompts before canceling with pending changes. Export saves pending edits first, then renders the selected export resolution and calls the export callback.
+Manual save is explicit. The editor tracks unsaved changes internally, enables the localized `Save` action only when the current editing snapshot differs from the last saved baseline, and prompts before canceling with pending changes. While manual save renders the edited copy, the `Save` action shows progress and the editing surface is blocked. `Cancel` remains available during that render and cancels the in-flight save instead of presenting the unsaved-changes prompt.
+
+When manual save succeeds from the toolbar or from the unsaved-changes alert, the editor updates its saved baseline and dismisses. Export saves pending edits first, then renders the selected export resolution and calls the export callback.
 
 The `.original` export quality uses the same native source-quality render intent as manual save, but still follows the export callback path. Hosts can block premium low, medium, or high qualities, but `.original` remains available.
+
+## AI-Assisted Integration Prompt
+
+When asking an AI coding assistant to integrate this package, be explicit about persistence and source ownership:
+
+```text
+Integrate VideoEditorKit into this iOS app. Present VideoEditorView from a local file URL or VideoEditorSessionSource.importedFile. Persist SavedVideo from onSavedVideo as the manually saved edited copy, keep the original source video separately, store SavedVideo.editingConfiguration for resume, and pass the saved edited copy back as preparedOriginalExportVideo when reopening the project. Use onExportedVideoURL only for explicit export/share output. Do not overwrite the original source video and do not treat onSaveStateChanged as per-edit autosave.
+```
 
 For custom caption workflows:
 

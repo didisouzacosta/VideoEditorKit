@@ -52,7 +52,7 @@ struct ProjectMediaStore {
     ) throws -> URL {
         try persistFile(
             from: sourceURL,
-            to: resolvedMediaDestinationURL(
+            to: resolvedVersionedMediaDestinationURL(
                 in: projectDirectoryURL,
                 prefix: "exported",
                 sourceURL: sourceURL
@@ -66,7 +66,7 @@ struct ProjectMediaStore {
     ) throws -> URL {
         try persistFile(
             from: sourceURL,
-            to: resolvedMediaDestinationURL(
+            to: resolvedVersionedMediaDestinationURL(
                 in: projectDirectoryURL,
                 prefix: "edited",
                 sourceURL: sourceURL
@@ -105,19 +105,32 @@ struct ProjectMediaStore {
         fromExportedVideoAt url: URL,
         editingConfiguration: VideoEditingConfiguration
     ) async -> Data? {
-        let asset = AVURLAsset(url: url)
-        let duration = (try? await asset.load(.duration).seconds) ?? .zero
-        let timestamp = Self.resolvedThumbnailTimestamp(
-            for: duration,
-            editingConfiguration: editingConfiguration
-        )
-        let image = await asset.generateImage(
-            at: timestamp,
-            maximumSize: CGSize(width: 720, height: 720),
-            requiresExactFrame: true
-        )
+        let duration = await loadedDuration(from: url)
 
-        return image?.jpegData(compressionQuality: 0.85)
+        return await makeThumbnailData(
+            fromVideoAt: url,
+            timestamp: resolvedThumbnailTimestamp(
+                for: duration,
+                editingConfiguration: editingConfiguration
+            )
+        )
+    }
+
+    static func makeFirstFrameThumbnailData(fromVideoAt url: URL) async -> Data? {
+        return await makeThumbnailData(
+            fromVideoAt: url,
+            timestamp: 0
+        )
+    }
+
+    static func resolvedThumbnailTimestamp(
+        for duration: Double,
+        editingConfiguration: VideoEditingConfiguration
+    ) -> Double {
+        VideoEditingThumbnailTimestampResolver.exportedAssetTimestamp(
+            for: editingConfiguration,
+            exportedDuration: duration
+        )
     }
 
     func cleanupTransientMediaIfNeeded(
@@ -147,17 +160,31 @@ struct ProjectMediaStore {
         fileManager.removeIfExists(for: EditedVideoProject.directoryURL(for: id))
     }
 
-    static func resolvedThumbnailTimestamp(
-        for duration: Double,
-        editingConfiguration: VideoEditingConfiguration
-    ) -> Double {
-        VideoEditingThumbnailTimestampResolver.exportedAssetTimestamp(
-            for: editingConfiguration,
-            exportedDuration: duration
-        )
+    func deleteStoredMediaIfNeeded(_ url: URL?) {
+        guard let url else { return }
+        fileManager.removeIfExists(for: url)
     }
 
     // MARK: - Private Methods
+
+    private static func makeThumbnailData(
+        fromVideoAt url: URL,
+        timestamp: Double
+    ) async -> Data? {
+        let asset = AVURLAsset(url: url)
+        let image = await asset.generateImage(
+            at: timestamp,
+            maximumSize: CGSize(width: 720, height: 720),
+            requiresExactFrame: true
+        )
+
+        return image?.jpegData(compressionQuality: 0.85)
+    }
+
+    private static func loadedDuration(from url: URL) async -> Double {
+        let asset = AVURLAsset(url: url)
+        return (try? await asset.load(.duration).seconds) ?? .zero
+    }
 
     private func resolvedMediaDestinationURL(
         in projectDirectoryURL: URL,
@@ -167,6 +194,16 @@ struct ProjectMediaStore {
     ) -> URL {
         let fileExtension = sourceURL.pathExtension.isEmpty ? defaultExtension : sourceURL.pathExtension
         return projectDirectoryURL.appending(path: "\(prefix).\(fileExtension)")
+    }
+
+    private func resolvedVersionedMediaDestinationURL(
+        in projectDirectoryURL: URL,
+        prefix: String,
+        sourceURL: URL,
+        defaultExtension: String = "mp4"
+    ) -> URL {
+        let fileExtension = sourceURL.pathExtension.isEmpty ? defaultExtension : sourceURL.pathExtension
+        return projectDirectoryURL.appending(path: "\(prefix).\(UUID().uuidString).\(fileExtension)")
     }
 
     private func removePersistedRecordedAudioIfNeeded(in projectDirectoryURL: URL) {

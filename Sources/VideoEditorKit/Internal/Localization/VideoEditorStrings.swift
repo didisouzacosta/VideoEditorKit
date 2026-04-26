@@ -128,6 +128,10 @@ enum VideoEditorStrings {
         localized("editor.export.button.exporting-prefix", defaultValue: "Exporting")
     }
 
+    static var savingVideoExportButtonTitle: String {
+        localized("editor.export.button.saving-video", defaultValue: "Saving video...")
+    }
+
     static var exportButtonFallbackMessage: String {
         localized(
             "editor.export.error.fallback",

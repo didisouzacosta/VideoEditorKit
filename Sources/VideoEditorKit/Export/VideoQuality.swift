@@ -34,7 +34,7 @@ public enum VideoQuality: Int, CaseIterable, Sendable {
     public var order: Int {
         switch self {
         case .original:
-            -1
+            3
         case .high:
             0
         case .medium:
@@ -125,16 +125,16 @@ public struct ExportQualityAvailability: Hashable, Identifiable {
 
     /// Convenience list with every quality enabled.
     public static var allEnabled: [Self] {
-        enabled(VideoQuality.allCases)
+        enabled([.high, .medium, .low, .original])
     }
 
     /// Convenience list commonly used for premium gating flows.
     public static var premiumLocked: [Self] {
         [
-            .enabled(.original),
             .enabled(.low),
             .blocked(.medium),
             .blocked(.high),
+            .enabled(.original),
         ]
     }
 
