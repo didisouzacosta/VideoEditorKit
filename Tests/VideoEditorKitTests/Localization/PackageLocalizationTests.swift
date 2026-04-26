@@ -20,9 +20,11 @@ struct PackageLocalizationTests {
 
     @Test
     func exportQualityMetadataUsesLocalizedTitlesAndSubtitles() {
+        #expect(VideoQuality.original.title == "Original")
         #expect(VideoQuality.low.title == "qHD - 480")
         #expect(VideoQuality.medium.title == "HD - 720p")
         #expect(VideoQuality.high.title == "Full HD - 1080p")
+        #expect(VideoQuality.original.subtitle == "Preserves the source resolution and frame rate")
         #expect(VideoQuality.low.subtitle == "Fast loading and small size, low quality")
         #expect(VideoQuality.medium.subtitle == "Optimal size to quality ratio")
         #expect(VideoQuality.high.subtitle == "Ideal for publishing on social networks")

@@ -46,7 +46,7 @@
 
 ### Task 1: Add Original as a Public Export Quality
 
-- [ ] Add characterization tests proving the package exposes original first and never blocked.
+- [x] Add characterization tests proving the package exposes original first and never blocked.
 
 Update `Tests/VideoEditorKitTests/VideoEditorPublicTypesTests.swift` with cases covering:
 
@@ -74,7 +74,7 @@ Update `Tests/VideoEditorKitTests/Localization/PackageLocalizationTests.swift` w
 #expect(VideoQuality.original.subtitle == "Preserves the source resolution and frame rate")
 ```
 
-- [ ] Run the new focused tests and confirm they fail before implementation.
+- [x] Run the new focused tests and confirm they fail before implementation.
 
 Run:
 
@@ -84,7 +84,7 @@ xcodebuild -workspace Example/VideoEditor.xcworkspace -scheme VideoEditorKit-Pac
 
 Expected: failures for missing `.original` and missing localization.
 
-- [ ] Add `case original = -1` to `VideoQuality` without changing existing raw values for `low`, `medium`, and `high`.
+- [x] Add `case original = -1` to `VideoQuality` without changing existing raw values for `low`, `medium`, and `high`.
 
 Update `Sources/VideoEditorKit/Export/VideoQuality.swift`:
 
@@ -107,7 +107,7 @@ public var isOriginal: Bool {
 
 For source-independent properties such as `size`, `portraitSize`, and `frameRate`, keep deterministic fallback values equal to `.high` and document that the renderer resolves actual source values when `isOriginal` is true.
 
-- [ ] Normalize export-quality availability so original is always enabled and present.
+- [x] Normalize export-quality availability so original is always enabled and present.
 
 Update `ExportQualityAvailability.allEnabled` and `premiumLocked` to include `.enabled(.original)` first. In `ExportQualityAvailability.init`, force `access` to `.enabled` when `quality == .original`.
 
@@ -125,7 +125,7 @@ private static func normalizedExportQualities(
 
 Use this helper before sorting.
 
-- [ ] Add localized strings.
+- [x] Add localized strings.
 
 Update `VideoEditorStrings`:
 
@@ -144,11 +144,11 @@ static var qualityOriginalSubtitle: String {
 
 Add matching entries to `Sources/VideoEditorKit/Resources/Localizable.xcstrings` for existing supported locales.
 
-- [ ] Run focused tests until they pass.
+- [x] Run focused tests until they pass.
 
 Run the same `xcodebuild` command from this task. Expected: both selected suites pass.
 
-- [ ] Commit.
+- [x] Commit.
 
 ```bash
 git add Sources/VideoEditorKit/Export/VideoQuality.swift Sources/VideoEditorKit/API/VideoEditorPublicTypes.swift Sources/VideoEditorKit/Internal/Localization/VideoEditorStrings.swift Sources/VideoEditorKit/Resources/Localizable.xcstrings Tests/VideoEditorKitTests/VideoEditorPublicTypesTests.swift Tests/VideoEditorKitTests/Localization/PackageLocalizationTests.swift

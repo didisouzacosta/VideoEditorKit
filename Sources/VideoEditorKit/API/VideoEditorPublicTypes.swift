@@ -243,7 +243,7 @@ public struct VideoEditorConfiguration {
 
             return $0.order < $1.order
         }
-        self.exportQualities = exportQualities.sorted {
+        self.exportQualities = Self.normalizedExportQualities(exportQualities).sorted {
             if $0.order == $1.order {
                 return $0.quality.rawValue < $1.quality.rawValue
             }
@@ -316,6 +316,15 @@ public struct VideoEditorConfiguration {
         }
 
         return maximumVideoDuration
+    }
+
+    private static func normalizedExportQualities(
+        _ exportQualities: [ExportQualityAvailability]
+    ) -> [ExportQualityAvailability] {
+        let original = ExportQualityAvailability.enabled(.original)
+        let nonOriginalQualities = exportQualities.filter { $0.quality != .original }
+
+        return [original] + nonOriginalQualities
     }
 
     private static func normalizedTools(

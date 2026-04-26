@@ -68,7 +68,22 @@ struct VideoEditorPublicTypesTests {
         )
 
         #expect(configuration.tools.map(\.tool) == [.presets, .audio, .speed])
-        #expect(configuration.exportQualities.map(\.quality) == [.high, .medium, .low])
+        #expect(configuration.exportQualities.map(\.quality) == [.original, .high, .medium, .low])
+    }
+
+    @Test
+    func exportQualitiesAlwaysIncludeEnabledOriginalFirst() {
+        let configuration = VideoEditorConfiguration(
+            exportQualities: [
+                .blocked(.original),
+                .blocked(.high),
+                .enabled(.low),
+            ]
+        )
+
+        #expect(configuration.exportQualities.first?.quality == .original)
+        #expect(configuration.isEnabled(.original))
+        #expect(configuration.isBlocked(.original) == false)
     }
 
     @Test

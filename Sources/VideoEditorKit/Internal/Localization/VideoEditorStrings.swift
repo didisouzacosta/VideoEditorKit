@@ -564,10 +564,21 @@ enum VideoEditorStrings {
 
     // MARK: - Quality
 
+    static var qualityOriginalTitle: String {
+        localized("editor.quality.original.title", defaultValue: "Original")
+    }
+
     static var qualityLowTitle: String { localized("editor.quality.low.title", defaultValue: "qHD - 480") }
     static var qualityMediumTitle: String { localized("editor.quality.medium.title", defaultValue: "HD - 720p") }
     static var qualityHighTitle: String {
         localized("editor.quality.high.title", defaultValue: "Full HD - 1080p")
+    }
+
+    static var qualityOriginalSubtitle: String {
+        localized(
+            "editor.quality.original.subtitle",
+            defaultValue: "Preserves the source resolution and frame rate"
+        )
     }
 
     static var qualityLowSubtitle: String {

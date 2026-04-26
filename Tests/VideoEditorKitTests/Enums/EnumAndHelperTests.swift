@@ -76,8 +76,8 @@ struct VideoEditorConfigurationTests {
         #expect(blockedQuality.quality == .high)
         #expect(blockedQuality.isBlocked)
         #expect(blockedQuality.order == 0)
-        #expect(ExportQualityAvailability.allEnabled.map(\.quality) == [.low, .medium, .high])
-        #expect(premiumLocked.filter(\.isEnabled).map(\.quality) == [.low])
+        #expect(ExportQualityAvailability.allEnabled.map(\.quality) == [.original, .low, .medium, .high])
+        #expect(premiumLocked.filter(\.isEnabled).map(\.quality) == [.original, .low])
         #expect(premiumLocked.filter(\.isBlocked).map(\.quality) == [.medium, .high])
     }
 
@@ -88,7 +88,7 @@ struct VideoEditorConfigurationTests {
         #expect(configuration.tools.map(\.tool) == [.presets, .audio, .adjusts, .speed])
         #expect(configuration.tools.allSatisfy { $0.access == .enabled })
         #expect(configuration.visibleTools == [.presets, .audio, .adjusts, .speed])
-        #expect(configuration.exportQualities.map(\.quality) == [.high, .medium, .low])
+        #expect(configuration.exportQualities.map(\.quality) == [.original, .high, .medium, .low])
         #expect(configuration.exportQualities.allSatisfy { $0.access == .enabled })
         #expect(configuration.transcription == nil)
     }
@@ -139,7 +139,7 @@ struct VideoEditorConfigurationTests {
             ]
         )
 
-        #expect(configuration.exportQualities.map(\.quality) == [.high, .medium, .low])
+        #expect(configuration.exportQualities.map(\.quality) == [.original, .high, .medium, .low])
         #expect(configuration.isBlocked(.high))
         #expect(configuration.isEnabled(.medium))
         #expect(configuration.availability(for: .low)?.isBlocked == false)

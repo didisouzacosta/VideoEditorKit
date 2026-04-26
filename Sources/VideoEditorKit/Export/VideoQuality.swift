@@ -7,9 +7,10 @@ public enum VideoQuality: Int, CaseIterable, Sendable {
 
     // MARK: - Public Properties
 
-    case low
-    case medium
-    case high
+    case original = -1
+    case low = 0
+    case medium = 1
+    case high = 2
 
     /// Orientation used when resolving a final output size.
     public enum RenderLayout: Sendable {
@@ -20,6 +21,8 @@ public enum VideoQuality: Int, CaseIterable, Sendable {
     /// The AVFoundation preset used by the current export implementation.
     public var exportPresetName: String {
         switch self {
+        case .original:
+            AVAssetExportPresetHighestQuality
         case .low:
             AVAssetExportPresetMediumQuality
         case .high, .medium:
@@ -30,6 +33,8 @@ public enum VideoQuality: Int, CaseIterable, Sendable {
     /// Display ordering used by the package export UI.
     public var order: Int {
         switch self {
+        case .original:
+            -1
         case .high:
             0
         case .medium:
@@ -42,6 +47,8 @@ public enum VideoQuality: Int, CaseIterable, Sendable {
     /// Human-readable title shown in the export sheet.
     public var title: String {
         switch self {
+        case .original:
+            VideoEditorStrings.qualityOriginalTitle
         case .low:
             VideoEditorStrings.qualityLowTitle
         case .medium:
@@ -54,6 +61,8 @@ public enum VideoQuality: Int, CaseIterable, Sendable {
     /// Human-readable subtitle describing the target export profile.
     public var subtitle: String {
         switch self {
+        case .original:
+            VideoEditorStrings.qualityOriginalSubtitle
         case .low:
             VideoEditorStrings.qualityLowSubtitle
         case .medium:
@@ -66,12 +75,12 @@ public enum VideoQuality: Int, CaseIterable, Sendable {
     /// The base landscape render size for the quality.
     public var size: CGSize {
         switch self {
+        case .original, .high:
+            .init(width: 1920, height: 1080)
         case .low:
             .init(width: 854, height: 480)
         case .medium:
             .init(width: 1280, height: 720)
-        case .high:
-            .init(width: 1920, height: 1080)
         }
     }
 
@@ -85,9 +94,14 @@ public enum VideoQuality: Int, CaseIterable, Sendable {
         switch self {
         case .low, .medium:
             30
-        case .high:
+        case .original, .high:
             60
         }
+    }
+
+    /// Whether this export option should resolve the output from the source asset.
+    public var isOriginal: Bool {
+        self == .original
     }
 
     // MARK: - Public Methods
@@ -117,6 +131,7 @@ public struct ExportQualityAvailability: Hashable, Identifiable {
     /// Convenience list commonly used for premium gating flows.
     public static var premiumLocked: [Self] {
         [
+            .enabled(.original),
             .enabled(.low),
             .blocked(.medium),
             .blocked(.high),
@@ -152,7 +167,7 @@ public struct ExportQualityAvailability: Hashable, Identifiable {
         order: Int? = nil
     ) {
         self.quality = quality
-        self.access = access
+        self.access = quality.isOriginal ? .enabled : access
         self.order = order ?? quality.order
     }
 
