@@ -225,17 +225,17 @@ git commit -m "Render original exports at source quality"
 
 ### Task 3: Update Export Sheet UI for Original Quality
 
-- [ ] Add presentation tests for original.
+- [x] Add presentation tests for original.
 
 Update `Tests/VideoEditorKitTests/Views/VideoExportPresentationStateTests.swift` to verify original can be selected, has available accessibility state, and blocked taps are not sent for original.
 
-- [ ] Update row UI only as needed.
+- [x] Update row UI only as needed.
 
 Keep `VideoExporterView` generic over `ExportQualityAvailability`. Because original is normalized as enabled, `PremiumQualityBadge` should never appear beside it. The existing `ExportQualityOptionRow` can remain if the label and subtitle are localized.
 
 If visual hierarchy needs extra clarity, add a small leading icon for original with `Image(systemName: "film")`; otherwise keep the current row design to reduce risk.
 
-- [ ] Run focused UI/presentation tests.
+- [x] Run focused UI/presentation tests.
 
 Run:
 
@@ -243,7 +243,7 @@ Run:
 xcodebuild -workspace Example/VideoEditor.xcworkspace -scheme VideoEditorKit-Package -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17' -only-testing:VideoEditorKitTests/VideoExportPresentationStateTests test
 ```
 
-- [ ] Commit.
+- [x] Commit.
 
 ```bash
 git add Sources/VideoEditorKit/Views/Export/VideoExporterView.swift Sources/VideoEditorKit/Views/Export/VideoExporterContainerView.swift Tests/VideoEditorKitTests/Views/VideoExportPresentationStateTests.swift

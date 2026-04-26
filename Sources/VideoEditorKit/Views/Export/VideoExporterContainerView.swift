@@ -88,13 +88,7 @@ struct VideoExporterContainerView: View {
             )
         )
 
-        self.exportQualities = exportQualities.sorted {
-            if $0.order == $1.order {
-                return $0.quality.rawValue < $1.quality.rawValue
-            }
-
-            return $0.order < $1.order
-        }
+        self.exportQualities = ExportQualityPresentationResolver.normalizedQualities(exportQualities)
         self.onBlockedQualityTap = onBlockedQualityTap
         self.onExported = onExported
     }

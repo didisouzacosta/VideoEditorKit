@@ -78,4 +78,47 @@ struct VideoExportPresentationStateTests {
         #expect(underComplete.exportButtonProgress == 0)
     }
 
+    @Test
+    func qualityPresentationAlwaysShowsOriginalFirstAndAvailable() {
+        let options = ExportQualityPresentationResolver.optionPresentations(
+            for: [
+                .blocked(.high),
+                .enabled(.low),
+            ],
+            selectedQuality: .original
+        )
+
+        let original = options.first
+
+        #expect(options.map(\.quality) == [.original, .high, .low])
+        #expect(original?.quality == .original)
+        #expect(original?.isSelected == true)
+        #expect(original?.isBlocked == false)
+        #expect(original?.shouldNotifyBlockedTap == false)
+        #expect(original?.accessibilityLabel == "Original")
+        #expect(original?.accessibilityValue == "Selected")
+        #expect(original?.accessibilityHint == "Double-tap to select this export quality.")
+        #expect(original?.accessibilityIdentifier == "export-quality--1")
+    }
+
+    @Test
+    func qualityPresentationDoesNotTreatBlockedOriginalAsPremium() {
+        let options = ExportQualityPresentationResolver.optionPresentations(
+            for: [
+                .blocked(.original),
+                .blocked(.high),
+            ],
+            selectedQuality: .low
+        )
+        let original = options.first(where: { $0.quality == .original })
+        let high = options.first(where: { $0.quality == .high })
+
+        #expect(original?.isBlocked == false)
+        #expect(original?.accessibilityValue == "Available")
+        #expect(original?.shouldNotifyBlockedTap == false)
+        #expect(high?.isBlocked == true)
+        #expect(high?.accessibilityValue == "Locked")
+        #expect(high?.shouldNotifyBlockedTap == true)
+    }
+
 }

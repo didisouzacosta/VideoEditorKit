@@ -59,6 +59,95 @@ public struct VideoExportPresentationState: Equatable, Sendable {
 
 }
 
+struct ExportQualityOptionPresentation: Equatable, Identifiable, Sendable {
+
+    // MARK: - Public Properties
+
+    let quality: VideoQuality
+    let isSelected: Bool
+    let isBlocked: Bool
+
+    var id: VideoQuality {
+        quality
+    }
+
+    var shouldNotifyBlockedTap: Bool {
+        isBlocked
+    }
+
+    var accessibilityLabel: String {
+        VideoEditorStrings.exportQualityAccessibilityLabel(
+            title: quality.title,
+            isBlocked: isBlocked
+        )
+    }
+
+    var accessibilityValue: String {
+        if isBlocked {
+            VideoEditorStrings.locked
+        } else if isSelected {
+            VideoEditorStrings.selected
+        } else {
+            VideoEditorStrings.available
+        }
+    }
+
+    var accessibilityHint: String {
+        isBlocked
+            ? VideoEditorStrings.exportQualityPremiumHint
+            : VideoEditorStrings.exportQualitySelectHint
+    }
+
+    var accessibilityIdentifier: String {
+        "export-quality-\(quality.rawValue)"
+    }
+
+    // MARK: - Initializer
+
+    init(
+        availability: ExportQualityAvailability,
+        selectedQuality: VideoQuality
+    ) {
+        quality = availability.quality
+        isSelected = availability.quality == selectedQuality
+        isBlocked = availability.quality.isOriginal ? false : availability.isBlocked
+    }
+
+}
+
+enum ExportQualityPresentationResolver {
+
+    // MARK: - Public Methods
+
+    static func normalizedQualities(
+        _ qualities: [ExportQualityAvailability]
+    ) -> [ExportQualityAvailability] {
+        let original = ExportQualityAvailability.enabled(.original)
+        let nonOriginalQualities = qualities.filter { $0.quality != .original }
+
+        return ([original] + nonOriginalQualities).sorted {
+            if $0.order == $1.order {
+                return $0.quality.rawValue < $1.quality.rawValue
+            }
+
+            return $0.order < $1.order
+        }
+    }
+
+    static func optionPresentations(
+        for qualities: [ExportQualityAvailability],
+        selectedQuality: VideoQuality
+    ) -> [ExportQualityOptionPresentation] {
+        normalizedQualities(qualities).map {
+            ExportQualityOptionPresentation(
+                availability: $0,
+                selectedQuality: selectedQuality
+            )
+        }
+    }
+
+}
+
 public struct VideoExporterView: View {
 
     // MARK: - Bindings
@@ -168,13 +257,7 @@ public struct VideoExporterView: View {
         _isAlertPresented = isAlertPresented
 
         self.state = state
-        self.qualities = qualities.sorted {
-            if $0.order == $1.order {
-                return $0.quality.rawValue < $1.quality.rawValue
-            }
-
-            return $0.order < $1.order
-        }
+        self.qualities = ExportQualityPresentationResolver.normalizedQualities(qualities)
         self.onSelectQuality = onSelectQuality
         self.onBlockedQualityTap = onBlockedQualityTap
         self.onExport = onExport
@@ -198,6 +281,11 @@ private struct ExportQualitySelectionSection: View {
     // MARK: - Body
 
     var body: some View {
+        let options = ExportQualityPresentationResolver.optionPresentations(
+            for: qualities,
+            selectedQuality: selectedQuality
+        )
+
         VStack(alignment: .leading, spacing: 16) {
             Text(VideoEditorStrings.exportChooseQualityMessage)
                 .font(.subheadline)
@@ -205,16 +293,14 @@ private struct ExportQualitySelectionSection: View {
                 .padding(.horizontal)
 
             VStack(spacing: 8) {
-                ForEach(qualities) { availability in
+                ForEach(options) { option in
                     ExportQualityOptionRow(
-                        quality: availability.quality,
-                        isSelected: availability.quality == selectedQuality,
-                        isBlocked: availability.isBlocked,
+                        presentation: option,
                         onTap: {
-                            if availability.isBlocked {
-                                onBlockedQualityTap(availability.quality)
+                            if option.shouldNotifyBlockedTap {
+                                onBlockedQualityTap(option.quality)
                             } else {
-                                onSelectQuality(availability.quality)
+                                onSelectQuality(option.quality)
                             }
                         }
                     )
@@ -234,9 +320,7 @@ private struct ExportQualityOptionRow: View {
 
     // MARK: - Public Properties
 
-    let quality: VideoQuality
-    let isSelected: Bool
-    let isBlocked: Bool
+    let presentation: ExportQualityOptionPresentation
     let onTap: () -> Void
 
     // MARK: - Body
@@ -246,15 +330,15 @@ private struct ExportQualityOptionRow: View {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 8) {
-                        Text(quality.title)
+                        Text(presentation.quality.title)
                             .font(.headline)
 
-                        if isBlocked {
+                        if presentation.isBlocked {
                             PremiumQualityBadge()
                         }
                     }
 
-                    Text(quality.subtitle)
+                    Text(presentation.quality.subtitle)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
@@ -267,24 +351,24 @@ private struct ExportQualityOptionRow: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(16)
-            .opacity(isBlocked ? 0.55 : 1)
+            .opacity(presentation.isBlocked ? 0.55 : 1)
             .background(rowBackground)
             .contentShape(.rect(cornerRadius: 16))
         }
         .buttonStyle(.plain)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(accessibilityLabel)
-        .accessibilityValue(accessibilityValue)
-        .accessibilityHint(accessibilityHint)
-        .accessibilityIdentifier(accessibilityIdentifier)
+        .accessibilityLabel(presentation.accessibilityLabel)
+        .accessibilityValue(presentation.accessibilityValue)
+        .accessibilityHint(presentation.accessibilityHint)
+        .accessibilityIdentifier(presentation.accessibilityIdentifier)
     }
 
     // MARK: - Private Properties
 
     private var trailingSymbolName: String {
-        if isBlocked {
+        if presentation.isBlocked {
             "lock.fill"
-        } else if isSelected {
+        } else if presentation.isSelected {
             "checkmark.circle.fill"
         } else {
             "circle"
@@ -292,9 +376,9 @@ private struct ExportQualityOptionRow: View {
     }
 
     private var trailingSymbolTint: Color {
-        if isBlocked {
+        if presentation.isBlocked {
             .secondary
-        } else if isSelected {
+        } else if presentation.isSelected {
             .accentColor
         } else {
             .secondary
@@ -303,41 +387,20 @@ private struct ExportQualityOptionRow: View {
 
     private var rowBackground: some View {
         RoundedRectangle(cornerRadius: 16, style: .continuous)
-            .fill(isSelected && !isBlocked ? Color.accentColor.opacity(0.16) : Color.secondary.opacity(0.08))
+            .fill(
+                presentation.isSelected && !presentation.isBlocked
+                    ? Color.accentColor.opacity(0.16)
+                    : Color.secondary.opacity(0.08)
+            )
             .overlay {
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .stroke(
-                        isSelected && !isBlocked ? Color.accentColor : Color.secondary.opacity(0.18),
-                        lineWidth: isSelected && !isBlocked ? 1.5 : 1
+                        presentation.isSelected && !presentation.isBlocked
+                            ? Color.accentColor
+                            : Color.secondary.opacity(0.18),
+                        lineWidth: presentation.isSelected && !presentation.isBlocked ? 1.5 : 1
                     )
             }
-    }
-
-    private var accessibilityLabel: String {
-        VideoEditorStrings.exportQualityAccessibilityLabel(
-            title: quality.title,
-            isBlocked: isBlocked
-        )
-    }
-
-    private var accessibilityValue: String {
-        if isBlocked {
-            VideoEditorStrings.locked
-        } else if isSelected {
-            VideoEditorStrings.selected
-        } else {
-            VideoEditorStrings.available
-        }
-    }
-
-    private var accessibilityHint: String {
-        isBlocked
-            ? VideoEditorStrings.exportQualityPremiumHint
-            : VideoEditorStrings.exportQualitySelectHint
-    }
-
-    private var accessibilityIdentifier: String {
-        "export-quality-\(quality.rawValue)"
     }
 
 }
