@@ -29,6 +29,8 @@ Use these types when your host app needs feature gating, premium locks, or custo
 - `ExportQualityAvailability`
 - `ExportedVideo`
 
+`VideoQuality.original` is the first export option and is always enabled after configuration normalization. It applies the current editing configuration while preserving the source video's native resolution and source frame rate when available. The fixed low, medium, and high qualities continue to render at `854x480`, `1280x720`, and `1920x1080`.
+
 ## Canvas, Crop, And Layout
 
 These symbols support the crop and canvas system that powers preview and export mapping:
@@ -123,6 +125,8 @@ For most host apps:
 5. Handle `onExportedVideoURL` in your own share, upload, or save flow.
 
 Manual save is explicit. The editor tracks unsaved changes internally, enables the localized `Save` action only when the current editing snapshot differs from the last saved baseline, and prompts before canceling with pending changes. Export saves pending edits first, then renders the selected export resolution and calls the export callback.
+
+The `.original` export quality uses the same native source-quality render intent as manual save, but still follows the export callback path. Hosts can block premium low, medium, or high qualities, but `.original` remains available.
 
 For custom caption workflows:
 

@@ -294,6 +294,7 @@ Available public tool identifiers today are:
 
 ```swift
 let exportQualities: [ExportQualityAvailability] = [
+    .enabled(.original),
     .enabled(.low),
     .blocked(.medium),
     .blocked(.high)
@@ -308,18 +309,21 @@ Each entry contains:
 
 Useful convenience presets:
 
-- `ExportQualityAvailability.allEnabled`: every quality enabled.
-- `ExportQualityAvailability.premiumLocked`: low enabled, medium and high blocked.
+- `ExportQualityAvailability.allEnabled`: original, low, medium, and high enabled.
+- `ExportQualityAvailability.premiumLocked`: original and low enabled, medium and high blocked.
+
+The package always normalizes `.original` into the first enabled export option, even if the host omits it or accidentally configures it as blocked.
 
 ### `VideoQuality`
 
 `VideoQuality` defines the export profile that the package uses.
 
+- `.original`: preserves the source video's native resolution and frame rate while applying the current editing configuration.
 - `.low`: `854x480`
 - `.medium`: `1280x720`
 - `.high`: `1920x1080`
 
-The type also exposes user-facing titles, subtitles, target frame rate, and render sizes for portrait or landscape exports. In most host apps, you will only need to decide which qualities are visible and enabled.
+For `.original`, the deterministic `size`, `portraitSize`, and `frameRate` properties expose fallback values for source-independent UI and sorting, while the renderer resolves the actual source size and frame timing from the asset. The type also exposes user-facing titles, subtitles, target frame rate, and render sizes for portrait or landscape exports. In most host apps, you will only need to decide which non-original qualities are visible and enabled.
 
 ### `VideoEditorConfiguration.TranscriptionConfiguration`
 
@@ -530,7 +534,7 @@ For a full grouped reference of the public API that ships in the module, see [`S
 - Add a colored frame/background treatment
 - Track unsaved changes internally and require an explicit manual save
 - Save an edited copy while preserving the original video, source resolution, and source frame rate when available
-- Export asynchronously to `.mp4`
+- Export asynchronously to `.mp4`, including an always-available original-quality option that preserves source resolution and frame rate
 
 ## Repository Layout
 

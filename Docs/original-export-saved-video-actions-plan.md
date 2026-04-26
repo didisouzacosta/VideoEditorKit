@@ -441,7 +441,7 @@ git commit -m "Remove draft badge from saved videos"
 
 ### Task 6: Documentation and Final Validation
 
-- [ ] Update docs.
+- [x] Update docs.
 
 Update:
 
@@ -449,7 +449,7 @@ Update:
 - `Sources/VideoEditorKit/VideoEditorKit.docc/VideoEditorKit.md`: add `.original` to `VideoQuality` behavior.
 - `AGENTS.md` and `CLAUDE.md`: update export qualities and example-app saved-video actions.
 
-- [ ] Run formatting.
+- [x] Run formatting.
 
 Run:
 
@@ -457,7 +457,7 @@ Run:
 Scripts/format-swift.sh
 ```
 
-- [ ] Run official validation.
+- [x] Run official validation.
 
 Run:
 
@@ -467,7 +467,7 @@ Scripts/test-ios.sh
 
 If the default simulator is busy, rerun with the repository-supported iOS simulator helper or `xcodebuild` destination that is available locally, then record the exact command and result.
 
-- [ ] Commit.
+- [x] Commit.
 
 ```bash
 git add README.md Sources/VideoEditorKit/VideoEditorKit.docc/VideoEditorKit.md AGENTS.md CLAUDE.md
@@ -478,15 +478,15 @@ git commit -m "Document original export and saved video actions"
 
 ## Acceptance Checklist
 
-- [ ] Export sheet shows `Original` as the first quality option.
-- [ ] `Original` is selected by default for the default export configuration.
-- [ ] `Original` remains enabled when the host omits it or passes it as blocked.
-- [ ] `Original` export preserves source resolution and frame rate while applying current edits.
-- [ ] Existing low, medium, and high raw values remain stable.
+- [x] Export sheet shows `Original` as the first quality option.
+- [x] `Original` is selected by default for the default export configuration.
+- [x] `Original` remains enabled when the host omits it or passes it as blocked.
+- [x] `Original` export preserves source resolution and frame rate while applying current edits.
+- [x] Existing low, medium, and high raw values remain stable.
 - [x] Saved project cards no longer show a Draft badge.
-- [ ] Saved project menu includes Edit, Preview, Share, and Delete.
-- [ ] Preview opens the saved edited video when present.
-- [ ] Share presents `UIActivityViewController` for the saved edited video when present.
-- [ ] Delete still removes the project directory and SwiftData record.
-- [ ] Documentation reflects original export and saved-video actions.
-- [ ] iOS Simulator validation passes.
+- [x] Saved project menu includes Edit, Preview, Share, and Delete.
+- [x] Preview opens the saved edited video when present.
+- [x] Share presents `UIActivityViewController` for the saved edited video when present.
+- [x] Delete still removes the project directory and SwiftData record.
+- [x] Documentation reflects original export and saved-video actions.
+- [x] iOS Simulator validation passes.

@@ -110,6 +110,8 @@ O package agora é a superfície principal do repositório. O app em `Example/` 
 - `VideoEditorView` rastreia alterações não salvas por diff interno baseado no snapshot de edição.
 - O botão `Save` dispara o save manual e renderiza uma cópia editada sem alterar resolução nem FPS da fonte quando o asset fornece timing confiável.
 - O app de exemplo persiste somente após o callback `onSavedVideo`, mantendo vídeo original, cópia editada salva e export final como arquivos separados.
+- Projetos salvos no app de exemplo expõem menu com editar, preview da cópia salva, compartilhar a cópia salva e apagar.
+- Preview/share usam primeiro `savedEditedVideoURL`; projetos legados sem cópia salva podem usar `exportedVideoURL` como fallback.
 - Ao apagar um projeto, o app remove:
   - thumbnail `.jpg`
   - vídeo original copiado em `Documents`
@@ -120,6 +122,8 @@ O package agora é a superfície principal do repositório. O app em `Example/` 
 ### 6. Exportação
 
 - O botão de export usa ícone de compartilhamento e abre o fluxo de escolha de qualidade.
+- A primeira qualidade exibida é sempre `Original`, habilitada e não bloqueável.
+- `Original` exporta com a configuração de edição atual preservando resolução e FPS nativos da fonte quando possível.
 - Export chama o processo de save manual primeiro quando existem alterações pendentes.
 - Depois do save, o export renderiza a qualidade escolhida e chama `onExportedVideoURL`.
 - O app de exemplo apresenta o share sheet usando o arquivo exportado, não a cópia editada salva.
@@ -223,6 +227,7 @@ O pipeline real fica em `Utils/Helpers/VideoEditor.swift` e ocorre em duas etapa
 
 ### Qualidades disponíveis
 
+- `original`: resolução e FPS nativos da fonte, sempre habilitada e exibida primeiro
 - `low`: 854x480
 - `medium`: 1280x720
 - `high`: 1920x1080
