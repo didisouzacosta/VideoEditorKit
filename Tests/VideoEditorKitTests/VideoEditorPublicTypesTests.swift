@@ -59,6 +59,29 @@ struct VideoEditorPublicTypesTests {
         #expect(session.sourceVideoURL == url)
         #expect(session.bootstrapTaskIdentifier == "file:\(url.absoluteString)")
         #expect(session.preparedOriginalExportVideo == preparedOriginalExportVideo)
+        #expect(session.preparedOriginalExportEditingConfiguration == .initial)
+    }
+
+    @Test
+    func sessionTracksTheSnapshotThatProducedThePreparedOriginalExport() {
+        let url = URL(fileURLWithPath: "/tmp/video.mp4")
+        let editingConfiguration = VideoEditingConfiguration(
+            trim: .init(lowerBound: 1, upperBound: 6)
+        )
+        let preparedOriginalExportVideo = ExportedVideo(
+            URL(fileURLWithPath: "/tmp/saved.mp4"),
+            width: 1920,
+            height: 1080,
+            duration: 10,
+            fileSize: 2048
+        )
+        let session = VideoEditorSession(
+            source: .fileURL(url),
+            editingConfiguration: editingConfiguration,
+            preparedOriginalExportVideo: preparedOriginalExportVideo
+        )
+
+        #expect(session.preparedOriginalExportEditingConfiguration == editingConfiguration)
     }
 
     @Test

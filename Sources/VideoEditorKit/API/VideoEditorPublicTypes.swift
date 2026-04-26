@@ -75,6 +75,8 @@ public struct VideoEditorSession: Equatable, Sendable {
     public let editingConfiguration: VideoEditingConfiguration?
     /// A ready-to-use video that can satisfy an `Original` export without rendering again.
     public let preparedOriginalExportVideo: ExportedVideo?
+    /// The editing snapshot used to create `preparedOriginalExportVideo`.
+    public let preparedOriginalExportEditingConfiguration: VideoEditingConfiguration?
 
     /// A convenient accessor when the source is already available as a local file URL.
     public var sourceVideoURL: URL? {
@@ -91,22 +93,28 @@ public struct VideoEditorSession: Equatable, Sendable {
     public init(
         source: Source? = nil,
         editingConfiguration: VideoEditingConfiguration? = nil,
-        preparedOriginalExportVideo: ExportedVideo? = nil
+        preparedOriginalExportVideo: ExportedVideo? = nil,
+        preparedOriginalExportEditingConfiguration: VideoEditingConfiguration? = nil
     ) {
         self.source = source
         self.editingConfiguration = editingConfiguration
         self.preparedOriginalExportVideo = preparedOriginalExportVideo
+        self.preparedOriginalExportEditingConfiguration = preparedOriginalExportVideo.map { _ in
+            preparedOriginalExportEditingConfiguration ?? editingConfiguration ?? .initial
+        }
     }
 
     public init(
         sourceVideoURL: URL? = nil,
         editingConfiguration: VideoEditingConfiguration? = nil,
-        preparedOriginalExportVideo: ExportedVideo? = nil
+        preparedOriginalExportVideo: ExportedVideo? = nil,
+        preparedOriginalExportEditingConfiguration: VideoEditingConfiguration? = nil
     ) {
         self.init(
             source: sourceVideoURL.map { .fileURL($0) },
             editingConfiguration: editingConfiguration,
-            preparedOriginalExportVideo: preparedOriginalExportVideo
+            preparedOriginalExportVideo: preparedOriginalExportVideo,
+            preparedOriginalExportEditingConfiguration: preparedOriginalExportEditingConfiguration
         )
     }
 }

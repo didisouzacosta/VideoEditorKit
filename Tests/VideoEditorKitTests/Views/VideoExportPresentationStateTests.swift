@@ -144,7 +144,7 @@ struct VideoExportPresentationStateTests {
     }
 
     @Test
-    func originalQualitySubtitleCanUseMultipleLines() {
+    func qualitySubtitlesCanWrapForLocalizedCopy() {
         let options = ExportQualityPresentationResolver.optionPresentations(
             for: ExportQualityAvailability.allEnabled,
             selectedQuality: .original
@@ -152,8 +152,8 @@ struct VideoExportPresentationStateTests {
         let original = options.first(where: { $0.quality == .original })
         let high = options.first(where: { $0.quality == .high })
 
-        #expect(original?.allowsMultilineSubtitle == true)
-        #expect(high?.allowsMultilineSubtitle == false)
+        #expect(original?.subtitleLineLimit == nil)
+        #expect(high?.subtitleLineLimit == 2)
     }
 
 }

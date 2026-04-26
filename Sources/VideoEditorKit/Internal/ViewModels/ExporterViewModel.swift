@@ -175,8 +175,9 @@ final class ExporterViewModel {
 
     func export() async -> ExportedVideo? {
         let exportRunID = beginExportRun()
+        let exportQuality = selectedQuality
 
-        return await export(runID: exportRunID)
+        return await export(runID: exportRunID, selectedQuality: exportQuality)
     }
 
     func exportVideo(
@@ -186,6 +187,7 @@ final class ExporterViewModel {
     ) {
         exportTask?.cancel()
         let exportRunID = beginExportRun()
+        let exportQuality = selectedQuality
         isSavingBeforeExport = showsSavingBeforeExport
         renderState = .loading
 
@@ -199,7 +201,7 @@ final class ExporterViewModel {
                 }
             }
 
-            let preparationResult = await preparingExport(self.selectedQuality)
+            let preparationResult = await preparingExport(exportQuality)
 
             guard !Task.isCancelled else {
                 await self.finishCancelledPreparation(runID: exportRunID)
@@ -219,7 +221,13 @@ final class ExporterViewModel {
                 await self.finishPreparingExport(runID: exportRunID)
             }
 
-            guard let exportedVideo = await self.export(runID: exportRunID), !Task.isCancelled else { return }
+            guard
+                let exportedVideo = await self.export(
+                    runID: exportRunID,
+                    selectedQuality: exportQuality
+                ),
+                !Task.isCancelled
+            else { return }
             onExported(exportedVideo)
         }
     }
@@ -281,7 +289,11 @@ final class ExporterViewModel {
     }
 
     func selectQuality(_ quality: VideoQuality) {
-        guard availability(for: quality)?.isEnabled == true else { return }
+        guard
+            isInteractionDisabled == false,
+            availability(for: quality)?.isEnabled == true
+        else { return }
+
         selectedQuality = quality
     }
 
@@ -291,7 +303,10 @@ final class ExporterViewModel {
 
     // MARK: - Private Methods
 
-    private func export(runID: Int) async -> ExportedVideo? {
+    private func export(
+        runID: Int,
+        selectedQuality: VideoQuality
+    ) async -> ExportedVideo? {
         renderState = .loading
 
         do {

@@ -566,6 +566,7 @@ struct VideoEditorViewRuntimeTests {
             currentEditingConfiguration: .init(trim: .init(lowerBound: 1, upperBound: 6)),
             lastSavedVideo: nil,
             preparedOriginalExportVideo: preparedOriginalExportVideo,
+            preparedOriginalExportEditingConfiguration: .init(trim: .init(lowerBound: 1, upperBound: 6)),
             loadedOriginalVideo: nil,
             saveCurrentEdit: {
                 nil
@@ -573,6 +574,32 @@ struct VideoEditorViewRuntimeTests {
         )
 
         #expect(result == .usePreparedVideo(preparedOriginalExportVideo))
+    }
+
+    @Test
+    func originalExportIgnoresSessionPreparedVideoWhenTheSnapshotDoesNotMatch() async {
+        let preparedOriginalExportVideo = ExportedVideo(
+            URL(filePath: "/tmp/stale-session-prepared-original-export.mp4"),
+            width: 1920,
+            height: 1080,
+            duration: 10,
+            fileSize: 4096
+        )
+
+        let result = await VideoEditorView.exportPreparationResult(
+            selectedQuality: .original,
+            hasUnsavedChanges: false,
+            currentEditingConfiguration: .init(trim: .init(lowerBound: 1, upperBound: 6)),
+            lastSavedVideo: nil,
+            preparedOriginalExportVideo: preparedOriginalExportVideo,
+            preparedOriginalExportEditingConfiguration: .init(trim: .init(lowerBound: 2, upperBound: 6)),
+            loadedOriginalVideo: nil,
+            saveCurrentEdit: {
+                nil
+            }
+        )
+
+        #expect(result == .render)
     }
 
     @Test

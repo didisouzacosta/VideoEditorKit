@@ -235,6 +235,7 @@ extension VideoEditorView {
         currentEditingConfiguration: VideoEditingConfiguration?,
         lastSavedVideo: SavedVideo?,
         preparedOriginalExportVideo: ExportedVideo?,
+        preparedOriginalExportEditingConfiguration: VideoEditingConfiguration? = nil,
         loadedOriginalVideo: ExportedVideo?,
         saveCurrentEdit: () async -> SavedVideo?
     ) async -> ExporterViewModel.ExportPreparationResult {
@@ -249,7 +250,9 @@ extension VideoEditorView {
 
         if selectedQuality == .original,
             hasUnsavedChanges == false,
-            let preparedOriginalExportVideo
+            let preparedOriginalExportVideo,
+            preparedOriginalExportEditingConfiguration?.continuousSaveFingerprint
+                == currentEditingConfiguration?.continuousSaveFingerprint
         {
             return .usePreparedVideo(preparedOriginalExportVideo)
         }

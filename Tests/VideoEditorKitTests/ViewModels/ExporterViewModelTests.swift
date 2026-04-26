@@ -163,6 +163,99 @@ struct ExporterViewModelTests {
     }
 
     @Test
+    func exportWithoutManualQualitySelectionUsesOriginalByDefault() async {
+        let expectedURL = URL(fileURLWithPath: "/tmp/default-original-export.mp4")
+        let expectedVideo = ExportedVideo(
+            expectedURL,
+            width: 1920,
+            height: 1080,
+            duration: 8,
+            fileSize: 512
+        )
+        let preparationProbe = ExportPreparationProbe()
+        let tracker = ExportRenderCallTracker()
+        let viewModel = ExporterViewModel(
+            Video.mock,
+            renderVideo: { video, configuration, quality, _ in
+                await tracker.record(
+                    sourceURL: video.url,
+                    editingConfiguration: configuration,
+                    quality: quality
+                )
+                return expectedURL
+            },
+            loadExportedVideo: { _ in expectedVideo }
+        )
+
+        viewModel.exportVideo(
+            preparingExport: { quality in
+                await preparationProbe.prepare(for: quality)
+            },
+            onExported: { exportedVideo in
+                Task {
+                    await tracker.recordExportedVideo(exportedVideo)
+                }
+            }
+        )
+
+        await preparationProbe.waitUntilPrepareStarted()
+        await preparationProbe.resumePreparation(result: true)
+        await tracker.waitUntilExportedVideoIsRecorded()
+
+        #expect(await preparationProbe.qualities == [.original])
+        #expect(await tracker.qualities == [.original])
+        #expect(await tracker.exportedVideo == expectedVideo)
+    }
+
+    @Test
+    func exportKeepsTheSelectedQualityFromTheStartOfPreparation() async {
+        let expectedURL = URL(fileURLWithPath: "/tmp/snapshotted-quality-export.mp4")
+        let expectedVideo = ExportedVideo(
+            expectedURL,
+            width: 1280,
+            height: 720,
+            duration: 8,
+            fileSize: 256
+        )
+        let preparationProbe = ExportPreparationProbe()
+        let tracker = ExportRenderCallTracker()
+        let viewModel = ExporterViewModel(
+            Video.mock,
+            renderVideo: { video, configuration, quality, _ in
+                await tracker.record(
+                    sourceURL: video.url,
+                    editingConfiguration: configuration,
+                    quality: quality
+                )
+                return expectedURL
+            },
+            loadExportedVideo: { _ in expectedVideo }
+        )
+
+        viewModel.selectQuality(.medium)
+        viewModel.exportVideo(
+            preparingExport: { quality in
+                await preparationProbe.prepare(for: quality)
+            },
+            onExported: { exportedVideo in
+                Task {
+                    await tracker.recordExportedVideo(exportedVideo)
+                }
+            }
+        )
+
+        await preparationProbe.waitUntilPrepareStarted()
+        viewModel.selectQuality(.low)
+        await preparationProbe.resumePreparation(result: true)
+        await tracker.waitUntilExportedVideoIsRecorded()
+
+        #expect(viewModel.selectedQuality == .medium)
+        #expect(await preparationProbe.qualities == [.medium])
+        #expect(await tracker.qualities == [.medium])
+        #expect(await tracker.exportedVideo == expectedVideo)
+    }
+
+    @Test
     func exportVideoRunsPreparationBeforeRenderingAndKeepsOneLoadingState() async {
         let expectedURL = URL(fileURLWithPath: "/tmp/prepared-export.mp4")
         let expectedVideo = ExportedVideo(
@@ -812,6 +905,7 @@ private actor ExportPreparationProbe {
     // MARK: - Private Properties
 
     private var prepareCount = 0
+    private(set) var qualities = [VideoQuality]()
     private var continuations = [CheckedContinuation<ExporterViewModel.ExportPreparationResult, Never>]()
 
     // MARK: - Public Properties
@@ -827,6 +921,11 @@ private actor ExportPreparationProbe {
         return await withCheckedContinuation { continuation in
             continuations.append(continuation)
         }
+    }
+
+    func prepare(for quality: VideoQuality) async -> ExporterViewModel.ExportPreparationResult {
+        qualities.append(quality)
+        return await prepare()
     }
 
     func waitUntilPrepareStarted() async {

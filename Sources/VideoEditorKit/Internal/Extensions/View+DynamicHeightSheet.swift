@@ -16,6 +16,30 @@ extension View {
 
     // MARK: - Public Methods
 
+    func dynamicSheet<SheetContent: View>(
+        isPresented: Binding<Bool>,
+        initialHeight: CGFloat = 1,
+        @ViewBuilder content: @escaping () -> SheetContent
+    ) -> some View {
+        dynamicHeightSheet(
+            isPresented: isPresented,
+            initialHeight: initialHeight,
+            content: content
+        )
+    }
+
+    func dynamicSheet<Item: Identifiable, SheetContent: View>(
+        item: Binding<Item?>,
+        initialHeight: @escaping (Item) -> CGFloat,
+        @ViewBuilder content: @escaping (Item) -> SheetContent
+    ) -> some View {
+        dynamicHeightSheet(
+            item: item,
+            initialHeight: initialHeight,
+            content: content
+        )
+    }
+
     func dynamicHeightSheet<SheetContent: View>(
         isPresented: Binding<Bool>,
         initialHeight: CGFloat = 1,

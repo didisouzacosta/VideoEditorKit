@@ -86,7 +86,7 @@ public struct VideoEditorView: View {
         .task(id: scenePhase) {
             handleScenePhaseChange(scenePhase)
         }
-        .dynamicHeightSheet(
+        .dynamicSheet(
             isPresented: $bindablePresentationState.showVideoQualitySheet,
             initialHeight: 420
         ) {
@@ -376,6 +376,7 @@ public struct VideoEditorView: View {
             currentEditingConfiguration: editorViewModel.currentEditingConfiguration(),
             lastSavedVideo: lastSavedVideo,
             preparedOriginalExportVideo: session.preparedOriginalExportVideo,
+            preparedOriginalExportEditingConfiguration: session.preparedOriginalExportEditingConfiguration,
             loadedOriginalVideo: loadedOriginalExportVideo,
             saveCurrentEdit: performCurrentManualSave
         )

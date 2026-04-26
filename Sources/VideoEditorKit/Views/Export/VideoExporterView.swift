@@ -82,8 +82,8 @@ struct ExportQualityOptionPresentation: Equatable, Identifiable, Sendable {
         isBlocked
     }
 
-    var allowsMultilineSubtitle: Bool {
-        quality == .original
+    var subtitleLineLimit: Int? {
+        quality == .original ? nil : 2
     }
 
     var accessibilityLabel: String {
@@ -211,15 +211,16 @@ public struct VideoExporterView: View {
     }
 
     private var content: some View {
-        ExportQualitySelectionSection(
-            qualities: qualities,
-            selectedQuality: state.selectedQuality,
-            state: state,
-            onSelectQuality: onSelectQuality,
-            onBlockedQualityTap: onBlockedQualityTap
-        )
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .safeAreaPadding(.horizontal)
+        ViewThatFits(in: .vertical) {
+            exportOptionsContent
+                .fixedSize(horizontal: false, vertical: true)
+
+            ScrollView {
+                exportOptionsContent
+            }
+            .scrollBounceBehavior(.basedOnSize)
+        }
+        .frame(maxWidth: .infinity, alignment: .topLeading)
     }
 
     private var footer: some View {
@@ -250,6 +251,19 @@ public struct VideoExporterView: View {
             }
         }
         .animation(.easeInOut(duration: 0.2), value: state.shouldShowCancelAction)
+    }
+
+    private var exportOptionsContent: some View {
+        ExportQualitySelectionSection(
+            qualities: qualities,
+            selectedQuality: state.selectedQuality,
+            state: state,
+            onSelectQuality: onSelectQuality,
+            onBlockedQualityTap: onBlockedQualityTap
+        )
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .safeAreaPadding(.horizontal)
+        .padding(.bottom, 12)
     }
 
     // MARK: - Initializer
@@ -352,10 +366,10 @@ private struct ExportQualityOptionRow: View {
                     Text(presentation.quality.subtitle)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
-                        .lineLimit(presentation.allowsMultilineSubtitle ? nil : 1)
+                        .lineLimit(presentation.subtitleLineLimit)
                         .fixedSize(
                             horizontal: false,
-                            vertical: presentation.allowsMultilineSubtitle
+                            vertical: true
                         )
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
