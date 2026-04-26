@@ -170,6 +170,13 @@ struct VideoEditorViewRuntimeTests {
                 hasUnsavedChanges: true
             )
         )
+        #expect(
+            VideoEditorView.canPresentManualSaveAction(
+                hasLoadedVideo: true,
+                hasUnsavedChanges: true,
+                isSaving: true
+            ) == false
+        )
     }
 
     @Test
@@ -316,6 +323,90 @@ struct VideoEditorViewRuntimeTests {
     }
 
     @Test
+    func performManualSaveRendersEditedCopyPublishesSavedVideoAndClearsUnsavedChanges() async throws {
+        let sourceVideoURL = try TestFixtures.createTemporaryFile(fileExtension: "mp4")
+        let savedVideoURL = try TestFixtures.createTemporaryFile(fileExtension: "mp4")
+        let thumbnailData = Data([7, 8, 9])
+        let renderRecorder = ManualSaveRenderRecorder()
+        let savedVideoRecorder = SavedVideoRecorder()
+        let saveStateRecorder = SaveStateRecorder()
+        let manualSaveRenderer = VideoEditorManualSaveRenderer(
+            .init(
+                renderEditedVideo: { video, editingConfiguration, _ in
+                    await renderRecorder.record(
+                        videoURL: video.url,
+                        editingConfiguration: editingConfiguration
+                    )
+                    return savedVideoURL
+                },
+                loadSavedMetadata: { url in
+                    ExportedVideo(
+                        url,
+                        width: 1920,
+                        height: 1080,
+                        duration: 4,
+                        fileSize: 1024
+                    )
+                },
+                makeThumbnailData: { _, _ in thumbnailData }
+            )
+        )
+        let manualSaveCoordinator = VideoEditorManualSaveCoordinator()
+        let editorViewModel = EditorViewModel()
+        var video = Video.mock
+        video.url = sourceVideoURL
+        video.rangeDuration = 1...8
+        editorViewModel.currentVideo = video
+
+        VideoEditorView.handleEditingConfigurationChange(
+            editorViewModel: editorViewModel,
+            manualSaveCoordinator: manualSaveCoordinator
+        )
+
+        video.rangeDuration = 2...7
+        editorViewModel.currentVideo = video
+        VideoEditorView.handleEditingConfigurationChange(
+            editorViewModel: editorViewModel,
+            manualSaveCoordinator: manualSaveCoordinator
+        )
+
+        let savedVideo = await VideoEditorView.performManualSave(
+            editorViewModel: editorViewModel,
+            fallbackSourceVideoURL: sourceVideoURL,
+            manualSaveCoordinator: manualSaveCoordinator,
+            manualSaveRenderer: manualSaveRenderer,
+            callbacks: .init(
+                onSaveStateChanged: { saveState in
+                    Task {
+                        await saveStateRecorder.record(saveState)
+                    }
+                },
+                onSavedVideo: { savedVideo in
+                    Task {
+                        await savedVideoRecorder.record(savedVideo)
+                    }
+                }
+            )
+        )
+
+        let recordedSavedVideo = await savedVideoRecorder.waitForFirstValue()
+        let saveState = await saveStateRecorder.waitForFirstValue()
+        let renderRequest = await renderRecorder.waitForFirstValue()
+
+        #expect(savedVideo?.url == savedVideoURL)
+        #expect(recordedSavedVideo.url == savedVideoURL)
+        #expect(recordedSavedVideo.originalVideoURL == sourceVideoURL)
+        #expect(recordedSavedVideo.editingConfiguration.trim.lowerBound == 2)
+        #expect(recordedSavedVideo.thumbnailData == thumbnailData)
+        #expect(saveState.editingConfiguration.trim.lowerBound == 2)
+        #expect(saveState.thumbnailData == thumbnailData)
+        #expect(renderRequest.videoURL == sourceVideoURL)
+        #expect(renderRequest.editingConfiguration.trim.lowerBound == 2)
+        #expect(manualSaveCoordinator.hasUnsavedChanges == false)
+        #expect(manualSaveCoordinator.isSaving == false)
+    }
+
+    @Test
     func handleDisappearKeepsExplicitManualSaveEmissionAlive() async throws {
         let sourceVideoURL = try TestFixtures.createTemporaryFile(fileExtension: "mp4")
         let sleepProbe = ManualSaveSleepProbe()
@@ -372,6 +463,88 @@ struct VideoEditorViewRuntimeTests {
             try await Task.sleep(for: .milliseconds(10))
         }
 
+        #expect(editorViewModel.presentationState.showVideoQualitySheet)
+    }
+
+    @Test
+    func prepareExporterPresentationSavesPendingChangesBeforeOpeningQualitySheet() async throws {
+        let sourceVideoURL = try TestFixtures.createTemporaryFile(fileExtension: "mp4")
+        let savedVideoURL = try TestFixtures.createTemporaryFile(fileExtension: "mp4")
+        let renderProbe = ManualSaveRenderProbe()
+        let savedVideoRecorder = SavedVideoRecorder()
+        let manualSaveRenderer = VideoEditorManualSaveRenderer(
+            .init(
+                renderEditedVideo: { video, editingConfiguration, _ in
+                    await renderProbe.render(
+                        video: video,
+                        editingConfiguration: editingConfiguration,
+                        savedVideoURL: savedVideoURL
+                    )
+                },
+                loadSavedMetadata: { url in
+                    ExportedVideo(
+                        url,
+                        width: 1280,
+                        height: 720,
+                        duration: 3,
+                        fileSize: 2048
+                    )
+                },
+                makeThumbnailData: { _, _ in nil }
+            )
+        )
+        let editorViewModel = EditorViewModel()
+        let manualSaveCoordinator = VideoEditorManualSaveCoordinator()
+        let videoPlayer = VideoPlayerManager()
+        var video = Video.mock
+        video.url = sourceVideoURL
+        video.rangeDuration = 1...8
+        editorViewModel.currentVideo = video
+        videoPlayer.pause(maintainingPlaybackFocus: true)
+
+        VideoEditorView.handleEditingConfigurationChange(
+            editorViewModel: editorViewModel,
+            manualSaveCoordinator: manualSaveCoordinator
+        )
+
+        video.rangeDuration = 2...7
+        editorViewModel.currentVideo = video
+        VideoEditorView.handleEditingConfigurationChange(
+            editorViewModel: editorViewModel,
+            manualSaveCoordinator: manualSaveCoordinator
+        )
+
+        let presentationTask = Task {
+            await VideoEditorView.prepareExporterPresentation(
+                editorViewModel: editorViewModel,
+                fallbackSourceVideoURL: sourceVideoURL,
+                manualSaveCoordinator: manualSaveCoordinator,
+                manualSaveRenderer: manualSaveRenderer,
+                videoPlayer: videoPlayer,
+                callbacks: .init(
+                    onSavedVideo: { savedVideo in
+                        Task {
+                            await savedVideoRecorder.record(savedVideo)
+                        }
+                    }
+                )
+            )
+        }
+        await renderProbe.waitUntilCount(is: 1)
+
+        #expect(manualSaveCoordinator.isSaving)
+        #expect(editorViewModel.presentationState.showVideoQualitySheet == false)
+
+        await renderProbe.resumeNext()
+        await presentationTask.value
+
+        for _ in 0..<40 where editorViewModel.presentationState.showVideoQualitySheet == false {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+
+        #expect(await savedVideoRecorder.waitForFirstValue().url == savedVideoURL)
+        #expect(manualSaveCoordinator.hasUnsavedChanges == false)
+        #expect(videoPlayer.isPlaybackFocusActive == false)
         #expect(editorViewModel.presentationState.showVideoQualitySheet)
     }
 
@@ -458,6 +631,82 @@ private actor SourceURLRecorder {
 
 }
 
+private struct ManualSaveRenderRequest: Sendable {
+
+    // MARK: - Public Properties
+
+    let videoURL: URL
+    let editingConfiguration: VideoEditingConfiguration
+
+}
+
+private actor ManualSaveRenderRecorder {
+
+    // MARK: - Private Properties
+
+    private var requests = [ManualSaveRenderRequest]()
+
+    // MARK: - Public Methods
+
+    func record(
+        videoURL: URL,
+        editingConfiguration: VideoEditingConfiguration
+    ) {
+        requests.append(
+            .init(
+                videoURL: videoURL,
+                editingConfiguration: editingConfiguration
+            )
+        )
+    }
+
+    func waitForFirstValue() async -> ManualSaveRenderRequest {
+        while requests.isEmpty {
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+
+        return requests[0]
+    }
+
+}
+
+private actor ManualSaveRenderProbe {
+
+    // MARK: - Private Properties
+
+    private var renderCount = 0
+    private var continuations = [CheckedContinuation<Void, Never>]()
+
+    // MARK: - Public Methods
+
+    func render(
+        video: Video,
+        editingConfiguration: VideoEditingConfiguration,
+        savedVideoURL: URL
+    ) async -> URL {
+        _ = video
+        _ = editingConfiguration
+        renderCount += 1
+        await withCheckedContinuation { continuation in
+            continuations.append(continuation)
+        }
+
+        return savedVideoURL
+    }
+
+    func waitUntilCount(is expectedCount: Int) async {
+        while renderCount < expectedCount {
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+    }
+
+    func resumeNext() {
+        guard continuations.isEmpty == false else { return }
+        continuations.removeFirst().resume()
+    }
+
+}
+
 private actor PublishedSaveRecorder {
 
     // MARK: - Private Properties
@@ -474,6 +723,28 @@ private actor PublishedSaveRecorder {
         while saves.count < expectedCount {
             try? await Task.sleep(for: .milliseconds(10))
         }
+    }
+
+}
+
+private actor SavedVideoRecorder {
+
+    // MARK: - Private Properties
+
+    private var values = [SavedVideo]()
+
+    // MARK: - Public Methods
+
+    func record(_ value: SavedVideo) {
+        values.append(value)
+    }
+
+    func waitForFirstValue() async -> SavedVideo {
+        while values.isEmpty {
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+
+        return values[0]
     }
 
 }

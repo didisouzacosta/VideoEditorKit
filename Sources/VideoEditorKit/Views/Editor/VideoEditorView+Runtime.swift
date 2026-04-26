@@ -108,20 +108,76 @@ extension VideoEditorView {
             return
         }
 
+        guard manualSaveCoordinator.beginSaving() else { return }
+
         scheduleSaveIfNeeded(
             editorViewModel: editorViewModel,
             fallbackSourceVideoURL: fallbackSourceVideoURL,
             saveEmissionCoordinator: saveEmissionCoordinator,
             onPublish: onPublish
         )
-        manualSaveCoordinator.markSaved(currentEditingConfiguration)
+        manualSaveCoordinator.finishSaving(currentEditingConfiguration)
+    }
+
+    @discardableResult
+    static func performManualSave(
+        editorViewModel: EditorViewModel,
+        fallbackSourceVideoURL: URL?,
+        manualSaveCoordinator: VideoEditorManualSaveCoordinator,
+        manualSaveRenderer: VideoEditorManualSaveRenderer = .init(),
+        callbacks: Callbacks
+    ) async -> SavedVideo? {
+        guard
+            let video = editorViewModel.currentVideo,
+            let currentEditingConfiguration = editorViewModel.currentEditingConfiguration()
+        else {
+            return nil
+        }
+
+        guard manualSaveCoordinator.beginSaving() else { return nil }
+
+        guard
+            let originalVideoURL = resolvedSourceVideoURL(
+                currentVideoURL: video.url,
+                fallbackSourceVideoURL: fallbackSourceVideoURL
+            )
+        else {
+            manualSaveCoordinator.failSaving(
+                currentEditingConfiguration: currentEditingConfiguration
+            )
+            return nil
+        }
+
+        do {
+            let savedVideo = try await manualSaveRenderer.save(
+                video: video,
+                editingConfiguration: currentEditingConfiguration,
+                originalVideoURL: originalVideoURL
+            )
+
+            manualSaveCoordinator.finishSaving(currentEditingConfiguration)
+            callbacks.onSaveStateChanged(
+                .init(
+                    editingConfiguration: savedVideo.editingConfiguration,
+                    thumbnailData: savedVideo.thumbnailData
+                )
+            )
+            callbacks.onSavedVideo(savedVideo)
+            return savedVideo
+        } catch {
+            manualSaveCoordinator.failSaving(
+                currentEditingConfiguration: editorViewModel.currentEditingConfiguration()
+            )
+            return nil
+        }
     }
 
     static func canPresentManualSaveAction(
         hasLoadedVideo: Bool,
-        hasUnsavedChanges: Bool
+        hasUnsavedChanges: Bool,
+        isSaving: Bool = false
     ) -> Bool {
-        hasLoadedVideo && hasUnsavedChanges
+        hasLoadedVideo && hasUnsavedChanges && isSaving == false
     }
 
     static func handleCancelRequest(
@@ -169,6 +225,34 @@ extension VideoEditorView {
     ) {
         videoPlayer.pause()
         editorViewModel.presentExporter()
+    }
+
+    static func prepareExporterPresentation(
+        editorViewModel: EditorViewModel,
+        fallbackSourceVideoURL: URL?,
+        manualSaveCoordinator: VideoEditorManualSaveCoordinator,
+        manualSaveRenderer: VideoEditorManualSaveRenderer = .init(),
+        videoPlayer: VideoPlayerManager,
+        callbacks: Callbacks
+    ) async {
+        if manualSaveCoordinator.hasUnsavedChanges {
+            guard
+                await performManualSave(
+                    editorViewModel: editorViewModel,
+                    fallbackSourceVideoURL: fallbackSourceVideoURL,
+                    manualSaveCoordinator: manualSaveCoordinator,
+                    manualSaveRenderer: manualSaveRenderer,
+                    callbacks: callbacks
+                ) != nil
+            else {
+                return
+            }
+        }
+
+        presentExporter(
+            editorViewModel: editorViewModel,
+            videoPlayer: videoPlayer
+        )
     }
 
     static func handleRecordedVideo(

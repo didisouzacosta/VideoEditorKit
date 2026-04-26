@@ -22,10 +22,28 @@ enum VideoEditor {
         videoQuality: VideoQuality,
         onProgress: ProgressHandler? = nil
     ) async throws -> URL {
-        let exportProfile = resolvedExportProfile(
-            for: video,
+        try await startRender(
+            video: video,
             editingConfiguration: editingConfiguration,
-            videoQuality: videoQuality
+            renderIntent: .export(videoQuality),
+            onProgress: onProgress
+        )
+    }
+
+    static func startRender(
+        video: Video,
+        editingConfiguration: VideoEditingConfiguration = .initial,
+        renderIntent: VideoRenderIntent,
+        onProgress: ProgressHandler? = nil
+    ) async throws -> URL {
+        let resolvedRenderIntent = await resolvedRenderIntent(
+            renderIntent,
+            asset: video.asset
+        )
+        let exportProfile = resolvedExportProfile(
+            for: video.presentationSize,
+            editingConfiguration: editingConfiguration,
+            renderIntent: resolvedRenderIntent
         )
         let adjusts = Helpers.createColorAdjustsFilters(
             colorAdjusts: video.colorAdjusts
@@ -594,6 +612,28 @@ extension VideoEditor {
         )
     }
 
+    static func resolvedExportProfile(
+        for sourceSize: CGSize,
+        editingConfiguration: VideoEditingConfiguration,
+        renderIntent: VideoRenderIntent,
+        isSimulatorEnvironment: Bool = isSimulator
+    ) -> ExportProfile {
+        let renderProfile = resolvedRenderProfile(
+            for: sourceSize,
+            editingConfiguration: editingConfiguration,
+            intent: renderIntent,
+            isSimulatorEnvironment: isSimulatorEnvironment
+        )
+
+        return ExportProfile(
+            quality: fallbackQuality(for: renderIntent),
+            renderSize: renderProfile.renderSize,
+            frameDuration: renderProfile.frameDuration,
+            renderPresetName: renderProfile.renderPresetName,
+            passthroughPresetName: renderProfile.passthroughPresetName
+        )
+    }
+
     static func resolvedRenderProfile(
         for sourceSize: CGSize,
         editingConfiguration: VideoEditingConfiguration,
@@ -1121,6 +1161,31 @@ extension VideoEditor {
             seconds: 1 / sourceFrameRate,
             preferredTimescale: 600
         )
+    }
+
+    private static func resolvedRenderIntent(
+        _ renderIntent: VideoRenderIntent,
+        asset: AVAsset
+    ) async -> VideoRenderIntent {
+        switch renderIntent {
+        case .saveNative(.none):
+            return .saveNative(
+                sourceFrameRate: await resolvedSourceFrameRate(for: asset)
+            )
+        case .saveNative(.some), .export:
+            return renderIntent
+        }
+    }
+
+    private static func fallbackQuality(
+        for renderIntent: VideoRenderIntent
+    ) -> VideoQuality {
+        switch renderIntent {
+        case .saveNative:
+            .high
+        case .export(let videoQuality):
+            videoQuality
+        }
     }
 
     private static func createAnimationTool(

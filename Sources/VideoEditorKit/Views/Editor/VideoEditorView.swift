@@ -18,7 +18,6 @@ public struct VideoEditorView: View {
     @State private var exportLifecycleState: ExportLifecycleState = .active
     @State private var cancelConfirmationState: VideoEditorCancelConfirmationState?
     @State private var manualSaveCoordinator = VideoEditorManualSaveCoordinator()
-    @State private var saveEmissionCoordinator = VideoEditorSaveEmissionCoordinator()
     @State private var videoPlayer = VideoPlayerManager()
 
     // MARK: - Public Properties
@@ -157,7 +156,8 @@ public struct VideoEditorView: View {
     private var canSaveCurrentEdit: Bool {
         Self.canPresentManualSaveAction(
             hasLoadedVideo: editorViewModel.currentVideo != nil,
-            hasUnsavedChanges: manualSaveCoordinator.hasUnsavedChanges
+            hasUnsavedChanges: manualSaveCoordinator.hasUnsavedChanges,
+            isSaving: manualSaveCoordinator.isSaving
         )
     }
 
@@ -179,6 +179,7 @@ public struct VideoEditorView: View {
                     Image(systemName: "square.and.arrow.up")
                 }
                 .accessibilityLabel(VideoEditorStrings.export)
+                .disabled(manualSaveCoordinator.isSaving)
 
                 Button(action: saveCurrentEdit) {
                     Text(VideoEditorStrings.save)
@@ -299,26 +300,30 @@ public struct VideoEditorView: View {
     }
 
     private func presentExporter() {
-        Self.presentExporter(
-            editorViewModel: editorViewModel,
-            videoPlayer: videoPlayer
-        )
+        Task {
+            await Self.prepareExporterPresentation(
+                editorViewModel: editorViewModel,
+                fallbackSourceVideoURL: session.sourceVideoURL,
+                manualSaveCoordinator: manualSaveCoordinator,
+                videoPlayer: videoPlayer,
+                callbacks: callbacks
+            )
+        }
     }
 
     private func saveCurrentEdit() {
-        Self.performManualSave(
+        Task {
+            await performCurrentManualSave()
+        }
+    }
+
+    @discardableResult
+    private func performCurrentManualSave() async -> SavedVideo? {
+        await Self.performManualSave(
             editorViewModel: editorViewModel,
             fallbackSourceVideoURL: session.sourceVideoURL,
-            saveEmissionCoordinator: saveEmissionCoordinator,
             manualSaveCoordinator: manualSaveCoordinator,
-            onPublish: { publishedSave in
-                callbacks.onSaveStateChanged(
-                    .init(
-                        editingConfiguration: publishedSave.editingConfiguration,
-                        thumbnailData: publishedSave.thumbnailData
-                    )
-                )
-            }
+            callbacks: callbacks
         )
     }
 
@@ -331,8 +336,10 @@ public struct VideoEditorView: View {
 
     private func saveChangesAndDismiss() {
         cancelConfirmationState = nil
-        saveCurrentEdit()
-        dismissEditorImmediately()
+        Task {
+            guard await performCurrentManualSave() != nil else { return }
+            dismissEditorImmediately()
+        }
     }
 
     private func discardChangesAndDismiss() {

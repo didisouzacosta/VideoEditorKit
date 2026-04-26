@@ -15,6 +15,7 @@ final class VideoEditorManualSaveCoordinator {
     // MARK: - Public Properties
 
     private(set) var hasUnsavedChanges = false
+    private(set) var isSaving = false
 
     // MARK: - Private Properties
 
@@ -47,8 +48,26 @@ final class VideoEditorManualSaveCoordinator {
         resetBaseline(to: editingConfiguration)
     }
 
+    func beginSaving() -> Bool {
+        guard isSaving == false else { return false }
+
+        isSaving = true
+        return true
+    }
+
+    func finishSaving(_ editingConfiguration: VideoEditingConfiguration) {
+        isSaving = false
+        markSaved(editingConfiguration)
+    }
+
+    func failSaving(currentEditingConfiguration: VideoEditingConfiguration?) {
+        isSaving = false
+        updateCurrentEditingConfiguration(currentEditingConfiguration)
+    }
+
     func reset() {
         resetBaseline(to: nil)
+        isSaving = false
     }
 
 }
