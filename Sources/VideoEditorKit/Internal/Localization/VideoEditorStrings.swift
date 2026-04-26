@@ -20,6 +20,7 @@ enum VideoEditorStrings {
     static var reset: String { localized("common.reset", defaultValue: "Reset") }
     static var revert: String { localized("common.revert", defaultValue: "Revert") }
     static var retry: String { localized("common.retry", defaultValue: "Retry") }
+    static var save: String { localized("common.save", defaultValue: "Save") }
     static var selected: String { localized("common.selected", defaultValue: "Selected") }
     static var tryAgain: String { localized("common.try-again", defaultValue: "Try Again") }
     static var unavailable: String { localized("common.unavailable", defaultValue: "Unavailable") }
@@ -67,6 +68,21 @@ enum VideoEditorStrings {
 
     static var previewVideoMissingDescription: String {
         localized("editor.preview.missing.message", defaultValue: "Missing resource: preview.mp4")
+    }
+
+    static var discardUnsavedChanges: String {
+        localized("editor.unsaved-changes.discard", defaultValue: "Discard")
+    }
+
+    static var unsavedChangesAlertTitle: String {
+        localized("editor.unsaved-changes.title", defaultValue: "Unsaved Changes")
+    }
+
+    static var unsavedChangesAlertMessage: String {
+        localized(
+            "editor.unsaved-changes.message",
+            defaultValue: "There are changes that have not been saved yet. Would you like to save them?"
+        )
     }
 
     // MARK: - Export

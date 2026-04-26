@@ -14,7 +14,7 @@ This plan follows the current package-first architecture: `VideoEditorKit` owns 
 
 ## Goals
 
-1. Add a primary manual save button to the editor toolbar, positioned to the right of the export button and represented by a save symbol.
+1. Add a primary manual save button to the editor toolbar, positioned to the right of the export button and labeled with localized "Save" text.
 2. Stop saving after every edit action.
 3. Track pending changes inside the editor and enable save only when the current editing configuration differs from the last saved baseline.
 4. Warn the user when canceling with unsaved changes.
@@ -76,13 +76,13 @@ The diff should use `VideoEditingConfiguration.continuousSaveFingerprint` so tra
 
 Update `VideoEditorView` toolbar actions:
 
-- keep the export button
-- add a save icon button to the right of export
+- keep the export action as an icon-only share-style button
+- add a primary localized `Save` text button to the right of export
 - disable save while there are no unsaved changes
 - disable relevant actions while save/export work is in progress
 - keep effectful work outside `body` in small private methods
 
-Use a native SF Symbol save-style icon such as `square.and.arrow.down` or `tray.and.arrow.down`.
+Use a native SF Symbol share-style icon for export, such as `square.and.arrow.up`. The save action should be text-forward and localized in every supported package language.
 
 ## Cancel Confirmation Flow
 

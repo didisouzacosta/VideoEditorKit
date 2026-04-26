@@ -100,6 +100,7 @@ struct PackageLocalizationTests {
         )
 
         #expect(deBundle.localizedString(forKey: "common.close", value: nil, table: "Localizable") == "Schließen")
+        #expect(deBundle.localizedString(forKey: "common.save", value: nil, table: "Localizable") == "Speichern")
         #expect(
             deBundle.localizedString(forKey: "editor.tool.speed.title", value: nil, table: "Localizable")
                 == "Geschwindigkeit"

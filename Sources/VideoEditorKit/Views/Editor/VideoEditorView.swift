@@ -16,6 +16,8 @@ public struct VideoEditorView: View {
 
     @State private var editorViewModel = EditorViewModel()
     @State private var exportLifecycleState: ExportLifecycleState = .active
+    @State private var cancelConfirmationState: VideoEditorCancelConfirmationState?
+    @State private var manualSaveCoordinator = VideoEditorManualSaveCoordinator()
     @State private var saveEmissionCoordinator = VideoEditorSaveEmissionCoordinator()
     @State private var videoPlayer = VideoPlayerManager()
 
@@ -23,6 +25,8 @@ public struct VideoEditorView: View {
 
     /// The continuous-save payload emitted by the editor.
     public typealias SaveState = VideoEditorSaveState
+    /// The manual-save payload emitted by the editor.
+    public typealias SavedVideo = VideoEditorKit.SavedVideo
     /// The host-controlled source and restore payload for one editing run.
     public typealias Session = VideoEditorSession
     /// Callback bundle invoked as the user edits, dismisses, and exports content.
@@ -39,14 +43,10 @@ public struct VideoEditorView: View {
             title,
             session: session,
             callbacks: callbacks,
-            onCancel: dismissEditor,
+            onCancel: requestEditorDismissal,
             onBootstrapStateChanged: syncPlayerLoadState
         ) {
-            if editorViewModel.currentVideo != nil {
-                Button(action: presentExporter) {
-                    Text(VideoEditorStrings.export)
-                }
-            }
+            editorToolbarActions
         } loadedContent: { availableSize, resolvedSourceVideoURL in
             VideoEditorLoadedView(
                 availableSize: availableSize,
@@ -89,11 +89,28 @@ public struct VideoEditorView: View {
         .fullScreenCover(isPresented: $bindablePresentationState.showRecordView) {
             RecordVideoView(handleRecordedVideo)
         }
+        .alert(
+            VideoEditorStrings.unsavedChangesAlertTitle,
+            isPresented: cancelConfirmationBinding,
+            presenting: cancelConfirmationState
+        ) { _ in
+            Button(VideoEditorStrings.save, action: saveChangesAndDismiss)
+
+            Button(VideoEditorStrings.discardUnsavedChanges, role: .destructive) {
+                discardChangesAndDismiss()
+            }
+
+            Button(VideoEditorStrings.cancel, role: .cancel) {
+                cancelConfirmationState = nil
+            }
+        } message: { _ in
+            Text(VideoEditorStrings.unsavedChangesAlertMessage)
+        }
         .onChange(of: videoPlayer.isPlaybackFocusActive) { _, isPlaybackFocusActive in
             handlePlaybackLockChange(isPlaybackFocusActive)
         }
         .onChange(of: editorViewModel.presentationState.editingConfigurationRevision) { _, _ in
-            publishEditingConfigurationIfNeeded()
+            handleEditingConfigurationChange()
         }
         .onChange(of: configuration.tools) { _, newValue in
             editorViewModel.setToolAvailability(newValue)
@@ -137,6 +154,41 @@ public struct VideoEditorView: View {
         editorViewModel.exportEditingConfiguration() ?? .initial
     }
 
+    private var canSaveCurrentEdit: Bool {
+        Self.canPresentManualSaveAction(
+            hasLoadedVideo: editorViewModel.currentVideo != nil,
+            hasUnsavedChanges: manualSaveCoordinator.hasUnsavedChanges
+        )
+    }
+
+    private var cancelConfirmationBinding: Binding<Bool> {
+        .init(
+            get: { cancelConfirmationState != nil },
+            set: { isPresented in
+                guard isPresented == false else { return }
+                cancelConfirmationState = nil
+            }
+        )
+    }
+
+    @ViewBuilder
+    private var editorToolbarActions: some View {
+        if editorViewModel.currentVideo != nil {
+            HStack(spacing: 12) {
+                Button(action: presentExporter) {
+                    Image(systemName: "square.and.arrow.up")
+                }
+                .accessibilityLabel(VideoEditorStrings.export)
+
+                Button(action: saveCurrentEdit) {
+                    Text(VideoEditorStrings.save)
+                }
+                .buttonStyle(.primary)
+                .disabled(!canSaveCurrentEdit)
+            }
+        }
+    }
+
     // MARK: - Initializer
 
     /// Creates the editor from an explicit session object.
@@ -159,6 +211,7 @@ public struct VideoEditorView: View {
         editingConfiguration: VideoEditingConfiguration? = nil,
         configuration: Configuration = .init(),
         onSaveStateChanged: @escaping (SaveState) -> Void = { _ in },
+        onSavedVideo: @escaping (SavedVideo) -> Void = { _ in },
         onSourceVideoResolved: @escaping (URL) -> Void = { _ in },
         onDismissed: @escaping (VideoEditingConfiguration?) -> Void = { _ in },
         onExportedVideoURL: @escaping (URL) -> Void = { _ in }
@@ -172,6 +225,7 @@ public struct VideoEditorView: View {
             configuration: configuration,
             callbacks: .init(
                 onSaveStateChanged: onSaveStateChanged,
+                onSavedVideo: onSavedVideo,
                 onSourceVideoResolved: onSourceVideoResolved,
                 onDismissed: onDismissed,
                 onExportedVideoURL: onExportedVideoURL
@@ -186,6 +240,7 @@ public struct VideoEditorView: View {
         editingConfiguration: VideoEditingConfiguration? = nil,
         configuration: Configuration = .init(),
         onSaveStateChanged: @escaping (SaveState) -> Void = { _ in },
+        onSavedVideo: @escaping (SavedVideo) -> Void = { _ in },
         onSourceVideoResolved: @escaping (URL) -> Void = { _ in },
         onDismissed: @escaping (VideoEditingConfiguration?) -> Void = { _ in },
         onExportedVideoURL: @escaping (URL) -> Void = { _ in }
@@ -196,6 +251,7 @@ public struct VideoEditorView: View {
             editingConfiguration: editingConfiguration,
             configuration: configuration,
             onSaveStateChanged: onSaveStateChanged,
+            onSavedVideo: onSavedVideo,
             onSourceVideoResolved: onSourceVideoResolved,
             onDismissed: onDismissed,
             onExportedVideoURL: onExportedVideoURL
@@ -223,7 +279,17 @@ public struct VideoEditorView: View {
         editorViewModel.closeSelectedTool()
     }
 
-    private func dismissEditor() {
+    private func requestEditorDismissal() {
+        Self.handleCancelRequest(
+            hasUnsavedChanges: manualSaveCoordinator.hasUnsavedChanges,
+            presentConfirmation: { state in
+                cancelConfirmationState = state
+            },
+            dismiss: dismissEditorImmediately
+        )
+    }
+
+    private func dismissEditorImmediately() {
         Self.dismissEditor(
             editorViewModel: editorViewModel,
             fallbackEditingConfiguration: session.editingConfiguration,
@@ -239,19 +305,12 @@ public struct VideoEditorView: View {
         )
     }
 
-    private func handleRecordedVideo(_ url: URL) {
-        Self.handleRecordedVideo(
-            url,
-            editorViewModel: editorViewModel,
-            videoPlayer: videoPlayer
-        )
-    }
-
-    private func publishEditingConfigurationIfNeeded() {
-        Self.scheduleSaveIfNeeded(
+    private func saveCurrentEdit() {
+        Self.performManualSave(
             editorViewModel: editorViewModel,
             fallbackSourceVideoURL: session.sourceVideoURL,
             saveEmissionCoordinator: saveEmissionCoordinator,
+            manualSaveCoordinator: manualSaveCoordinator,
             onPublish: { publishedSave in
                 callbacks.onSaveStateChanged(
                     .init(
@@ -263,20 +322,49 @@ public struct VideoEditorView: View {
         )
     }
 
+    private func handleEditingConfigurationChange() {
+        Self.handleEditingConfigurationChange(
+            editorViewModel: editorViewModel,
+            manualSaveCoordinator: manualSaveCoordinator
+        )
+    }
+
+    private func saveChangesAndDismiss() {
+        cancelConfirmationState = nil
+        saveCurrentEdit()
+        dismissEditorImmediately()
+    }
+
+    private func discardChangesAndDismiss() {
+        cancelConfirmationState = nil
+        manualSaveCoordinator.reset()
+        dismissEditorImmediately()
+    }
+
+    private func handleRecordedVideo(_ url: URL) {
+        manualSaveCoordinator.reset()
+        Self.handleRecordedVideo(
+            url,
+            editorViewModel: editorViewModel,
+            videoPlayer: videoPlayer
+        )
+    }
+
     private func handleScenePhaseChange(_ scenePhase: ScenePhase) {
         exportLifecycleState = .init(scenePhase: scenePhase)
     }
 
     private func handleDisappear() {
-        Self.handleDisappear(
-            saveEmissionCoordinator: saveEmissionCoordinator,
-            editorViewModel: editorViewModel
-        )
+        Self.handleDisappear(editorViewModel: editorViewModel)
     }
 
     private func syncPlayerLoadState(
         for bootstrapState: VideoEditorSessionBootstrapCoordinator.BootstrapState
     ) {
+        if case .loaded = bootstrapState {
+            manualSaveCoordinator.reset()
+        }
+
         videoPlayer.loadState = Self.resolvedPlayerLoadState(
             for: bootstrapState,
             currentVideoURL: editorViewModel.currentVideo?.url

@@ -78,6 +78,65 @@ extension VideoEditorView {
         )
     }
 
+    static func syncManualSaveState(
+        editorViewModel: EditorViewModel,
+        manualSaveCoordinator: VideoEditorManualSaveCoordinator
+    ) {
+        let editingConfiguration = editorViewModel.currentEditingConfiguration()
+        manualSaveCoordinator.resetBaselineIfNeeded(to: editingConfiguration)
+        manualSaveCoordinator.updateCurrentEditingConfiguration(editingConfiguration)
+    }
+
+    static func handleEditingConfigurationChange(
+        editorViewModel: EditorViewModel,
+        manualSaveCoordinator: VideoEditorManualSaveCoordinator
+    ) {
+        syncManualSaveState(
+            editorViewModel: editorViewModel,
+            manualSaveCoordinator: manualSaveCoordinator
+        )
+    }
+
+    static func performManualSave(
+        editorViewModel: EditorViewModel,
+        fallbackSourceVideoURL: URL?,
+        saveEmissionCoordinator: VideoEditorSaveEmissionCoordinator,
+        manualSaveCoordinator: VideoEditorManualSaveCoordinator,
+        onPublish: @escaping @MainActor (VideoEditorSaveEmissionCoordinator.PublishedSave) -> Void
+    ) {
+        guard let currentEditingConfiguration = editorViewModel.currentEditingConfiguration() else {
+            return
+        }
+
+        scheduleSaveIfNeeded(
+            editorViewModel: editorViewModel,
+            fallbackSourceVideoURL: fallbackSourceVideoURL,
+            saveEmissionCoordinator: saveEmissionCoordinator,
+            onPublish: onPublish
+        )
+        manualSaveCoordinator.markSaved(currentEditingConfiguration)
+    }
+
+    static func canPresentManualSaveAction(
+        hasLoadedVideo: Bool,
+        hasUnsavedChanges: Bool
+    ) -> Bool {
+        hasLoadedVideo && hasUnsavedChanges
+    }
+
+    static func handleCancelRequest(
+        hasUnsavedChanges: Bool,
+        presentConfirmation: (VideoEditorCancelConfirmationState) -> Void,
+        dismiss: () -> Void
+    ) {
+        guard hasUnsavedChanges else {
+            dismiss()
+            return
+        }
+
+        presentConfirmation(.unsavedChanges)
+    }
+
     static func handleMaximumVideoDurationChange(
         _ maximumVideoDuration: Double?,
         editorViewModel: EditorViewModel,
@@ -132,11 +191,7 @@ extension VideoEditorView {
         callbacks.onExportedVideoURL(video.url)
     }
 
-    static func handleDisappear(
-        saveEmissionCoordinator: VideoEditorSaveEmissionCoordinator,
-        editorViewModel: EditorViewModel
-    ) {
-        saveEmissionCoordinator.reset()
+    static func handleDisappear(editorViewModel: EditorViewModel) {
         editorViewModel.cancelDeferredTasks()
     }
 

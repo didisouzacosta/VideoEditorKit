@@ -151,6 +151,209 @@ struct VideoEditorViewRuntimeTests {
     }
 
     @Test
+    func canPresentManualSaveActionRequiresLoadedVideoAndUnsavedChanges() {
+        #expect(
+            VideoEditorView.canPresentManualSaveAction(
+                hasLoadedVideo: false,
+                hasUnsavedChanges: true
+            ) == false
+        )
+        #expect(
+            VideoEditorView.canPresentManualSaveAction(
+                hasLoadedVideo: true,
+                hasUnsavedChanges: false
+            ) == false
+        )
+        #expect(
+            VideoEditorView.canPresentManualSaveAction(
+                hasLoadedVideo: true,
+                hasUnsavedChanges: true
+            )
+        )
+    }
+
+    @Test
+    func cancelRequestDismissesImmediatelyWhenThereAreNoUnsavedChanges() {
+        let dismissalRecorder = DismissalRecorder()
+        var confirmationState: VideoEditorCancelConfirmationState?
+
+        VideoEditorView.handleCancelRequest(
+            hasUnsavedChanges: false,
+            presentConfirmation: { confirmationState = $0 },
+            dismiss: {
+                dismissalRecorder.record()
+            }
+        )
+
+        #expect(confirmationState == nil)
+        #expect(dismissalRecorder.count == 1)
+    }
+
+    @Test
+    func cancelRequestPresentsConfirmationWhenThereAreUnsavedChanges() {
+        let dismissalRecorder = DismissalRecorder()
+        var confirmationState: VideoEditorCancelConfirmationState?
+
+        VideoEditorView.handleCancelRequest(
+            hasUnsavedChanges: true,
+            presentConfirmation: { confirmationState = $0 },
+            dismiss: {
+                dismissalRecorder.record()
+            }
+        )
+
+        #expect(confirmationState == .unsavedChanges)
+        #expect(dismissalRecorder.count == 0)
+    }
+
+    @Test
+    func syncManualSaveStateStartsCleanForTheFirstLoadedConfiguration() {
+        let editorViewModel = EditorViewModel()
+        let coordinator = VideoEditorManualSaveCoordinator()
+        var video = Video.mock
+        video.rangeDuration = 1...8
+        editorViewModel.currentVideo = video
+
+        VideoEditorView.syncManualSaveState(
+            editorViewModel: editorViewModel,
+            manualSaveCoordinator: coordinator
+        )
+
+        #expect(coordinator.hasUnsavedChanges == false)
+    }
+
+    @Test
+    func syncManualSaveStateMarksMeaningfulEditsAsUnsavedAfterBaselineExists() {
+        let editorViewModel = EditorViewModel()
+        let coordinator = VideoEditorManualSaveCoordinator()
+        var video = Video.mock
+        video.rangeDuration = 1...8
+        editorViewModel.currentVideo = video
+
+        VideoEditorView.syncManualSaveState(
+            editorViewModel: editorViewModel,
+            manualSaveCoordinator: coordinator
+        )
+
+        video.rangeDuration = 2...7
+        editorViewModel.currentVideo = video
+        VideoEditorView.syncManualSaveState(
+            editorViewModel: editorViewModel,
+            manualSaveCoordinator: coordinator
+        )
+
+        #expect(coordinator.hasUnsavedChanges)
+    }
+
+    @Test
+    func editingConfigurationChangeTracksUnsavedChangesWithoutPublishingSaveState() {
+        let editorViewModel = EditorViewModel()
+        let manualSaveCoordinator = VideoEditorManualSaveCoordinator()
+        var video = Video.mock
+        video.rangeDuration = 1...8
+        editorViewModel.currentVideo = video
+
+        VideoEditorView.handleEditingConfigurationChange(
+            editorViewModel: editorViewModel,
+            manualSaveCoordinator: manualSaveCoordinator
+        )
+
+        video.rangeDuration = 2...7
+        editorViewModel.currentVideo = video
+        VideoEditorView.handleEditingConfigurationChange(
+            editorViewModel: editorViewModel,
+            manualSaveCoordinator: manualSaveCoordinator
+        )
+
+        #expect(manualSaveCoordinator.hasUnsavedChanges)
+    }
+
+    @Test
+    func performManualSavePublishesSaveStateAndClearsUnsavedChanges() async throws {
+        let sourceVideoURL = try TestFixtures.createTemporaryFile(fileExtension: "mp4")
+        let publishedSaveRecorder = PublishedSaveRecorder()
+        let saveEmissionCoordinator = VideoEditorSaveEmissionCoordinator(
+            .init(
+                sleep: { _ in },
+                makeThumbnailData: { _, _ in nil }
+            )
+        )
+        let manualSaveCoordinator = VideoEditorManualSaveCoordinator()
+        let editorViewModel = EditorViewModel()
+        var video = Video.mock
+        video.url = sourceVideoURL
+        video.rangeDuration = 1...8
+        editorViewModel.currentVideo = video
+
+        VideoEditorView.handleEditingConfigurationChange(
+            editorViewModel: editorViewModel,
+            manualSaveCoordinator: manualSaveCoordinator
+        )
+
+        video.rangeDuration = 2...7
+        editorViewModel.currentVideo = video
+        VideoEditorView.handleEditingConfigurationChange(
+            editorViewModel: editorViewModel,
+            manualSaveCoordinator: manualSaveCoordinator
+        )
+        #expect(manualSaveCoordinator.hasUnsavedChanges)
+
+        VideoEditorView.performManualSave(
+            editorViewModel: editorViewModel,
+            fallbackSourceVideoURL: sourceVideoURL,
+            saveEmissionCoordinator: saveEmissionCoordinator,
+            manualSaveCoordinator: manualSaveCoordinator
+        ) { publishedSave in
+            Task {
+                await publishedSaveRecorder.record(publishedSave)
+            }
+        }
+
+        await publishedSaveRecorder.waitUntilCount(is: 1)
+
+        #expect(manualSaveCoordinator.hasUnsavedChanges == false)
+        #expect(await publishedSaveRecorder.saves.first?.editingConfiguration.trim.lowerBound == 2)
+    }
+
+    @Test
+    func handleDisappearKeepsExplicitManualSaveEmissionAlive() async throws {
+        let sourceVideoURL = try TestFixtures.createTemporaryFile(fileExtension: "mp4")
+        let sleepProbe = ManualSaveSleepProbe()
+        let publishedSaveRecorder = PublishedSaveRecorder()
+        let saveEmissionCoordinator = VideoEditorSaveEmissionCoordinator(
+            .init(
+                sleep: { _ in
+                    await sleepProbe.sleep()
+                },
+                makeThumbnailData: { _, _ in nil }
+            )
+        )
+        let manualSaveCoordinator = VideoEditorManualSaveCoordinator()
+        let editorViewModel = EditorViewModel()
+        var video = Video.mock
+        video.url = sourceVideoURL
+        editorViewModel.currentVideo = video
+
+        VideoEditorView.performManualSave(
+            editorViewModel: editorViewModel,
+            fallbackSourceVideoURL: sourceVideoURL,
+            saveEmissionCoordinator: saveEmissionCoordinator,
+            manualSaveCoordinator: manualSaveCoordinator
+        ) { publishedSave in
+            Task {
+                await publishedSaveRecorder.record(publishedSave)
+            }
+        }
+        await sleepProbe.waitUntilCount(is: 1)
+
+        VideoEditorView.handleDisappear(editorViewModel: editorViewModel)
+        await sleepProbe.resumeNext()
+        try? await Task.sleep(for: .milliseconds(50))
+
+        #expect(await publishedSaveRecorder.saves.count == 1)
+    }
+
+    @Test
     func presentExporterPausesPlaybackAndPresentsTheQualitySheet() async throws {
         let editorViewModel = EditorViewModel()
         let videoPlayer = VideoPlayerManager()
@@ -271,6 +474,35 @@ private actor PublishedSaveRecorder {
         while saves.count < expectedCount {
             try? await Task.sleep(for: .milliseconds(10))
         }
+    }
+
+}
+
+private actor ManualSaveSleepProbe {
+
+    // MARK: - Private Properties
+
+    private var sleepCount = 0
+    private var continuations = [CheckedContinuation<Void, Never>]()
+
+    // MARK: - Public Methods
+
+    func sleep() async {
+        sleepCount += 1
+        await withCheckedContinuation { continuation in
+            continuations.append(continuation)
+        }
+    }
+
+    func waitUntilCount(is expectedCount: Int) async {
+        while sleepCount < expectedCount {
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+    }
+
+    func resumeNext() {
+        guard continuations.isEmpty == false else { return }
+        continuations.removeFirst().resume()
     }
 
 }

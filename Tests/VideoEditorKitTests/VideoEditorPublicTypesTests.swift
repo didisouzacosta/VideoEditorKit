@@ -16,11 +16,25 @@ struct VideoEditorPublicTypesTests {
         let saveState = VideoEditorView.SaveState(
             editingConfiguration: .initial
         )
+        let savedVideo = VideoEditorView.SavedVideo(
+            url,
+            originalVideoURL: url,
+            editingConfiguration: .initial,
+            metadata: .init(
+                url,
+                width: 1920,
+                height: 1080,
+                duration: 1,
+                fileSize: 1024
+            )
+        )
         let configuration = VideoEditorView.Configuration.allToolsEnabled
         let callbacks = VideoEditorView.Callbacks()
 
         #expect(session.sourceVideoURL == url)
         #expect(saveState.editingConfiguration == .initial)
+        #expect(savedVideo.originalVideoURL == url)
+        #expect(savedVideo.metadata.url == url)
         #expect(configuration.tools == VideoEditorConfiguration.allToolsEnabled.tools)
         #expect(configuration.transcription == nil)
         callbacks.onDismissed(nil)
@@ -81,6 +95,65 @@ struct VideoEditorPublicTypesTests {
         )
 
         #expect(saveState.continuousSaveFingerprint == configuration.continuousSaveFingerprint)
+    }
+
+    @Test
+    func savedVideoCarriesTheManualSavePayload() {
+        let savedURL = URL(fileURLWithPath: "/tmp/saved.mp4")
+        let originalURL = URL(fileURLWithPath: "/tmp/original.mp4")
+        let configuration = VideoEditingConfiguration(
+            playback: .init(rate: 2)
+        )
+        let metadata = ExportedVideo(
+            savedURL,
+            width: 1280,
+            height: 720,
+            duration: 8,
+            fileSize: 2048
+        )
+        let savedVideo = SavedVideo(
+            savedURL,
+            originalVideoURL: originalURL,
+            editingConfiguration: configuration,
+            thumbnailData: Data([4, 5, 6]),
+            metadata: metadata
+        )
+
+        #expect(savedVideo.url == savedURL)
+        #expect(savedVideo.originalVideoURL == originalURL)
+        #expect(savedVideo.editingConfiguration == configuration)
+        #expect(savedVideo.thumbnailData == Data([4, 5, 6]))
+        #expect(savedVideo.metadata == metadata)
+    }
+
+    @Test
+    func callbacksExposeTheManualSaveHandlerSeparatelyFromExport() {
+        let savedURL = URL(fileURLWithPath: "/tmp/saved.mp4")
+        let exportedURL = URL(fileURLWithPath: "/tmp/exported.mp4")
+        var capturedSavedVideo: SavedVideo?
+        var capturedExportedURL: URL?
+        let callbacks = VideoEditorCallbacks(
+            onSavedVideo: { capturedSavedVideo = $0 },
+            onExportedVideoURL: { capturedExportedURL = $0 }
+        )
+        let savedVideo = SavedVideo(
+            savedURL,
+            originalVideoURL: URL(fileURLWithPath: "/tmp/original.mp4"),
+            editingConfiguration: .initial,
+            metadata: .init(
+                savedURL,
+                width: 640,
+                height: 480,
+                duration: 3,
+                fileSize: 512
+            )
+        )
+
+        callbacks.onSavedVideo(savedVideo)
+        callbacks.onExportedVideoURL(exportedURL)
+
+        #expect(capturedSavedVideo == savedVideo)
+        #expect(capturedExportedURL == exportedURL)
     }
 
 }
