@@ -175,6 +175,76 @@ struct VideoEditorTests {
     }
 
     @Test
+    func resolvedSaveNativeRenderProfilePreservesSourceResolutionAndFrameRate() {
+        let profile = VideoEditor.resolvedRenderProfile(
+            for: CGSize(width: 1920, height: 1080),
+            editingConfiguration: VideoEditingConfiguration(
+                canvas: .init(
+                    snapshot: .init(
+                        preset: .facebookPost,
+                        freeCanvasSize: CGSize(width: 1080, height: 1350)
+                    )
+                )
+            ),
+            intent: .saveNative(sourceFrameRate: 23.976),
+            isSimulatorEnvironment: true
+        )
+
+        #expect(profile.intent == .saveNative(sourceFrameRate: 23.976))
+        #expect(profile.renderSize == CGSize(width: 1920, height: 1080))
+        #expect(abs(profile.frameDuration.seconds - (1 / 23.976)) < 0.0001)
+        #expect(profile.renderPresetName == AVAssetExportPresetHighestQuality)
+        #expect(profile.passthroughPresetName == AVAssetExportPresetPassthrough)
+    }
+
+    @Test
+    func resolvedSaveNativeRenderProfileFallsBackToThirtyFPSWhenSourceFrameRateIsInvalid() {
+        let profile = VideoEditor.resolvedRenderProfile(
+            for: CGSize(width: 1080, height: 1920),
+            editingConfiguration: .initial,
+            intent: .saveNative(sourceFrameRate: 0),
+            isSimulatorEnvironment: true
+        )
+
+        #expect(profile.renderSize == CGSize(width: 1080, height: 1920))
+        #expect(profile.frameDuration == CMTime(seconds: 1 / 30, preferredTimescale: 600))
+    }
+
+    @Test
+    func resolvedSourceFrameRateLoadsNominalFrameRateFromTheVideoAsset() async throws {
+        let url = try await TestFixtures.createTemporaryVideo(
+            frameCount: 48,
+            framesPerSecond: 24
+        )
+        let asset = AVURLAsset(url: url)
+
+        let frameRate = await VideoEditor.resolvedSourceFrameRate(for: asset)
+
+        #expect(frameRate == 24)
+    }
+
+    @Test
+    func resolvedExportRenderProfileKeepsSelectedQualityRules() {
+        let profile = VideoEditor.resolvedRenderProfile(
+            for: CGSize(width: 1920, height: 1080),
+            editingConfiguration: VideoEditingConfiguration(
+                canvas: .init(
+                    snapshot: .init(
+                        preset: .facebookPost,
+                        freeCanvasSize: CGSize(width: 1080, height: 1350)
+                    )
+                )
+            ),
+            intent: .export(.medium),
+            isSimulatorEnvironment: true
+        )
+
+        #expect(profile.intent == .export(.medium))
+        #expect(profile.renderSize == CGSize(width: 720, height: 900))
+        #expect(profile.frameDuration == CMTime(seconds: 1 / 30, preferredTimescale: 600))
+    }
+
+    @Test
     func resolvedOutputRenderLayoutUsesCanvasPresetOrientationWhenPersisted() {
         let configuration = VideoEditingConfiguration(
             canvas: .init(

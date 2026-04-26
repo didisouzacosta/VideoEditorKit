@@ -348,7 +348,7 @@ struct VideoEditorViewRuntimeTests {
 
         VideoEditorView.handleDisappear(editorViewModel: editorViewModel)
         await sleepProbe.resumeNext()
-        try? await Task.sleep(for: .milliseconds(50))
+        await publishedSaveRecorder.waitUntilCount(is: 1)
 
         #expect(await publishedSaveRecorder.saves.count == 1)
     }

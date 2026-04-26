@@ -391,6 +391,23 @@ extension VideoEditor {
 
     }
 
+    enum VideoRenderIntent: Equatable {
+        case saveNative(sourceFrameRate: Double?)
+        case export(VideoQuality)
+    }
+
+    struct RenderProfile: Equatable {
+
+        // MARK: - Public Properties
+
+        let intent: VideoRenderIntent
+        let renderSize: CGSize
+        let frameDuration: CMTime
+        let renderPresetName: String
+        let passthroughPresetName: String
+
+    }
+
     private struct TranscriptAnimationContext {
 
         // MARK: - Public Properties
@@ -547,7 +564,7 @@ extension VideoEditor {
         videoQuality: VideoQuality,
         isSimulatorEnvironment: Bool = isSimulator
     ) -> ExportProfile {
-        return resolvedExportProfile(
+        resolvedExportProfile(
             for: video.presentationSize,
             editingConfiguration: editingConfiguration,
             videoQuality: videoQuality,
@@ -561,23 +578,77 @@ extension VideoEditor {
         videoQuality: VideoQuality,
         isSimulatorEnvironment: Bool = isSimulator
     ) -> ExportProfile {
-        let renderSize = resolvedOutputRenderSize(
+        let renderProfile = resolvedRenderProfile(
             for: sourceSize,
             editingConfiguration: editingConfiguration,
-            videoQuality: videoQuality
-        )
-        let presetNames = resolvedExportPresetNames(
-            for: videoQuality,
+            intent: .export(videoQuality),
             isSimulatorEnvironment: isSimulatorEnvironment
         )
 
         return ExportProfile(
             quality: videoQuality,
+            renderSize: renderProfile.renderSize,
+            frameDuration: renderProfile.frameDuration,
+            renderPresetName: renderProfile.renderPresetName,
+            passthroughPresetName: renderProfile.passthroughPresetName
+        )
+    }
+
+    static func resolvedRenderProfile(
+        for sourceSize: CGSize,
+        editingConfiguration: VideoEditingConfiguration,
+        intent: VideoRenderIntent,
+        isSimulatorEnvironment: Bool = isSimulator
+    ) -> RenderProfile {
+        let renderSize: CGSize
+        let resolvedFrameDuration: CMTime
+        let presetNames:
+            (
+                renderPresetName: String,
+                passthroughPresetName: String
+            )
+
+        switch intent {
+        case .saveNative(let sourceFrameRate):
+            renderSize = evenPixelSize(for: sourceSize)
+            resolvedFrameDuration = frameDuration(forSourceFrameRate: sourceFrameRate)
+            presetNames = resolvedNativeSavePresetNames(isSimulatorEnvironment: isSimulatorEnvironment)
+        case .export(let videoQuality):
+            renderSize = resolvedOutputRenderSize(
+                for: sourceSize,
+                editingConfiguration: editingConfiguration,
+                videoQuality: videoQuality
+            )
+            resolvedFrameDuration = frameDuration(for: videoQuality)
+            presetNames = resolvedExportPresetNames(
+                for: videoQuality,
+                isSimulatorEnvironment: isSimulatorEnvironment
+            )
+        }
+
+        return RenderProfile(
+            intent: intent,
             renderSize: renderSize,
-            frameDuration: frameDuration(for: videoQuality),
+            frameDuration: resolvedFrameDuration,
             renderPresetName: presetNames.renderPresetName,
             passthroughPresetName: presetNames.passthroughPresetName
         )
+    }
+
+    static func resolvedSourceFrameRate(for asset: AVAsset) async -> Double? {
+        guard let videoTrack = try? await asset.loadTracks(withMediaType: .video).first else {
+            return nil
+        }
+        guard let nominalFrameRate = try? await videoTrack.load(.nominalFrameRate) else {
+            return nil
+        }
+
+        let frameRate = Double(nominalFrameRate)
+        guard frameRate.isFinite, frameRate > 0 else {
+            return nil
+        }
+
+        return frameRate
     }
 
     static func resolvedCanvasRenderSize(
@@ -1007,11 +1078,47 @@ extension VideoEditor {
         )
     }
 
+    private static func resolvedNativeSavePresetNames(
+        isSimulatorEnvironment: Bool
+    ) -> (
+        renderPresetName: String,
+        passthroughPresetName: String
+    ) {
+        guard isSimulatorEnvironment else {
+            return (
+                renderPresetName: AVAssetExportPresetHighestQuality,
+                passthroughPresetName: AVAssetExportPresetHighestQuality
+            )
+        }
+
+        return (
+            renderPresetName: AVAssetExportPresetHighestQuality,
+            passthroughPresetName: AVAssetExportPresetPassthrough
+        )
+    }
+
     private static func frameDuration(
         for videoQuality: VideoQuality
     ) -> CMTime {
         CMTime(
             seconds: 1 / max(videoQuality.frameRate, 1),
+            preferredTimescale: 600
+        )
+    }
+
+    private static func frameDuration(
+        forSourceFrameRate sourceFrameRate: Double?
+    ) -> CMTime {
+        guard
+            let sourceFrameRate,
+            sourceFrameRate.isFinite,
+            sourceFrameRate > 0
+        else {
+            return CMTime(seconds: 1 / 30, preferredTimescale: 600)
+        }
+
+        return CMTime(
+            seconds: 1 / sourceFrameRate,
             preferredTimescale: 600
         )
     }
