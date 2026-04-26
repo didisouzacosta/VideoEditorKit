@@ -82,6 +82,10 @@ struct ExportQualityOptionPresentation: Equatable, Identifiable, Sendable {
         isBlocked
     }
 
+    var allowsMultilineSubtitle: Bool {
+        quality == .original
+    }
+
     var accessibilityLabel: String {
         VideoEditorStrings.exportQualityAccessibilityLabel(
             title: quality.title,
@@ -348,9 +352,15 @@ private struct ExportQualityOptionRow: View {
                     Text(presentation.quality.subtitle)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
+                        .lineLimit(presentation.allowsMultilineSubtitle ? nil : 1)
+                        .fixedSize(
+                            horizontal: false,
+                            vertical: presentation.allowsMultilineSubtitle
+                        )
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-                Spacer()
+                Spacer(minLength: 12)
 
                 Image(systemName: trailingSymbolName)
                     .font(.headline)

@@ -392,6 +392,10 @@ final class ExporterViewModel {
     ) -> VideoQuality {
         let sortedQualities = sortedExportQualities(exportQualities)
 
+        if sortedQualities.contains(where: { $0.quality == .original && $0.isEnabled }) {
+            return .original
+        }
+
         if let enabledQuality = sortedQualities.first(where: \.isEnabled)?.quality {
             return enabledQuality
         }

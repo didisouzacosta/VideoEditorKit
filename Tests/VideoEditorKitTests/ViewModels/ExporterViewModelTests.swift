@@ -22,7 +22,7 @@ struct ExporterViewModelTests {
         #expect(viewModel.exportProgress == 0)
         #expect(viewModel.progressText == "0%")
         #expect(viewModel.exportActionTitle == "Export")
-        #expect(viewModel.selectedQuality == .high)
+        #expect(viewModel.selectedQuality == .original)
     }
 
     @Test
@@ -72,7 +72,7 @@ struct ExporterViewModelTests {
     }
 
     @Test
-    func blockedPremiumExportDefaultsToTheFirstEnabledResolutionQuality() {
+    func blockedPremiumExportDefaultsToOriginalQuality() {
         let viewModel = ExporterViewModel(
             Video.mock,
             exportQualities: [
@@ -82,7 +82,7 @@ struct ExporterViewModelTests {
             ]
         )
 
-        #expect(viewModel.selectedQuality == .low)
+        #expect(viewModel.selectedQuality == .original)
         #expect(viewModel.canExportVideo)
     }
 
@@ -97,12 +97,12 @@ struct ExporterViewModelTests {
             ]
         )
 
-        #expect(viewModel.selectedQuality == .medium)
+        #expect(viewModel.selectedQuality == .original)
 
         viewModel.selectQuality(.high)
 
-        #expect(viewModel.selectedQuality == .medium)
-        #expect(viewModel.isSelectedQuality(.medium))
+        #expect(viewModel.selectedQuality == .original)
+        #expect(viewModel.isSelectedQuality(.original))
     }
 
     @Test

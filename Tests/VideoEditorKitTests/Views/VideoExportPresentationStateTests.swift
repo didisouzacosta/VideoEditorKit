@@ -143,4 +143,17 @@ struct VideoExportPresentationStateTests {
         #expect(high?.shouldNotifyBlockedTap == true)
     }
 
+    @Test
+    func originalQualitySubtitleCanUseMultipleLines() {
+        let options = ExportQualityPresentationResolver.optionPresentations(
+            for: ExportQualityAvailability.allEnabled,
+            selectedQuality: .original
+        )
+        let original = options.first(where: { $0.quality == .original })
+        let high = options.first(where: { $0.quality == .high })
+
+        #expect(original?.allowsMultilineSubtitle == true)
+        #expect(high?.allowsMultilineSubtitle == false)
+    }
+
 }
