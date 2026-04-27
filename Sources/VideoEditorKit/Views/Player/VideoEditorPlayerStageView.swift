@@ -146,16 +146,15 @@ public struct VideoEditorPlayerStageView<Content: View, Overlay: View, TrailingC
                 ) {
                     content()
                 } overlay: {
-                    Color.clear
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .overlay {
-                            overlayContent(canvasLayout)
-                        }
-                        .overlay(alignment: .bottomTrailing) {
-                            trailingControls()
-                                .padding(.trailing, 16)
-                                .padding(.bottom, 16)
-                        }
+                    ZStack(alignment: .bottomTrailing) {
+                        overlayContent(canvasLayout)
+                            .allowsHitTesting(false)
+
+                        trailingControls()
+                            .padding(.trailing, 16)
+                            .padding(.bottom, 16)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
                 .task(id: resolvedLayoutTaskID(for: proxy.size, canvasLayout: canvasLayout)) {
