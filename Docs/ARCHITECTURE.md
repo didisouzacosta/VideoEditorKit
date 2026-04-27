@@ -59,6 +59,7 @@ Example/VideoEditor.xcworkspace
 - Export: `Sources/VideoEditorKit/Internal/Models/Enums/VideoEditor.swift`
 - Manual save: `Sources/VideoEditorKit/Internal/Editing/VideoEditorManualSaveRenderer.swift`
 - Canvas: `Sources/VideoEditorKit/Canvas/`
+- Canvas gestures: `Sources/VideoEditorKit/Internal/Gestures/`
 - Example projects: `Example/VideoEditor/Data/Projects/`
 
 ## Persistence Model

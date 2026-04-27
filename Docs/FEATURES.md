@@ -9,7 +9,8 @@ This file is the current feature and resource map for `VideoEditorKit`.
 - Trim a playback range.
 - Change speed from `0.1x` to `8.0x`.
 - Apply crop presets and social formats.
-- Zoom and pan the canvas with pinch. Pinch must not rotate the video.
+- Zoom the canvas with pinch and pan by moving the pinch center; one-finger drag
+  still pans. Pinch must not rotate the video.
 - Rotate explicitly through editor controls.
 - Mirror horizontally.
 - Record one extra audio track and mix it with the video track.
