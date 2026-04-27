@@ -599,52 +599,6 @@
         }
       }
     },
-    "Based on the current Instagram Reels and Stories safe-zone guidance. Keep key text, logos and CTAs away from the top 14%, bottom 35% and outer 6% on each side." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Basierend auf der aktuellen Safe-Zone-Empfehlung für Instagram Reels und Stories. Halte wichtige Texte, Logos und CTAs von den oberen 14%, unteren 35% und den äußeren 6% jeder Seite fern."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Based on the current Instagram Reels and Stories safe-zone guidance. Keep key text, logos and CTAs away from the top 14%, bottom 35% and outer 6% on each side."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Basado en la guía actual de zona segura para Reels y Stories de Instagram. Mantén textos clave, logotipos y CTAs lejos del 14% superior, 35% inferior y 6% exterior de cada lado."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Basé sur les consignes actuelles de zone sûre pour les Reels et Stories Instagram. Gardez les textes clés, logos et CTA à l'écart des 14% supérieurs, des 35% inférieurs et des 6% extérieurs de chaque côté."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Instagram Reels と Stories の現在のセーフゾーンガイドに基づいています。重要なテキスト、ロゴ、CTA は上部 14%、下部 35%、左右外側 6% から離して配置してください。"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Baseado na orientação atual de área segura para Reels e Stories do Instagram. Mantenha textos importantes, logos e CTAs longe dos 14% superiores, 35% inferiores e 6% externos de cada lado."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "基于当前 Instagram Reels 和 Stories 的安全区指引。请将关键文字、标志和 CTA 远离顶部 14%、底部 35% 以及两侧外缘各 6% 的区域。"
-          }
-        }
-      }
-    },
     "Bottom" : {
       "localizations" : {
         "de" : {
@@ -5153,52 +5107,6 @@
         }
       }
     },
-    "editor.platform.instagram.explanation" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Basierend auf der aktuellen Safe-Zone-Empfehlung für Instagram Reels und Stories. Halte wichtige Texte, Logos und CTAs von den oberen 14%, unteren 35% und den äußeren 6% jeder Seite fern."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Based on the current Instagram Reels and Stories safe-zone guidance. Keep key text, logos and CTAs away from the top 14%, bottom 35% and outer 6% on each side."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Basado en la guía actual de zona segura para Reels y Stories de Instagram. Mantén textos clave, logotipos y CTAs lejos del 14% superior, 35% inferior y 6% exterior de cada lado."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Basé sur les consignes actuelles de zone sûre pour les Reels et Stories Instagram. Gardez les textes clés, logos et CTA à l'écart des 14% supérieurs, des 35% inférieurs et des 6% extérieurs de chaque côté."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Instagram Reels と Stories の現在のセーフゾーンガイドに基づいています。重要なテキスト、ロゴ、CTA は上部 14%、下部 35%、左右外側 6% から離して配置してください。"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Baseado na orientação atual de área segura para Reels e Stories do Instagram. Mantenha textos importantes, logos e CTAs longe dos 14% superiores, 35% inferiores e 6% externos de cada lado."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "基于当前 Instagram Reels 和 Stories 的安全区指引。请将关键文字、标志和 CTA 远离顶部 14%、底部 35% 以及两侧外缘各 6% 的区域。"
-          }
-        }
-      }
-    },
     "editor.platform.tiktok" : {
       "localizations" : {
         "de" : {
@@ -5245,52 +5153,6 @@
         }
       }
     },
-    "editor.platform.tiktok.explanation" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hält wichtige Inhalte innerhalb des klareren Sichtbereichs von TikTok und fern von oberer UI, rechten Aktionen und unteren Untertiteln."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Keeps important content inside TikTok's clearer viewing area, away from top chrome, right-side actions and lower captions."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mantiene el contenido importante dentro del área de visualización más limpia de TikTok, lejos de la barra superior, las acciones laterales derechas y los subtítulos inferiores."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Garde le contenu important dans la zone de visualisation la plus claire de TikTok, à l'écart de l'interface supérieure, des actions à droite et des sous-titres inférieurs."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "重要なコンテンツを、TikTok の上部 UI、右側のアクション、下部のキャプションから離れた、見やすい表示エリア内に保ちます。"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mantém o conteúdo importante dentro da área mais limpa de visualização do TikTok, longe dos elementos superiores, das ações na lateral direita e das legendas inferiores."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "将重要内容保持在 TikTok 更清晰的观看区域内，避开顶部界面、右侧操作区和底部字幕区域。"
-          }
-        }
-      }
-    },
     "editor.platform.youtube-shorts" : {
       "localizations" : {
         "de" : {
@@ -5333,52 +5195,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "YouTube Shorts"
-          }
-        }
-      }
-    },
-    "editor.platform.youtube-shorts.explanation" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hält wichtige Inhalte innerhalb des klareren Sichtbereichs von YouTube Shorts und fern von oberen Labels und unteren Wiedergabe-Overlays."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Keeps important content inside the clearer viewing area for YouTube Shorts, away from top labels and lower playback overlays."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mantiene el contenido importante dentro del área de visualización más limpia de YouTube Shorts, lejos de las etiquetas superiores y las superposiciones inferiores de reproducción."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Garde le contenu important dans la zone de visualisation la plus claire de YouTube Shorts, à l'écart des libellés supérieurs et des superpositions de lecture inférieures."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "重要なコンテンツを、上部ラベルや下部の再生オーバーレイから離れた、YouTube Shorts の見やすい表示エリア内に保ちます。"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mantém o conteúdo importante dentro da área mais limpa de visualização do YouTube Shorts, longe dos rótulos superiores e das sobreposições inferiores de reprodução."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "将重要内容保持在 YouTube Shorts 更清晰的观看区域内，避开顶部标签和底部播放覆盖层。"
           }
         }
       }
@@ -5977,52 +5793,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "原始"
-          }
-        }
-      }
-    },
-    "editor.safe-area.universal.explanation" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nutze diese Anleitung, wenn du eine 9:16-Komposition möchtest, die auf Instagram, TikTok und YouTube Shorts sicherer bleibt. Halte Überschriften, Gesichter, Logos und CTAs im hervorgehobenen Mittelbereich."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Use this guide when you want one 9:16 composition that stays safer across Instagram, TikTok and YouTube Shorts. Keep headlines, faces, logos and CTAs inside the highlighted center area."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Usa esta guía cuando quieras una composición 9:16 que sea más segura en Instagram, TikTok y YouTube Shorts. Mantén titulares, rostros, logotipos y CTAs dentro del área central resaltada."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Utilisez ce guide lorsque vous voulez une composition 9:16 plus sûre sur Instagram, TikTok et YouTube Shorts. Gardez les titres, visages, logos et CTA dans la zone centrale mise en évidence."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Instagram、TikTok、YouTube Shorts でより安全に見せたい 9:16 構図を作るときにこのガイドを使ってください。見出し、顔、ロゴ、CTA は強調表示された中央エリア内に配置してください。"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Use este guia quando quiser uma composição 9:16 que fique mais segura no Instagram, TikTok e YouTube Shorts. Mantenha títulos, rostos, logos e CTAs dentro da área central destacada."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "当你想要一个在 Instagram、TikTok 和 YouTube Shorts 上都更安全的 9:16 构图时，请使用此指南。请将标题、人脸、标志和 CTA 保持在高亮的中央区域内。"
           }
         }
       }
@@ -9289,98 +9059,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Instagram Reels、TikTok、Shorts"
-          }
-        }
-      }
-    },
-    "Keeps important content inside the clearer viewing area for YouTube Shorts, away from top labels and lower playback overlays." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hält wichtige Inhalte innerhalb des klareren Sichtbereichs von YouTube Shorts und fern von oberen Labels und unteren Wiedergabe-Overlays."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Keeps important content inside the clearer viewing area for YouTube Shorts, away from top labels and lower playback overlays."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mantiene el contenido importante dentro del área de visualización más limpia de YouTube Shorts, lejos de las etiquetas superiores y las superposiciones inferiores de reproducción."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Garde le contenu important dans la zone de visualisation la plus claire de YouTube Shorts, à l'écart des libellés supérieurs et des superpositions de lecture inférieures."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "重要なコンテンツを、上部ラベルや下部の再生オーバーレイから離れた、YouTube Shorts の見やすい表示エリア内に保ちます。"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mantém o conteúdo importante dentro da área mais limpa de visualização do YouTube Shorts, longe dos rótulos superiores e das sobreposições inferiores de reprodução."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "将重要内容保持在 YouTube Shorts 更清晰的观看区域内，避开顶部标签和底部播放覆盖层。"
-          }
-        }
-      }
-    },
-    "Keeps important content inside TikTok's clearer viewing area, away from top chrome, right-side actions and lower captions." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hält wichtige Inhalte innerhalb des klareren Sichtbereichs von TikTok und fern von oberer UI, rechten Aktionen und unteren Untertiteln."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Keeps important content inside TikTok's clearer viewing area, away from top chrome, right-side actions and lower captions."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mantiene el contenido importante dentro del área de visualización más limpia de TikTok, lejos de la barra superior, las acciones laterales derechas y los subtítulos inferiores."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Garde le contenu important dans la zone de visualisation la plus claire de TikTok, à l'écart de l'interface supérieure, des actions à droite et des sous-titres inférieurs."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "重要なコンテンツを、TikTok の上部 UI、右側のアクション、下部のキャプションから離れた、見やすい表示エリア内に保ちます。"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mantém o conteúdo importante dentro da área mais limpa de visualização do TikTok, longe dos elementos superiores, das ações na lateral direita e das legendas inferiores."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "将重要内容保持在 TikTok 更清晰的观看区域内，避开顶部界面、右侧操作区和底部字幕区域。"
           }
         }
       }
@@ -13475,52 +13153,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "未保存的更改"
-          }
-        }
-      }
-    },
-    "Use this guide when you want one 9:16 composition that stays safer across Instagram, TikTok and YouTube Shorts. Keep headlines, faces, logos and CTAs inside the highlighted center area." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nutze diese Anleitung, wenn du eine 9:16-Komposition möchtest, die auf Instagram, TikTok und YouTube Shorts sicherer bleibt. Halte Überschriften, Gesichter, Logos und CTAs im hervorgehobenen Mittelbereich."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Use this guide when you want one 9:16 composition that stays safer across Instagram, TikTok and YouTube Shorts. Keep headlines, faces, logos and CTAs inside the highlighted center area."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Usa esta guía cuando quieras una composición 9:16 que sea más segura en Instagram, TikTok y YouTube Shorts. Mantén titulares, rostros, logotipos y CTAs dentro del área central resaltada."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Utilisez ce guide lorsque vous voulez une composition 9:16 plus sûre sur Instagram, TikTok et YouTube Shorts. Gardez les titres, visages, logos et CTA dans la zone centrale mise en évidence."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Instagram、TikTok、YouTube Shorts でより安全に見せたい 9:16 構図を作るときにこのガイドを使ってください。見出し、顔、ロゴ、CTA は強調表示された中央エリア内に配置してください。"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Use este guia quando quiser uma composição 9:16 que fique mais segura no Instagram, TikTok e YouTube Shorts. Mantenha títulos, rostos, logos e CTAs dentro da área central destacada."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "当你想要一个在 Instagram、TikTok 和 YouTube Shorts 上都更安全的 9:16 构图时，请使用此指南。请将标题、人脸、标志和 CTA 保持在高亮的中央区域内。"
           }
         }
       }

@@ -46,6 +46,9 @@ public struct VideoEditorView: View {
             callbacks: callbacks,
             onCancel: requestEditorDismissal,
             onBootstrapStateChanged: syncPlayerLoadState,
+            cancelAction: { onCancel in
+                cancelToolbarAction(onCancel: onCancel)
+            },
             secondaryAction: {
                 exportToolbarAction
             },
@@ -94,23 +97,6 @@ public struct VideoEditorView: View {
         }
         .fullScreenCover(isPresented: $bindablePresentationState.showRecordView) {
             RecordVideoView(handleRecordedVideo)
-        }
-        .alert(
-            VideoEditorStrings.unsavedChangesAlertTitle,
-            isPresented: cancelConfirmationBinding,
-            presenting: cancelConfirmationState
-        ) { _ in
-            Button(VideoEditorStrings.save, action: saveChangesAndDismiss)
-
-            Button(VideoEditorStrings.discardUnsavedChanges, role: .destructive) {
-                discardChangesAndDismiss()
-            }
-
-            Button(VideoEditorStrings.cancel, role: .cancel) {
-                cancelConfirmationState = nil
-            }
-        } message: { _ in
-            Text(VideoEditorStrings.unsavedChangesAlertMessage)
         }
         .onChange(of: videoPlayer.isPlaybackFocusActive) { _, isPlaybackFocusActive in
             handlePlaybackLockChange(isPlaybackFocusActive)
@@ -303,6 +289,28 @@ public struct VideoEditorView: View {
             editorViewModel: editorViewModel,
             videoPlayer: videoPlayer
         )
+    }
+
+    @ViewBuilder
+    private func cancelToolbarAction(onCancel: @escaping () -> Void) -> some View {
+        Button(VideoEditorStrings.cancel, action: onCancel)
+            .alert(
+                VideoEditorStrings.unsavedChangesAlertTitle,
+                isPresented: cancelConfirmationBinding,
+                presenting: cancelConfirmationState
+            ) { _ in
+                Button(VideoEditorStrings.save, action: saveChangesAndDismiss)
+
+                Button(VideoEditorStrings.discardUnsavedChanges, role: .destructive) {
+                    discardChangesAndDismiss()
+                }
+
+                Button(VideoEditorStrings.cancel, role: .cancel) {
+                    cancelConfirmationState = nil
+                }
+            } message: { _ in
+                Text(VideoEditorStrings.unsavedChangesAlertMessage)
+            }
     }
 
     private func handlePlaybackLockChange(_ isPlaybackFocusActive: Bool) {

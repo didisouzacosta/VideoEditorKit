@@ -16,7 +16,7 @@ struct VideoEditorShellView: View {
                     .navigationTitle(title ?? "")
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) {
-                            Button(VideoEditorStrings.cancel, action: onCancel)
+                            cancelAction()
                         }
 
                         ToolbarItem(
@@ -53,6 +53,7 @@ struct VideoEditorShellView: View {
     private let callbacks: VideoEditorCallbacks
     private let onCancel: () -> Void
     private let onBootstrapStateChanged: (VideoEditorSessionBootstrapCoordinator.BootstrapState) -> Void
+    private let cancelAction: () -> AnyView
     private let secondaryAction: () -> AnyView
     private let primaryAction: () -> AnyView
     private let loadedContent: (CGSize, URL) -> AnyView
@@ -63,12 +64,15 @@ struct VideoEditorShellView: View {
 
     // MARK: - Initializer
 
-    init<SecondaryAction: View, PrimaryAction: View, LoadedContent: View>(
+    init<CancelAction: View, SecondaryAction: View, PrimaryAction: View, LoadedContent: View>(
         _ title: String? = nil,
         session: VideoEditorSession,
         callbacks: VideoEditorCallbacks = .init(),
         onCancel: @escaping () -> Void,
         onBootstrapStateChanged: @escaping (VideoEditorSessionBootstrapCoordinator.BootstrapState) -> Void = { _ in
+        },
+        @ViewBuilder cancelAction: @escaping (_ action: @escaping () -> Void) -> CancelAction = { action in
+            Button(VideoEditorStrings.cancel, action: action)
         },
         @ViewBuilder secondaryAction: @escaping () -> SecondaryAction = { EmptyView() },
         @ViewBuilder primaryAction: @escaping () -> PrimaryAction = { EmptyView() },
@@ -80,6 +84,9 @@ struct VideoEditorShellView: View {
         self.callbacks = callbacks
         self.onCancel = onCancel
         self.onBootstrapStateChanged = onBootstrapStateChanged
+        self.cancelAction = {
+            AnyView(cancelAction(onCancel))
+        }
         self.secondaryAction = {
             AnyView(secondaryAction())
         }
@@ -131,6 +138,7 @@ struct VideoEditorShellView: View {
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .safeAreaPadding()
     }
 
     private func bootstrapFailureView(message: String) -> some View {

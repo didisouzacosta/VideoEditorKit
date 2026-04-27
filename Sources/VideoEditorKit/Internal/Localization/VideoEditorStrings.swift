@@ -436,14 +436,6 @@ enum VideoEditorStrings {
         localized("editor.safe-area.universal.title", defaultValue: "Universal Social Safe Zone")
     }
 
-    static var safeAreaUniversalExplanation: String {
-        localized(
-            "editor.safe-area.universal.explanation",
-            defaultValue:
-                "Use this guide when you want one 9:16 composition that stays safer across Instagram, TikTok and YouTube Shorts. Keep headlines, faces, logos and CTAs inside the highlighted center area."
-        )
-    }
-
     static var platformInstagram: String {
         localized("editor.platform.instagram", defaultValue: "Instagram Reels & Stories")
     }
@@ -454,30 +446,6 @@ enum VideoEditorStrings {
 
     static var platformYouTubeShorts: String {
         localized("editor.platform.youtube-shorts", defaultValue: "YouTube Shorts")
-    }
-
-    static var platformInstagramExplanation: String {
-        localized(
-            "editor.platform.instagram.explanation",
-            defaultValue:
-                "Based on the current Instagram Reels and Stories safe-zone guidance. Keep key text, logos and CTAs away from the top 14%, bottom 35% and outer 6% on each side."
-        )
-    }
-
-    static var platformTikTokExplanation: String {
-        localized(
-            "editor.platform.tiktok.explanation",
-            defaultValue:
-                "Keeps important content inside TikTok's clearer viewing area, away from top chrome, right-side actions and lower captions."
-        )
-    }
-
-    static var platformYouTubeShortsExplanation: String {
-        localized(
-            "editor.platform.youtube-shorts.explanation",
-            defaultValue:
-                "Keeps important content inside the clearer viewing area for YouTube Shorts, away from top labels and lower playback overlays."
-        )
     }
 
     static var destinationInstagramReels: String {
