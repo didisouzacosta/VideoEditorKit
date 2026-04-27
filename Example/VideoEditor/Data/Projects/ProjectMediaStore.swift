@@ -50,7 +50,7 @@ struct ProjectMediaStore {
         from sourceURL: URL,
         to projectDirectoryURL: URL
     ) throws -> URL {
-        try persistFile(
+        try persistTransientOutputFile(
             from: sourceURL,
             to: resolvedVersionedMediaDestinationURL(
                 in: projectDirectoryURL,
@@ -64,7 +64,7 @@ struct ProjectMediaStore {
         from sourceURL: URL,
         to projectDirectoryURL: URL
     ) throws -> URL {
-        try persistFile(
+        try persistTransientOutputFile(
             from: sourceURL,
             to: resolvedVersionedMediaDestinationURL(
                 in: projectDirectoryURL,
@@ -231,6 +231,35 @@ struct ProjectMediaStore {
 
         fileManager.removeIfExists(for: destinationURL)
         try fileManager.copyItem(at: sourceURL, to: destinationURL)
+        return destinationURL
+    }
+
+    private func persistTransientOutputFile(
+        from sourceURL: URL,
+        to destinationURL: URL
+    ) throws -> URL {
+        if sourceURL.standardizedFileURL == destinationURL.standardizedFileURL {
+            return destinationURL
+        }
+
+        fileManager.removeIfExists(for: destinationURL)
+
+        guard isTransientMediaURL(sourceURL) else {
+            try fileManager.copyItem(at: sourceURL, to: destinationURL)
+            return destinationURL
+        }
+
+        do {
+            try fileManager.moveItem(at: sourceURL, to: destinationURL)
+        } catch {
+            guard fileManager.fileExists(atPath: sourceURL.path()) else {
+                throw error
+            }
+
+            fileManager.removeIfExists(for: destinationURL)
+            try fileManager.copyItem(at: sourceURL, to: destinationURL)
+        }
+
         return destinationURL
     }
 

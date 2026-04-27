@@ -205,14 +205,18 @@ struct VideoCanvasMappingActorTests {
     }
 
     @Test
-    func interactiveTransformKeepsTheCanvasCoveredWhileCombiningPanPinchAndRotation() {
+    func interactiveTransformKeepsTheCanvasCoveredWhileIgnoringGestureRotation() {
         let actor = VideoCanvasMappingActor()
+        let baseline = VideoCanvasTransform(
+            normalizedOffset: .zero,
+            zoom: 1,
+            rotationRadians: 0.12
+        )
         let combined = actor.interactiveTransform(
-            from: .identity,
+            from: baseline,
             translation: CGSize(width: 180, height: -120),
             magnification: 1.6,
             anchor: CGPoint(x: 210, y: 80),
-            rotation: .degrees(20),
             previewCanvasSize: CGSize(width: 300, height: 300),
             source: squareSource,
             preset: .custom(width: 1080, height: 1080),
@@ -220,7 +224,7 @@ struct VideoCanvasMappingActorTests {
         )
 
         #expect(combined.zoom >= 1.6)
-        #expect(abs(combined.rotationRadians - CGFloat(20.0 * Double.pi / 180.0)) < 0.0001)
+        #expect(abs(combined.rotationRadians - baseline.rotationRadians) < 0.0001)
         #expect(abs(combined.normalizedOffset.x) > 0.01 || abs(combined.normalizedOffset.y) > 0.01)
         assertCanvasIsCovered(
             actor: actor,

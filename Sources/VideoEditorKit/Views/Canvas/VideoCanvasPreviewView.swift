@@ -194,32 +194,21 @@ public struct VideoCanvasPreviewView<Content: View, Overlay: View>: View {
         layout: VideoCanvasLayout
     ) -> some Gesture {
         SimultaneousGesture(
-            SimultaneousGesture(
-                DragGesture(minimumDistance: 0)
-                    .onChanged { value in
-                        updateDrag(value.translation)
-                    }
-                    .onEnded { _ in
-                        endDrag(
-                            previewCanvasSize: layout.previewCanvasSize
-                        )
-                    },
-                MagnifyGesture()
-                    .onChanged { value in
-                        updateMagnification(value)
-                    }
-                    .onEnded { _ in
-                        endMagnification(
-                            previewCanvasSize: layout.previewCanvasSize
-                        )
-                    }
-            ),
-            RotationGesture()
+            DragGesture(minimumDistance: 0)
                 .onChanged { value in
-                    updateRotation(value)
+                    updateDrag(value.translation)
                 }
                 .onEnded { _ in
-                    endRotation(
+                    endDrag(
+                        previewCanvasSize: layout.previewCanvasSize
+                    )
+                },
+            MagnifyGesture()
+                .onChanged { value in
+                    updateMagnification(value)
+                }
+                .onEnded { _ in
+                    endMagnification(
                         previewCanvasSize: layout.previewCanvasSize
                     )
                 }
@@ -263,24 +252,6 @@ public struct VideoCanvasPreviewView<Content: View, Overlay: View>: View {
         }
     }
 
-    private func updateRotation(
-        _ rotation: Angle
-    ) {
-        let isStartingInteraction = interactionState == nil
-        var interactionState =
-            interactionState
-            ?? .init(
-                baselineTransform: editorState.transform
-            )
-        interactionState.rotation = rotation
-        interactionState.isRotating = true
-        self.interactionState = interactionState
-
-        if isStartingInteraction {
-            onInteractionStarted()
-        }
-    }
-
     private func endDrag(
         previewCanvasSize: CGSize
     ) {
@@ -298,16 +269,6 @@ public struct VideoCanvasPreviewView<Content: View, Overlay: View>: View {
             previewCanvasSize: previewCanvasSize
         ) { interactionState in
             interactionState.isMagnifying = false
-        }
-    }
-
-    private func endRotation(
-        previewCanvasSize: CGSize
-    ) {
-        updateInteractionActivity(
-            previewCanvasSize: previewCanvasSize
-        ) { interactionState in
-            interactionState.isRotating = false
         }
     }
 
@@ -381,13 +342,11 @@ private struct InteractionState {
     var translation: CGSize = .zero
     var magnification: CGFloat = 1
     var magnificationAnchor = CGPoint(x: 0.5, y: 0.5)
-    var rotation: Angle = .zero
     var isDragging = false
     var isMagnifying = false
-    var isRotating = false
 
     var isActive: Bool {
-        isDragging || isMagnifying || isRotating
+        isDragging || isMagnifying
     }
 
     // MARK: - Public Methods
@@ -413,7 +372,6 @@ private struct InteractionState {
             translation: translation,
             magnification: magnification,
             anchor: magnificationAnchor,
-            rotation: rotation,
             previewCanvasSize: previewCanvasSize,
             source: source
         )

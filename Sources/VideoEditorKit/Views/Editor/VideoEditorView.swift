@@ -203,17 +203,18 @@ public struct VideoEditorView: View {
 
         if presentation != .hidden {
             Button(action: saveCurrentEdit) {
-                HStack(spacing: 6) {
+                Group {
                     if presentation == .loading {
                         ProgressView()
                             .controlSize(.small)
                             .tint(.white)
+                    } else {
+                        Image(systemName: presentation.systemImageName)
                     }
-
-                    Text(VideoEditorStrings.save)
                 }
                 .foregroundStyle(.white)
             }
+            .accessibilityLabel(VideoEditorStrings.save)
             .videoEditorToolbarActionButtonStyle(VideoEditorToolbarActionLayout.saveButtonStyle)
             .disabled(presentation != .enabled)
         }

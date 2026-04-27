@@ -7,4 +7,10 @@ enum VideoEditorManualSaveActionPresentation: Equatable {
     case enabled
     case loading
 
+    // MARK: - Public Properties
+
+    var systemImageName: String {
+        "checkmark"
+    }
+
 }
