@@ -106,9 +106,6 @@ public struct VideoCanvasPreviewView<Content: View, Overlay: View>: View {
         )
         .clipShape(.rect(cornerRadius: cornerRadius))
         .contentShape(Rectangle())
-        .overlay {
-            overlayContent()
-        }
         .animation(
             settleAnimation,
             value: effectiveSnapshot
@@ -123,22 +120,42 @@ public struct VideoCanvasPreviewView<Content: View, Overlay: View>: View {
                 transaction.disablesAnimations = true
             }
         }
-        .onTapGesture(count: 2) {
-            guard isInteractive else { return }
-            onInteractionStarted()
-            withAnimation(settleAnimation) {
-                interactionState = nil
-                editorState.resetTransform()
-            }
-            let snapshot = editorState.snapshot()
-            onSnapshotChange(snapshot)
-            onInteractionEnded(snapshot)
-        }
 
-        if isInteractive {
-            canvas.gesture(interactiveGesture(layout: layout))
-        } else {
-            canvas
+        Group {
+            if isInteractive {
+                canvas.overlay {
+                    VideoCanvasInteractionGestureView(
+                        onPanChanged: { translation in
+                            updateDrag(translation)
+                        },
+                        onPanEnded: {
+                            endDrag(
+                                previewCanvasSize: layout.previewCanvasSize
+                            )
+                        },
+                        onPinchChanged: { magnification, anchor, translation in
+                            updateMagnification(
+                                magnification: magnification,
+                                anchor: anchor,
+                                translation: translation
+                            )
+                        },
+                        onPinchEnded: {
+                            endMagnification(
+                                previewCanvasSize: layout.previewCanvasSize
+                            )
+                        },
+                        onDoubleTap: {
+                            resetInteraction()
+                        }
+                    )
+                }
+            } else {
+                canvas
+            }
+        }
+        .overlay {
+            overlayContent()
         }
     }
 
@@ -190,31 +207,6 @@ public struct VideoCanvasPreviewView<Content: View, Overlay: View>: View {
 
     // MARK: - Private Methods
 
-    private func interactiveGesture(
-        layout: VideoCanvasLayout
-    ) -> some Gesture {
-        SimultaneousGesture(
-            DragGesture(minimumDistance: 0)
-                .onChanged { value in
-                    updateDrag(value.translation)
-                }
-                .onEnded { _ in
-                    endDrag(
-                        previewCanvasSize: layout.previewCanvasSize
-                    )
-                },
-            MagnifyGesture()
-                .onChanged { value in
-                    updateMagnification(value)
-                }
-                .onEnded { _ in
-                    endMagnification(
-                        previewCanvasSize: layout.previewCanvasSize
-                    )
-                }
-        )
-    }
-
     private func updateDrag(
         _ translation: CGSize
     ) {
@@ -234,7 +226,9 @@ public struct VideoCanvasPreviewView<Content: View, Overlay: View>: View {
     }
 
     private func updateMagnification(
-        _ value: MagnifyGesture.Value
+        magnification: CGFloat,
+        anchor: CGPoint,
+        translation: CGSize
     ) {
         let isStartingInteraction = interactionState == nil
         var interactionState =
@@ -242,8 +236,9 @@ public struct VideoCanvasPreviewView<Content: View, Overlay: View>: View {
             ?? .init(
                 baselineTransform: editorState.transform
             )
-        interactionState.magnification = value.magnification
-        interactionState.magnificationAnchor = value.startLocation
+        interactionState.magnification = magnification
+        interactionState.magnificationAnchor = anchor
+        interactionState.translation = translation
         interactionState.isMagnifying = true
         self.interactionState = interactionState
 
@@ -290,6 +285,17 @@ public struct VideoCanvasPreviewView<Content: View, Overlay: View>: View {
             previewCanvasSize: previewCanvasSize
         )
         self.interactionState = nil
+        let snapshot = editorState.snapshot()
+        onSnapshotChange(snapshot)
+        onInteractionEnded(snapshot)
+    }
+
+    private func resetInteraction() {
+        onInteractionStarted()
+        withAnimation(settleAnimation) {
+            interactionState = nil
+            editorState.resetTransform()
+        }
         let snapshot = editorState.snapshot()
         onSnapshotChange(snapshot)
         onInteractionEnded(snapshot)

@@ -8,7 +8,6 @@
 import AVKit
 import ImageIO
 import SwiftUI
-import UIKit
 import VideoEditorKit
 
 struct EditedVideoProjectCard: View {

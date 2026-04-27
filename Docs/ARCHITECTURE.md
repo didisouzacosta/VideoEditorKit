@@ -59,7 +59,18 @@ Example/VideoEditor.xcworkspace
 - Export: `Sources/VideoEditorKit/Internal/Models/Enums/VideoEditor.swift`
 - Manual save: `Sources/VideoEditorKit/Internal/Editing/VideoEditorManualSaveRenderer.swift`
 - Canvas: `Sources/VideoEditorKit/Canvas/`
+- Canvas gestures: `Sources/VideoEditorKit/Internal/Gestures/`
 - Example projects: `Example/VideoEditor/Data/Projects/`
+
+## UI Framework Boundary
+
+- Use `SwiftUI` as the UI-facing framework import throughout package, example,
+  and UI tests.
+- Do not import `UIKit` directly in Swift files, including SwiftUI views,
+  gesture bridges, helpers, and tests. iOS platform types that are available
+  through SwiftUI should be referenced with `import SwiftUI` only.
+- Keep any platform interop isolated behind SwiftUI-facing APIs so callers do
+  not need UIKit imports.
 
 ## Persistence Model
 

@@ -37,7 +37,8 @@ Read this before changing code. Keep it short, current, and practical.
 - Add focused characterization tests before changing legacy behavior when practical.
 - Do not use `swift test` as main validation.
 - Do not add availability checks for iOS versions at or below the deployment target.
-- Do not import UIKit directly from SwiftUI views; isolate bridges outside `Views/`.
+- Use `import SwiftUI` for UI-facing code, helpers, bridges, and UI tests.
+- Do not import UIKit directly in Swift files; platform interop must stay behind SwiftUI-facing APIs.
 - Avoid force unwraps and operational `print`.
 - Preserve unrelated dirty worktree changes.
 

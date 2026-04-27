@@ -24,6 +24,20 @@ public configuration, persistence, transcription, canvas, and export APIs.
 - Manual save that creates an edited copy while preserving the original video
 - Export to `.mp4` with `original`, `low`, `medium`, and `high` quality choices
 
+## Screenshots
+
+| Editor | Crop |
+| --- | --- |
+| ![Editor](Screenshots/1%20-%20editor.PNG) | ![Crop](Screenshots/2%20-%20crop.PNG) |
+
+| Presets | Adjusts |
+| --- | --- |
+| ![Presets](Screenshots/3%20-%20presets.PNG) | ![Adjusts](Screenshots/4%20-%20adjusts.PNG) |
+
+| Audio | Speed | Export |
+| --- | --- | --- |
+| ![Audio](Screenshots/5%20-%20audio.PNG) | ![Speed](Screenshots/6%20-%20speed.PNG) | ![Export](Screenshots/7%20-%20export.PNG) |
+
 ## Install
 
 Add the package in Xcode:

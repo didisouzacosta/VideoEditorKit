@@ -14,11 +14,7 @@ public enum VideoEditorPlayerStageState: Equatable, Sendable {
 
 @available(iOS 17.0, *)
 @MainActor
-public struct VideoEditorPlayerStageView<Content: View, Overlay: View, TrailingControls: View>: View {
-
-    // MARK: - States
-
-    @State private var isLoadingBorderHighlighted = false
+public struct VideoEditorPlayerStageView<Content: View, Overlay: View>: View {
 
     // MARK: - Public Properties
 
@@ -57,7 +53,6 @@ public struct VideoEditorPlayerStageView<Content: View, Overlay: View, TrailingC
     private let onLayoutResolved: @MainActor (VideoCanvasLayout) -> Void
     private let content: () -> Content
     private let overlayContent: (VideoCanvasLayout) -> Overlay
-    private let trailingControls: () -> TrailingControls
 
     // MARK: - Initializer
 
@@ -73,8 +68,7 @@ public struct VideoEditorPlayerStageView<Content: View, Overlay: View, TrailingC
         onSnapshotChange: @escaping @MainActor (VideoCanvasSnapshot) -> Void = { _ in },
         onLayoutResolved: @escaping @MainActor (VideoCanvasLayout) -> Void = { _ in },
         @ViewBuilder content: @escaping () -> Content,
-        @ViewBuilder overlay: @escaping (_ canvasLayout: VideoCanvasLayout) -> Overlay,
-        @ViewBuilder trailingControls: @escaping () -> TrailingControls
+        @ViewBuilder overlay: @escaping (_ canvasLayout: VideoCanvasLayout) -> Overlay
     ) {
         self.presentationState = presentationState
         self.canvasEditorState = canvasEditorState
@@ -88,7 +82,6 @@ public struct VideoEditorPlayerStageView<Content: View, Overlay: View, TrailingC
         self.onLayoutResolved = onLayoutResolved
         self.content = content
         self.overlayContent = overlay
-        self.trailingControls = trailingControls
     }
 
     // MARK: - Private Methods
@@ -105,24 +98,9 @@ public struct VideoEditorPlayerStageView<Content: View, Overlay: View, TrailingC
                     ProgressView()
                         .controlSize(.regular)
                 }
-                .overlay {
-                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .strokeBorder(
-                            .primary.opacity(isLoadingBorderHighlighted ? 0.45 : 0.16),
-                            lineWidth: 2
-                        )
-                }
                 .aspectRatio(presentation.aspectRatio, contentMode: .fit)
                 .frame(maxWidth: proxy.size.width, maxHeight: proxy.size.height)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .task {
-                    withAnimation(
-                        .easeInOut(duration: 0.9)
-                            .repeatForever(autoreverses: true)
-                    ) {
-                        isLoadingBorderHighlighted = true
-                    }
-                }
         }
     }
 
@@ -146,16 +124,13 @@ public struct VideoEditorPlayerStageView<Content: View, Overlay: View, TrailingC
                 ) {
                     content()
                 } overlay: {
-                    Color.clear
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .overlay {
-                            overlayContent(canvasLayout)
-                        }
-                        .overlay(alignment: .bottomTrailing) {
-                            trailingControls()
-                                .padding(.trailing, 16)
-                                .padding(.bottom, 16)
-                        }
+                    overlayContent(canvasLayout)
+                        .allowsHitTesting(false)
+                        .frame(
+                            width: canvasLayout.previewCanvasSize.width,
+                            height: canvasLayout.previewCanvasSize.height,
+                            alignment: .topLeading
+                        )
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
                 .task(id: resolvedLayoutTaskID(for: proxy.size, canvasLayout: canvasLayout)) {
@@ -206,8 +181,6 @@ public struct VideoEditorPlayerStageView<Content: View, Overlay: View, TrailingC
         EmptyView()
     } overlay: { _ in
         EmptyView()
-    } trailingControls: {
-        EmptyView()
     }
 }
 
@@ -218,8 +191,6 @@ public struct VideoEditorPlayerStageView<Content: View, Overlay: View, TrailingC
     ) {
         EmptyView()
     } overlay: { _ in
-        EmptyView()
-    } trailingControls: {
         EmptyView()
     }
 }

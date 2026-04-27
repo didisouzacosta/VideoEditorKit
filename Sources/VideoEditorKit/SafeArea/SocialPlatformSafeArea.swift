@@ -177,15 +177,6 @@ public enum SafeAreaGuideProfile: Equatable, Sendable {
         }
     }
 
-    public var explanation: String {
-        switch self {
-        case .universalSocial:
-            VideoEditorStrings.safeAreaUniversalExplanation
-        case .platform(let platform):
-            platform.safeAreaExplanation
-        }
-    }
-
 }
 
 public struct SafeAreaGuideLayout: Equatable, Sendable {
@@ -279,17 +270,6 @@ public enum SocialPlatform: String, Codable, CaseIterable, Equatable, Sendable {
             VideoEditorStrings.platformTikTok
         case .youtubeShorts:
             VideoEditorStrings.platformYouTubeShorts
-        }
-    }
-
-    public var safeAreaExplanation: String {
-        switch self {
-        case .instagram:
-            VideoEditorStrings.platformInstagramExplanation
-        case .tiktok:
-            VideoEditorStrings.platformTikTokExplanation
-        case .youtubeShorts:
-            VideoEditorStrings.platformYouTubeShortsExplanation
         }
     }
 
