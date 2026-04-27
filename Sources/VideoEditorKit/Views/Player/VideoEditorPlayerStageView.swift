@@ -16,10 +16,6 @@ public enum VideoEditorPlayerStageState: Equatable, Sendable {
 @MainActor
 public struct VideoEditorPlayerStageView<Content: View, Overlay: View, TrailingControls: View>: View {
 
-    // MARK: - States
-
-    @State private var isLoadingBorderHighlighted = false
-
     // MARK: - Public Properties
 
     public let presentationState: VideoEditorPlayerStageState
@@ -105,24 +101,9 @@ public struct VideoEditorPlayerStageView<Content: View, Overlay: View, TrailingC
                     ProgressView()
                         .controlSize(.regular)
                 }
-                .overlay {
-                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .strokeBorder(
-                            .primary.opacity(isLoadingBorderHighlighted ? 0.45 : 0.16),
-                            lineWidth: 2
-                        )
-                }
                 .aspectRatio(presentation.aspectRatio, contentMode: .fit)
                 .frame(maxWidth: proxy.size.width, maxHeight: proxy.size.height)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .task {
-                    withAnimation(
-                        .easeInOut(duration: 0.9)
-                            .repeatForever(autoreverses: true)
-                    ) {
-                        isLoadingBorderHighlighted = true
-                    }
-                }
         }
     }
 
