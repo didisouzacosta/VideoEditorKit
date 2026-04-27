@@ -41,9 +41,6 @@ struct PlayerHolderView: View {
                 transcriptOverlay(
                     canvasLayout: canvasLayout
                 )
-            },
-            trailingControls: {
-                EmptyView()
             }
         )
     }
