@@ -18,6 +18,9 @@ struct ProjectsRepositoryTests {
         let originalVideoURL = try await TestFixtures.createTemporaryVideo(color: .systemBlue)
         let editedVideoURL = try await TestFixtures.createTemporaryVideo(color: .systemPurple)
         let editedVideoMetadata = await ExportedVideo.load(from: editedVideoURL)
+        let thumbnailData = try #require(
+            TestFixtures.makeSolidImage(color: .systemPurple).jpegData(compressionQuality: 0.85)
+        )
         let savedVideo = SavedVideo(
             editedVideoURL,
             originalVideoURL: originalVideoURL,
@@ -29,7 +32,7 @@ struct ProjectsRepositoryTests {
                     currentTimelineTime: 2
                 )
             ),
-            thumbnailData: Data([0x01, 0x02, 0x03]),
+            thumbnailData: thumbnailData,
             metadata: editedVideoMetadata
         )
 
@@ -51,7 +54,7 @@ struct ProjectsRepositoryTests {
         #expect(project.originalVideoURL.lastPathComponent.hasPrefix("original."))
         #expect(project.savedEditedVideoURL.lastPathComponent.hasPrefix("edited."))
         #expect(project.savedEditedVideoURL != project.exportedVideoURL)
-        #expect(project.thumbnailData != savedVideo.thumbnailData)
+        #expect(project.thumbnailData == savedVideo.thumbnailData)
         #expect(project.thumbnailData.flatMap(UIImage.init(data:)) != nil)
         #expect(project.duration == editedVideoMetadata.duration)
         #expect(project.fileSize == editedVideoMetadata.fileSize)
@@ -60,6 +63,34 @@ struct ProjectsRepositoryTests {
         #expect(persistedSave.savedVideo.url == project.savedEditedVideoURL)
         #expect(persistedSave.savedVideo.originalVideoURL == project.originalVideoURL)
         #expect(persistedSave.savedVideo.editingConfiguration.playback.currentTimelineTime == nil)
+    }
+
+    @Test
+    func saveEditedVideoMovesTransientEditedOutputIntoProjectStorage() async throws {
+        let container = try makeContainer()
+        let store = ProjectsRepository(modelContext: container.mainContext)
+        let originalVideoURL = try await TestFixtures.createTemporaryVideo(color: .systemBlue)
+        let editedVideoURL = try await TestFixtures.createTemporaryVideo(color: .systemPurple)
+        let originalEditedFileNumber = try systemFileNumber(for: editedVideoURL)
+        let savedVideo = SavedVideo(
+            editedVideoURL,
+            originalVideoURL: originalVideoURL,
+            editingConfiguration: .initial,
+            metadata: await ExportedVideo.load(from: editedVideoURL)
+        )
+
+        defer { FileManager.default.removeIfExists(for: originalVideoURL) }
+        defer { FileManager.default.removeIfExists(for: editedVideoURL) }
+
+        let persistedSave = try await store.saveEditedVideo(
+            projectID: nil,
+            savedVideo: savedVideo
+        )
+        let persistedEditedFileNumber = try systemFileNumber(
+            for: persistedSave.project.savedEditedVideoURL
+        )
+
+        #expect(persistedEditedFileNumber == originalEditedFileNumber)
     }
 
     @Test
@@ -126,7 +157,6 @@ struct ProjectsRepositoryTests {
                     currentTimelineTime: 0.8
                 )
             ),
-            thumbnailData: Data([0x01, 0x02, 0x03]),
             metadata: await ExportedVideo.load(from: editedVideoURL)
         )
 
@@ -538,6 +568,12 @@ struct ProjectsRepositoryTests {
             for: EditedVideoProject.self,
             configurations: configuration
         )
+    }
+
+    private func systemFileNumber(for url: URL) throws -> UInt64 {
+        let attributes = try FileManager.default.attributesOfItem(atPath: url.path())
+        let fileNumber = try #require(attributes[.systemFileNumber] as? NSNumber)
+        return fileNumber.uint64Value
     }
 
 }

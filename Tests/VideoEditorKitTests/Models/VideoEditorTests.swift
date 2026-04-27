@@ -224,6 +224,61 @@ struct VideoEditorTests {
     }
 
     @Test
+    func canIntegrateAdjustsIntoBaseRenderForNativeIdentityOutput() async throws {
+        let size = CGSize(width: 48, height: 24)
+        let url = try await TestFixtures.createTemporaryVideo(size: size)
+        let video = Video(
+            url: url,
+            asset: AVURLAsset(url: url),
+            originalDuration: 1,
+            rangeDuration: 0...1,
+            presentationSize: size
+        )
+        let exportProfile = VideoEditor.resolvedExportProfile(
+            for: video,
+            editingConfiguration: .initial,
+            videoQuality: .original,
+            isSimulatorEnvironment: true
+        )
+
+        let canIntegrate = await VideoEditor.canIntegrateAdjustsIntoBaseRender(
+            video: video,
+            editingConfiguration: .initial,
+            exportProfile: exportProfile
+        )
+
+        #expect(canIntegrate)
+    }
+
+    @Test
+    func canIntegrateAdjustsIntoBaseRenderRejectsScaledOutputs() async throws {
+        let size = CGSize(width: 48, height: 24)
+        let url = try await TestFixtures.createTemporaryVideo(size: size)
+        let video = Video(
+            url: url,
+            asset: AVURLAsset(url: url),
+            originalDuration: 1,
+            rangeDuration: 0...1,
+            presentationSize: size
+        )
+        let scaledProfile = VideoEditor.ExportProfile(
+            quality: .medium,
+            renderSize: CGSize(width: 96, height: 48),
+            frameDuration: CMTime(seconds: 1 / 30, preferredTimescale: 600),
+            renderPresetName: AVAssetExportPresetHighestQuality,
+            passthroughPresetName: AVAssetExportPresetPassthrough
+        )
+
+        let canIntegrate = await VideoEditor.canIntegrateAdjustsIntoBaseRender(
+            video: video,
+            editingConfiguration: .initial,
+            exportProfile: scaledProfile
+        )
+
+        #expect(canIntegrate == false)
+    }
+
+    @Test
     func resolvedExportRenderProfileKeepsSelectedQualityRules() {
         let profile = VideoEditor.resolvedRenderProfile(
             for: CGSize(width: 1920, height: 1080),

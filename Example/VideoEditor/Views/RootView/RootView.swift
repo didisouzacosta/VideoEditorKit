@@ -64,7 +64,10 @@ struct RootView: View {
                 )
             }
             .sheet(item: $sharedVideo) { videoAction in
-                VideoShareSheet(activityItems: [videoAction.url])
+                VideoShareSheet(
+                    activityItems: [videoAction.url],
+                    onCompletion: handleShareCompletion
+                )
             }
         }
     }
@@ -142,6 +145,11 @@ extension RootView {
             title: ExampleStrings.persistenceErrorTitle,
             message: message
         )
+    }
+
+    private func handleShareCompletion(_ result: VideoShareCompletionResult) {
+        guard case .failed(let message) = result else { return }
+        showPersistenceError(message)
     }
 
 }

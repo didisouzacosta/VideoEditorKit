@@ -52,8 +52,19 @@ enum VideoEditor {
         let usesAdjustsStage = !adjusts.isEmpty
         let usesTranscriptStage = requiresTranscriptStage(editingConfiguration)
         let usesCanvasStage = requiresCanvasStage(editingConfiguration)
+        let integratesAdjustsIntoBaseStage: Bool
+
+        if usesAdjustsStage {
+            integratesAdjustsIntoBaseStage = await canIntegrateAdjustsIntoBaseRender(
+                video: video,
+                editingConfiguration: editingConfiguration,
+                exportProfile: exportProfile
+            )
+        } else {
+            integratesAdjustsIntoBaseStage = false
+        }
         let renderStages = resolvedRenderStages(
-            usesAdjustsStage: usesAdjustsStage,
+            usesAdjustsStage: usesAdjustsStage && integratesAdjustsIntoBaseStage == false,
             usesTranscriptStage: usesTranscriptStage,
             usesCropStage: usesCanvasStage
         )
@@ -65,6 +76,7 @@ enum VideoEditor {
                 video: video,
                 editingConfiguration: editingConfiguration,
                 exportProfile: exportProfile,
+                integratedAdjusts: integratesAdjustsIntoBaseStage ? adjusts : [],
                 progressRange: progressRange(
                     for: .base,
                     activeStages: renderStages
@@ -77,7 +89,7 @@ enum VideoEditor {
             )
 
             let adjustedURL = try await applyAdjustsOperation(
-                adjusts,
+                integratesAdjustsIntoBaseStage ? [] : adjusts,
                 fromUrl: url,
                 exportProfile: exportProfile,
                 progressRange: progressRange(
@@ -124,6 +136,7 @@ enum VideoEditor {
         video: Video,
         editingConfiguration: VideoEditingConfiguration,
         exportProfile: ExportProfile,
+        integratedAdjusts: [CIFilter] = [],
         progressRange: ClosedRange<Double>,
         onProgress: ProgressHandler?
     ) async throws -> URL {
@@ -187,10 +200,20 @@ enum VideoEditor {
         instruction.layerInstructions = [layerInstruction]
         instruction.timeRange = timeRange
 
-        let videoComposition = AVMutableVideoComposition()
-        videoComposition.animationTool = animationTool
+        let videoComposition: AVMutableVideoComposition
+
+        if integratedAdjusts.isEmpty {
+            videoComposition = AVMutableVideoComposition()
+            videoComposition.animationTool = animationTool
+            videoComposition.instructions = [instruction]
+        } else {
+            videoComposition = try await filteredVideoComposition(
+                asset: composition,
+                filters: integratedAdjusts
+            )
+        }
+
         videoComposition.frameDuration = exportProfile.frameDuration
-        videoComposition.instructions = [instruction]
         videoComposition.renderSize = outputSize
         videoComposition.renderScale = 1
         let outputURL = createTempPath()
@@ -253,6 +276,21 @@ enum VideoEditor {
         )
 
         return outputURL
+    }
+
+    private static func filteredVideoComposition(
+        asset: AVAsset,
+        filters: [CIFilter]
+    ) async throws -> AVMutableVideoComposition {
+        let videoComposition = try await asset.makeVideoComposition(applying: filters)
+
+        guard let mutableVideoComposition = videoComposition.mutableCopy() as? AVMutableVideoComposition
+        else {
+            assertionFailure("Unable to create mutable color adjusts video composition.")
+            throw ExporterError.cannotCreateExportSession
+        }
+
+        return mutableVideoComposition
     }
 
     private static func applyTranscriptOperation(
@@ -695,6 +733,32 @@ extension VideoEditor {
         return frameRate
     }
 
+    static func canIntegrateAdjustsIntoBaseRender(
+        video: Video,
+        editingConfiguration: VideoEditingConfiguration,
+        exportProfile: ExportProfile
+    ) async -> Bool {
+        guard video.videoFrames == nil else { return false }
+        guard video.isMirror == false else { return false }
+        guard requiresCanvasStage(editingConfiguration) == false else { return false }
+        guard let videoTrack = try? await video.asset.loadTracks(withMediaType: .video).first else {
+            return false
+        }
+        guard let naturalSize = try? await videoTrack.load(.naturalSize) else { return false }
+        guard let preferredTransform = try? await videoTrack.load(.preferredTransform) else {
+            return false
+        }
+        guard isApproximatelyIdentityTransform(preferredTransform) else { return false }
+
+        let presentationSize = resolvedPresentationSize(
+            naturalSize: naturalSize,
+            preferredTransform: preferredTransform
+        )
+        let nativeRenderSize = evenPixelSize(for: presentationSize)
+
+        return isApproximatelyEqual(nativeRenderSize, exportProfile.renderSize)
+    }
+
     static func resolvedCanvasRenderSize(
         for sourceSize: CGSize,
         editingConfiguration: VideoEditingConfiguration,
@@ -919,6 +983,25 @@ extension VideoEditor {
             || editingConfiguration.crop.isMirrored
             || abs(normalizedRotation) > 0.001
             || editingConfiguration.presentation.socialVideoDestination != nil
+    }
+
+    private static func isApproximatelyIdentityTransform(
+        _ transform: CGAffineTransform
+    ) -> Bool {
+        abs(transform.a - 1) <= 0.001
+            && abs(transform.b) <= 0.001
+            && abs(transform.c) <= 0.001
+            && abs(transform.d - 1) <= 0.001
+            && abs(transform.tx) <= 0.001
+            && abs(transform.ty) <= 0.001
+    }
+
+    private static func isApproximatelyEqual(
+        _ lhs: CGSize,
+        _ rhs: CGSize
+    ) -> Bool {
+        abs(lhs.width - rhs.width) <= 0.001
+            && abs(lhs.height - rhs.height) <= 0.001
     }
 
     static func requiresTranscriptStage(

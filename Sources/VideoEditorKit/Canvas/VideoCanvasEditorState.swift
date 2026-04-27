@@ -162,13 +162,12 @@ public final class VideoCanvasEditorState {
         )
     }
 
-    /// Applies drag, pinch, and rotation interaction in a single combined pass.
+    /// Applies drag and pinch interaction in a single combined pass.
     public func interactiveTransform(
         from baseline: VideoCanvasTransform,
         translation: CGSize,
         magnification: CGFloat,
         anchor: CGPoint,
-        rotation: Angle,
         previewCanvasSize: CGSize,
         source: VideoCanvasSourceDescriptor
     ) -> VideoCanvasTransform {
@@ -177,7 +176,6 @@ public final class VideoCanvasEditorState {
             translation: translation,
             magnification: magnification,
             anchor: anchor,
-            rotation: rotation,
             previewCanvasSize: previewCanvasSize,
             source: source,
             preset: preset,

@@ -5,7 +5,9 @@
 //  Created by Codex on 26.04.2026.
 //
 
+import AVFoundation
 import Foundation
+import UIKit
 
 struct VideoEditorManualSaveRenderer {
 
@@ -25,18 +27,22 @@ struct VideoEditorManualSaveRenderer {
             loadSavedMetadata: { url in
                 await ExportedVideo.load(from: url)
             },
-            makeThumbnailData: { sourceVideoURL, editingConfiguration in
-                await VideoEditingThumbnailRenderer.makeThumbnailData(
-                    sourceVideoURL: sourceVideoURL,
-                    editingConfiguration: editingConfiguration
+            makeThumbnailData: { savedVideoURL in
+                let asset = AVURLAsset(url: savedVideoURL)
+                let image = await asset.generateImage(
+                    at: 0,
+                    maximumSize: CGSize(width: 720, height: 720),
+                    requiresExactFrame: true
                 )
+
+                return image?.jpegData(compressionQuality: 0.85)
             }
         )
 
         let renderEditedVideo:
             @Sendable (Video, VideoEditingConfiguration, VideoEditor.ProgressHandler?) async throws -> URL
         let loadSavedMetadata: @Sendable (URL) async -> ExportedVideo
-        let makeThumbnailData: @Sendable (URL, VideoEditingConfiguration) async -> Data?
+        let makeThumbnailData: @Sendable (URL) async -> Data?
 
     }
 
@@ -64,10 +70,7 @@ struct VideoEditorManualSaveRenderer {
             onProgress
         )
         let metadata = await dependencies.loadSavedMetadata(savedVideoURL)
-        let thumbnailData = await dependencies.makeThumbnailData(
-            originalVideoURL,
-            editingConfiguration
-        )
+        let thumbnailData = await dependencies.makeThumbnailData(savedVideoURL)
 
         return SavedVideo(
             savedVideoURL,

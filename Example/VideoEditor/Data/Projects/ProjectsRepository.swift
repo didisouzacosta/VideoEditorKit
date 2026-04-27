@@ -123,9 +123,15 @@ struct ProjectsRepository {
             duration: savedVideo.metadata.duration,
             fileSize: savedVideo.metadata.fileSize
         )
-        let thumbnailData = await ProjectMediaStore.makeFirstFrameThumbnailData(
-            fromVideoAt: persistedEditedURL
-        )
+        let thumbnailData: Data?
+
+        if let savedThumbnailData = savedVideo.thumbnailData {
+            thumbnailData = savedThumbnailData
+        } else {
+            thumbnailData = await ProjectMediaStore.makeFirstFrameThumbnailData(
+                fromVideoAt: persistedEditedURL
+            )
+        }
 
         applyCommonProjectFields(
             preparedSave,

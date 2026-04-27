@@ -291,7 +291,6 @@ public struct VideoCanvasMappingActor {
         translation: CGSize,
         magnification: CGFloat,
         anchor: CGPoint,
-        rotation: Angle,
         previewCanvasSize: CGSize,
         source: VideoCanvasSourceDescriptor,
         preset: VideoCanvasPreset,
@@ -308,13 +307,9 @@ public struct VideoCanvasMappingActor {
             translation: translation,
             previewCanvasSize: previewCanvasSize
         )
-        let rotatedTransform = rawRotatedTransform(
-            from: draggedTransform,
-            rotation: rotation
-        )
 
         return clampedInteractiveTransform(
-            rotatedTransform,
+            draggedTransform,
             source: source,
             preset: preset,
             freeCanvasSize: freeCanvasSize
@@ -484,15 +479,6 @@ public struct VideoCanvasMappingActor {
             x: (anchoredCenter.x - previewCanvasSize.width / 2) / previewCanvasSize.width,
             y: (anchoredCenter.y - previewCanvasSize.height / 2) / previewCanvasSize.height
         )
-        return nextTransform
-    }
-
-    private func rawRotatedTransform(
-        from baseline: VideoCanvasTransform,
-        rotation: Angle
-    ) -> VideoCanvasTransform {
-        var nextTransform = baseline
-        nextTransform.rotationRadians = baseline.rotationRadians + rotation.radians
         return nextTransform
     }
 

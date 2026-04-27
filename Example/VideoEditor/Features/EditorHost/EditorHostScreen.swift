@@ -37,7 +37,10 @@ struct EditorHostScreen: View {
                 sessionController.dismissShareDestination()
             }
         ) { shareDestination in
-            VideoShareSheet(activityItems: [shareDestination.videoURL])
+            VideoShareSheet(
+                activityItems: [shareDestination.videoURL],
+                onCompletion: handleShareCompletion
+            )
         }
         .alert(item: $persistenceAlert) { alert in
             Alert(
@@ -137,6 +140,11 @@ struct EditorHostScreen: View {
             title: ExampleStrings.persistenceErrorTitle,
             message: message
         )
+    }
+
+    private func handleShareCompletion(_ result: VideoShareCompletionResult) {
+        guard case .failed(let message) = result else { return }
+        presentPersistenceError(message)
     }
 
 }

@@ -191,6 +191,12 @@ struct VideoEditorViewRuntimeTests {
     }
 
     @Test
+    func manualSaveActionPresentationUsesTheSystemCheckmarkSymbol() {
+        #expect(VideoEditorManualSaveActionPresentation.enabled.systemImageName == "checkmark")
+        #expect(VideoEditorManualSaveActionPresentation.disabled.systemImageName == "checkmark")
+    }
+
+    @Test
     func cancelRequestDismissesImmediatelyWhenThereAreNoUnsavedChanges() {
         let dismissalRecorder = DismissalRecorder()
         var confirmationState: VideoEditorCancelConfirmationState?
@@ -426,7 +432,10 @@ struct VideoEditorViewRuntimeTests {
                         fileSize: 1024
                     )
                 },
-                makeThumbnailData: { _, _ in thumbnailData }
+                makeThumbnailData: { receivedURL in
+                    #expect(receivedURL == savedVideoURL)
+                    return thumbnailData
+                }
             )
         )
         let manualSaveCoordinator = VideoEditorManualSaveCoordinator()
@@ -741,7 +750,7 @@ struct VideoEditorViewRuntimeTests {
                         fileSize: 2048
                     )
                 },
-                makeThumbnailData: { _, _ in nil }
+                makeThumbnailData: { _ in nil }
             )
         )
         let editorViewModel = EditorViewModel()
