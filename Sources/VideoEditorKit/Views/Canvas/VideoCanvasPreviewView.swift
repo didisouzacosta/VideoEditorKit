@@ -106,9 +106,6 @@ public struct VideoCanvasPreviewView<Content: View, Overlay: View>: View {
         )
         .clipShape(.rect(cornerRadius: cornerRadius))
         .contentShape(Rectangle())
-        .overlay {
-            overlayContent()
-        }
         .animation(
             settleAnimation,
             value: effectiveSnapshot
@@ -124,36 +121,41 @@ public struct VideoCanvasPreviewView<Content: View, Overlay: View>: View {
             }
         }
 
-        if isInteractive {
-            canvas.overlay {
-                VideoCanvasInteractionGestureView(
-                    onPanChanged: { translation in
-                        updateDrag(translation)
-                    },
-                    onPanEnded: {
-                        endDrag(
-                            previewCanvasSize: layout.previewCanvasSize
-                        )
-                    },
-                    onPinchChanged: { magnification, anchor, translation in
-                        updateMagnification(
-                            magnification: magnification,
-                            anchor: anchor,
-                            translation: translation
-                        )
-                    },
-                    onPinchEnded: {
-                        endMagnification(
-                            previewCanvasSize: layout.previewCanvasSize
-                        )
-                    },
-                    onDoubleTap: {
-                        resetInteraction()
-                    }
-                )
+        Group {
+            if isInteractive {
+                canvas.overlay {
+                    VideoCanvasInteractionGestureView(
+                        onPanChanged: { translation in
+                            updateDrag(translation)
+                        },
+                        onPanEnded: {
+                            endDrag(
+                                previewCanvasSize: layout.previewCanvasSize
+                            )
+                        },
+                        onPinchChanged: { magnification, anchor, translation in
+                            updateMagnification(
+                                magnification: magnification,
+                                anchor: anchor,
+                                translation: translation
+                            )
+                        },
+                        onPinchEnded: {
+                            endMagnification(
+                                previewCanvasSize: layout.previewCanvasSize
+                            )
+                        },
+                        onDoubleTap: {
+                            resetInteraction()
+                        }
+                    )
+                }
+            } else {
+                canvas
             }
-        } else {
-            canvas
+        }
+        .overlay {
+            overlayContent()
         }
     }
 
