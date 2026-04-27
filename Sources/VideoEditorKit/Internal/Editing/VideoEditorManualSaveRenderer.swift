@@ -7,7 +7,7 @@
 
 import AVFoundation
 import Foundation
-import UIKit
+import SwiftUI
 
 struct VideoEditorManualSaveRenderer {
 

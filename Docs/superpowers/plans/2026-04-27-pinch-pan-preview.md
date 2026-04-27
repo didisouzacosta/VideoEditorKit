@@ -223,7 +223,6 @@ Replace the contents of `Sources/VideoEditorKit/Internal/Gestures/VideoCanvasInt
 ```swift
 import CoreGraphics
 import SwiftUI
-import UIKit
 
 struct VideoCanvasPinchPanGesturePolicy {
 
