@@ -238,6 +238,41 @@ struct VideoCanvasMappingActorTests {
         )
     }
 
+    @Test
+    func interactiveTransformAppliesPinchCentroidTranslationAfterAnchoredZoom() {
+        let actor = VideoCanvasMappingActor()
+        let baseline = VideoCanvasTransform(
+            normalizedOffset: .zero,
+            zoom: 1,
+            rotationRadians: 0
+        )
+        let combined = actor.interactiveTransform(
+            from: baseline,
+            translation: CGSize(width: 45, height: -30),
+            magnification: 1.5,
+            anchor: CGPoint(x: 150, y: 150),
+            previewCanvasSize: CGSize(width: 300, height: 300),
+            source: squareSource,
+            preset: .custom(width: 1080, height: 1080),
+            freeCanvasSize: squareCanvasSize
+        )
+
+        #expect(combined.zoom >= 1.5)
+        #expect(combined.normalizedOffset.x > 0.1)
+        #expect(combined.normalizedOffset.y < -0.05)
+        #expect(abs(combined.rotationRadians) < 0.0001)
+        assertCanvasIsCovered(
+            actor: actor,
+            source: squareSource,
+            snapshot: VideoCanvasSnapshot(
+                preset: .custom(width: 1080, height: 1080),
+                freeCanvasSize: squareCanvasSize,
+                transform: combined,
+                showsSafeAreaOverlay: false
+            )
+        )
+    }
+
     // MARK: - Private Methods
 
     private func assertCanvasIsCovered(
