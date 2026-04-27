@@ -151,10 +151,16 @@ public struct VideoEditorPlayerStageView<Content: View, Overlay: View, TrailingC
                             .allowsHitTesting(false)
 
                         trailingControls()
+                            .allowsHitTesting(true)
+                            .zIndex(1)
                             .padding(.trailing, 16)
                             .padding(.bottom, 16)
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .frame(
+                        width: canvasLayout.previewCanvasSize.width,
+                        height: canvasLayout.previewCanvasSize.height,
+                        alignment: .bottomTrailing
+                    )
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
                 .task(id: resolvedLayoutTaskID(for: proxy.size, canvasLayout: canvasLayout)) {
