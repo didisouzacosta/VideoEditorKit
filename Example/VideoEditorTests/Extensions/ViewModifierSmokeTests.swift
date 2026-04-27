@@ -1,7 +1,6 @@
 import AVFoundation
 import SwiftUI
 import Testing
-import UIKit
 import VideoEditorKit
 
 @testable import VideoEditor

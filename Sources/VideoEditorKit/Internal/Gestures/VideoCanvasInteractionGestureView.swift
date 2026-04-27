@@ -1,6 +1,5 @@
 import CoreGraphics
 import SwiftUI
-import UIKit
 
 struct VideoCanvasPinchPanGesturePolicy {
 
