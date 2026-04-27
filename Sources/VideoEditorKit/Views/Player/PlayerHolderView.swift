@@ -43,7 +43,7 @@ struct PlayerHolderView: View {
                 )
             },
             trailingControls: {
-                trailingPlayerControls(cropPresentationSummary)
+                EmptyView()
             }
         )
     }
@@ -115,33 +115,6 @@ extension PlayerHolderView {
         HostedVideoEditorPlayerStageCoordinator.playerLayoutID(
             editorViewModel: editorViewModel
         )
-    }
-
-    private func trailingPlayerControls(
-        _ cropSummary: EditorCropPresentationSummary
-    ) -> some View {
-        Group {
-            if cropSummary.shouldShowCanvasResetButton {
-                Button {
-                    withAnimation(VideoEditorPlaybackFocusTransitionPolicy.stageAnimation) {
-                        editorViewModel.resetCanvasTransform()
-                    }
-                } label: {
-                    Image(systemName: "arrow.counterclockwise")
-                        .font(.headline.weight(.semibold))
-                        .foregroundStyle(.white)
-                        .padding(14)
-                        .circleControl(
-                            prominent: true,
-                            tint: .black.opacity(0.82)
-                        )
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(VideoEditorStrings.resetTransform)
-            } else {
-                EmptyView()
-            }
-        }
     }
 
     @ViewBuilder
