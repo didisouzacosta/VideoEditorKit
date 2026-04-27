@@ -91,6 +91,36 @@ struct VideoEditorPlayerStageViewHitTestingTests {
         #expect(pixelColor(in: cgImage, x: 160, y: 200)?.isRed == false)
     }
 
+    @Test
+    func loadingPlaceholderDoesNotRenderABrightBorder() throws {
+        let stage = VideoEditorPlayerStageView(
+            .loading,
+            source: .init(
+                naturalSize: CGSize(width: 1080, height: 1080),
+                preferredTransform: .identity,
+                userRotationDegrees: 0,
+                isMirrored: false
+            ),
+            isCanvasInteractive: false
+        ) {
+            Color.clear
+        } overlay: { _ in
+            EmptyView()
+        } trailingControls: {
+            EmptyView()
+        }
+        .frame(width: 320, height: 400)
+        .background(.black)
+        .environment(\.colorScheme, .dark)
+
+        let renderer = ImageRenderer(content: stage)
+        renderer.scale = 1
+
+        let cgImage = try #require(renderer.uiImage?.cgImage)
+
+        #expect(pixelColor(in: cgImage, x: 160, y: 42)?.isBright == false)
+    }
+
 }
 
 private struct PixelColor {
@@ -104,6 +134,10 @@ private struct PixelColor {
 
     var isRed: Bool {
         red > 200 && green < 80 && blue < 80 && alpha > 200
+    }
+
+    var isBright: Bool {
+        red > 180 && green > 180 && blue > 180 && alpha > 200
     }
 
 }
