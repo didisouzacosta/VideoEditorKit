@@ -1,0 +1,76 @@
+import Foundation
+import Testing
+
+@testable import VideoEditorKit
+
+@Suite("VideoExportSheetRequestTests")
+struct VideoExportSheetRequestTests {
+
+    // MARK: - Public Methods
+
+    @Test
+    func requestDefaultsToTheSourceURLIdentityAndInitialEditingConfiguration() {
+        let url = URL(fileURLWithPath: "/tmp/source.mp4")
+        let request = VideoExportSheetRequest(sourceVideoURL: url)
+
+        #expect(request.id == url.absoluteString)
+        #expect(request.sourceVideoURL == url)
+        #expect(request.editingConfiguration == .initial)
+        #expect(request.preparedOriginalExportVideo == nil)
+        #expect(request.preparedOriginalExportEditingConfiguration == nil)
+    }
+
+    @Test
+    func requestKeepsThePreparedOriginalConfigurationOnlyWhenPreparedVideoExists() {
+        let url = URL(fileURLWithPath: "/tmp/source.mp4")
+        let preparedVideo = ExportedVideo(
+            URL(fileURLWithPath: "/tmp/prepared.mp4"),
+            width: 1920,
+            height: 1080,
+            duration: 8,
+            fileSize: 1024
+        )
+        let editingConfiguration = VideoEditingConfiguration(
+            trim: .init(lowerBound: 1, upperBound: 6)
+        )
+
+        let request = VideoExportSheetRequest(
+            id: "project-1",
+            sourceVideoURL: url,
+            editingConfiguration: editingConfiguration,
+            preparedOriginalExportVideo: preparedVideo
+        )
+
+        #expect(request.id == "project-1")
+        #expect(request.preparedOriginalExportVideo == preparedVideo)
+        #expect(request.preparedOriginalExportEditingConfiguration == editingConfiguration)
+    }
+
+    @Test
+    func requestUsesTheExplicitPreparedOriginalConfigurationWhenProvided() {
+        let sourceURL = URL(fileURLWithPath: "/tmp/source.mp4")
+        let preparedVideo = ExportedVideo(
+            URL(fileURLWithPath: "/tmp/prepared.mp4"),
+            width: 1920,
+            height: 1080,
+            duration: 8,
+            fileSize: 1024
+        )
+        let editingConfiguration = VideoEditingConfiguration(
+            trim: .init(lowerBound: 1, upperBound: 6)
+        )
+        let preparedConfiguration = VideoEditingConfiguration(
+            trim: .init(lowerBound: 2, upperBound: 5)
+        )
+
+        let request = VideoExportSheetRequest(
+            sourceVideoURL: sourceURL,
+            editingConfiguration: editingConfiguration,
+            preparedOriginalExportVideo: preparedVideo,
+            preparedOriginalExportEditingConfiguration: preparedConfiguration
+        )
+
+        #expect(request.preparedOriginalExportEditingConfiguration == preparedConfiguration)
+    }
+
+}
