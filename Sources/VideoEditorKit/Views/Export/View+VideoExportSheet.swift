@@ -123,16 +123,17 @@ private struct VideoExportItemSheetModifier<Item: Identifiable>: ViewModifier {
         content
             .dynamicSheet(
                 item: $item,
-                initialHeight: { _ in 420 }
-            ) { item in
-                VideoExportSheet(
-                    request: request(item),
-                    configuration: configuration,
-                    onExported: { exportedVideo in
-                        handleExported(exportedVideo, item: item)
-                    }
-                )
-            }
+                initialHeight: { _ in 420 },
+                content: { item in
+                    VideoExportSheet(
+                        request: request(item),
+                        configuration: configuration,
+                        onExported: { exportedVideo in
+                            handleExported(exportedVideo, item: item)
+                        }
+                    )
+                }
+            )
     }
 
     // MARK: - Private Methods
