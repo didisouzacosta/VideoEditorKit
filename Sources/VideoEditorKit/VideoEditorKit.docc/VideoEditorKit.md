@@ -30,10 +30,34 @@ explicit manual save.
 - Configuration: `VideoEditorConfiguration`, `ToolAvailability`,
   `ExportQualityAvailability`
 - Persistence: `VideoEditingConfiguration`, `VideoEditorSaveState`, `SavedVideo`
-- Export: `VideoQuality`, `ExportedVideo`
+- Export: `VideoQuality`, `ExportedVideo`, `VideoExportSheetRequest`
 - Canvas/crop: `VideoCanvas*`, `VideoCrop*`
 - Transcription: `VideoTranscriptionProvider`, `VideoTranscriptionInput`,
   `VideoTranscriptionResult`, `Transcript*`, `Transcription*`
+
+## External Export Sheet
+
+Use `videoExportSheet` to present the same export-quality sheet from screens
+outside the editor. The sheet respects `ExportQualityAvailability`, including
+blocked qualities, renders the selected quality, and returns `ExportedVideo` so
+the host can continue with its own share flow.
+
+```swift
+.videoExportSheet(
+    item: $exportingProject,
+    request: { project in
+        VideoExportSheetRequest(
+            id: project.id.uuidString,
+            sourceVideoURL: project.originalVideoURL,
+            editingConfiguration: project.editingConfiguration ?? .initial,
+            preparedOriginalExportVideo: project.preparedOriginalExportVideo
+        )
+    },
+    onExported: { exportedVideo, project in
+        share(project, exportedVideo.url)
+    }
+)
+```
 
 ## AI Integration Prompt
 

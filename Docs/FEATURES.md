@@ -19,12 +19,14 @@ This file is the current feature and resource map for `VideoEditorKit`.
 - Generate and edit transcript overlays when a transcription provider exists.
 - Save an edited copy while preserving the original.
 - Export `.mp4` output in original, low, medium, or high quality.
+- Present the export-quality sheet outside the editor with `videoExportSheet`.
 
 ## Save And Export Resources
 
 - Original source video: owned by the host app and never overwritten.
 - Saved edited copy: returned by `onSavedVideo`; used for saved-project preview.
 - Exported video: returned by `onExportedVideoURL`; used for share/export flows.
+- External export sheet: returns `ExportedVideo` after the user selects a quality.
 - Project thumbnail: generated from the saved edited copy in the example app.
 
 ## Main Public Types
@@ -37,6 +39,8 @@ This file is the current feature and resource map for `VideoEditorKit`.
 - `SavedVideo`: manual-save result.
 - `VideoEditorSaveState`: saved snapshot result from the save path.
 - `VideoQuality`: export quality.
+- `VideoExportSheetRequest`: source and editing payload for external export sheets.
+- `ExportedVideo`: rendered export/share result.
 - `ToolAvailability`: tool visibility and blocking.
 - `ExportQualityAvailability`: export visibility and blocking.
 - `VideoTranscriptionProvider`: custom transcription backend.

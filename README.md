@@ -23,6 +23,7 @@ public configuration, persistence, transcription, canvas, and export APIs.
 - Optional transcript generation and editable caption overlays
 - Manual save that creates an edited copy while preserving the original video
 - Export to `.mp4` with `original`, `low`, `medium`, and `high` quality choices
+- Reusable export-quality sheet for list and share flows outside the editor
 
 ## Screenshots
 
@@ -120,6 +121,41 @@ let session = VideoEditorSession(
 Use `.importedFile` only when a local URL must be produced asynchronously before
 the editor can load the video.
 
+## External Export Sheet
+
+Use `videoExportSheet` when a host screen needs the same export-quality picker
+outside `VideoEditorView`, such as a saved-video list share button. The modifier
+uses `VideoEditorConfiguration.exportQualities`, including blocked qualities,
+then renders the selected quality before returning an `ExportedVideo`.
+
+```swift
+@State private var exportingProject: Project?
+@State private var sharedVideoURL: URL?
+
+var body: some View {
+    ProjectsList(
+        onShare: { project in
+            exportingProject = project
+        }
+    )
+    .videoExportSheet(
+        item: $exportingProject,
+        configuration: .allToolsEnabled,
+        request: { project in
+            VideoExportSheetRequest(
+                id: project.id.uuidString,
+                sourceVideoURL: project.originalVideoURL,
+                editingConfiguration: project.editingConfiguration ?? .initial,
+                preparedOriginalExportVideo: project.preparedOriginalExportVideo
+            )
+        },
+        onExported: { exportedVideo, _ in
+            sharedVideoURL = exportedVideo.url
+        }
+    )
+}
+```
+
 ## Transcription
 
 Transcription is optional. Enable it by passing a transcription configuration:
@@ -143,7 +179,7 @@ segments with word timings whenever possible.
 - Editor entry: `VideoEditorView`, `VideoEditorSession`, `VideoEditorCallbacks`
 - Host policy: `VideoEditorConfiguration`, `ToolAvailability`, `ExportQualityAvailability`
 - Persistence: `VideoEditingConfiguration`, `SavedVideo`, `VideoEditorSaveState`
-- Export: `VideoQuality`, `ExportedVideo`
+- Export: `VideoQuality`, `ExportedVideo`, `VideoExportSheetRequest`
 - Transcription: `VideoTranscriptionProvider`, `Transcript*`, `Transcription*`
 - Canvas/crop: `VideoCanvas*`, `VideoCrop*`
 
