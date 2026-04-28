@@ -101,6 +101,37 @@ struct VideoExporterContainerView: View {
         self.onExported = onExported
     }
 
+    init(
+        lifecycleState: Binding<ExportLifecycleState>,
+        video: Video,
+        editingConfiguration: VideoEditingConfiguration,
+        exportQualities: [ExportQualityAvailability] = ExportQualityAvailability.allEnabled,
+        prepareForExport: @escaping (VideoQuality) async -> VideoExportPreparationResult,
+        shouldShowSavingBeforeExport: @escaping (VideoQuality) -> Bool = { _ in false },
+        onBlockedQualityTap: @escaping (VideoQuality) -> Void = { _ in },
+        onExported: @escaping (ExportedVideo) -> Void
+    ) {
+        self.init(
+            lifecycleState: lifecycleState,
+            video: video,
+            editingConfiguration: editingConfiguration,
+            exportQualities: exportQualities,
+            prepareForExport: { quality in
+                switch await prepareForExport(quality) {
+                case .render:
+                    ExporterViewModel.ExportPreparationResult.render
+                case .usePreparedVideo(let exportedVideo):
+                    ExporterViewModel.ExportPreparationResult.usePreparedVideo(exportedVideo)
+                case .cancelled:
+                    ExporterViewModel.ExportPreparationResult.cancelled
+                }
+            },
+            shouldShowSavingBeforeExport: shouldShowSavingBeforeExport,
+            onBlockedQualityTap: onBlockedQualityTap,
+            onExported: onExported
+        )
+    }
+
     // MARK: - Private Methods
 
     private func exportVideo() {

@@ -73,4 +73,107 @@ struct VideoExportSheetRequestTests {
         #expect(request.preparedOriginalExportEditingConfiguration == preparedConfiguration)
     }
 
+    @Test
+    func defaultPreparationUsesPreparedOriginalWhenTheConfigurationMatches() {
+        let preparedVideo = ExportedVideo(
+            URL(fileURLWithPath: "/tmp/prepared.mp4"),
+            width: 1920,
+            height: 1080,
+            duration: 8,
+            fileSize: 1024
+        )
+        let editingConfiguration = VideoEditingConfiguration(
+            trim: .init(lowerBound: 1, upperBound: 6)
+        )
+        let request = VideoExportSheetRequest(
+            sourceVideoURL: URL(fileURLWithPath: "/tmp/source.mp4"),
+            editingConfiguration: editingConfiguration,
+            preparedOriginalExportVideo: preparedVideo,
+            preparedOriginalExportEditingConfiguration: editingConfiguration
+        )
+
+        let result = VideoExportSheetPreparationResolver.preparationResult(
+            selectedQuality: .original,
+            request: request,
+            loadedOriginalVideo: nil
+        )
+
+        #expect(result == .usePreparedVideo(preparedVideo))
+    }
+
+    @Test
+    func defaultPreparationRendersWhenPreparedOriginalConfigurationDiffers() {
+        let preparedVideo = ExportedVideo(
+            URL(fileURLWithPath: "/tmp/prepared.mp4"),
+            width: 1920,
+            height: 1080,
+            duration: 8,
+            fileSize: 1024
+        )
+        let request = VideoExportSheetRequest(
+            sourceVideoURL: URL(fileURLWithPath: "/tmp/source.mp4"),
+            editingConfiguration: VideoEditingConfiguration(
+                trim: .init(lowerBound: 1, upperBound: 6)
+            ),
+            preparedOriginalExportVideo: preparedVideo,
+            preparedOriginalExportEditingConfiguration: VideoEditingConfiguration(
+                trim: .init(lowerBound: 2, upperBound: 6)
+            )
+        )
+
+        let result = VideoExportSheetPreparationResolver.preparationResult(
+            selectedQuality: .original,
+            request: request,
+            loadedOriginalVideo: nil
+        )
+
+        #expect(result == .render)
+    }
+
+    @Test
+    func defaultPreparationUsesLoadedOriginalForInitialOriginalExport() {
+        let loadedOriginal = ExportedVideo(
+            URL(fileURLWithPath: "/tmp/source.mp4"),
+            width: 1920,
+            height: 1080,
+            duration: 8,
+            fileSize: 1024
+        )
+        let request = VideoExportSheetRequest(
+            sourceVideoURL: loadedOriginal.url,
+            editingConfiguration: .initial
+        )
+
+        let result = VideoExportSheetPreparationResolver.preparationResult(
+            selectedQuality: .original,
+            request: request,
+            loadedOriginalVideo: loadedOriginal
+        )
+
+        #expect(result == .usePreparedVideo(loadedOriginal))
+    }
+
+    @Test
+    func defaultPreparationRendersNonOriginalQualities() {
+        let loadedOriginal = ExportedVideo(
+            URL(fileURLWithPath: "/tmp/source.mp4"),
+            width: 1920,
+            height: 1080,
+            duration: 8,
+            fileSize: 1024
+        )
+        let request = VideoExportSheetRequest(
+            sourceVideoURL: loadedOriginal.url,
+            editingConfiguration: .initial
+        )
+
+        let result = VideoExportSheetPreparationResolver.preparationResult(
+            selectedQuality: .low,
+            request: request,
+            loadedOriginalVideo: loadedOriginal
+        )
+
+        #expect(result == .render)
+    }
+
 }
