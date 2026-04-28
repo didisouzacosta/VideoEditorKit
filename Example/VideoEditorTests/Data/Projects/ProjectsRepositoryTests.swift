@@ -231,21 +231,19 @@ struct ProjectsRepositoryTests {
         let store = ProjectsRepository(modelContext: container.mainContext)
         let originalVideoURL = try await TestFixtures.createTemporaryVideo(color: .systemBlue)
         let audioURL = try TestFixtures.createTemporaryAudio()
-        let saveState = VideoEditorView.SaveState(
-            editingConfiguration: VideoEditingConfiguration(
-                trim: .init(lowerBound: 1, upperBound: 4),
-                audio: .init(
-                    recordedClip: .init(
-                        url: audioURL,
-                        duration: 0.5,
-                        volume: 0.7
-                    ),
-                    selectedTrack: .recorded
+        let editingConfiguration = VideoEditingConfiguration(
+            trim: .init(lowerBound: 1, upperBound: 4),
+            audio: .init(
+                recordedClip: .init(
+                    url: audioURL,
+                    duration: 0.5,
+                    volume: 0.7
                 ),
-                presentation: .init(.audio)
+                selectedTrack: .recorded
             ),
-            thumbnailData: Data([0x01, 0x02, 0x03])
+            presentation: .init(.audio)
         )
+        let thumbnailData = Data([0x01, 0x02, 0x03])
 
         defer { FileManager.default.removeIfExists(for: originalVideoURL) }
         defer { FileManager.default.removeIfExists(for: audioURL) }
@@ -253,17 +251,18 @@ struct ProjectsRepositoryTests {
         let persistedState = try await store.saveEditingState(
             projectID: nil,
             originalVideoURL: originalVideoURL,
-            saveState: saveState
+            editingConfiguration: editingConfiguration,
+            thumbnailData: thumbnailData
         )
         let project = persistedState.project
 
         #expect(project.hasOriginalVideo)
         #expect(project.hasExportedVideo == false)
         #expect(project.originalVideoURL.lastPathComponent.hasPrefix("original."))
-        #expect(project.thumbnailData == saveState.thumbnailData)
+        #expect(project.thumbnailData == thumbnailData)
         #expect(project.duration > 0)
         #expect(project.fileSize > 0)
-        #expect(project.editingConfiguration?.trim == saveState.editingConfiguration.trim)
+        #expect(project.editingConfiguration?.trim == editingConfiguration.trim)
         #expect(project.editingConfiguration?.playback.currentTimelineTime == nil)
         #expect(project.editingConfiguration?.audio.selectedTrack == .recorded)
         #expect(
@@ -271,9 +270,9 @@ struct ProjectsRepositoryTests {
                 "recorded-audio."
             ) == true
         )
-        #expect(persistedState.saveState.editingConfiguration.playback.currentTimelineTime == nil)
+        #expect(persistedState.editingConfiguration.playback.currentTimelineTime == nil)
         #expect(
-            persistedState.saveState.editingConfiguration.audio.recordedClip?.url.lastPathComponent.hasPrefix(
+            persistedState.editingConfiguration.audio.recordedClip?.url.lastPathComponent.hasPrefix(
                 "recorded-audio."
             ) == true
         )
@@ -284,16 +283,12 @@ struct ProjectsRepositoryTests {
         let container = try makeContainer()
         let store = ProjectsRepository(modelContext: container.mainContext)
         let originalVideoURL = try await TestFixtures.createTemporaryVideo(color: .systemBlue)
-        let firstSaveState = VideoEditorView.SaveState(
-            editingConfiguration: .init(
-                trim: .init(lowerBound: 0, upperBound: 4)
-            ),
-            thumbnailData: Data([0x01])
+        let firstEditingConfiguration = VideoEditingConfiguration(
+            trim: .init(lowerBound: 0, upperBound: 4)
         )
-        let secondSaveState = VideoEditorView.SaveState(
-            editingConfiguration: .init(
-                trim: .init(lowerBound: 2, upperBound: 6)
-            )
+        let firstThumbnailData = Data([0x01])
+        let secondEditingConfiguration = VideoEditingConfiguration(
+            trim: .init(lowerBound: 2, upperBound: 6)
         )
 
         defer { FileManager.default.removeIfExists(for: originalVideoURL) }
@@ -301,19 +296,20 @@ struct ProjectsRepositoryTests {
         let firstPersistedState = try await store.saveEditingState(
             projectID: nil,
             originalVideoURL: originalVideoURL,
-            saveState: firstSaveState
+            editingConfiguration: firstEditingConfiguration,
+            thumbnailData: firstThumbnailData
         )
         let updatedPersistedState = try await store.saveEditingState(
             projectID: firstPersistedState.project.id,
             originalVideoURL: firstPersistedState.project.originalVideoURL,
-            saveState: secondSaveState
+            editingConfiguration: secondEditingConfiguration
         )
         let projects = try container.mainContext.fetch(FetchDescriptor<EditedVideoProject>())
 
         #expect(updatedPersistedState.project.id == firstPersistedState.project.id)
         #expect(projects.count == 1)
-        #expect(updatedPersistedState.project.editingConfiguration?.trim == secondSaveState.editingConfiguration.trim)
-        #expect(updatedPersistedState.project.thumbnailData == firstSaveState.thumbnailData)
+        #expect(updatedPersistedState.project.editingConfiguration?.trim == secondEditingConfiguration.trim)
+        #expect(updatedPersistedState.project.thumbnailData == firstThumbnailData)
     }
 
     @Test
@@ -322,16 +318,14 @@ struct ProjectsRepositoryTests {
         let store = ProjectsRepository(modelContext: container.mainContext)
         let originalVideoURL = try await TestFixtures.createTemporaryVideo(color: .systemBlue)
         let audioURL = try TestFixtures.createTemporaryAudio()
-        let initialSaveState = VideoEditorView.SaveState(
-            editingConfiguration: .init(
-                audio: .init(
-                    recordedClip: .init(
-                        url: audioURL,
-                        duration: 0.5,
-                        volume: 0.7
-                    ),
-                    selectedTrack: .recorded
-                )
+        let initialEditingConfiguration = VideoEditingConfiguration(
+            audio: .init(
+                recordedClip: .init(
+                    url: audioURL,
+                    duration: 0.5,
+                    volume: 0.7
+                ),
+                selectedTrack: .recorded
             )
         )
 
@@ -341,12 +335,13 @@ struct ProjectsRepositoryTests {
         let firstPersistedState = try await store.saveEditingState(
             projectID: nil,
             originalVideoURL: originalVideoURL,
-            saveState: initialSaveState
+            editingConfiguration: initialEditingConfiguration
         )
         let secondPersistedState = try await store.saveEditingState(
             projectID: firstPersistedState.project.id,
             originalVideoURL: firstPersistedState.project.originalVideoURL,
-            saveState: firstPersistedState.saveState
+            editingConfiguration: firstPersistedState.editingConfiguration,
+            thumbnailData: firstPersistedState.thumbnailData
         )
 
         let persistedAudioURL = try #require(secondPersistedState.project.editingConfiguration?.audio.recordedClip?.url)
@@ -361,12 +356,10 @@ struct ProjectsRepositoryTests {
         let originalVideoURL = try await TestFixtures.createTemporaryVideo(color: .systemBlue)
         let exportedVideoURL = try await TestFixtures.createTemporaryVideo(color: .systemGreen)
         let exportedVideo = await ExportedVideo.load(from: exportedVideoURL)
-        let initialSaveState = VideoEditorView.SaveState(
-            editingConfiguration: .init(
-                trim: .init(lowerBound: 1, upperBound: 3)
-            ),
-            thumbnailData: Data([0x05, 0x06])
+        let initialEditingConfiguration = VideoEditingConfiguration(
+            trim: .init(lowerBound: 1, upperBound: 3)
         )
+        let initialThumbnailData = Data([0x05, 0x06])
 
         defer { FileManager.default.removeIfExists(for: originalVideoURL) }
         defer { FileManager.default.removeIfExists(for: exportedVideoURL) }
@@ -374,13 +367,14 @@ struct ProjectsRepositoryTests {
         let draftState = try await store.saveEditingState(
             projectID: nil,
             originalVideoURL: originalVideoURL,
-            saveState: initialSaveState
+            editingConfiguration: initialEditingConfiguration,
+            thumbnailData: initialThumbnailData
         )
         let exportedProject = try await store.saveExportedVideo(
             projectID: draftState.project.id,
             originalVideoURL: draftState.project.originalVideoURL,
             exportedVideo: exportedVideo,
-            editingConfiguration: draftState.saveState.editingConfiguration
+            editingConfiguration: draftState.editingConfiguration
         )
         let projects = try container.mainContext.fetch(FetchDescriptor<EditedVideoProject>())
 
@@ -457,7 +451,7 @@ struct ProjectsRepositoryTests {
         let draftState = try await store.saveEditingState(
             projectID: nil,
             originalVideoURL: originalVideoURL,
-            saveState: .init(editingConfiguration: .initial)
+            editingConfiguration: .initial
         )
         let project = try await store.saveExportedVideo(
             projectID: draftState.project.id,

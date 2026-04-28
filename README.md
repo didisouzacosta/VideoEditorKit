@@ -82,11 +82,7 @@ struct EditorHostView: View {
                 configuration = savedVideo.editingConfiguration
                 savedEditedVideoURL = savedVideo.url
             },
-            onDismissed: { latestConfiguration in
-                if let latestConfiguration {
-                    configuration = latestConfiguration
-                }
-            },
+            onDismissed: {},
             onExportedVideoURL: { url in
                 exportedVideoURL = url
             }
@@ -100,8 +96,8 @@ struct EditorHostView: View {
 - Pass a local playable file URL into the editor.
 - Keep the original video, saved edited copy, and exported output as separate files.
 - Persist `SavedVideo.url` and `SavedVideo.editingConfiguration` after `onSavedVideo`.
+- Use `onDismissed` only as a close event; it does not publish editing state.
 - Use `onExportedVideoURL` only for explicit export/share output.
-- Do not treat `onSaveStateChanged` as continuous autosave.
 - Do not overwrite the original source video with a saved or exported video.
 - Do not block `.original`; original export is always available.
 
@@ -178,7 +174,7 @@ segments with word timings whenever possible.
 
 - Editor entry: `VideoEditorView`, `VideoEditorSession`, `VideoEditorCallbacks`
 - Host policy: `VideoEditorConfiguration`, `ToolAvailability`, `ExportQualityAvailability`
-- Persistence: `VideoEditingConfiguration`, `SavedVideo`, `VideoEditorSaveState`
+- Persistence: `VideoEditingConfiguration`, `SavedVideo`
 - Export: `VideoQuality`, `ExportedVideo`, `VideoExportSheetRequest`
 - Transcription: `VideoTranscriptionProvider`, `Transcript*`, `Transcription*`
 - Canvas/crop: `VideoCanvas*`, `VideoCrop*`

@@ -9,7 +9,7 @@ struct EditorSessionDraft: Identifiable, Equatable {
     let session: VideoEditorView.Session
     let projectID: UUID?
     let sourceVideoURL: URL?
-    let latestSaveState: VideoEditorView.SaveState?
+    let latestEditingConfiguration: VideoEditingConfiguration?
 
     // MARK: - Initializer
 
@@ -18,13 +18,13 @@ struct EditorSessionDraft: Identifiable, Equatable {
         session: VideoEditorView.Session,
         projectID: UUID? = nil,
         sourceVideoURL: URL? = nil,
-        latestSaveState: VideoEditorView.SaveState? = nil
+        latestEditingConfiguration: VideoEditingConfiguration? = nil
     ) {
         self.id = id
         self.session = session
         self.projectID = projectID
         self.sourceVideoURL = sourceVideoURL
-        self.latestSaveState = latestSaveState
+        self.latestEditingConfiguration = latestEditingConfiguration
     }
 
     // MARK: - Public Methods
@@ -51,9 +51,7 @@ struct EditorSessionDraft: Identifiable, Equatable {
             ),
             projectID: project.id,
             sourceVideoURL: project.originalVideoURL,
-            latestSaveState: editingConfiguration.map {
-                .init(editingConfiguration: $0)
-            }
+            latestEditingConfiguration: editingConfiguration
         )
     }
 

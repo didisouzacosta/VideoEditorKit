@@ -175,7 +175,7 @@ struct VideoEditorTests {
     }
 
     @Test
-    func resolvedSaveNativeRenderProfilePreservesSourceResolutionAndFrameRate() {
+    func resolvedSaveNativeRenderProfileUsesCanvasSizeWhilePreservingSourceFrameRate() {
         let profile = VideoEditor.resolvedRenderProfile(
             for: CGSize(width: 1920, height: 1080),
             editingConfiguration: VideoEditingConfiguration(
@@ -191,10 +191,60 @@ struct VideoEditorTests {
         )
 
         #expect(profile.intent == .saveNative(sourceFrameRate: 23.976))
-        #expect(profile.renderSize == CGSize(width: 1920, height: 1080))
+        #expect(profile.renderSize == CGSize(width: 1080, height: 1350))
         #expect(abs(profile.frameDuration.seconds - (1 / 23.976)) < 0.0001)
         #expect(profile.renderPresetName == AVAssetExportPresetHighestQuality)
         #expect(profile.passthroughPresetName == AVAssetExportPresetPassthrough)
+    }
+
+    @Test
+    func resolvedSaveNativeRenderProfileKeepsSourceSizeWhenCanvasIsIdentity() {
+        let profile = VideoEditor.resolvedRenderProfile(
+            for: CGSize(width: 1920, height: 1080),
+            editingConfiguration: .initial,
+            intent: .saveNative(sourceFrameRate: 24),
+            isSimulatorEnvironment: true
+        )
+
+        #expect(profile.renderSize == CGSize(width: 1920, height: 1080))
+        #expect(abs(profile.frameDuration.seconds - (1 / 24.0)) < 0.0001)
+    }
+
+    @Test
+    func startRenderSaveNativeProducesCanvasSizedVideoForPresetEdits() async throws {
+        let url = try await TestFixtures.createTemporaryVideo(
+            size: CGSize(width: 160, height: 90),
+            frameCount: 12,
+            framesPerSecond: 24
+        )
+        defer { FileManager.default.removeIfExists(for: url) }
+
+        let video = await Video.load(from: url)
+        let editingConfiguration = VideoEditingConfiguration(
+            canvas: .init(
+                snapshot: .init(
+                    preset: .custom(width: 108, height: 135),
+                    freeCanvasSize: CGSize(width: 108, height: 135),
+                    transform: .init(
+                        normalizedOffset: CGPoint(x: 0.15, y: 0),
+                        zoom: 1.2,
+                        rotationRadians: 0
+                    )
+                )
+            )
+        )
+
+        let savedURL = try await VideoEditor.startRender(
+            video: video,
+            editingConfiguration: editingConfiguration,
+            renderIntent: .saveNative(sourceFrameRate: 24)
+        )
+        defer { FileManager.default.removeIfExists(for: savedURL) }
+
+        let savedAsset = AVURLAsset(url: savedURL)
+        let savedSize = try #require(await savedAsset.presentationSize())
+
+        #expect(savedSize == CGSize(width: 108, height: 136))
     }
 
     @Test

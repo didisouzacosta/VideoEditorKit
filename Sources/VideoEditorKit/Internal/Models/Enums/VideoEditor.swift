@@ -688,11 +688,17 @@ extension VideoEditor {
 
         switch intent {
         case .saveNative(let sourceFrameRate):
-            renderSize = evenPixelSize(for: sourceSize)
+            renderSize = resolvedNativeRenderSize(
+                for: sourceSize,
+                editingConfiguration: editingConfiguration
+            )
             resolvedFrameDuration = frameDuration(forSourceFrameRate: sourceFrameRate)
             presetNames = resolvedNativeSavePresetNames(isSimulatorEnvironment: isSimulatorEnvironment)
         case .export(let videoQuality) where videoQuality.isOriginal:
-            renderSize = evenPixelSize(for: sourceSize)
+            renderSize = resolvedNativeRenderSize(
+                for: sourceSize,
+                editingConfiguration: editingConfiguration
+            )
             resolvedFrameDuration = frameDuration(forSourceFrameRate: nil)
             presetNames = resolvedNativeSavePresetNames(isSimulatorEnvironment: isSimulatorEnvironment)
         case .export(let videoQuality):
@@ -715,6 +721,20 @@ extension VideoEditor {
             renderPresetName: presetNames.renderPresetName,
             passthroughPresetName: presetNames.passthroughPresetName
         )
+    }
+
+    private static func resolvedNativeRenderSize(
+        for sourceSize: CGSize,
+        editingConfiguration: VideoEditingConfiguration
+    ) -> CGSize {
+        if let canvasSize = preferredCanvasRenderSize(
+            for: sourceSize,
+            editingConfiguration: editingConfiguration
+        ) {
+            return evenPixelSize(for: canvasSize)
+        }
+
+        return evenPixelSize(for: sourceSize)
     }
 
     static func resolvedSourceFrameRate(for asset: AVAsset) async -> Double? {

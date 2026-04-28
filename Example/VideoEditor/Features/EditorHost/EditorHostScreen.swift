@@ -58,10 +58,8 @@ struct EditorHostScreen: View {
 
     private var editorCallbacks: VideoEditorView.Callbacks {
         .init(
-            onSaveStateChanged: { saveState in
-                sessionController.handleSaveStateChanged(saveState)
-            },
             onSavedVideo: { savedVideo in
+                sessionController.handleSavedVideo(savedVideo)
                 Task {
                     await persistSavedVideo(savedVideo)
                 }
@@ -116,7 +114,7 @@ struct EditorHostScreen: View {
         }
 
         let editingConfiguration =
-            sessionController.latestSaveState?.editingConfiguration
+            sessionController.latestEditingConfiguration
             ?? sessionController.session.editingConfiguration
             ?? .initial
         let exportedVideo = await ExportedVideo.load(from: exportedVideoURL)

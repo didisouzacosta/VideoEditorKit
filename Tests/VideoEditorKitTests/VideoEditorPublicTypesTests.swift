@@ -13,9 +13,6 @@ struct VideoEditorPublicTypesTests {
             sourceVideoURL: url,
             editingConfiguration: .initial
         )
-        let saveState = VideoEditorView.SaveState(
-            editingConfiguration: .initial
-        )
         let savedVideo = VideoEditorView.SavedVideo(
             url,
             originalVideoURL: url,
@@ -32,12 +29,11 @@ struct VideoEditorPublicTypesTests {
         let callbacks = VideoEditorView.Callbacks()
 
         #expect(session.sourceVideoURL == url)
-        #expect(saveState.editingConfiguration == .initial)
         #expect(savedVideo.originalVideoURL == url)
         #expect(savedVideo.metadata.url == url)
         #expect(configuration.tools == VideoEditorConfiguration.allToolsEnabled.tools)
         #expect(configuration.transcription == nil)
-        callbacks.onDismissed(nil)
+        callbacks.onDismissed()
     }
 
     @Test
@@ -132,19 +128,6 @@ struct VideoEditorPublicTypesTests {
     }
 
     @Test
-    func saveStateExposesTheContinuousSaveFingerprint() {
-        let configuration = VideoEditingConfiguration(
-            presentation: .init(.audio)
-        )
-        let saveState = VideoEditorSaveState(
-            editingConfiguration: configuration,
-            thumbnailData: Data([1, 2, 3])
-        )
-
-        #expect(saveState.continuousSaveFingerprint == configuration.continuousSaveFingerprint)
-    }
-
-    @Test
     func savedVideoCarriesTheManualSavePayload() {
         let savedURL = URL(fileURLWithPath: "/tmp/saved.mp4")
         let originalURL = URL(fileURLWithPath: "/tmp/original.mp4")
@@ -174,13 +157,15 @@ struct VideoEditorPublicTypesTests {
     }
 
     @Test
-    func callbacksExposeTheManualSaveHandlerSeparatelyFromExport() {
+    func callbacksExposeManualSaveDismissAndExportHandlersSeparately() {
         let savedURL = URL(fileURLWithPath: "/tmp/saved.mp4")
         let exportedURL = URL(fileURLWithPath: "/tmp/exported.mp4")
         var capturedSavedVideo: SavedVideo?
+        var didDismiss = false
         var capturedExportedURL: URL?
         let callbacks = VideoEditorCallbacks(
             onSavedVideo: { capturedSavedVideo = $0 },
+            onDismissed: { didDismiss = true },
             onExportedVideoURL: { capturedExportedURL = $0 }
         )
         let savedVideo = SavedVideo(
@@ -197,9 +182,11 @@ struct VideoEditorPublicTypesTests {
         )
 
         callbacks.onSavedVideo(savedVideo)
+        callbacks.onDismissed()
         callbacks.onExportedVideoURL(exportedURL)
 
         #expect(capturedSavedVideo == savedVideo)
+        #expect(didDismiss)
         #expect(capturedExportedURL == exportedURL)
     }
 

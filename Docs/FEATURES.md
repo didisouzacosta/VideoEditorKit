@@ -37,7 +37,6 @@ This file is the current feature and resource map for `VideoEditorKit`.
   blocked actions, and duration limits.
 - `VideoEditingConfiguration`: persist and restore the edit.
 - `SavedVideo`: manual-save result.
-- `VideoEditorSaveState`: saved snapshot result from the save path.
 - `VideoQuality`: export quality.
 - `VideoExportSheetRequest`: source and editing payload for external export sheets.
 - `ExportedVideo`: rendered export/share result.

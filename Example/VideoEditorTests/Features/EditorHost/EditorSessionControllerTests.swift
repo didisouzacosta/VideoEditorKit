@@ -43,10 +43,7 @@ struct EditorSessionControllerTests {
 
         #expect(controller.currentProjectID == project.id)
         #expect(controller.currentSourceVideoURL == project.originalVideoURL)
-        #expect(
-            controller.latestSaveState
-                == .init(editingConfiguration: expectedEditingConfiguration)
-        )
+        #expect(controller.latestEditingConfiguration == expectedEditingConfiguration)
         #expect(
             controller.session
                 == .init(
@@ -57,24 +54,7 @@ struct EditorSessionControllerTests {
     }
 
     @Test
-    func handleSaveStateChangedStoresTheLatestPayload() {
-        let controller = EditorSessionController(
-            .imported(.fileURL(URL(fileURLWithPath: "/tmp/controller.mp4")))
-        )
-        let saveState = VideoEditorView.SaveState(
-            editingConfiguration: .init(
-                trim: .init(lowerBound: 1, upperBound: 4)
-            ),
-            thumbnailData: Data([0x01, 0x02, 0x03])
-        )
-
-        controller.handleSaveStateChanged(saveState)
-
-        #expect(controller.latestSaveState == saveState)
-    }
-
-    @Test
-    func handleSaveStateChangedKeepsTransientPayloadAsLatestState() {
+    func handleSavedVideoStoresTheLatestEditingConfigurationBeforePersistenceFinishes() {
         let controller = EditorSessionController(
             .imported(.fileURL(URL(fileURLWithPath: "/tmp/controller.mp4")))
         )
@@ -127,15 +107,22 @@ struct EditorSessionControllerTests {
                 showsSafeAreaGuides: false
             )
         )
-
-        controller.handleSaveStateChanged(
-            .init(editingConfiguration: baseConfiguration)
+        let savedVideo = SavedVideo(
+            URL(fileURLWithPath: "/tmp/saved.mp4"),
+            originalVideoURL: URL(fileURLWithPath: "/tmp/original.mp4"),
+            editingConfiguration: transientOnlyChange,
+            metadata: .init(
+                URL(fileURLWithPath: "/tmp/saved.mp4"),
+                width: 1280,
+                height: 720,
+                duration: 5,
+                fileSize: 512
+            )
         )
-        controller.handleSaveStateChanged(
-            .init(editingConfiguration: transientOnlyChange)
-        )
 
-        #expect(controller.latestSaveState?.editingConfiguration == transientOnlyChange)
+        controller.handleSavedVideo(savedVideo)
+
+        #expect(controller.latestEditingConfiguration == transientOnlyChange)
     }
 
     @Test
@@ -171,13 +158,7 @@ struct EditorSessionControllerTests {
 
         #expect(controller.currentProjectID == project.id)
         #expect(controller.currentSourceVideoURL == project.originalVideoURL)
-        #expect(
-            controller.latestSaveState
-                == .init(
-                    editingConfiguration: savedVideo.editingConfiguration,
-                    thumbnailData: savedVideo.thumbnailData
-                )
-        )
+        #expect(controller.latestEditingConfiguration == savedVideo.editingConfiguration)
     }
 
     @Test
