@@ -17,13 +17,13 @@ struct VideoEditorShellViewTests {
             VideoEditorShellView.navigationTitle(
                 "Editor",
                 bootstrapState: .idle
-            ) == ""
+            ).isEmpty
         )
         #expect(
             VideoEditorShellView.navigationTitle(
                 "Editor",
                 bootstrapState: .loading
-            ) == ""
+            ).isEmpty
         )
         #expect(
             VideoEditorShellView.navigationTitle(
