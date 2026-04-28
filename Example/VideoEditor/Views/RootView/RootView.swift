@@ -8,6 +8,7 @@
 import PhotosUI
 import SwiftData
 import SwiftUI
+import VideoEditorKit
 
 struct RootView: View {
 
@@ -21,6 +22,7 @@ struct RootView: View {
     @State private var selectedItem: PhotosPickerItem?
     @State private var editorDraft: EditorSessionDraft?
     @State private var persistenceAlert: RootAlertPresentation?
+    @State private var exportingProject: EditedVideoProject?
     @State private var sharedVideo: ProjectVideoAction?
 
     // MARK: - Private Properties
@@ -63,6 +65,13 @@ struct RootView: View {
                     repository: projectsRepository
                 )
             }
+            .videoExportSheet(
+                item: $exportingProject,
+                request: exportRequest(for:),
+                onExported: { exportedVideo, project in
+                    sharedVideo = .init(id: project.id, url: exportedVideo.url)
+                }
+            )
             .sheet(item: $sharedVideo) { videoAction in
                 VideoShareSheet(
                     activityItems: [videoAction.url],
@@ -120,12 +129,29 @@ extension RootView {
     }
 
     private func shareSavedVideo(_ project: EditedVideoProject) {
-        guard let url = project.savedPlaybackVideoURL else {
+        guard project.hasOriginalVideo else {
+            showPersistenceError(ExampleStrings.missingProjectOriginalVideo)
+            return
+        }
+
+        guard project.editingConfiguration != nil else {
             showPersistenceError(ExampleStrings.missingSavedVideo)
             return
         }
 
-        sharedVideo = .init(id: project.id, url: url)
+        exportingProject = project
+    }
+
+    private func exportRequest(
+        for project: EditedVideoProject
+    ) -> VideoExportSheetRequest {
+        VideoExportSheetRequest(
+            id: project.id.uuidString,
+            sourceVideoURL: project.originalVideoURL,
+            editingConfiguration: project.editingConfiguration ?? .initial,
+            preparedOriginalExportVideo: project.preparedOriginalExportVideo,
+            preparedOriginalExportEditingConfiguration: project.editingConfiguration
+        )
     }
 
     private func deleteProject(_ project: EditedVideoProject) {
