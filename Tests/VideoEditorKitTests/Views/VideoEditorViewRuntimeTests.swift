@@ -254,6 +254,26 @@ struct VideoEditorViewRuntimeTests {
     }
 
     @Test
+    func cancelToolbarActionPresentsUnsavedChangesAsButtonAttachedConfirmationDialog() throws {
+        let sourceURL = URL(filePath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appending(path: "Sources/VideoEditorKit/Views/Editor/VideoEditorView.swift")
+        let source = try String(contentsOf: sourceURL)
+        let actionStart = try #require(source.range(of: "private func cancelToolbarAction"))
+        let actionEnd = try #require(
+            source[actionStart.lowerBound...].range(of: "\n    private func handlePlaybackLockChange")
+        )
+        let actionSource = source[actionStart.lowerBound..<actionEnd.lowerBound]
+
+        #expect(actionSource.contains("Button(VideoEditorStrings.cancel, action: onCancel)"))
+        #expect(actionSource.contains(".confirmationDialog("))
+        #expect(actionSource.contains(".alert(") == false)
+    }
+
+    @Test
     func completedManualSaveDismissesTheEditor() {
         let savedVideoURL = URL(filePath: "/tmp/saved.mp4")
         let originalVideoURL = URL(filePath: "/tmp/original.mp4")

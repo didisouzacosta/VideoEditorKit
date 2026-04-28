@@ -294,9 +294,10 @@ public struct VideoEditorView: View {
     @ViewBuilder
     private func cancelToolbarAction(onCancel: @escaping () -> Void) -> some View {
         Button(VideoEditorStrings.cancel, action: onCancel)
-            .alert(
+            .confirmationDialog(
                 VideoEditorStrings.unsavedChangesAlertTitle,
                 isPresented: cancelConfirmationBinding,
+                titleVisibility: .visible,
                 presenting: cancelConfirmationState
             ) { _ in
                 Button(VideoEditorStrings.save, action: saveChangesAndDismiss)
