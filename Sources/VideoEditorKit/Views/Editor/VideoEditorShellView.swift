@@ -5,7 +5,7 @@ struct VideoEditorShellView: View {
     // MARK: - States
 
     @State private var bootstrapAttempt = 0
-    @State private var bootstrapState = VideoEditorSessionBootstrapCoordinator.BootstrapState.idle
+    @State private var bootstrapState: VideoEditorSessionBootstrapCoordinator.BootstrapState
 
     // MARK: - Body
 
@@ -13,7 +13,7 @@ struct VideoEditorShellView: View {
         NavigationStack {
             GeometryReader { proxy in
                 content(for: proxy.size)
-                    .navigationTitle(title ?? "")
+                    .navigationTitle(Self.navigationTitle(title, bootstrapState: bootstrapState))
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) {
                             cancelAction()
@@ -79,6 +79,10 @@ struct VideoEditorShellView: View {
         @ViewBuilder loadedContent:
             @escaping (_ availableSize: CGSize, _ resolvedSourceVideoURL: URL) -> LoadedContent
     ) {
+        _bootstrapState = State(
+            initialValue: VideoEditorSessionBootstrapCoordinator.initialState(for: session.source)
+        )
+
         self.title = title
         self.session = session
         self.callbacks = callbacks
@@ -105,6 +109,18 @@ struct VideoEditorShellView: View {
 
     // MARK: - Private Methods
 
+    static func navigationTitle(
+        _ title: String?,
+        bootstrapState: VideoEditorSessionBootstrapCoordinator.BootstrapState
+    ) -> String {
+        switch bootstrapState {
+        case .loaded:
+            title ?? ""
+        case .idle, .loading, .failed:
+            ""
+        }
+    }
+
     @ViewBuilder
     private func content(for availableSize: CGSize) -> some View {
         switch bootstrapState {
@@ -126,19 +142,9 @@ struct VideoEditorShellView: View {
     }
 
     private var bootstrapLoadingView: some View {
-        VStack(spacing: 16) {
-            ProgressView()
-
-            Text(VideoEditorStrings.importingVideoTitle)
-                .font(.headline)
-
-            Text(VideoEditorStrings.importingVideoMessage)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .safeAreaPadding()
+        ProgressView()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .safeAreaPadding()
     }
 
     private func bootstrapFailureView(message: String) -> some View {

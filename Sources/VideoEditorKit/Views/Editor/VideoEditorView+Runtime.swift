@@ -51,33 +51,6 @@ extension VideoEditorView {
         }
     }
 
-    static func dismissedEditingConfiguration(
-        editorViewModel: EditorViewModel,
-        fallbackEditingConfiguration: VideoEditingConfiguration?
-    ) -> VideoEditingConfiguration? {
-        editorViewModel.currentEditingConfiguration() ?? fallbackEditingConfiguration
-    }
-
-    static func scheduleSaveIfNeeded(
-        editorViewModel: EditorViewModel,
-        fallbackSourceVideoURL: URL?,
-        saveEmissionCoordinator: VideoEditorSaveEmissionCoordinator,
-        onPublish: @escaping @MainActor (VideoEditorSaveEmissionCoordinator.PublishedSave) -> Void
-    ) {
-        guard let currentEditingConfiguration = editorViewModel.currentEditingConfiguration() else {
-            return
-        }
-
-        saveEmissionCoordinator.scheduleSave(
-            editingConfiguration: currentEditingConfiguration,
-            sourceVideoURL: resolvedSourceVideoURL(
-                currentVideoURL: editorViewModel.currentVideo?.url,
-                fallbackSourceVideoURL: fallbackSourceVideoURL
-            ),
-            onPublish: onPublish
-        )
-    }
-
     static func syncManualSaveState(
         editorViewModel: EditorViewModel,
         manualSaveCoordinator: VideoEditorManualSaveCoordinator
@@ -95,28 +68,6 @@ extension VideoEditorView {
             editorViewModel: editorViewModel,
             manualSaveCoordinator: manualSaveCoordinator
         )
-    }
-
-    static func performManualSave(
-        editorViewModel: EditorViewModel,
-        fallbackSourceVideoURL: URL?,
-        saveEmissionCoordinator: VideoEditorSaveEmissionCoordinator,
-        manualSaveCoordinator: VideoEditorManualSaveCoordinator,
-        onPublish: @escaping @MainActor (VideoEditorSaveEmissionCoordinator.PublishedSave) -> Void
-    ) {
-        guard let currentEditingConfiguration = editorViewModel.currentEditingConfiguration() else {
-            return
-        }
-
-        guard manualSaveCoordinator.beginSaving() else { return }
-
-        scheduleSaveIfNeeded(
-            editorViewModel: editorViewModel,
-            fallbackSourceVideoURL: fallbackSourceVideoURL,
-            saveEmissionCoordinator: saveEmissionCoordinator,
-            onPublish: onPublish
-        )
-        manualSaveCoordinator.finishSaving(currentEditingConfiguration)
     }
 
     @discardableResult
@@ -160,12 +111,6 @@ extension VideoEditorView {
             try Task.checkCancellation()
 
             manualSaveCoordinator.finishSaving(currentEditingConfiguration)
-            callbacks.onSaveStateChanged(
-                .init(
-                    editingConfiguration: savedVideo.editingConfiguration,
-                    thumbnailData: savedVideo.thumbnailData
-                )
-            )
             callbacks.onSavedVideo(savedVideo)
             return savedVideo
         } catch {
@@ -195,7 +140,23 @@ extension VideoEditorView {
     ) -> VideoEditorManualSaveActionPresentation {
         guard hasLoadedVideo else { return .hidden }
         guard isSaving == false else { return .loading }
-        return hasUnsavedChanges ? .enabled : .disabled
+        return .enabled
+    }
+
+    static func handleManualSaveRequest(
+        hasUnsavedChanges: Bool,
+        isSaving: Bool,
+        saveChanges: () -> Void,
+        dismiss: () -> Void
+    ) {
+        guard isSaving == false else { return }
+
+        guard hasUnsavedChanges else {
+            dismiss()
+            return
+        }
+
+        saveChanges()
     }
 
     static func handleCancelRequest(
@@ -285,17 +246,10 @@ extension VideoEditorView {
     }
 
     static func dismissEditor(
-        editorViewModel: EditorViewModel,
-        fallbackEditingConfiguration: VideoEditingConfiguration?,
         callbacks: Callbacks,
         dismiss: () -> Void
     ) {
-        callbacks.onDismissed(
-            dismissedEditingConfiguration(
-                editorViewModel: editorViewModel,
-                fallbackEditingConfiguration: fallbackEditingConfiguration
-            )
-        )
+        callbacks.onDismissed()
         dismiss()
     }
 

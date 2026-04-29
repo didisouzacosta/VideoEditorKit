@@ -10,7 +10,8 @@ struct ProjectsRepository {
         // MARK: - Public Properties
 
         let project: EditedVideoProject
-        let saveState: VideoEditorView.SaveState
+        let editingConfiguration: VideoEditingConfiguration
+        let thumbnailData: Data?
 
     }
 
@@ -65,12 +66,13 @@ struct ProjectsRepository {
     func saveEditingState(
         projectID: UUID?,
         originalVideoURL: URL,
-        saveState: VideoEditorView.SaveState
+        editingConfiguration: VideoEditingConfiguration,
+        thumbnailData: Data? = nil
     ) async throws -> PersistedEditingState {
         let preparedSave = try prepareProjectSave(
             projectID: projectID,
             originalVideoURL: originalVideoURL,
-            editingConfiguration: saveState.editingConfiguration
+            editingConfiguration: editingConfiguration
         )
         let sourceVideoMetadata = await loadVideoMetadata(from: preparedSave.persistedOriginalURL)
 
@@ -79,7 +81,7 @@ struct ProjectsRepository {
             displayName: originalVideoURL.deletingPathExtension().lastPathComponent
         )
 
-        if let thumbnailData = saveState.thumbnailData {
+        if let thumbnailData {
             preparedSave.project.thumbnailData = thumbnailData
         }
 
@@ -91,10 +93,8 @@ struct ProjectsRepository {
 
         return PersistedEditingState(
             project: preparedSave.project,
-            saveState: .init(
-                editingConfiguration: preparedSave.persistedEditingConfiguration,
-                thumbnailData: preparedSave.project.thumbnailData
-            )
+            editingConfiguration: preparedSave.persistedEditingConfiguration,
+            thumbnailData: preparedSave.project.thumbnailData
         )
     }
 

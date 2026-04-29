@@ -24,8 +24,6 @@ public struct VideoEditorView: View {
 
     // MARK: - Public Properties
 
-    /// The continuous-save payload emitted by the editor.
-    public typealias SaveState = VideoEditorSaveState
     /// The manual-save payload emitted by the editor.
     public typealias SavedVideo = VideoEditorKit.SavedVideo
     /// The host-controlled source and restore payload for one editing run.
@@ -227,10 +225,9 @@ public struct VideoEditorView: View {
         source: Session.Source? = nil,
         editingConfiguration: VideoEditingConfiguration? = nil,
         configuration: Configuration = .init(),
-        onSaveStateChanged: @escaping (SaveState) -> Void = { _ in },
         onSavedVideo: @escaping (SavedVideo) -> Void = { _ in },
         onSourceVideoResolved: @escaping (URL) -> Void = { _ in },
-        onDismissed: @escaping (VideoEditingConfiguration?) -> Void = { _ in },
+        onDismissed: @escaping () -> Void = {},
         onExportedVideoURL: @escaping (URL) -> Void = { _ in }
     ) {
         self.init(
@@ -241,7 +238,6 @@ public struct VideoEditorView: View {
             ),
             configuration: configuration,
             callbacks: .init(
-                onSaveStateChanged: onSaveStateChanged,
                 onSavedVideo: onSavedVideo,
                 onSourceVideoResolved: onSourceVideoResolved,
                 onDismissed: onDismissed,
@@ -256,10 +252,9 @@ public struct VideoEditorView: View {
         sourceVideoURL: URL?,
         editingConfiguration: VideoEditingConfiguration? = nil,
         configuration: Configuration = .init(),
-        onSaveStateChanged: @escaping (SaveState) -> Void = { _ in },
         onSavedVideo: @escaping (SavedVideo) -> Void = { _ in },
         onSourceVideoResolved: @escaping (URL) -> Void = { _ in },
-        onDismissed: @escaping (VideoEditingConfiguration?) -> Void = { _ in },
+        onDismissed: @escaping () -> Void = {},
         onExportedVideoURL: @escaping (URL) -> Void = { _ in }
     ) {
         self.init(
@@ -267,7 +262,6 @@ public struct VideoEditorView: View {
             source: sourceVideoURL.map { .fileURL($0) },
             editingConfiguration: editingConfiguration,
             configuration: configuration,
-            onSaveStateChanged: onSaveStateChanged,
             onSavedVideo: onSavedVideo,
             onSourceVideoResolved: onSourceVideoResolved,
             onDismissed: onDismissed,
@@ -333,8 +327,6 @@ public struct VideoEditorView: View {
 
     private func dismissEditorImmediately() {
         Self.dismissEditor(
-            editorViewModel: editorViewModel,
-            fallbackEditingConfiguration: session.editingConfiguration,
             callbacks: callbacks,
             dismiss: dismiss.callAsFunction
         )
@@ -355,12 +347,19 @@ public struct VideoEditorView: View {
     }
 
     private func saveCurrentEdit() {
-        startManualSaveTask { savedVideo in
-            Self.completeManualSaveInteraction(
-                savedVideo,
-                dismiss: dismissEditorImmediately
-            )
-        }
+        Self.handleManualSaveRequest(
+            hasUnsavedChanges: manualSaveCoordinator.hasUnsavedChanges,
+            isSaving: manualSaveCoordinator.isSaving,
+            saveChanges: {
+                startManualSaveTask { savedVideo in
+                    Self.completeManualSaveInteraction(
+                        savedVideo,
+                        dismiss: dismissEditorImmediately
+                    )
+                }
+            },
+            dismiss: dismissEditorImmediately
+        )
     }
 
     @discardableResult

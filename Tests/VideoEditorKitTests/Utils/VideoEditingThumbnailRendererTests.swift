@@ -202,6 +202,74 @@ struct VideoEditingThumbnailRendererTests {
         #expect(rightColor.blueComponent > rightColor.redComponent)
     }
 
+    @Test
+    func makeThumbnailDataAppliesPersistedCanvasOffset() async throws {
+        let videoURL = try await TestFixtures.createTemporaryVideo(
+            size: CGSize(width: 80, height: 40),
+            frameCount: 30,
+            drawFrame: { context, size, _ in
+                context.setFillColor(UIColor.systemRed.cgColor)
+                context.fill(
+                    CGRect(
+                        x: 0,
+                        y: 0,
+                        width: size.width / 2,
+                        height: size.height
+                    )
+                )
+
+                context.setFillColor(UIColor.systemBlue.cgColor)
+                context.fill(
+                    CGRect(
+                        x: size.width / 2,
+                        y: 0,
+                        width: size.width / 2,
+                        height: size.height
+                    )
+                )
+            }
+        )
+
+        defer { FileManager.default.removeIfExists(for: videoURL) }
+
+        let leftShiftedThumbnail = await makeThumbnailImage(
+            sourceVideoURL: videoURL,
+            canvasTransform: .init(
+                normalizedOffset: CGPoint(x: 0.25, y: 0),
+                zoom: 1,
+                rotationRadians: 0
+            )
+        )
+        let rightShiftedThumbnail = await makeThumbnailImage(
+            sourceVideoURL: videoURL,
+            canvasTransform: .init(
+                normalizedOffset: CGPoint(x: -0.25, y: 0),
+                zoom: 1,
+                rotationRadians: 0
+            )
+        )
+
+        let leftShiftedColor = try #require(
+            leftShiftedThumbnail?.sampledColor(
+                at: CGPoint(
+                    x: (leftShiftedThumbnail?.size.width ?? 0) / 2,
+                    y: (leftShiftedThumbnail?.size.height ?? 0) / 2
+                )
+            )
+        )
+        let rightShiftedColor = try #require(
+            rightShiftedThumbnail?.sampledColor(
+                at: CGPoint(
+                    x: (rightShiftedThumbnail?.size.width ?? 0) / 2,
+                    y: (rightShiftedThumbnail?.size.height ?? 0) / 2
+                )
+            )
+        )
+
+        #expect(leftShiftedColor.redComponent > leftShiftedColor.blueComponent)
+        #expect(rightShiftedColor.blueComponent > rightShiftedColor.redComponent)
+    }
+
     // MARK: - Private Methods
 
     private func makeThumbnailImage(
@@ -213,6 +281,29 @@ struct VideoEditingThumbnailRendererTests {
                 rotationDegrees: 0,
                 isMirrored: false,
                 freeformRect: freeformRect
+            )
+        )
+
+        let thumbnailData = await VideoEditingThumbnailRenderer.makeThumbnailData(
+            sourceVideoURL: sourceVideoURL,
+            editingConfiguration: editingConfiguration,
+            maximumSize: CGSize(width: 80, height: 80)
+        )
+
+        return thumbnailData.flatMap(UIImage.init(data:))
+    }
+
+    private func makeThumbnailImage(
+        sourceVideoURL: URL,
+        canvasTransform: VideoCanvasTransform
+    ) async -> UIImage? {
+        let editingConfiguration = VideoEditingConfiguration(
+            canvas: .init(
+                snapshot: .init(
+                    preset: .custom(width: 80, height: 80),
+                    freeCanvasSize: CGSize(width: 80, height: 80),
+                    transform: canvasTransform
+                )
             )
         )
 

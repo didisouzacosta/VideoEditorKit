@@ -26,7 +26,7 @@ final class EditorSessionController {
 
     private(set) var currentProjectID: UUID?
     private(set) var currentSourceVideoURL: URL?
-    private(set) var latestSaveState: VideoEditorView.SaveState?
+    private(set) var latestEditingConfiguration: VideoEditingConfiguration?
 
     // MARK: - Initializer
 
@@ -34,15 +34,13 @@ final class EditorSessionController {
         session = draft.session
         currentProjectID = draft.projectID
         currentSourceVideoURL = draft.sourceVideoURL
-        latestSaveState = draft.latestSaveState
+        latestEditingConfiguration = draft.latestEditingConfiguration
     }
 
     // MARK: - Public Methods
 
-    func handleSaveStateChanged(
-        _ saveState: VideoEditorView.SaveState
-    ) {
-        latestSaveState = saveState
+    func handleSavedVideo(_ savedVideo: SavedVideo) {
+        latestEditingConfiguration = savedVideo.editingConfiguration
     }
 
     func handleSourceVideoResolved(_ url: URL) {
@@ -54,10 +52,7 @@ final class EditorSessionController {
     ) {
         currentProjectID = persistedSave.project.id
         currentSourceVideoURL = persistedSave.project.originalVideoURL
-        latestSaveState = .init(
-            editingConfiguration: persistedSave.savedVideo.editingConfiguration,
-            thumbnailData: persistedSave.savedVideo.thumbnailData
-        )
+        latestEditingConfiguration = persistedSave.savedVideo.editingConfiguration
     }
 
     func handlePersistedExport(

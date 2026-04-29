@@ -1,32 +1,5 @@
 import Foundation
 
-/// The save-state payload emitted after an explicit manual save.
-public struct VideoEditorSaveState: Equatable, Sendable {
-
-    // MARK: - Public Properties
-
-    /// The serializable editing snapshot that was saved.
-    public let editingConfiguration: VideoEditingConfiguration
-    /// An optional thumbnail image generated for the saved project state.
-    public let thumbnailData: Data?
-
-    /// A normalized version of the save payload suitable for unsaved-change detection.
-    public var continuousSaveFingerprint: VideoEditingConfiguration {
-        editingConfiguration.continuousSaveFingerprint
-    }
-
-    // MARK: - Initializer
-
-    public init(
-        editingConfiguration: VideoEditingConfiguration,
-        thumbnailData: Data? = nil
-    ) {
-        self.editingConfiguration = editingConfiguration
-        self.thumbnailData = thumbnailData
-    }
-
-}
-
 /// The payload emitted after an explicit manual save renders an edited video copy.
 public struct SavedVideo: Equatable, Sendable {
 
@@ -124,27 +97,23 @@ public struct VideoEditorCallbacks {
 
     // MARK: - Public Properties
 
-    /// Called after an explicit manual save publishes the saved editing snapshot.
-    public let onSaveStateChanged: (VideoEditorSaveState) -> Void
     /// Called after an explicit manual save renders an edited video copy.
     public let onSavedVideo: (SavedVideo) -> Void
     /// Called when an asynchronous source resolver finishes and yields a local file URL.
     public let onSourceVideoResolved: (URL) -> Void
-    /// Called when the editor is dismissed, with the last known editing snapshot if available.
-    public let onDismissed: (VideoEditingConfiguration?) -> Void
+    /// Called when the editor is dismissed.
+    public let onDismissed: () -> Void
     /// Called after a successful export with the exported file URL.
     public let onExportedVideoURL: (URL) -> Void
 
     // MARK: - Initializer
 
     public init(
-        onSaveStateChanged: @escaping (VideoEditorSaveState) -> Void = { _ in },
         onSavedVideo: @escaping (SavedVideo) -> Void = { _ in },
         onSourceVideoResolved: @escaping (URL) -> Void = { _ in },
-        onDismissed: @escaping (VideoEditingConfiguration?) -> Void = { _ in },
+        onDismissed: @escaping () -> Void = {},
         onExportedVideoURL: @escaping (URL) -> Void = { _ in }
     ) {
-        self.onSaveStateChanged = onSaveStateChanged
         self.onSavedVideo = onSavedVideo
         self.onSourceVideoResolved = onSourceVideoResolved
         self.onDismissed = onDismissed

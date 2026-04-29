@@ -19,8 +19,9 @@ The host should keep three files separate:
 - saved edited copy from `onSavedVideo`
 - exported/share output from `onExportedVideoURL`
 
-`onSaveStateChanged` is not continuous autosave. It reports saved state after an
-explicit manual save.
+`onSavedVideo` is the manual-save callback and carries the edited file,
+configuration, thumbnail, and metadata. `onDismissed` is only a close event and
+does not publish editing state.
 
 ## Public API Groups
 
@@ -29,7 +30,7 @@ explicit manual save.
   `VideoEditorCallbacks`
 - Configuration: `VideoEditorConfiguration`, `ToolAvailability`,
   `ExportQualityAvailability`
-- Persistence: `VideoEditingConfiguration`, `VideoEditorSaveState`, `SavedVideo`
+- Persistence: `VideoEditingConfiguration`, `SavedVideo`
 - Export: `VideoQuality`, `ExportedVideo`, `VideoExportSheetRequest`
 - Canvas/crop: `VideoCanvas*`, `VideoCrop*`
 - Transcription: `VideoTranscriptionProvider`, `VideoTranscriptionInput`,
@@ -65,6 +66,6 @@ the host can continue with its own share flow.
 Integrate VideoEditorKit from a local video URL. Present VideoEditorView, persist
 SavedVideo.url and SavedVideo.editingConfiguration from onSavedVideo, keep the
 original source video separate, and use onExportedVideoURL only for explicit
-share/export output. Do not overwrite the original and do not treat
-onSaveStateChanged as per-edit autosave.
+share/export output. Do not overwrite the original, and treat onDismissed as a
+close event without editing state.
 ```
