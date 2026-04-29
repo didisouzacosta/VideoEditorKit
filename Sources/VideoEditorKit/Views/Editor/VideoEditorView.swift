@@ -227,7 +227,7 @@ public struct VideoEditorView: View {
         configuration: Configuration = .init(),
         onSavedVideo: @escaping (SavedVideo) -> Void = { _ in },
         onSourceVideoResolved: @escaping (URL) -> Void = { _ in },
-        onDismissed: @escaping () -> Void = {},
+        onDismissed: (() -> Void)? = nil,
         onExportedVideoURL: @escaping (URL) -> Void = { _ in }
     ) {
         self.init(
@@ -254,7 +254,7 @@ public struct VideoEditorView: View {
         configuration: Configuration = .init(),
         onSavedVideo: @escaping (SavedVideo) -> Void = { _ in },
         onSourceVideoResolved: @escaping (URL) -> Void = { _ in },
-        onDismissed: @escaping () -> Void = {},
+        onDismissed: (() -> Void)? = nil,
         onExportedVideoURL: @escaping (URL) -> Void = { _ in }
     ) {
         self.init(

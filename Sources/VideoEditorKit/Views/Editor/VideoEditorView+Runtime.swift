@@ -249,7 +249,7 @@ extension VideoEditorView {
         callbacks: Callbacks,
         dismiss: () -> Void
     ) {
-        callbacks.onDismissed()
+        callbacks.onDismissed?()
         dismiss()
     }
 

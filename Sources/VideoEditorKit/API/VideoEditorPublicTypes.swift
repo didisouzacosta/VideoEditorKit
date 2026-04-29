@@ -101,8 +101,8 @@ public struct VideoEditorCallbacks {
     public let onSavedVideo: (SavedVideo) -> Void
     /// Called when an asynchronous source resolver finishes and yields a local file URL.
     public let onSourceVideoResolved: (URL) -> Void
-    /// Called when the editor is dismissed.
-    public let onDismissed: () -> Void
+    /// Optionally called when the editor is dismissed.
+    public let onDismissed: (() -> Void)?
     /// Called after a successful export with the exported file URL.
     public let onExportedVideoURL: (URL) -> Void
 
@@ -111,7 +111,7 @@ public struct VideoEditorCallbacks {
     public init(
         onSavedVideo: @escaping (SavedVideo) -> Void = { _ in },
         onSourceVideoResolved: @escaping (URL) -> Void = { _ in },
-        onDismissed: @escaping () -> Void = {},
+        onDismissed: (() -> Void)? = nil,
         onExportedVideoURL: @escaping (URL) -> Void = { _ in }
     ) {
         self.onSavedVideo = onSavedVideo

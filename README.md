@@ -85,13 +85,51 @@ struct EditorHostView: View {
                 configuration = savedVideo.editingConfiguration
                 savedEditedVideoURL = savedVideo.url
             },
-            onDismissed: {},
             onExportedVideoURL: { url in
                 exportedVideoURL = url
             }
         )
     }
 }
+```
+
+## AI Implementation Prompt
+
+Use this prompt when asking an AI coding assistant to integrate
+`VideoEditorKit` into an iOS host app:
+
+```text
+Integrate VideoEditorKit into this iOS SwiftUI app.
+
+Requirements:
+- Add the Swift Package dependency from https://github.com/didisouzacosta/VideoEditorKit.git.
+- Present VideoEditorView from a local playable source video URL.
+- Keep three files separate: the original source video, the saved edited copy,
+  and any exported/share output.
+- Store SavedVideo.url, SavedVideo.originalVideoURL,
+  SavedVideo.editingConfiguration, SavedVideo.thumbnailData, and
+  SavedVideo.metadata when onSavedVideo is called.
+- Reopen saved projects with VideoEditorSession using the original source URL,
+  the saved VideoEditingConfiguration, the saved ExportedVideo metadata as
+  preparedOriginalExportVideo, and the same saved configuration as
+  preparedOriginalExportEditingConfiguration.
+- Use onExportedVideoURL only for explicit export/share flows.
+- Do not implement or call onSaveStateChanged; use only onSavedVideo for manual
+  save persistence.
+- Do not pass onDismissed unless the host needs a close event. If it is passed,
+  treat it only as dismissal notification and never as editing state.
+- Do not overwrite the original video with saved or exported files.
+- Keep .original export available.
+- If source preparation is asynchronous, use VideoEditorSession.Source.importedFile
+  and resolve it to a local file URL before editing.
+
+Expected SwiftUI shape:
+- A host view owns the selected source URL and optional saved project state.
+- VideoEditorView receives the latest VideoEditingConfiguration.
+- onSavedVideo persists the edited copy, thumbnail, metadata, and configuration.
+- onExportedVideoURL starts the app's share/export UI with the exported URL.
+- Existing saved-project list thumbnails should come from SavedVideo.thumbnailData
+  or from the saved edited copy, not from the original source video.
 ```
 
 ## Integration Rules
@@ -127,8 +165,9 @@ preview metadata and thumbnail are loaded from the rendered copy, so project
 lists can display the same positioning and preset framing that the editor saved.
 
 `onSaveStateChanged` and `VideoEditorSaveState` are no longer part of the public
-save contract. Hosts should rely on `onSavedVideo` for persisted edits and use
-`onDismissed` only to react to closure.
+save contract. Hosts should rely on `onSavedVideo` for persisted edits.
+`onDismissed` is optional and should only be provided when the host needs to
+react to closure.
 
 ## Sessions
 

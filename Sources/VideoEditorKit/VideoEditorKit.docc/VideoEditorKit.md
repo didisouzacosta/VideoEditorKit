@@ -20,8 +20,8 @@ The host should keep three files separate:
 - exported/share output from `onExportedVideoURL`
 
 `onSavedVideo` is the manual-save callback and carries the edited file,
-configuration, thumbnail, and metadata. `onDismissed` is only a close event and
-does not publish editing state.
+configuration, thumbnail, and metadata. Optional `onDismissed` is only a close
+event and does not publish editing state.
 
 ## Public API Groups
 
@@ -66,6 +66,6 @@ the host can continue with its own share flow.
 Integrate VideoEditorKit from a local video URL. Present VideoEditorView, persist
 SavedVideo.url and SavedVideo.editingConfiguration from onSavedVideo, keep the
 original source video separate, and use onExportedVideoURL only for explicit
-share/export output. Do not overwrite the original, and treat onDismissed as a
-close event without editing state.
+share/export output. Do not overwrite the original, and only provide
+onDismissed when you need a close event without editing state.
 ```

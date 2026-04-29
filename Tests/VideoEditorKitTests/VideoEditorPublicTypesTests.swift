@@ -33,7 +33,7 @@ struct VideoEditorPublicTypesTests {
         #expect(savedVideo.metadata.url == url)
         #expect(configuration.tools == VideoEditorConfiguration.allToolsEnabled.tools)
         #expect(configuration.transcription == nil)
-        callbacks.onDismissed()
+        callbacks.onDismissed?()
     }
 
     @Test
@@ -182,12 +182,19 @@ struct VideoEditorPublicTypesTests {
         )
 
         callbacks.onSavedVideo(savedVideo)
-        callbacks.onDismissed()
+        callbacks.onDismissed?()
         callbacks.onExportedVideoURL(exportedURL)
 
         #expect(capturedSavedVideo == savedVideo)
         #expect(didDismiss)
         #expect(capturedExportedURL == exportedURL)
+    }
+
+    @Test
+    func dismissedCallbackIsOptional() {
+        let callbacks = VideoEditorCallbacks()
+
+        #expect(callbacks.onDismissed == nil)
     }
 
 }
