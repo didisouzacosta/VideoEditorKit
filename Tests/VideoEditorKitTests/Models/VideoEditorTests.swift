@@ -40,6 +40,50 @@ struct VideoEditorTests {
     }
 
     @Test
+    func watermarkLayoutUsesExactImageSizeAndTopLeadingPadding() {
+        let frame = VideoWatermarkLayout.frame(
+            renderSize: CGSize(width: 1920, height: 1080),
+            imageSize: CGSize(width: 120, height: 48),
+            position: .topLeading
+        )
+
+        #expect(frame == CGRect(x: 16, y: 16, width: 120, height: 48))
+    }
+
+    @Test
+    func watermarkLayoutUsesTopTrailingPadding() {
+        let frame = VideoWatermarkLayout.frame(
+            renderSize: CGSize(width: 1920, height: 1080),
+            imageSize: CGSize(width: 120, height: 48),
+            position: .topTrailing
+        )
+
+        #expect(frame == CGRect(x: 1784, y: 16, width: 120, height: 48))
+    }
+
+    @Test
+    func watermarkLayoutUsesBottomLeadingPadding() {
+        let frame = VideoWatermarkLayout.frame(
+            renderSize: CGSize(width: 1920, height: 1080),
+            imageSize: CGSize(width: 120, height: 48),
+            position: .bottomLeading
+        )
+
+        #expect(frame == CGRect(x: 16, y: 1016, width: 120, height: 48))
+    }
+
+    @Test
+    func watermarkLayoutUsesBottomTrailingPadding() {
+        let frame = VideoWatermarkLayout.frame(
+            renderSize: CGSize(width: 1920, height: 1080),
+            imageSize: CGSize(width: 120, height: 48),
+            position: .bottomTrailing
+        )
+
+        #expect(frame == CGRect(x: 1784, y: 1016, width: 120, height: 48))
+    }
+
+    @Test
     func resolvedOutputRenderLayoutUsesPresetAspectRatioWithoutSocialDestination() {
         let configuration = VideoEditingConfiguration(
             crop: .init(
