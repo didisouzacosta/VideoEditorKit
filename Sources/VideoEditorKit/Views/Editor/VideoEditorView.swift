@@ -32,6 +32,10 @@ public struct VideoEditorView: View {
     public typealias Callbacks = VideoEditorCallbacks
     /// Runtime configuration that controls tool visibility, export options, and integrations.
     public typealias Configuration = VideoEditorConfiguration
+    /// Export-only watermark configuration exposed through the editor namespace.
+    public typealias WatermarkConfiguration = VideoWatermarkConfiguration
+    /// Export-only watermark corner exposed through the editor namespace.
+    public typealias WatermarkPosition = VideoWatermarkPosition
 
     // MARK: - Body
 

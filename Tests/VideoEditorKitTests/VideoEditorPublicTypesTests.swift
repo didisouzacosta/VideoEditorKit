@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 import Testing
 
 @testable import VideoEditorKit
@@ -125,6 +126,49 @@ struct VideoEditorPublicTypesTests {
 
         #expect(validConfiguration.maximumVideoDuration == 45)
         #expect(invalidConfiguration.maximumVideoDuration == nil)
+    }
+
+    @Test
+    func configurationDefaultsToNoWatermark() {
+        let configuration = VideoEditorConfiguration()
+
+        #expect(configuration.watermark == nil)
+    }
+
+    @Test
+    func configurationStoresOptionalWatermarkPolicy() {
+        let image = TestFixtures.makeSolidImage(
+            size: CGSize(width: 40, height: 20),
+            scale: 1
+        )
+        let watermark = VideoWatermarkConfiguration(
+            image: image,
+            position: .bottomTrailing
+        )
+        let configuration = VideoEditorConfiguration(
+            watermark: watermark
+        )
+
+        #expect(configuration.watermark?.image.size == CGSize(width: 40, height: 20))
+        #expect(configuration.watermark?.position == .bottomTrailing)
+    }
+
+    @Test
+    func videoEditorViewNamespaceExposesWatermarkConfigurationTypes() {
+        let image = TestFixtures.makeSolidImage(
+            size: CGSize(width: 24, height: 12),
+            scale: 1
+        )
+        let watermark = VideoEditorView.WatermarkConfiguration(
+            image: image,
+            position: .topLeading
+        )
+        let configuration = VideoEditorView.Configuration(
+            watermark: watermark
+        )
+
+        #expect(configuration.watermark?.image.size == CGSize(width: 24, height: 12))
+        #expect(configuration.watermark?.position == .topLeading)
     }
 
     @Test
