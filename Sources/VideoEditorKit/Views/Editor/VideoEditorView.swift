@@ -133,6 +133,7 @@ public struct VideoEditorView: View {
                 video: video,
                 editingConfiguration: resolvedExportEditingConfiguration,
                 exportQualities: configuration.exportQualities,
+                watermark: configuration.watermark,
                 prepareForExport: prepareCurrentExport,
                 shouldShowSavingBeforeExport: { _ in manualSaveCoordinator.hasUnsavedChanges },
                 onBlockedQualityTap: configuration.notifyBlockedExportQualityTap(for:),

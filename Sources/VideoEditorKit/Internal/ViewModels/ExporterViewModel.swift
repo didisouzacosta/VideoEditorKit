@@ -16,6 +16,7 @@ final class ExporterViewModel {
 
     let video: Video
     let editingConfiguration: VideoEditingConfiguration
+    let watermark: VideoWatermarkRenderRequest?
 
     var showAlert = false
     var exportProgress: Double = .zero
@@ -126,6 +127,7 @@ final class ExporterViewModel {
             _ video: Video,
             _ editingConfiguration: VideoEditingConfiguration,
             _ quality: VideoQuality,
+            _ watermark: VideoWatermarkRenderRequest?,
             _ onProgress: VideoEditor.ProgressHandler?
         ) async throws -> URL
     typealias PrepareExport = (VideoQuality) async -> ExportPreparationResult
@@ -146,7 +148,8 @@ final class ExporterViewModel {
         _ video: Video,
         editingConfiguration: VideoEditingConfiguration = .initial,
         exportQualities: [ExportQualityAvailability] = ExportQualityAvailability.allEnabled,
-        renderVideo: @escaping RenderVideo = { video, editingConfiguration, quality, onProgress in
+        watermark: VideoWatermarkConfiguration? = nil,
+        renderVideo: @escaping RenderVideo = { video, editingConfiguration, quality, _, onProgress in
             try await VideoEditor.startRender(
                 video: video,
                 editingConfiguration: editingConfiguration,
@@ -162,6 +165,7 @@ final class ExporterViewModel {
     ) {
         self.video = video
         self.editingConfiguration = editingConfiguration
+        self.watermark = VideoWatermarkRenderRequest(watermark)
         let normalizedExportQualities = Self.normalizedExportQualities(exportQualities)
         self.exportQualities = Self.sortedExportQualities(normalizedExportQualities)
         self.selectedQuality = Self.defaultSelectedQuality(for: normalizedExportQualities)
@@ -310,7 +314,8 @@ final class ExporterViewModel {
         renderState = .loading
 
         do {
-            let url = try await renderVideo(video, editingConfiguration, selectedQuality) { [weak self] progress in
+            let url = try await renderVideo(video, editingConfiguration, selectedQuality, watermark) {
+                [weak self] progress in
                 await MainActor.run {
                     guard self?.isCurrentExportRun(runID) == true else { return }
                     self?.exportProgress = progress.clamped(to: 0...1)

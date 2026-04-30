@@ -27,6 +27,7 @@ public struct VideoExportSheet: View {
                     video: loadedVideo,
                     editingConfiguration: request.editingConfiguration,
                     exportQualities: configuration.exportQualities,
+                    watermark: configuration.watermark,
                     prepareForExport: resolvedPrepareForExport,
                     onBlockedQualityTap: configuration.notifyBlockedExportQualityTap(for:),
                     onExported: onExported

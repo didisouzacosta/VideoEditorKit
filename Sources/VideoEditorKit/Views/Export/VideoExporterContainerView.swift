@@ -78,6 +78,7 @@ struct VideoExporterContainerView: View {
         video: Video,
         editingConfiguration: VideoEditingConfiguration,
         exportQualities: [ExportQualityAvailability] = ExportQualityAvailability.allEnabled,
+        watermark: VideoWatermarkConfiguration? = nil,
         prepareForExport: @escaping (VideoQuality) async -> ExporterViewModel.ExportPreparationResult = { _ in .render
         },
         shouldShowSavingBeforeExport: @escaping (VideoQuality) -> Bool = { _ in false },
@@ -90,7 +91,8 @@ struct VideoExporterContainerView: View {
             initialValue: ExporterViewModel(
                 video,
                 editingConfiguration: editingConfiguration,
-                exportQualities: exportQualities
+                exportQualities: exportQualities,
+                watermark: watermark
             )
         )
 
@@ -106,6 +108,7 @@ struct VideoExporterContainerView: View {
         video: Video,
         editingConfiguration: VideoEditingConfiguration,
         exportQualities: [ExportQualityAvailability] = ExportQualityAvailability.allEnabled,
+        watermark: VideoWatermarkConfiguration? = nil,
         prepareForExport: @escaping (VideoQuality) async -> VideoExportPreparationResult,
         shouldShowSavingBeforeExport: @escaping (VideoQuality) -> Bool = { _ in false },
         onBlockedQualityTap: @escaping (VideoQuality) -> Void = { _ in },
@@ -116,6 +119,7 @@ struct VideoExporterContainerView: View {
             video: video,
             editingConfiguration: editingConfiguration,
             exportQualities: exportQualities,
+            watermark: watermark,
             prepareForExport: { quality in
                 switch await prepareForExport(quality) {
                 case .render:
