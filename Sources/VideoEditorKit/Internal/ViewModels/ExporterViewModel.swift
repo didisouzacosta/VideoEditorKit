@@ -149,11 +149,12 @@ final class ExporterViewModel {
         editingConfiguration: VideoEditingConfiguration = .initial,
         exportQualities: [ExportQualityAvailability] = ExportQualityAvailability.allEnabled,
         watermark: VideoWatermarkConfiguration? = nil,
-        renderVideo: @escaping RenderVideo = { video, editingConfiguration, quality, _, onProgress in
+        renderVideo: @escaping RenderVideo = { video, editingConfiguration, quality, watermark, onProgress in
             try await VideoEditor.startRender(
                 video: video,
                 editingConfiguration: editingConfiguration,
                 videoQuality: quality,
+                watermark: watermark,
                 onProgress: onProgress
             )
         },

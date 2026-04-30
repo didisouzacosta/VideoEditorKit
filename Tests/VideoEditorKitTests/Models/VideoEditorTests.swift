@@ -1,5 +1,6 @@
 import AVFoundation
 import CoreGraphics
+import SwiftUI
 import Testing
 
 @testable import VideoEditorKit
@@ -292,6 +293,49 @@ struct VideoEditorTests {
     }
 
     @Test
+    func exportRenderAppliesWatermarkAtTopLeadingPadding() async throws {
+        let sourceURL = try await TestFixtures.createTemporaryVideo(
+            size: CGSize(width: 96, height: 64),
+            frameCount: 6,
+            framesPerSecond: 30,
+            color: .systemRed
+        )
+        defer { FileManager.default.removeIfExists(for: sourceURL) }
+
+        let video = await Video.load(from: sourceURL)
+        let watermarkImage = TestFixtures.makeSolidImage(
+            size: CGSize(width: 12, height: 10),
+            color: .systemBlue,
+            scale: 1
+        )
+        let watermark = await VideoWatermarkRenderRequest(
+            VideoWatermarkConfiguration(
+                image: watermarkImage,
+                position: .topLeading
+            )
+        )
+
+        let exportedURL = try await VideoEditor.startRender(
+            video: video,
+            editingConfiguration: .initial,
+            videoQuality: .original,
+            watermark: watermark
+        )
+        defer { FileManager.default.removeIfExists(for: exportedURL) }
+
+        let asset = AVURLAsset(url: exportedURL)
+        let renderedImage = try #require(
+            await asset.generateImage(
+                at: 0,
+                maximumSize: CGSize(width: 96, height: 64),
+                requiresExactFrame: true
+            )?.cgImage
+        )
+
+        #expect(renderedPixel(in: renderedImage, x: 20, y: 20)?.isMostlyBlue == true)
+    }
+
+    @Test
     func resolvedSaveNativeRenderProfileFallsBackToThirtyFPSWhenSourceFrameRateIsInvalid() {
         let profile = VideoEditor.resolvedRenderProfile(
             for: CGSize(width: 1080, height: 1920),
@@ -439,7 +483,8 @@ struct VideoEditorTests {
         let stages = VideoEditor.resolvedRenderStages(
             usesAdjustsStage: true,
             usesTranscriptStage: true,
-            usesCropStage: true
+            usesCropStage: true,
+            usesWatermarkStage: false
         )
 
         #expect(stages == [.base, .adjusts, .transcript])
@@ -450,10 +495,23 @@ struct VideoEditorTests {
         let stages = VideoEditor.resolvedRenderStages(
             usesAdjustsStage: true,
             usesTranscriptStage: true,
-            usesCropStage: false
+            usesCropStage: false,
+            usesWatermarkStage: false
         )
 
         #expect(stages == [.base, .adjusts, .transcript])
+    }
+
+    @Test
+    func resolvedRenderStagesAppliesWatermarkAsTheFinalStage() {
+        let stages = VideoEditor.resolvedRenderStages(
+            usesAdjustsStage: true,
+            usesTranscriptStage: true,
+            usesCropStage: false,
+            usesWatermarkStage: true
+        )
+
+        #expect(stages == [.base, .adjusts, .transcript, .watermark])
     }
 
     @Test
@@ -1196,7 +1254,8 @@ struct VideoEditorTests {
         let stages = VideoEditor.resolvedRenderStages(
             usesAdjustsStage: false,
             usesTranscriptStage: VideoEditor.requiresTranscriptStage(croppedConfiguration),
-            usesCropStage: true
+            usesCropStage: true,
+            usesWatermarkStage: false
         )
 
         #expect(renderSegment.text == "MMMMMMMMMMMMMMMMMMMMMMMM")
@@ -1320,4 +1379,40 @@ struct VideoEditorTests {
         #expect(VideoEditor.requiresTranscriptStage(configuration))
     }
 
+}
+
+private struct RenderedPixel {
+
+    // MARK: - Public Properties
+
+    let red: UInt8
+    let green: UInt8
+    let blue: UInt8
+    let alpha: UInt8
+
+    var isMostlyBlue: Bool {
+        blue > 160 && red < 120 && green < 160 && alpha > 180
+    }
+
+}
+
+private func renderedPixel(
+    in image: CGImage,
+    x: Int,
+    y: Int
+) -> RenderedPixel? {
+    guard x >= 0, y >= 0, x < image.width, y < image.height else { return nil }
+    guard let dataProviderData = image.dataProvider?.data else { return nil }
+    guard let data = CFDataGetBytePtr(dataProviderData) else { return nil }
+
+    let bytesPerPixel = max(image.bitsPerPixel / 8, 1)
+    let offset = (y * image.bytesPerRow) + (x * bytesPerPixel)
+    guard offset + 3 < CFDataGetLength(dataProviderData) else { return nil }
+
+    return RenderedPixel(
+        red: data[offset],
+        green: data[offset + 1],
+        blue: data[offset + 2],
+        alpha: data[offset + 3]
+    )
 }
