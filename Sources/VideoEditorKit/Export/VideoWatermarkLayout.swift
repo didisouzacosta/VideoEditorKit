@@ -14,27 +14,34 @@ public enum VideoWatermarkLayout {
         imageSize: CGSize,
         position: VideoWatermarkPosition
     ) -> CGRect {
-        let width = max(imageSize.width, 0)
-        let height = max(imageSize.height, 0)
-        let maxOriginX = max(renderSize.width - width - padding, padding)
-        let maxOriginY = max(renderSize.height - height - padding, padding)
+        let renderWidth = resolvedDimension(renderSize.width)
+        let renderHeight = resolvedDimension(renderSize.height)
+        let width = resolvedDimension(imageSize.width)
+        let height = resolvedDimension(imageSize.height)
 
         let origin: CGPoint =
             switch position {
             case .topLeading:
                 CGPoint(x: padding, y: padding)
             case .topTrailing:
-                CGPoint(x: maxOriginX, y: padding)
+                CGPoint(x: renderWidth - width - padding, y: padding)
             case .bottomLeading:
-                CGPoint(x: padding, y: maxOriginY)
+                CGPoint(x: padding, y: renderHeight - height - padding)
             case .bottomTrailing:
-                CGPoint(x: maxOriginX, y: maxOriginY)
+                CGPoint(x: renderWidth - width - padding, y: renderHeight - height - padding)
             }
 
         return CGRect(
             origin: origin,
             size: CGSize(width: width, height: height)
         )
+    }
+
+    // MARK: - Private Methods
+
+    private static func resolvedDimension(_ dimension: CGFloat) -> CGFloat {
+        guard dimension.isFinite, dimension > 0 else { return 0 }
+        return dimension
     }
 
 }

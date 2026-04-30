@@ -242,7 +242,9 @@ let configuration = VideoEditorConfiguration(
 
 Watermarks are export-only. They are not shown in preview, are not included in
 manual saves, and are not persisted in `VideoEditingConfiguration`. Pass
-`watermark: nil` to disable watermarking, such as for paid plans.
+`watermark: nil` to disable watermarking, such as for paid plans. The image is
+rendered at its `UIImage.size` without scaling; if it is larger than the export
+frame, it remains anchored to the selected corner and may be clipped.
 
 ## Transcription
 

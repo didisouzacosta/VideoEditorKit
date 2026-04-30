@@ -1,5 +1,6 @@
 import AVFoundation
 import CoreGraphics
+import CoreImage
 import SwiftUI
 import Testing
 
@@ -82,6 +83,59 @@ struct VideoEditorTests {
         )
 
         #expect(frame == CGRect(x: 1784, y: 1016, width: 120, height: 48))
+    }
+
+    @Test
+    func watermarkLayoutPreservesTrailingAnchorWhenImageIsWiderThanRenderSize() {
+        let frame = VideoWatermarkLayout.frame(
+            renderSize: CGSize(width: 100, height: 80),
+            imageSize: CGSize(width: 140, height: 20),
+            position: .topTrailing
+        )
+
+        #expect(frame == CGRect(x: -56, y: 16, width: 140, height: 20))
+    }
+
+    @Test
+    func watermarkLayoutPreservesBottomTrailingAnchorWhenImageIsLargerThanRenderSize() {
+        let frame = VideoWatermarkLayout.frame(
+            renderSize: CGSize(width: 100, height: 80),
+            imageSize: CGSize(width: 140, height: 100),
+            position: .bottomTrailing
+        )
+
+        #expect(frame == CGRect(x: -56, y: -36, width: 140, height: 100))
+    }
+
+    @Test
+    @MainActor
+    func watermarkRenderRequestRasterizesImagesWithoutCGImage() {
+        let ciImage = CIImage(color: CIColor(red: 0, green: 0, blue: 1, alpha: 1))
+            .cropped(to: CGRect(x: 0, y: 0, width: 20, height: 10))
+        let image = UIImage(ciImage: ciImage)
+        let request = VideoWatermarkRenderRequest(
+            VideoWatermarkConfiguration(
+                image: image,
+                position: .bottomLeading
+            )
+        )
+
+        #expect(image.cgImage == nil)
+        #expect(request?.imageSize == CGSize(width: 20, height: 10))
+        #expect(request?.image.width == 20)
+        #expect(request?.image.height == 10)
+    }
+
+    @Test
+    @MainActor
+    func watermarkRenderRequestRejectsZeroSizedImages() {
+        let configuration = VideoWatermarkConfiguration(
+            image: UIImage(),
+            position: .topLeading
+        )
+
+        #expect(configuration.isRenderableWatermark == false)
+        #expect(VideoWatermarkRenderRequest(configuration) == nil)
     }
 
     @Test
@@ -333,6 +387,49 @@ struct VideoEditorTests {
         )
 
         #expect(renderedPixel(in: renderedImage, x: 20, y: 20)?.isMostlyBlue == true)
+    }
+
+    @Test
+    func exportRenderAppliesWatermarkAtBottomTrailingPadding() async throws {
+        let sourceURL = try await TestFixtures.createTemporaryVideo(
+            size: CGSize(width: 96, height: 64),
+            frameCount: 6,
+            framesPerSecond: 30,
+            color: .systemRed
+        )
+        defer { FileManager.default.removeIfExists(for: sourceURL) }
+
+        let video = await Video.load(from: sourceURL)
+        let watermarkImage = TestFixtures.makeSolidImage(
+            size: CGSize(width: 12, height: 10),
+            color: .systemBlue,
+            scale: 1
+        )
+        let watermark = await VideoWatermarkRenderRequest(
+            VideoWatermarkConfiguration(
+                image: watermarkImage,
+                position: .bottomTrailing
+            )
+        )
+
+        let exportedURL = try await VideoEditor.startRender(
+            video: video,
+            editingConfiguration: .initial,
+            videoQuality: .original,
+            watermark: watermark
+        )
+        defer { FileManager.default.removeIfExists(for: exportedURL) }
+
+        let asset = AVURLAsset(url: exportedURL)
+        let renderedImage = try #require(
+            await asset.generateImage(
+                at: 0,
+                maximumSize: CGSize(width: 96, height: 64),
+                requiresExactFrame: true
+            )?.cgImage
+        )
+
+        #expect(renderedPixel(in: renderedImage, x: 74, y: 44)?.isMostlyBlue == true)
     }
 
     @Test

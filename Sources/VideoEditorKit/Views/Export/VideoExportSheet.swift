@@ -65,7 +65,7 @@ public struct VideoExportSheet: View {
                 selectedQuality: quality,
                 request: request,
                 loadedOriginalVideo: loadedOriginalVideo,
-                hasWatermark: configuration.watermark != nil
+                hasWatermark: configuration.watermark?.isRenderableWatermark == true
             )
         }
     }

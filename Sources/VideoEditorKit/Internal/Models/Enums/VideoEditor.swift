@@ -466,13 +466,18 @@ enum VideoEditor {
 
         session.videoComposition = videoComposition
 
-        try await export(
-            session,
-            to: outputURL,
-            as: .mp4,
-            progressRange: progressRange,
-            onProgress: onProgress
-        )
+        do {
+            try await export(
+                session,
+                to: outputURL,
+                as: .mp4,
+                progressRange: progressRange,
+                onProgress: onProgress
+            )
+        } catch {
+            FileManager.default.removeIfExists(for: outputURL)
+            throw error
+        }
 
         return outputURL
     }
