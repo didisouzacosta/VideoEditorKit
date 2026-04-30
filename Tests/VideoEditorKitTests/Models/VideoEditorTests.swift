@@ -42,14 +42,17 @@ struct VideoEditorTests {
     }
 
     @Test
-    func watermarkLayoutUsesExactImageSizeAndTopLeadingPadding() {
+    func watermarkLayoutSizesWidthFromLargestRenderDimensionAndPreservesAspectRatio() {
         let frame = VideoWatermarkLayout.frame(
             renderSize: CGSize(width: 1920, height: 1080),
             imageSize: CGSize(width: 120, height: 48),
             position: .topLeading
         )
 
-        #expect(frame == CGRect(x: 16, y: 16, width: 120, height: 48))
+        #expect(abs(frame.minX - 16) < 0.0001)
+        #expect(abs(frame.minY - 16) < 0.0001)
+        #expect(abs(frame.width - 307.2) < 0.0001)
+        #expect(abs(frame.height - 122.88) < 0.0001)
     }
 
     @Test
@@ -60,7 +63,10 @@ struct VideoEditorTests {
             position: .topTrailing
         )
 
-        #expect(frame == CGRect(x: 1784, y: 16, width: 120, height: 48))
+        #expect(abs(frame.minX - 1596.8) < 0.0001)
+        #expect(abs(frame.minY - 16) < 0.0001)
+        #expect(abs(frame.width - 307.2) < 0.0001)
+        #expect(abs(frame.height - 122.88) < 0.0001)
     }
 
     @Test
@@ -71,7 +77,10 @@ struct VideoEditorTests {
             position: .bottomLeading
         )
 
-        #expect(frame == CGRect(x: 16, y: 1016, width: 120, height: 48))
+        #expect(abs(frame.minX - 16) < 0.0001)
+        #expect(abs(frame.minY - 941.12) < 0.0001)
+        #expect(abs(frame.width - 307.2) < 0.0001)
+        #expect(abs(frame.height - 122.88) < 0.0001)
     }
 
     @Test
@@ -82,29 +91,38 @@ struct VideoEditorTests {
             position: .bottomTrailing
         )
 
-        #expect(frame == CGRect(x: 1784, y: 1016, width: 120, height: 48))
+        #expect(abs(frame.minX - 1596.8) < 0.0001)
+        #expect(abs(frame.minY - 941.12) < 0.0001)
+        #expect(abs(frame.width - 307.2) < 0.0001)
+        #expect(abs(frame.height - 122.88) < 0.0001)
     }
 
     @Test
-    func watermarkLayoutPreservesTrailingAnchorWhenImageIsWiderThanRenderSize() {
+    func watermarkLayoutUsesHeightWhenItIsTheLargestRenderDimension() {
         let frame = VideoWatermarkLayout.frame(
-            renderSize: CGSize(width: 100, height: 80),
-            imageSize: CGSize(width: 140, height: 20),
+            renderSize: CGSize(width: 1080, height: 1920),
+            imageSize: CGSize(width: 100, height: 50),
             position: .topTrailing
         )
 
-        #expect(frame == CGRect(x: -56, y: 16, width: 140, height: 20))
+        #expect(abs(frame.minX - 756.8) < 0.0001)
+        #expect(abs(frame.minY - 16) < 0.0001)
+        #expect(abs(frame.width - 307.2) < 0.0001)
+        #expect(abs(frame.height - 153.6) < 0.0001)
     }
 
     @Test
-    func watermarkLayoutPreservesBottomTrailingAnchorWhenImageIsLargerThanRenderSize() {
+    func watermarkLayoutKeepsPortraitWatermarkAspectRatio() {
         let frame = VideoWatermarkLayout.frame(
-            renderSize: CGSize(width: 100, height: 80),
-            imageSize: CGSize(width: 140, height: 100),
+            renderSize: CGSize(width: 1000, height: 500),
+            imageSize: CGSize(width: 80, height: 160),
             position: .bottomTrailing
         )
 
-        #expect(frame == CGRect(x: -56, y: -36, width: 140, height: 100))
+        #expect(abs(frame.minX - 824) < 0.0001)
+        #expect(abs(frame.minY - 164) < 0.0001)
+        #expect(abs(frame.width - 160) < 0.0001)
+        #expect(abs(frame.height - 320) < 0.0001)
     }
 
     @Test
