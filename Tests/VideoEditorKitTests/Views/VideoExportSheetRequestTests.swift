@@ -95,10 +95,40 @@ struct VideoExportSheetRequestTests {
         let result = VideoExportSheetPreparationResolver.preparationResult(
             selectedQuality: .original,
             request: request,
-            loadedOriginalVideo: nil
+            loadedOriginalVideo: nil,
+            hasWatermark: false
         )
 
         #expect(result == .usePreparedVideo(preparedVideo))
+    }
+
+    @Test
+    func defaultPreparationRendersPreparedOriginalWhenWatermarkExists() {
+        let preparedVideo = ExportedVideo(
+            URL(fileURLWithPath: "/tmp/prepared.mp4"),
+            width: 1920,
+            height: 1080,
+            duration: 8,
+            fileSize: 1024
+        )
+        let editingConfiguration = VideoEditingConfiguration(
+            trim: .init(lowerBound: 1, upperBound: 6)
+        )
+        let request = VideoExportSheetRequest(
+            sourceVideoURL: URL(fileURLWithPath: "/tmp/source.mp4"),
+            editingConfiguration: editingConfiguration,
+            preparedOriginalExportVideo: preparedVideo,
+            preparedOriginalExportEditingConfiguration: editingConfiguration
+        )
+
+        let result = VideoExportSheetPreparationResolver.preparationResult(
+            selectedQuality: .original,
+            request: request,
+            loadedOriginalVideo: nil,
+            hasWatermark: true
+        )
+
+        #expect(result == .render)
     }
 
     @Test
@@ -124,7 +154,8 @@ struct VideoExportSheetRequestTests {
         let result = VideoExportSheetPreparationResolver.preparationResult(
             selectedQuality: .original,
             request: request,
-            loadedOriginalVideo: nil
+            loadedOriginalVideo: nil,
+            hasWatermark: false
         )
 
         #expect(result == .render)
@@ -147,10 +178,35 @@ struct VideoExportSheetRequestTests {
         let result = VideoExportSheetPreparationResolver.preparationResult(
             selectedQuality: .original,
             request: request,
-            loadedOriginalVideo: loadedOriginal
+            loadedOriginalVideo: loadedOriginal,
+            hasWatermark: false
         )
 
         #expect(result == .usePreparedVideo(loadedOriginal))
+    }
+
+    @Test
+    func defaultPreparationRendersLoadedOriginalWhenWatermarkExists() {
+        let loadedOriginal = ExportedVideo(
+            URL(fileURLWithPath: "/tmp/source.mp4"),
+            width: 1920,
+            height: 1080,
+            duration: 8,
+            fileSize: 1024
+        )
+        let request = VideoExportSheetRequest(
+            sourceVideoURL: loadedOriginal.url,
+            editingConfiguration: .initial
+        )
+
+        let result = VideoExportSheetPreparationResolver.preparationResult(
+            selectedQuality: .original,
+            request: request,
+            loadedOriginalVideo: loadedOriginal,
+            hasWatermark: true
+        )
+
+        #expect(result == .render)
     }
 
     @Test
@@ -170,7 +226,8 @@ struct VideoExportSheetRequestTests {
         let result = VideoExportSheetPreparationResolver.preparationResult(
             selectedQuality: .low,
             request: request,
-            loadedOriginalVideo: loadedOriginal
+            loadedOriginalVideo: loadedOriginal,
+            hasWatermark: false
         )
 
         #expect(result == .render)

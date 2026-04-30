@@ -198,9 +198,11 @@ extension VideoEditorView {
         preparedOriginalExportVideo: ExportedVideo?,
         preparedOriginalExportEditingConfiguration: VideoEditingConfiguration? = nil,
         loadedOriginalVideo: ExportedVideo?,
+        hasWatermark: Bool = false,
         saveCurrentEdit: () async -> SavedVideo?
     ) async -> ExporterViewModel.ExportPreparationResult {
         if selectedQuality == .original,
+            hasWatermark == false,
             hasUnsavedChanges == false,
             let lastSavedVideo,
             lastSavedVideo.editingConfiguration.continuousSaveFingerprint
@@ -210,6 +212,7 @@ extension VideoEditorView {
         }
 
         if selectedQuality == .original,
+            hasWatermark == false,
             hasUnsavedChanges == false,
             let preparedOriginalExportVideo,
             preparedOriginalExportEditingConfiguration?.continuousSaveFingerprint
@@ -219,6 +222,7 @@ extension VideoEditorView {
         }
 
         if selectedQuality == .original,
+            hasWatermark == false,
             hasUnsavedChanges == false,
             currentEditingConfiguration?.continuousSaveFingerprint
                 == VideoEditingConfiguration.initial.continuousSaveFingerprint,
@@ -230,7 +234,7 @@ extension VideoEditorView {
         guard hasUnsavedChanges else { return .render }
         guard let savedVideo = await saveCurrentEdit() else { return .cancelled }
 
-        guard selectedQuality == .original else { return .render }
+        guard selectedQuality == .original, hasWatermark == false else { return .render }
         return .usePreparedVideo(savedVideo.metadata)
     }
 

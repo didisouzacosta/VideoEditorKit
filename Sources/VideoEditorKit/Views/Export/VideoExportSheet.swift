@@ -63,7 +63,8 @@ public struct VideoExportSheet: View {
             VideoExportSheetPreparationResolver.preparationResult(
                 selectedQuality: quality,
                 request: request,
-                loadedOriginalVideo: loadedOriginalVideo
+                loadedOriginalVideo: loadedOriginalVideo,
+                hasWatermark: configuration.watermark != nil
             )
         }
     }
@@ -118,8 +119,13 @@ enum VideoExportSheetPreparationResolver {
     static func preparationResult(
         selectedQuality: VideoQuality,
         request: VideoExportSheetRequest,
-        loadedOriginalVideo: ExportedVideo?
+        loadedOriginalVideo: ExportedVideo?,
+        hasWatermark: Bool = false
     ) -> VideoExportPreparationResult {
+        guard hasWatermark == false else {
+            return .render
+        }
+
         if selectedQuality == .original,
             let preparedOriginalExportVideo = request.preparedOriginalExportVideo,
             request.preparedOriginalExportEditingConfiguration?.continuousSaveFingerprint

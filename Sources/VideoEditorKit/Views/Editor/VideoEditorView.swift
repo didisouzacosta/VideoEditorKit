@@ -393,6 +393,7 @@ public struct VideoEditorView: View {
             preparedOriginalExportVideo: session.preparedOriginalExportVideo,
             preparedOriginalExportEditingConfiguration: session.preparedOriginalExportEditingConfiguration,
             loadedOriginalVideo: loadedOriginalExportVideo,
+            hasWatermark: configuration.watermark != nil,
             saveCurrentEdit: performCurrentManualSave
         )
     }
