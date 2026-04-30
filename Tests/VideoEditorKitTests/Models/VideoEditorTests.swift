@@ -1,5 +1,7 @@
 import AVFoundation
 import CoreGraphics
+import CoreImage
+import SwiftUI
 import Testing
 
 @testable import VideoEditorKit
@@ -37,6 +39,121 @@ struct VideoEditorTests {
         )
 
         #expect(cropRect == CGRect(x: 0, y: 424, width: 1000, height: 76))
+    }
+
+    @Test
+    func watermarkLayoutSizesWidthFromLargestRenderDimensionAndPreservesAspectRatio() {
+        let frame = VideoWatermarkLayout.frame(
+            renderSize: CGSize(width: 1920, height: 1080),
+            imageSize: CGSize(width: 120, height: 48),
+            position: .topLeading
+        )
+
+        #expect(abs(frame.minX - 16) < 0.0001)
+        #expect(abs(frame.minY - 16) < 0.0001)
+        #expect(abs(frame.width - 307.2) < 0.0001)
+        #expect(abs(frame.height - 122.88) < 0.0001)
+    }
+
+    @Test
+    func watermarkLayoutUsesTopTrailingPadding() {
+        let frame = VideoWatermarkLayout.frame(
+            renderSize: CGSize(width: 1920, height: 1080),
+            imageSize: CGSize(width: 120, height: 48),
+            position: .topTrailing
+        )
+
+        #expect(abs(frame.minX - 1596.8) < 0.0001)
+        #expect(abs(frame.minY - 16) < 0.0001)
+        #expect(abs(frame.width - 307.2) < 0.0001)
+        #expect(abs(frame.height - 122.88) < 0.0001)
+    }
+
+    @Test
+    func watermarkLayoutUsesBottomLeadingPadding() {
+        let frame = VideoWatermarkLayout.frame(
+            renderSize: CGSize(width: 1920, height: 1080),
+            imageSize: CGSize(width: 120, height: 48),
+            position: .bottomLeading
+        )
+
+        #expect(abs(frame.minX - 16) < 0.0001)
+        #expect(abs(frame.minY - 941.12) < 0.0001)
+        #expect(abs(frame.width - 307.2) < 0.0001)
+        #expect(abs(frame.height - 122.88) < 0.0001)
+    }
+
+    @Test
+    func watermarkLayoutUsesBottomTrailingPadding() {
+        let frame = VideoWatermarkLayout.frame(
+            renderSize: CGSize(width: 1920, height: 1080),
+            imageSize: CGSize(width: 120, height: 48),
+            position: .bottomTrailing
+        )
+
+        #expect(abs(frame.minX - 1596.8) < 0.0001)
+        #expect(abs(frame.minY - 941.12) < 0.0001)
+        #expect(abs(frame.width - 307.2) < 0.0001)
+        #expect(abs(frame.height - 122.88) < 0.0001)
+    }
+
+    @Test
+    func watermarkLayoutUsesHeightWhenItIsTheLargestRenderDimension() {
+        let frame = VideoWatermarkLayout.frame(
+            renderSize: CGSize(width: 1080, height: 1920),
+            imageSize: CGSize(width: 100, height: 50),
+            position: .topTrailing
+        )
+
+        #expect(abs(frame.minX - 756.8) < 0.0001)
+        #expect(abs(frame.minY - 16) < 0.0001)
+        #expect(abs(frame.width - 307.2) < 0.0001)
+        #expect(abs(frame.height - 153.6) < 0.0001)
+    }
+
+    @Test
+    func watermarkLayoutKeepsPortraitWatermarkAspectRatio() {
+        let frame = VideoWatermarkLayout.frame(
+            renderSize: CGSize(width: 1000, height: 500),
+            imageSize: CGSize(width: 80, height: 160),
+            position: .bottomTrailing
+        )
+
+        #expect(abs(frame.minX - 824) < 0.0001)
+        #expect(abs(frame.minY - 164) < 0.0001)
+        #expect(abs(frame.width - 160) < 0.0001)
+        #expect(abs(frame.height - 320) < 0.0001)
+    }
+
+    @Test
+    @MainActor
+    func watermarkRenderRequestRasterizesImagesWithoutCGImage() {
+        let ciImage = CIImage(color: CIColor(red: 0, green: 0, blue: 1, alpha: 1))
+            .cropped(to: CGRect(x: 0, y: 0, width: 20, height: 10))
+        let image = UIImage(ciImage: ciImage)
+        let request = VideoWatermarkRenderRequest(
+            VideoWatermarkConfiguration(
+                image: image,
+                position: .bottomLeading
+            )
+        )
+
+        #expect(image.cgImage == nil)
+        #expect(request?.imageSize == CGSize(width: 20, height: 10))
+        #expect(request?.image.width == 20)
+        #expect(request?.image.height == 10)
+    }
+
+    @Test
+    @MainActor
+    func watermarkRenderRequestRejectsZeroSizedImages() {
+        let configuration = VideoWatermarkConfiguration(
+            image: UIImage(),
+            position: .topLeading
+        )
+
+        #expect(configuration.isRenderableWatermark == false)
+        #expect(VideoWatermarkRenderRequest(configuration) == nil)
     }
 
     @Test
@@ -248,6 +365,92 @@ struct VideoEditorTests {
     }
 
     @Test
+    func exportRenderAppliesWatermarkAtTopLeadingPadding() async throws {
+        let sourceURL = try await TestFixtures.createTemporaryVideo(
+            size: CGSize(width: 96, height: 64),
+            frameCount: 6,
+            framesPerSecond: 30,
+            color: .systemRed
+        )
+        defer { FileManager.default.removeIfExists(for: sourceURL) }
+
+        let video = await Video.load(from: sourceURL)
+        let watermarkImage = TestFixtures.makeSolidImage(
+            size: CGSize(width: 12, height: 10),
+            color: .systemBlue,
+            scale: 1
+        )
+        let watermark = await VideoWatermarkRenderRequest(
+            VideoWatermarkConfiguration(
+                image: watermarkImage,
+                position: .topLeading
+            )
+        )
+
+        let exportedURL = try await VideoEditor.startRender(
+            video: video,
+            editingConfiguration: .initial,
+            videoQuality: .original,
+            watermark: watermark
+        )
+        defer { FileManager.default.removeIfExists(for: exportedURL) }
+
+        let asset = AVURLAsset(url: exportedURL)
+        let renderedImage = try #require(
+            await asset.generateImage(
+                at: 0,
+                maximumSize: CGSize(width: 96, height: 64),
+                requiresExactFrame: true
+            )?.cgImage
+        )
+
+        #expect(renderedPixel(in: renderedImage, x: 20, y: 20)?.isMostlyBlue == true)
+    }
+
+    @Test
+    func exportRenderAppliesWatermarkAtBottomTrailingPadding() async throws {
+        let sourceURL = try await TestFixtures.createTemporaryVideo(
+            size: CGSize(width: 96, height: 64),
+            frameCount: 6,
+            framesPerSecond: 30,
+            color: .systemRed
+        )
+        defer { FileManager.default.removeIfExists(for: sourceURL) }
+
+        let video = await Video.load(from: sourceURL)
+        let watermarkImage = TestFixtures.makeSolidImage(
+            size: CGSize(width: 12, height: 10),
+            color: .systemBlue,
+            scale: 1
+        )
+        let watermark = await VideoWatermarkRenderRequest(
+            VideoWatermarkConfiguration(
+                image: watermarkImage,
+                position: .bottomTrailing
+            )
+        )
+
+        let exportedURL = try await VideoEditor.startRender(
+            video: video,
+            editingConfiguration: .initial,
+            videoQuality: .original,
+            watermark: watermark
+        )
+        defer { FileManager.default.removeIfExists(for: exportedURL) }
+
+        let asset = AVURLAsset(url: exportedURL)
+        let renderedImage = try #require(
+            await asset.generateImage(
+                at: 0,
+                maximumSize: CGSize(width: 96, height: 64),
+                requiresExactFrame: true
+            )?.cgImage
+        )
+
+        #expect(renderedPixel(in: renderedImage, x: 74, y: 44)?.isMostlyBlue == true)
+    }
+
+    @Test
     func resolvedSaveNativeRenderProfileFallsBackToThirtyFPSWhenSourceFrameRateIsInvalid() {
         let profile = VideoEditor.resolvedRenderProfile(
             for: CGSize(width: 1080, height: 1920),
@@ -395,7 +598,8 @@ struct VideoEditorTests {
         let stages = VideoEditor.resolvedRenderStages(
             usesAdjustsStage: true,
             usesTranscriptStage: true,
-            usesCropStage: true
+            usesCropStage: true,
+            usesWatermarkStage: false
         )
 
         #expect(stages == [.base, .adjusts, .transcript])
@@ -406,10 +610,23 @@ struct VideoEditorTests {
         let stages = VideoEditor.resolvedRenderStages(
             usesAdjustsStage: true,
             usesTranscriptStage: true,
-            usesCropStage: false
+            usesCropStage: false,
+            usesWatermarkStage: false
         )
 
         #expect(stages == [.base, .adjusts, .transcript])
+    }
+
+    @Test
+    func resolvedRenderStagesAppliesWatermarkAsTheFinalStage() {
+        let stages = VideoEditor.resolvedRenderStages(
+            usesAdjustsStage: true,
+            usesTranscriptStage: true,
+            usesCropStage: false,
+            usesWatermarkStage: true
+        )
+
+        #expect(stages == [.base, .adjusts, .transcript, .watermark])
     }
 
     @Test
@@ -1152,7 +1369,8 @@ struct VideoEditorTests {
         let stages = VideoEditor.resolvedRenderStages(
             usesAdjustsStage: false,
             usesTranscriptStage: VideoEditor.requiresTranscriptStage(croppedConfiguration),
-            usesCropStage: true
+            usesCropStage: true,
+            usesWatermarkStage: false
         )
 
         #expect(renderSegment.text == "MMMMMMMMMMMMMMMMMMMMMMMM")
@@ -1276,4 +1494,40 @@ struct VideoEditorTests {
         #expect(VideoEditor.requiresTranscriptStage(configuration))
     }
 
+}
+
+private struct RenderedPixel {
+
+    // MARK: - Public Properties
+
+    let red: UInt8
+    let green: UInt8
+    let blue: UInt8
+    let alpha: UInt8
+
+    var isMostlyBlue: Bool {
+        blue > 160 && red < 120 && green < 160 && alpha > 180
+    }
+
+}
+
+private func renderedPixel(
+    in image: CGImage,
+    x: Int,
+    y: Int
+) -> RenderedPixel? {
+    guard x >= 0, y >= 0, x < image.width, y < image.height else { return nil }
+    guard let dataProviderData = image.dataProvider?.data else { return nil }
+    guard let data = CFDataGetBytePtr(dataProviderData) else { return nil }
+
+    let bytesPerPixel = max(image.bitsPerPixel / 8, 1)
+    let offset = (y * image.bytesPerRow) + (x * bytesPerPixel)
+    guard offset + 3 < CFDataGetLength(dataProviderData) else { return nil }
+
+    return RenderedPixel(
+        red: data[offset],
+        green: data[offset + 1],
+        blue: data[offset + 2],
+        alpha: data[offset + 3]
+    )
 }

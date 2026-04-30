@@ -51,6 +51,9 @@ Example/VideoEditor.xcworkspace
 3. Export renders the chosen output.
 4. `onExportedVideoURL` returns the exported file.
 
+Watermarks are applied as a final export render stage. They do not alter preview,
+manual save, saved thumbnails, or `VideoEditingConfiguration`.
+
 ## Important Implementation Areas
 
 - Public editor: `Sources/VideoEditorKit/Views/Editor/VideoEditorView.swift`

@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 /// The payload emitted after an explicit manual save renders an edited video copy.
 public struct SavedVideo: Equatable, Sendable {
@@ -122,6 +123,40 @@ public struct VideoEditorCallbacks {
 
 }
 
+/// Supported corners for an export-only watermark.
+public enum VideoWatermarkPosition: Equatable, Sendable {
+
+    // MARK: - Public Properties
+
+    case topLeading
+    case topTrailing
+    case bottomLeading
+    case bottomTrailing
+
+}
+
+/// Host-facing configuration for an optional export-only watermark.
+public struct VideoWatermarkConfiguration {
+
+    // MARK: - Public Properties
+
+    /// Image rendered into exported videos at exactly `image.size`.
+    public let image: UIImage
+    /// Corner where the image is rendered with fixed export padding.
+    public let position: VideoWatermarkPosition
+
+    // MARK: - Initializer
+
+    public init(
+        image: UIImage,
+        position: VideoWatermarkPosition
+    ) {
+        self.image = image
+        self.position = position
+    }
+
+}
+
 /// Host-facing runtime configuration for the editor UI and feature set.
 public struct VideoEditorConfiguration {
 
@@ -191,6 +226,8 @@ public struct VideoEditorConfiguration {
     public let tools: [ToolAvailability]
     /// Ordered export-quality availability definitions displayed during export.
     public let exportQualities: [ExportQualityAvailability]
+    /// Optional export-only watermark applied to rendered export outputs.
+    public let watermark: VideoWatermarkConfiguration?
     /// Optional transcript generation integration settings.
     public let transcription: TranscriptionConfiguration?
     /// Optional upper bound, in seconds, for accepted source video duration.
@@ -211,6 +248,7 @@ public struct VideoEditorConfiguration {
     public init(
         tools: [ToolAvailability] = ToolAvailability.enabled(ToolEnum.all),
         exportQualities: [ExportQualityAvailability] = ExportQualityAvailability.allEnabled,
+        watermark: VideoWatermarkConfiguration? = nil,
         transcription: TranscriptionConfiguration? = nil,
         maximumVideoDuration: TimeInterval? = nil,
         onBlockedToolTap: ((ToolEnum) -> Void)? = nil,
@@ -233,6 +271,7 @@ public struct VideoEditorConfiguration {
 
             return $0.order < $1.order
         }
+        self.watermark = watermark
         self.transcription = transcription
         self.maximumVideoDuration = Self.normalizedMaximumVideoDuration(
             maximumVideoDuration

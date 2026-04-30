@@ -134,7 +134,7 @@ struct ExporterViewModelTests {
         let viewModel = ExporterViewModel(
             video,
             editingConfiguration: editingConfiguration,
-            renderVideo: { video, configuration, quality, _ in
+            renderVideo: { video, configuration, quality, _, _ in
                 await tracker.record(
                     sourceURL: video.url,
                     editingConfiguration: configuration,
@@ -176,7 +176,7 @@ struct ExporterViewModelTests {
         let tracker = ExportRenderCallTracker()
         let viewModel = ExporterViewModel(
             Video.mock,
-            renderVideo: { video, configuration, quality, _ in
+            renderVideo: { video, configuration, quality, _, _ in
                 await tracker.record(
                     sourceURL: video.url,
                     editingConfiguration: configuration,
@@ -221,7 +221,7 @@ struct ExporterViewModelTests {
         let tracker = ExportRenderCallTracker()
         let viewModel = ExporterViewModel(
             Video.mock,
-            renderVideo: { video, configuration, quality, _ in
+            renderVideo: { video, configuration, quality, _, _ in
                 await tracker.record(
                     sourceURL: video.url,
                     editingConfiguration: configuration,
@@ -269,7 +269,7 @@ struct ExporterViewModelTests {
         let tracker = ExportRetryTracker()
         let viewModel = ExporterViewModel(
             Video.mock,
-            renderVideo: { _, _, _, _ in
+            renderVideo: { _, _, _, _, _ in
                 _ = await tracker.recordRenderCall()
                 return expectedURL
             },
@@ -311,7 +311,7 @@ struct ExporterViewModelTests {
         let tracker = ExportRetryTracker()
         let viewModel = ExporterViewModel(
             Video.mock,
-            renderVideo: { _, _, _, _ in
+            renderVideo: { _, _, _, _, _ in
                 _ = await tracker.recordRenderCall()
                 return URL(fileURLWithPath: "/tmp/should-not-render.mp4")
             }
@@ -347,7 +347,7 @@ struct ExporterViewModelTests {
         let preparationProbe = ExportPreparationProbe()
         let viewModel = ExporterViewModel(
             Video.mock,
-            renderVideo: { _, _, _, _ in
+            renderVideo: { _, _, _, _, _ in
                 URL(fileURLWithPath: "/tmp/export.mp4")
             }
         )
@@ -383,7 +383,7 @@ struct ExporterViewModelTests {
         let preparationProbe = ExportOriginalPreparationProbe(savedVideo)
         let viewModel = ExporterViewModel(
             Video.mock,
-            renderVideo: { _, _, _, _ in
+            renderVideo: { _, _, _, _, _ in
                 _ = await tracker.recordRenderCall()
                 return URL(fileURLWithPath: "/tmp/should-not-render-original.mp4")
             }
@@ -425,7 +425,7 @@ struct ExporterViewModelTests {
         let tracker = ExportRetryTracker()
         let viewModel = ExporterViewModel(
             Video.mock,
-            renderVideo: { _, _, _, onProgress in
+            renderVideo: { _, _, _, _, onProgress in
                 let renderCallCount = await tracker.recordRenderCall()
                 await onProgress?(0.23)
 
@@ -465,7 +465,7 @@ struct ExporterViewModelTests {
         let tracker = ExportRetryTracker()
         let viewModel = ExporterViewModel(
             Video.mock,
-            renderVideo: { _, _, _, _ in
+            renderVideo: { _, _, _, _, _ in
                 _ = await tracker.recordRenderCall()
 
                 do {
@@ -503,7 +503,7 @@ struct ExporterViewModelTests {
         let tracker = ExportRetryTracker()
         let viewModel = ExporterViewModel(
             Video.mock,
-            renderVideo: { _, _, _, _ in
+            renderVideo: { _, _, _, _, _ in
                 _ = await tracker.recordRenderCall()
                 throw ExporterError.failed
             }
@@ -532,7 +532,7 @@ struct ExporterViewModelTests {
         let tracker = ExportRetryTracker()
         let viewModel = ExporterViewModel(
             Video.mock,
-            renderVideo: { _, _, _, _ in
+            renderVideo: { _, _, _, _, _ in
                 _ = await tracker.recordRenderCall()
 
                 do {
@@ -574,7 +574,7 @@ struct ExporterViewModelTests {
         let tracker = ExportRetryTracker()
         let viewModel = ExporterViewModel(
             Video.mock,
-            renderVideo: { _, _, _, _ in
+            renderVideo: { _, _, _, _, _ in
                 _ = await tracker.recordRenderCall()
 
                 do {
@@ -610,7 +610,7 @@ struct ExporterViewModelTests {
         let tracker = ExportRetryTracker()
         let viewModel = ExporterViewModel(
             Video.mock,
-            renderVideo: { _, _, _, _ in
+            renderVideo: { _, _, _, _, _ in
                 _ = await tracker.recordRenderCall()
 
                 do {
@@ -647,7 +647,7 @@ struct ExporterViewModelTests {
         let dateProvider = LifecycleDateProvider(.init(timeIntervalSinceReferenceDate: 0))
         let viewModel = ExporterViewModel(
             Video.mock,
-            renderVideo: { _, _, _, _ in
+            renderVideo: { _, _, _, _, _ in
                 _ = await tracker.recordRenderCall()
 
                 do {
@@ -687,7 +687,7 @@ struct ExporterViewModelTests {
         let dateProvider = LifecycleDateProvider(.init(timeIntervalSinceReferenceDate: 0))
         let viewModel = ExporterViewModel(
             Video.mock,
-            renderVideo: { _, _, _, _ in
+            renderVideo: { _, _, _, _, _ in
                 _ = await tracker.recordRenderCall()
 
                 do {
@@ -732,7 +732,7 @@ struct ExporterViewModelTests {
         let tracker = ExportRetryTracker()
         let viewModel = ExporterViewModel(
             Video.mock,
-            renderVideo: { _, _, _, _ in
+            renderVideo: { _, _, _, _, _ in
                 _ = await tracker.recordRenderCall()
 
                 do {
@@ -783,7 +783,7 @@ struct ExporterViewModelTests {
         let tracker = ExportRetryTracker()
         let viewModel = ExporterViewModel(
             Video.mock,
-            renderVideo: { _, _, _, _ in
+            renderVideo: { _, _, _, _, _ in
                 let renderCallCount = await tracker.recordRenderCall()
 
                 if renderCallCount == 1 {
@@ -852,7 +852,7 @@ struct ExporterViewModelTests {
         let viewModel = ExporterViewModel(
             Video.mock,
             editingConfiguration: editingConfiguration,
-            renderVideo: { _, configuration, _, _ in
+            renderVideo: { _, configuration, _, _, _ in
                 await tracker.record(configuration)
                 return expectedURL
             },
@@ -870,6 +870,48 @@ struct ExporterViewModelTests {
         _ = await viewModel.export()
 
         #expect(await tracker.editingConfiguration == editingConfiguration)
+    }
+
+    @Test
+    func exportPassesWatermarkToRenderer() async {
+        let expectedURL = URL(fileURLWithPath: "/tmp/watermarked-export.mp4")
+        let expectedVideo = ExportedVideo(
+            expectedURL,
+            width: 1280,
+            height: 720,
+            duration: 8,
+            fileSize: 256
+        )
+        let image = TestFixtures.makeSolidImage(
+            size: CGSize(width: 32, height: 18),
+            scale: 1
+        )
+        let watermark = VideoWatermarkConfiguration(
+            image: image,
+            position: .topTrailing
+        )
+        let tracker = ExportWatermarkTracker()
+        let viewModel = ExporterViewModel(
+            Video.mock,
+            watermark: watermark,
+            renderVideo: { _, _, _, watermark, _ in
+                await tracker.record(watermark)
+                return expectedURL
+            },
+            loadExportedVideo: { _ in expectedVideo }
+        )
+
+        viewModel.exportVideo { exportedVideo in
+            Task {
+                await tracker.recordExportedVideo(exportedVideo)
+            }
+        }
+
+        await tracker.waitUntilExportedVideoIsRecorded()
+
+        #expect(await tracker.imageSizes == [CGSize(width: 32, height: 18)])
+        #expect(await tracker.positions == [.topTrailing])
+        #expect(await tracker.exportedVideo == expectedVideo)
     }
 
 }
@@ -973,6 +1015,34 @@ private actor ExportConfigurationTracker {
 
     func record(_ configuration: VideoEditingConfiguration) {
         editingConfiguration = configuration
+    }
+
+}
+
+private actor ExportWatermarkTracker {
+
+    // MARK: - Private Properties
+
+    private(set) var imageSizes = [CGSize]()
+    private(set) var positions = [VideoWatermarkPosition]()
+    private(set) var exportedVideo: ExportedVideo?
+
+    // MARK: - Public Methods
+
+    func record(_ watermark: VideoWatermarkRenderRequest?) {
+        guard let watermark else { return }
+        imageSizes.append(watermark.imageSize)
+        positions.append(watermark.position)
+    }
+
+    func recordExportedVideo(_ video: ExportedVideo) {
+        exportedVideo = video
+    }
+
+    func waitUntilExportedVideoIsRecorded() async {
+        while exportedVideo == nil {
+            try? await Task.sleep(for: .milliseconds(10))
+        }
     }
 
 }

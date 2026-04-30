@@ -32,6 +32,10 @@ public struct VideoEditorView: View {
     public typealias Callbacks = VideoEditorCallbacks
     /// Runtime configuration that controls tool visibility, export options, and integrations.
     public typealias Configuration = VideoEditorConfiguration
+    /// Export-only watermark configuration exposed through the editor namespace.
+    public typealias WatermarkConfiguration = VideoWatermarkConfiguration
+    /// Export-only watermark corner exposed through the editor namespace.
+    public typealias WatermarkPosition = VideoWatermarkPosition
 
     // MARK: - Body
 
@@ -129,6 +133,7 @@ public struct VideoEditorView: View {
                 video: video,
                 editingConfiguration: resolvedExportEditingConfiguration,
                 exportQualities: configuration.exportQualities,
+                watermark: configuration.watermark,
                 prepareForExport: prepareCurrentExport,
                 shouldShowSavingBeforeExport: { _ in manualSaveCoordinator.hasUnsavedChanges },
                 onBlockedQualityTap: configuration.notifyBlockedExportQualityTap(for:),
@@ -389,6 +394,7 @@ public struct VideoEditorView: View {
             preparedOriginalExportVideo: session.preparedOriginalExportVideo,
             preparedOriginalExportEditingConfiguration: session.preparedOriginalExportEditingConfiguration,
             loadedOriginalVideo: loadedOriginalExportVideo,
+            hasWatermark: configuration.watermark?.isRenderableWatermark == true,
             saveCurrentEdit: performCurrentManualSave
         )
     }

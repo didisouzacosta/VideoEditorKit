@@ -20,12 +20,14 @@ enum VideoEditor {
         video: Video,
         editingConfiguration: VideoEditingConfiguration = .initial,
         videoQuality: VideoQuality,
+        watermark: VideoWatermarkRenderRequest? = nil,
         onProgress: ProgressHandler? = nil
     ) async throws -> URL {
         try await startRender(
             video: video,
             editingConfiguration: editingConfiguration,
             renderIntent: .export(videoQuality),
+            watermark: watermark,
             onProgress: onProgress
         )
     }
@@ -34,6 +36,7 @@ enum VideoEditor {
         video: Video,
         editingConfiguration: VideoEditingConfiguration = .initial,
         renderIntent: VideoRenderIntent,
+        watermark: VideoWatermarkRenderRequest? = nil,
         onProgress: ProgressHandler? = nil
     ) async throws -> URL {
         let resolvedRenderIntent = await resolvedRenderIntent(
@@ -52,6 +55,7 @@ enum VideoEditor {
         let usesAdjustsStage = !adjusts.isEmpty
         let usesTranscriptStage = requiresTranscriptStage(editingConfiguration)
         let usesCanvasStage = requiresCanvasStage(editingConfiguration)
+        let usesWatermarkStage = watermark != nil
         let integratesAdjustsIntoBaseStage: Bool
 
         if usesAdjustsStage {
@@ -66,7 +70,8 @@ enum VideoEditor {
         let renderStages = resolvedRenderStages(
             usesAdjustsStage: usesAdjustsStage && integratesAdjustsIntoBaseStage == false,
             usesTranscriptStage: usesTranscriptStage,
-            usesCropStage: usesCanvasStage
+            usesCropStage: usesCanvasStage,
+            usesWatermarkStage: usesWatermarkStage
         )
 
         var intermediateOutputURLs = [URL]()
@@ -118,11 +123,26 @@ enum VideoEditor {
                 to: transcribedURL,
                 trackedURLs: &intermediateOutputURLs
             )
+            let watermarkedURL = try await applyWatermarkOperation(
+                watermark,
+                fromUrl: transcribedURL,
+                exportProfile: exportProfile,
+                progressRange: progressRange(
+                    for: .watermark,
+                    activeStages: renderStages
+                ),
+                onProgress: onProgress
+            )
+            advanceIntermediateOutput(
+                from: transcribedURL,
+                to: watermarkedURL,
+                trackedURLs: &intermediateOutputURLs
+            )
             cleanupIntermediateOutputs(
                 intermediateOutputURLs,
-                excluding: transcribedURL
+                excluding: watermarkedURL
             )
-            return transcribedURL
+            return watermarkedURL
         } catch {
             cleanupIntermediateOutputs(
                 intermediateOutputURLs,
@@ -383,6 +403,84 @@ enum VideoEditor {
 
         return outputURL
     }
+
+    private static func applyWatermarkOperation(
+        _ watermark: VideoWatermarkRenderRequest?,
+        fromUrl: URL,
+        exportProfile: ExportProfile,
+        progressRange: ClosedRange<Double>,
+        onProgress: ProgressHandler?
+    ) async throws -> URL {
+        guard let watermark else {
+            await reportProgress(progressRange.upperBound, via: onProgress)
+            return fromUrl
+        }
+
+        let asset = AVURLAsset(url: fromUrl)
+        guard let videoTrack = try await asset.loadTracks(withMediaType: .video).first else {
+            throw ExporterError.unknow
+        }
+
+        let naturalSize = try await videoTrack.load(.naturalSize)
+        let preferredTransform = try await videoTrack.load(.preferredTransform)
+        let trackTimeRange = try await videoTrack.load(.timeRange)
+        let presentationSize = resolvedPresentationSize(
+            naturalSize: naturalSize,
+            preferredTransform: preferredTransform
+        )
+        let instruction = videoCompositionInstructionForTrackWithSizeAndTime(
+            preferredTransform: preferredTransform,
+            naturalSize: naturalSize,
+            presentationSize: presentationSize,
+            renderSize: presentationSize,
+            track: videoTrack,
+            isMirror: false
+        )
+        let videoInstruction = AVMutableVideoCompositionInstruction()
+        videoInstruction.layerInstructions = [instruction]
+        videoInstruction.timeRange = trackTimeRange
+
+        let videoComposition = AVMutableVideoComposition()
+        videoComposition.animationTool = createWatermarkAnimationTool(
+            watermark,
+            renderSize: presentationSize
+        )
+        videoComposition.frameDuration = exportProfile.frameDuration
+        videoComposition.instructions = [videoInstruction]
+        videoComposition.renderSize = presentationSize
+
+        let outputURL = createTempPath()
+
+        guard
+            let session = AVAssetExportSession(
+                asset: asset,
+                presetName: resolvedExportPresetName(
+                    for: exportProfile,
+                    appliesVideoComposition: true
+                )
+            )
+        else {
+            assertionFailure("Unable to create watermark export session.")
+            throw ExporterError.cannotCreateExportSession
+        }
+
+        session.videoComposition = videoComposition
+
+        do {
+            try await export(
+                session,
+                to: outputURL,
+                as: .mp4,
+                progressRange: progressRange,
+                onProgress: onProgress
+            )
+        } catch {
+            FileManager.default.removeIfExists(for: outputURL)
+            throw error
+        }
+
+        return outputURL
+    }
 }
 
 extension VideoEditor {
@@ -394,6 +492,7 @@ extension VideoEditor {
         case adjusts
         case transcript
         case crop
+        case watermark
     }
 
     struct TranscriptRenderSegment: Equatable {
@@ -909,7 +1008,8 @@ extension VideoEditor {
     static func resolvedRenderStages(
         usesAdjustsStage: Bool,
         usesTranscriptStage: Bool,
-        usesCropStage: Bool
+        usesCropStage: Bool,
+        usesWatermarkStage: Bool
     ) -> [RenderStage] {
         var stages: [RenderStage] = [.base]
 
@@ -922,6 +1022,10 @@ extension VideoEditor {
         }
 
         _ = usesCropStage
+
+        if usesWatermarkStage {
+            stages.append(.watermark)
+        }
 
         return stages
     }
@@ -1327,6 +1431,38 @@ extension VideoEditor {
         videoLayer.frame = CGRect(origin: centerPoint, size: scaleSize)
 
         outputLayer.addSublayer(videoLayer)
+
+        return AVVideoCompositionCoreAnimationTool(
+            postProcessingAsVideoLayer: videoLayer,
+            in: outputLayer
+        )
+    }
+
+    private static func createWatermarkAnimationTool(
+        _ watermark: VideoWatermarkRenderRequest,
+        renderSize: CGSize
+    ) -> AVVideoCompositionCoreAnimationTool {
+        let bounds = CGRect(origin: .zero, size: renderSize)
+
+        let videoLayer = CALayer()
+        videoLayer.frame = bounds
+
+        let outputLayer = CALayer()
+        outputLayer.frame = bounds
+        outputLayer.isGeometryFlipped = true
+        outputLayer.masksToBounds = true
+        outputLayer.addSublayer(videoLayer)
+
+        let watermarkLayer = CALayer()
+        watermarkLayer.frame = VideoWatermarkLayout.frame(
+            renderSize: renderSize,
+            imageSize: watermark.imageSize,
+            position: watermark.position
+        )
+        watermarkLayer.contents = watermark.image
+        watermarkLayer.contentsGravity = .resize
+        watermarkLayer.contentsScale = watermark.imageScale
+        outputLayer.addSublayer(watermarkLayer)
 
         return AVVideoCompositionCoreAnimationTool(
             postProcessingAsVideoLayer: videoLayer,

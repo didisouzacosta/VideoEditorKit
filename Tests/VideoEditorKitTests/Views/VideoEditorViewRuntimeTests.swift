@@ -476,6 +476,7 @@ struct VideoEditorViewRuntimeTests {
             lastSavedVideo: nil,
             preparedOriginalExportVideo: nil,
             loadedOriginalVideo: nil,
+            hasWatermark: false,
             saveCurrentEdit: {
                 expectedSavedVideo
             }
@@ -510,12 +511,48 @@ struct VideoEditorViewRuntimeTests {
             lastSavedVideo: lastSavedVideo,
             preparedOriginalExportVideo: nil,
             loadedOriginalVideo: nil,
+            hasWatermark: false,
             saveCurrentEdit: {
                 nil
             }
         )
 
         #expect(result == .usePreparedVideo(lastSavedVideo.metadata))
+    }
+
+    @Test
+    func originalExportRendersLastSavedVideoWhenWatermarkExists() async {
+        let savedVideoURL = URL(filePath: "/tmp/watermarked-last-saved-original-export.mp4")
+        let editingConfiguration = VideoEditingConfiguration(
+            trim: .init(lowerBound: 1, upperBound: 6)
+        )
+        let lastSavedVideo = SavedVideo(
+            savedVideoURL,
+            originalVideoURL: URL(filePath: "/tmp/original.mp4"),
+            editingConfiguration: editingConfiguration,
+            metadata: .init(
+                savedVideoURL,
+                width: 1080,
+                height: 1920,
+                duration: 5,
+                fileSize: 2048
+            )
+        )
+
+        let result = await VideoEditorView.exportPreparationResult(
+            selectedQuality: .original,
+            hasUnsavedChanges: false,
+            currentEditingConfiguration: editingConfiguration,
+            lastSavedVideo: lastSavedVideo,
+            preparedOriginalExportVideo: nil,
+            loadedOriginalVideo: nil,
+            hasWatermark: true,
+            saveCurrentEdit: {
+                nil
+            }
+        )
+
+        #expect(result == .render)
     }
 
     @Test
@@ -536,12 +573,40 @@ struct VideoEditorViewRuntimeTests {
             preparedOriginalExportVideo: preparedOriginalExportVideo,
             preparedOriginalExportEditingConfiguration: .init(trim: .init(lowerBound: 1, upperBound: 6)),
             loadedOriginalVideo: nil,
+            hasWatermark: false,
             saveCurrentEdit: {
                 nil
             }
         )
 
         #expect(result == .usePreparedVideo(preparedOriginalExportVideo))
+    }
+
+    @Test
+    func originalExportRendersSessionPreparedVideoWhenWatermarkExists() async {
+        let preparedOriginalExportVideo = ExportedVideo(
+            URL(filePath: "/tmp/watermarked-session-prepared-original-export.mp4"),
+            width: 1920,
+            height: 1080,
+            duration: 10,
+            fileSize: 4096
+        )
+
+        let result = await VideoEditorView.exportPreparationResult(
+            selectedQuality: .original,
+            hasUnsavedChanges: false,
+            currentEditingConfiguration: .init(trim: .init(lowerBound: 1, upperBound: 6)),
+            lastSavedVideo: nil,
+            preparedOriginalExportVideo: preparedOriginalExportVideo,
+            preparedOriginalExportEditingConfiguration: .init(trim: .init(lowerBound: 1, upperBound: 6)),
+            loadedOriginalVideo: nil,
+            hasWatermark: true,
+            saveCurrentEdit: {
+                nil
+            }
+        )
+
+        #expect(result == .render)
     }
 
     @Test
@@ -562,6 +627,7 @@ struct VideoEditorViewRuntimeTests {
             preparedOriginalExportVideo: preparedOriginalExportVideo,
             preparedOriginalExportEditingConfiguration: .init(trim: .init(lowerBound: 2, upperBound: 6)),
             loadedOriginalVideo: nil,
+            hasWatermark: false,
             saveCurrentEdit: {
                 nil
             }
@@ -587,12 +653,75 @@ struct VideoEditorViewRuntimeTests {
             lastSavedVideo: nil,
             preparedOriginalExportVideo: nil,
             loadedOriginalVideo: loadedOriginalVideo,
+            hasWatermark: false,
             saveCurrentEdit: {
                 nil
             }
         )
 
         #expect(result == .usePreparedVideo(loadedOriginalVideo))
+    }
+
+    @Test
+    func originalExportRendersLoadedVideoWhenWatermarkExists() async {
+        let loadedOriginalVideo = ExportedVideo(
+            URL(filePath: "/tmp/watermarked-loaded-original-export.mp4"),
+            width: 1080,
+            height: 1920,
+            duration: 8,
+            fileSize: 2048
+        )
+
+        let result = await VideoEditorView.exportPreparationResult(
+            selectedQuality: .original,
+            hasUnsavedChanges: false,
+            currentEditingConfiguration: .initial,
+            lastSavedVideo: nil,
+            preparedOriginalExportVideo: nil,
+            loadedOriginalVideo: loadedOriginalVideo,
+            hasWatermark: true,
+            saveCurrentEdit: {
+                nil
+            }
+        )
+
+        #expect(result == .render)
+    }
+
+    @Test
+    func originalExportWithUnsavedChangesSavesAndRendersWhenWatermarkExists() async {
+        let savedVideoURL = URL(filePath: "/tmp/watermarked-unsaved-original-export.mp4")
+        let originalVideoURL = URL(filePath: "/tmp/watermarked-unsaved-source.mp4")
+        let expectedSavedVideo = SavedVideo(
+            savedVideoURL,
+            originalVideoURL: originalVideoURL,
+            editingConfiguration: .init(trim: .init(lowerBound: 2, upperBound: 7)),
+            metadata: .init(
+                savedVideoURL,
+                width: 1920,
+                height: 1080,
+                duration: 5,
+                fileSize: 1024
+            )
+        )
+        var saveCallCount = 0
+
+        let result = await VideoEditorView.exportPreparationResult(
+            selectedQuality: .original,
+            hasUnsavedChanges: true,
+            currentEditingConfiguration: expectedSavedVideo.editingConfiguration,
+            lastSavedVideo: nil,
+            preparedOriginalExportVideo: nil,
+            loadedOriginalVideo: nil,
+            hasWatermark: true,
+            saveCurrentEdit: {
+                saveCallCount += 1
+                return expectedSavedVideo
+            }
+        )
+
+        #expect(result == .render)
+        #expect(saveCallCount == 1)
     }
 
     @Test
@@ -618,6 +747,7 @@ struct VideoEditorViewRuntimeTests {
             lastSavedVideo: nil,
             preparedOriginalExportVideo: nil,
             loadedOriginalVideo: nil,
+            hasWatermark: false,
             saveCurrentEdit: {
                 savedVideo
             }
