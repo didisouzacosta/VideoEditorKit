@@ -19,6 +19,7 @@ This file is the current feature and resource map for `VideoEditorKit`.
 - Generate and edit transcript overlays when a transcription provider exists.
 - Save an edited copy while preserving the original.
 - Export `.mp4` output in original, low, medium, or high quality.
+- Optionally apply a host-configured image watermark during export.
 - Present the export-quality sheet outside the editor with `videoExportSheet`.
 
 ## Save And Export Resources
@@ -28,13 +29,15 @@ This file is the current feature and resource map for `VideoEditorKit`.
 - Exported video: returned by `onExportedVideoURL`; used for share/export flows.
 - External export sheet: returns `ExportedVideo` after the user selects a quality.
 - Project thumbnail: generated from the saved edited copy in the example app.
+- Watermark configuration: host runtime policy in `VideoEditorConfiguration`;
+  export-only and not part of saved edit state.
 
 ## Main Public Types
 
 - `VideoEditorView`: present the editor.
 - `VideoEditorSession`: open a local or async-resolved source.
 - `VideoEditorConfiguration`: configure tools, export qualities, transcription,
-  blocked actions, and duration limits.
+  blocked actions, watermark policy, and duration limits.
 - `VideoEditingConfiguration`: persist and restore the edit.
 - `SavedVideo`: manual-save result.
 - `VideoQuality`: export quality.

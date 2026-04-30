@@ -26,6 +26,7 @@ public configuration, persistence, transcription, canvas, and export APIs.
 - Save button stays available after load; without unsaved changes it only closes
   the editor
 - Export to `.mp4` with `original`, `low`, `medium`, and `high` quality choices
+- Optional host-configured image watermark applied only during export
 - Reusable export-quality sheet for list and share flows outside the editor
 
 ## Screenshots
@@ -222,6 +223,26 @@ var body: some View {
     )
 }
 ```
+
+## Export Watermark
+
+Configure a host-owned image watermark through `VideoEditorConfiguration`:
+
+```swift
+let logoImage = UIImage(named: "Logo")
+let configuration = VideoEditorConfiguration(
+    watermark: logoImage.map {
+        VideoWatermarkConfiguration(
+            image: $0,
+            position: .bottomTrailing
+        )
+    }
+)
+```
+
+Watermarks are export-only. They are not shown in preview, are not included in
+manual saves, and are not persisted in `VideoEditingConfiguration`. Pass
+`watermark: nil` to disable watermarking, such as for paid plans.
 
 ## Transcription
 
