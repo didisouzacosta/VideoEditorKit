@@ -146,6 +146,23 @@ struct VideoEditorTests {
 
     @Test
     @MainActor
+    func watermarkRenderRequestUsesShareOpacity() {
+        let image = TestFixtures.makeSolidImage(
+            size: CGSize(width: 20, height: 10),
+            scale: 1
+        )
+        let request = VideoWatermarkRenderRequest(
+            VideoWatermarkConfiguration(
+                image: image,
+                position: .bottomTrailing
+            )
+        )
+
+        #expect(request?.opacity == 0.4)
+    }
+
+    @Test
+    @MainActor
     func watermarkRenderRequestRejectsZeroSizedImages() {
         let configuration = VideoWatermarkConfiguration(
             image: UIImage(),

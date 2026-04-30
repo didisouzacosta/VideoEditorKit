@@ -8,7 +8,12 @@ struct VideoWatermarkRenderRequest: @unchecked Sendable {
     let image: CGImage
     let imageSize: CGSize
     let imageScale: CGFloat
+    let opacity: Float
     let position: VideoWatermarkPosition
+
+    // MARK: - Private Properties
+
+    private static let defaultOpacity: Float = 0.4
 
     // MARK: - Initializer
 
@@ -20,6 +25,7 @@ struct VideoWatermarkRenderRequest: @unchecked Sendable {
         image = cgImage
         imageSize = configuration.image.size
         imageScale = max(configuration.image.scale, 1)
+        opacity = Self.defaultOpacity
         position = configuration.position
     }
 

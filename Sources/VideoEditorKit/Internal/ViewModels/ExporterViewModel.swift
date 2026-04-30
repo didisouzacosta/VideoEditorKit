@@ -209,21 +209,21 @@ final class ExporterViewModel {
             let preparationResult = await preparingExport(exportQuality)
 
             guard !Task.isCancelled else {
-                await self.finishCancelledPreparation(runID: exportRunID)
+                self.finishCancelledPreparation(runID: exportRunID)
                 return
             }
 
             switch preparationResult {
             case .cancelled:
-                await self.finishCancelledPreparation(runID: exportRunID)
+                self.finishCancelledPreparation(runID: exportRunID)
                 return
             case .usePreparedVideo(let exportedVideo):
-                await self.finishPreparedExport(exportedVideo, runID: exportRunID)
+                self.finishPreparedExport(exportedVideo, runID: exportRunID)
                 guard !Task.isCancelled else { return }
                 onExported(exportedVideo)
                 return
             case .render:
-                await self.finishPreparingExport(runID: exportRunID)
+                self.finishPreparingExport(runID: exportRunID)
             }
 
             guard

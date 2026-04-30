@@ -64,10 +64,6 @@ struct VideoAudioToolView: View {
     // MARK: - Public Properties
 
     let draft: AudioToolDraft
-    private let hasRecordedAudioTrack: Bool
-    private let onSelectTrack: (VideoEditingConfiguration.SelectedTrack) -> Void
-    private let onChangeVolume: (Float) -> Void
-    private let onFinishVolumeChange: () -> Void
 
     // MARK: - Body
 
@@ -89,6 +85,9 @@ struct VideoAudioToolView: View {
                 Slider(
                     value: selectedTrackVolumeBinding,
                     in: 0...1,
+                    label: {
+                        Text(VideoEditorStrings.toolAudio)
+                    },
                     onEditingChanged: handleVolumeEditingChanged
                 )
                 .tint(Theme.accent)
@@ -101,10 +100,17 @@ struct VideoAudioToolView: View {
 
     // MARK: - Private Properties
 
+    private let hasRecordedAudioTrack: Bool
+    private let onSelectTrack: (VideoEditingConfiguration.SelectedTrack) -> Void
+    private let onChangeVolume: (Float) -> Void
+    private let onFinishVolumeChange: () -> Void
+
     private var selectedTrackBinding: Binding<VideoEditingConfiguration.SelectedTrack> {
         Binding(
             get: { draft.selectedTrack },
-            set: onSelectTrack
+            set: { newTrack in
+                onSelectTrack(newTrack)
+            }
         )
     }
 

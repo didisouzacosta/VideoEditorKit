@@ -1,3 +1,4 @@
+import AVFoundation
 import SwiftUI
 
 @MainActor
@@ -90,12 +91,38 @@ public struct VideoExportSheet: View {
         loadedVideo = nil
         loadedOriginalVideo = nil
 
-        let video = await Video.load(from: request.sourceVideoURL)
+        let video = await VideoExportSheetSourceResolver.video(for: request)
         loadedVideo = video
-        loadedOriginalVideo = Self.loadedOriginalExportVideo(from: video)
+        loadedOriginalVideo = VideoExportSheetSourceResolver.loadedOriginalExportVideo(from: video)
     }
 
-    private static func loadedOriginalExportVideo(from video: Video) -> ExportedVideo {
+}
+
+enum VideoExportSheetSourceResolver {
+
+    // MARK: - Public Methods
+
+    static func video(
+        for request: VideoExportSheetRequest,
+        loadVideo: (URL) async -> Video = Video.load(from:)
+    ) async -> Video {
+        guard let metadata = request.sourceMetadata else {
+            return await loadVideo(request.sourceVideoURL)
+        }
+
+        return Video(
+            url: request.sourceVideoURL,
+            asset: AVURLAsset(url: request.sourceVideoURL),
+            originalDuration: resolvedDuration(metadata.duration),
+            rangeDuration: .zero...resolvedDuration(metadata.duration),
+            presentationSize: CGSize(
+                width: resolvedDimension(metadata.width),
+                height: resolvedDimension(metadata.height)
+            )
+        )
+    }
+
+    static func loadedOriginalExportVideo(from video: Video) -> ExportedVideo {
         ExportedVideo(
             video.url,
             width: max(video.presentationSize.width, 0),
@@ -105,10 +132,22 @@ public struct VideoExportSheet: View {
         )
     }
 
-    private static func resolvedFileSize(for url: URL) -> Int64 {
+    static func resolvedFileSize(for url: URL) -> Int64 {
         let attributes = try? FileManager.default.attributesOfItem(atPath: url.path())
         let sizeValue = attributes?[.size] as? NSNumber
         return max(sizeValue?.int64Value ?? 0, 0)
+    }
+
+    // MARK: - Private Methods
+
+    private static func resolvedDuration(_ duration: Double) -> Double {
+        guard duration.isFinite, duration > 0 else { return 0 }
+        return duration
+    }
+
+    private static func resolvedDimension(_ dimension: Double) -> Double {
+        guard dimension.isFinite, dimension > 0 else { return 0 }
+        return dimension
     }
 
 }

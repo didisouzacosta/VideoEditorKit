@@ -15,9 +15,54 @@ struct VideoExportSheetRequestTests {
 
         #expect(request.id == url.absoluteString)
         #expect(request.sourceVideoURL == url)
+        #expect(request.sourceMetadata == nil)
         #expect(request.editingConfiguration == .initial)
         #expect(request.preparedOriginalExportVideo == nil)
         #expect(request.preparedOriginalExportEditingConfiguration == nil)
+    }
+
+    @Test
+    func requestStoresSourceMetadataForImmediateSheetPresentation() {
+        let metadata = VideoExportSheetSourceMetadata(
+            width: 1920,
+            height: 1080,
+            duration: 8
+        )
+        let request = VideoExportSheetRequest(
+            sourceVideoURL: URL(fileURLWithPath: "/tmp/source.mp4"),
+            sourceMetadata: metadata
+        )
+
+        #expect(request.sourceMetadata == metadata)
+    }
+
+    @Test
+    func sourceResolverUsesMetadataWithoutLoadingTheAsset() async {
+        let sourceURL = URL(fileURLWithPath: "/tmp/source.mp4")
+        let metadata = VideoExportSheetSourceMetadata(
+            width: 1920,
+            height: 1080,
+            duration: 8
+        )
+        let request = VideoExportSheetRequest(
+            sourceVideoURL: sourceURL,
+            sourceMetadata: metadata
+        )
+        let probe = VideoLoadProbe()
+
+        let video = await VideoExportSheetSourceResolver.video(
+            for: request,
+            loadVideo: { url in
+                await probe.record(url)
+                return Video(url: url)
+            }
+        )
+
+        #expect(video.url == sourceURL)
+        #expect(video.originalDuration == 8)
+        #expect(video.rangeDuration == 0...8)
+        #expect(video.presentationSize == CGSize(width: 1920, height: 1080))
+        #expect(await probe.loadedURLs.isEmpty)
     }
 
     @Test
@@ -231,6 +276,20 @@ struct VideoExportSheetRequestTests {
         )
 
         #expect(result == .render)
+    }
+
+}
+
+private actor VideoLoadProbe {
+
+    // MARK: - Private Properties
+
+    private(set) var loadedURLs = [URL]()
+
+    // MARK: - Public Methods
+
+    func record(_ url: URL) {
+        loadedURLs.append(url)
     }
 
 }

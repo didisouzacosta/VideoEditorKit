@@ -29,6 +29,7 @@ struct EditorHostScreen: View {
         VideoEditorView(
             ExampleStrings.editorTitle,
             session: sessionController.session,
+            configuration: Self.editorConfiguration(),
             callbacks: editorCallbacks
         )
         .sheet(
@@ -84,6 +85,19 @@ struct EditorHostScreen: View {
         _sessionController = State(initialValue: EditorSessionController(draft))
 
         self.repository = repository
+    }
+
+    // MARK: - Public Methods
+
+    static func editorConfiguration(
+        watermarkImage: UIImage = .watermark
+    ) -> VideoEditorView.Configuration {
+        .init(
+            watermark: .init(
+                image: watermarkImage,
+                position: .bottomTrailing
+            )
+        )
     }
 
     // MARK: - Private Methods

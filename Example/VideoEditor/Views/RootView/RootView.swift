@@ -67,7 +67,8 @@ struct RootView: View {
             }
             .videoExportSheet(
                 item: $exportingProject,
-                request: exportRequest(for:),
+                configuration: Self.shareExportConfiguration,
+                request: Self.exportRequest(for:),
                 onExported: { exportedVideo, project in
                     sharedVideo = .init(id: project.id, url: exportedVideo.url)
                 }
@@ -84,6 +85,14 @@ struct RootView: View {
 }
 
 extension RootView {
+
+    // MARK: - Public Properties
+
+    static var shareExportConfiguration: VideoEditorView.Configuration {
+        EditorHostScreen.editorConfiguration()
+    }
+
+    // MARK: - Private Properties
 
     private struct RootAlertPresentation: Identifiable {
 
@@ -119,6 +128,27 @@ extension RootView {
         PhotoVideoImporter()
     }
 
+    // MARK: - Public Methods
+
+    static func exportRequest(
+        for project: EditedVideoProject
+    ) -> VideoExportSheetRequest {
+        VideoExportSheetRequest(
+            id: project.id.uuidString,
+            sourceVideoURL: project.originalVideoURL,
+            sourceMetadata: .init(
+                width: project.width,
+                height: project.height,
+                duration: project.duration
+            ),
+            editingConfiguration: project.editingConfiguration ?? .initial,
+            preparedOriginalExportVideo: project.preparedOriginalExportVideo,
+            preparedOriginalExportEditingConfiguration: project.editingConfiguration
+        )
+    }
+
+    // MARK: - Private Methods
+
     private func openProject(_ project: EditedVideoProject) {
         guard project.hasOriginalVideo else {
             showPersistenceError(ExampleStrings.missingProjectOriginalVideo)
@@ -140,18 +170,6 @@ extension RootView {
         }
 
         exportingProject = project
-    }
-
-    private func exportRequest(
-        for project: EditedVideoProject
-    ) -> VideoExportSheetRequest {
-        VideoExportSheetRequest(
-            id: project.id.uuidString,
-            sourceVideoURL: project.originalVideoURL,
-            editingConfiguration: project.editingConfiguration ?? .initial,
-            preparedOriginalExportVideo: project.preparedOriginalExportVideo,
-            preparedOriginalExportEditingConfiguration: project.editingConfiguration
-        )
     }
 
     private func deleteProject(_ project: EditedVideoProject) {

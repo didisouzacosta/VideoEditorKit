@@ -1462,6 +1462,7 @@ extension VideoEditor {
         watermarkLayer.contents = watermark.image
         watermarkLayer.contentsGravity = .resize
         watermarkLayer.contentsScale = watermark.imageScale
+        watermarkLayer.opacity = watermark.opacity
         outputLayer.addSublayer(watermarkLayer)
 
         return AVVideoCompositionCoreAnimationTool(
